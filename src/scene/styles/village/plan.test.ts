@@ -20,8 +20,9 @@ const key = (p: VillagePlan) => ({
   cottages: new Map(p.cottages.map((c) => [c.userId, JSON.stringify(c)])), areas: new Map(p.areas.map((a) => [a.id, JSON.stringify(a)])),
 });
 
-describe('village plan', () => {
-  it('is deterministic', { timeout: 30_000 }, () => {
+// Plan generation is CPU-heavy; shared CI runners take several seconds per test.
+describe('village plan', { timeout: 60_000 }, () => {
+  it('is deterministic', () => {
     for (let t = 1; t <= 5; t++) expect(JSON.stringify(generateVillagePlan(input(t)))).toBe(JSON.stringify(generateVillagePlan(input(t))));
     expect(JSON.stringify(generateVillagePlan(input(3)))).not.toBe(JSON.stringify(generateVillagePlan(input(3, { seed: 'other' }))));
   });
