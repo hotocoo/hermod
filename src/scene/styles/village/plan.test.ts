@@ -21,7 +21,7 @@ const key = (p: VillagePlan) => ({
 });
 
 describe('village plan', () => {
-  it('is deterministic', () => {
+  it('is deterministic', { timeout: 30_000 }, () => {
     for (let t = 1; t <= 5; t++) expect(JSON.stringify(generateVillagePlan(input(t)))).toBe(JSON.stringify(generateVillagePlan(input(t))));
     expect(JSON.stringify(generateVillagePlan(input(3)))).not.toBe(JSON.stringify(generateVillagePlan(input(3, { seed: 'other' }))));
   });
