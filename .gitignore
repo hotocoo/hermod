@@ -76,3 +76,7 @@ perf-results/
 *.log
 /.serena/cache/
 /.serena/project.local.yml
+
+# frontend asset folders moved out of out/ at release build (scripts/split-web-assets.mjs)
+/src-tauri/web/*
+!/src-tauri/web/.gitkeep

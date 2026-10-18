@@ -7,7 +7,7 @@
     "frontendDist": "../out",
     "devUrl": "http://localhost:3000",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": "npm run build && node scripts/split-web-assets.mjs"
   },
   "app": {
     "windows": [
@@ -35,6 +35,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "web/": "web/"
+    },
     "createUpdaterArtifacts": true,
     "category": "SocialNetworking",
     "copyright": "Copyright 2026 The Hermod contributors",

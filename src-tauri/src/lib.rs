@@ -16,6 +16,7 @@ pub mod preview;
 pub mod scheduler;
 pub mod settings;
 mod shell;
+mod web_assets;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

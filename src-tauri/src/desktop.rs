@@ -231,7 +231,7 @@ pub fn run() {
             }
         });
     let app = builder
-        .build(tauri::generate_context!())
+        .build(crate::web_assets::install(tauri::generate_context!()))
         .expect("error while building tauri application");
     app.run(|handle, event| {
         if let RunEvent::Exit = event
