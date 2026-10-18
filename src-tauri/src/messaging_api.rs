@@ -47,9 +47,8 @@ pub async fn handle(ctx: &Arc<Ctx>, live: &Arc<Live>, name: &str, a: &Value) -> 
         | "message_unhide" | "chat_prefs_get" | "chat_prefs_set" | "schedule_add"
         | "schedule_list" | "schedule_cancel" | "saved_open" | "dm_start" | "dm_requests"
         | "dm_accept" | "dm_decline" | "contact_card" | "contact_add" | "contact_list"
-        | "contact_remove" | "link_preview" | "privacy_get" | "privacy_set" | "ai_local_get" | "ai_local_set" | "ai_local_run" => {
-            run(ctx, live, name, a).await
-        }
+        | "contact_remove" | "link_preview" | "privacy_get" | "privacy_set" | "ai_local_get"
+        | "ai_local_set" | "ai_local_run" => run(ctx, live, name, a).await,
         _ => return None,
     })
 }
@@ -253,9 +252,13 @@ async fn run(ctx: &Arc<Ctx>, live: &Arc<Live>, name: &str, a: &Value) -> Res<Val
             }
             blk(live, move |c| {
                 if let Some(v) = patch.get("enabled").and_then(Value::as_bool) {
-                    c.setting_set("ai.local.enabled", if v { "1" } else { "0" }).map_err(e)?;
+                    c.setting_set("ai.local.enabled", if v { "1" } else { "0" })
+                        .map_err(e)?;
                 }
-                for (field, key) in [("endpoint", "ai.local.endpoint"), ("model", "ai.local.model")] {
+                for (field, key) in [
+                    ("endpoint", "ai.local.endpoint"),
+                    ("model", "ai.local.model"),
+                ] {
                     if let Some(v) = patch.get(field).and_then(Value::as_str) {
                         c.setting_set(key, v.trim()).map_err(e)?;
                     }
@@ -274,7 +277,9 @@ async fn run(ctx: &Arc<Ctx>, live: &Arc<Live>, name: &str, a: &Value) -> Res<Val
             }
             let endpoint = cfg["endpoint"].as_str().unwrap_or_default().to_string();
             let model = cfg["model"].as_str().unwrap_or_default().to_string();
-            Ok(Value::String(crate::local_ai::run(&endpoint, &model, &task, &text, &target).await?))
+            Ok(Value::String(
+                crate::local_ai::run(&endpoint, &model, &task, &text, &target).await?,
+            ))
         }
         other => Err(format!("unknown command: {other}")),
     }

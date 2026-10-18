@@ -1418,8 +1418,11 @@ fn seen_by(c: &Core, msg: &str) -> Vec<String> {
 #[test]
 fn mark_read_hands_back_the_receipt_only_when_receipts_are_on_so_the_host_can_gossip_it() {
     let (_da, a, _db, b, sid) = shared_space();
-    a.append(&sid, post("general", "a1", "did you read this", None, vec![]))
-        .unwrap();
+    a.append(
+        &sid,
+        post("general", "a1", "did you read this", None, vec![]),
+    )
+    .unwrap();
     sync(&a, &b, &sid);
     assert!(
         b.mark_read(&sid, "general").unwrap().is_none(),

@@ -538,7 +538,9 @@ impl Store {
         let mut st = self
             .conn
             .prepare("SELECT id, arrival FROM events WHERE space_id = ?1 AND pending = 0")?;
-        let rows = st.query_map([&space.0[..]], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as u64)))?;
+        let rows = st.query_map([&space.0[..]], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as u64))
+        })?;
         Ok(rows.collect::<std::result::Result<_, _>>()?)
     }
 
@@ -629,7 +631,13 @@ impl Store {
         let mut st = self
             .conn
             .prepare("SELECT space_id, channel_id, arrival FROM read_markers")?;
-        let rows = st.query_map([], |r| Ok((blob_arr::<32>(r, 0), r.get::<_, String>(1)?, r.get::<_, i64>(2)?)))?;
+        let rows = st.query_map([], |r| {
+            Ok((
+                blob_arr::<32>(r, 0),
+                r.get::<_, String>(1)?,
+                r.get::<_, i64>(2)?,
+            ))
+        })?;
         let mut out = BTreeMap::new();
         for r in rows {
             let (s, c, a) = r?;

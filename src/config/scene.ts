@@ -364,7 +364,7 @@ export const DIRECTOR = {
   /** Orbit and pan inertia after release (per second decay), soft edge: overshoot allowed before the hard stop, spring-back rate. */
   inertia: { orbitDecay: 3.4, panDecay: 4.2, minSpeed: 0.0004 }, softEdge: { overshoot: 1.18, relax: 7 },
   /** Depth of field (high and ultra): aperture scales the circle of confusion, maxBlur in uv, taps per pixel, focus pull spring. */
-  dof: { aperture: 0.55, maxBlur: 0.012, taps: 14, strengthDoor: 1, strengthInside: 0.3, strengthFocus: 0.7, /* inside a room the near field keeps this share of its blur, so foreground figures and fixtures stay crisp */ nearInside: 0.12, spring: [30, 1] as const, minTier: 'high' as QualityTier },
+  dof: { aperture: 0.55, maxBlur: 0.012, taps: 14, strengthDoor: 1, strengthInside: 0.3, strengthFocus: 0.7, /* inside a room the near field keeps this share of its blur, so foreground figures and furniture stay crisp */ nearInside: 0.12, spring: [30, 1] as const, minTier: 'high' as QualityTier },
   /** Lens: chromatic aberration at the edges (uv), film grain amount, edge softness is the vignette in POST. */
   lens: { aberration: 0.0011, grain: 0.018 },
   /** Over-the-shoulder framing used for a focused building while a side panel is open: wider azimuth, lower and closer, subject pushed off the panel side. */

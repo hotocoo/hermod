@@ -283,7 +283,12 @@ fn ui_reads_blobs_ids_flags_and_space_ids() {
     assert_eq!(p1["spaceId"], sid.as_str());
 
     // Shorts are listed as videos too (the player opens them by id): pick the liked long one.
-    let video = c["media"]["videos"].as_array().unwrap().iter().find(|v| v["id"] == "v1").unwrap();
+    let video = c["media"]["videos"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["id"] == "v1")
+        .unwrap();
     assert_eq!(
         (video["blob"]["hash"].as_str(), video["liked"].as_bool()),
         (Some(hash.as_str()), Some(true))
