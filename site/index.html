@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hermod</title>
+<meta name="description" content="Hermod is a desktop app for private spaces shared directly between friends. No central server, no accounts, no telemetry.">
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Lora:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header class="top">
+  <a class="brand" href="./">H<b>ð</b>rmod</a>
+  <nav class="top" aria-label="Main"><a href="#how">How it works</a><a href="#download">Download</a><a href="https://github.com/hotocoo/hermod">Source</a></nav>
+</header>
+<main id="main">
+  <div class="hero">
+    <h1>Spaces that belong to the people in them.</h1>
+    <p class="lede">Hermod is a desktop app where every install is a small peer in an encrypted mesh. Chat, share and plan with friends. No central server, no accounts, no telemetry.</p>
+    <div class="btns">
+      <a class="btn primary" href="#download">Download Hermod</a>
+      <a class="btn" href="https://github.com/hotocoo/hermod">View source</a>
+    </div>
+  </div>
+
+  <section id="how" aria-labelledby="how-h">
+    <div class="split">
+      <div>
+        <h2 id="how-h">How it works</h2>
+        <p>Each space has its own key. Your messages and files are encrypted on your device and synced straight to the other members. Peers that help carry traffic cannot read it.</p>
+        <p>Invite someone with a link. The code stays in the part of the link your browser never sends anywhere, and opens right in the app.</p>
+      </div>
+      <ul class="list">
+        <li><strong>Private by design.</strong> Spaces are encrypted with keys only members hold.</li>
+        <li><strong>No server to trust.</strong> Members' devices sync with each other.</li>
+        <li><strong>You choose what to share.</strong> Relaying can be capped or switched off.</li>
+        <li><strong>Open source.</strong> Apache-2.0, read every line.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="shots-h">
+    <h2 id="shots-h">A look inside</h2>
+    <div class="shots">
+      <div class="shot" role="img" aria-label="Screenshot placeholder">Screenshot 1 goes here</div>
+      <div class="shot" role="img" aria-label="Screenshot placeholder">Screenshot 2 goes here</div>
+    </div>
+  </section>
+
+  <section id="download" aria-labelledby="dl-h">
+    <h2 id="dl-h">Download</h2>
+    <p>Free for macOS, Windows and Linux. <span id="ver" class="small"></span></p>
+    <div class="btns">
+      <a class="btn primary" id="dl-mac-arm" href="https://github.com/hotocoo/hermod/releases/latest">macOS (Apple silicon)</a>
+      <a class="btn" id="dl-mac-x64" href="https://github.com/hotocoo/hermod/releases/latest">macOS (Intel)</a>
+      <a class="btn" id="dl-win" href="https://github.com/hotocoo/hermod/releases/latest">Windows</a>
+      <a class="btn" id="dl-linux" href="https://github.com/hotocoo/hermod/releases/latest">Linux (.AppImage)</a>
+    </div>
+    <p class="small">All files and checksums: <a href="https://github.com/hotocoo/hermod/releases">GitHub releases</a>. Early builds are not code-signed, so your system may warn you the first time you open Hermod. The README explains how to continue.</p>
+  </section>
+
+  <section aria-labelledby="honest-h">
+    <h2 id="honest-h">Honest limits</h2>
+    <ul>
+      <li>Two people behind strict home routers may fail to connect until a reachable Hermod peer is online.</li>
+      <li>Public IPFS and STUN servers are third-party services Hermod uses to find peers.</li>
+      <li>Members cannot be removed and invite codes cannot be revoked yet.</li>
+    </ul>
+  </section>
+</main>
+<footer>
+  <a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="https://github.com/hotocoo/hermod">GitHub</a>
+  <p>Hermod is open source under the Apache License 2.0. Made by the Hermod contributors.</p>
+</footer>
+</div>
+<script>
+(function(){
+  var API="https://api.github.com/repos/hotocoo/hermod/releases/latest";
+  var rules={
+    "dl-mac-arm":/aarch64.*\.dmg$|arm64.*\.dmg$/i,
+    "dl-mac-x64":/(x64|x86_64).*\.dmg$/i,
+    "dl-win":/x64.*-setup\.exe$|x64.*\.msi$/i,
+    "dl-linux":/amd64\.AppImage$|x86_64\.AppImage$/i
+  };
+  fetch(API,{headers:{Accept:"application/vnd.github+json"}}).then(function(r){
+    if(!r.ok)throw 0;return r.json();
+  }).then(function(rel){
+    document.getElementById("ver").textContent="Latest: "+rel.tag_name+".";
+    Object.keys(rules).forEach(function(id){
+      var a=(rel.assets||[]).find(function(x){return rules[id].test(x.name)});
+      if(a)document.getElementById(id).href=a.browser_download_url;
+    });
+  }).catch(function(){/* links already point at the releases page */});
+})();
+</script>
+</body>
+</html>

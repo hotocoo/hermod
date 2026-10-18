@@ -1,0 +1,21 @@
+.top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: #0e0d0c;
+  pointer-events: none;
+  z-index: 40;
+  transition: height 900ms cubic-bezier(.76,0,.24,1);
+}
+
+.bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0e0d0c;
+  pointer-events: none;
+  z-index: 40;
+  transition: height 900ms cubic-bezier(.76,0,.24,1);
+}

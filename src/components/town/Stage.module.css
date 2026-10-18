@@ -1,0 +1,46 @@
+.mount {
+  position: absolute;
+  inset: 0;
+}
+
+.tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: background 2400ms ease;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #eef1ff;
+  mix-blend-mode: screen;
+  animation: hm-flash 900ms ease-out both;
+}
+
+.enterVeil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 21;
+  background: radial-gradient(circle at 50% 55%,rgba(255,196,120,.85) 0%,rgba(60,38,22,.92) 38%,#140e0a 70%);
+  animation: hm-veil 1050ms cubic-bezier(.65,0,.35,1) both;
+}
+
+.veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  background: radial-gradient(70% 60% at 50% 55%,color-mix(in srgb,var(--h-sky-bot,#f3f2f2) 92%,transparent),var(--h-sky-top,#dfe6ea));
+  animation: hm-veil 1150ms cubic-bezier(.65,0,.35,1) both;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg,transparent 0%,transparent 34%,color-mix(in srgb,var(--color-bg) 55%,transparent) 62%);
+  transition: opacity 700ms ease;
+}

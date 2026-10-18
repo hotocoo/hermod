@@ -1,0 +1,13 @@
+.page { flex: 1; overflow: auto; padding: 24px; }
+.rings { display: flex; gap: 18px; flex-wrap: wrap; }
+.story { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0; }
+.ring { width: 78px; height: 78px; border-radius: 50%; padding: 3px; transition: transform 380ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1); }
+.ring:hover { transform: scale(1.06); }
+.face {
+  width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--color-bg); box-sizing: border-box; display: grid; place-items: center;
+  font-family: var(--font-heading); font-weight: 600; font-size: 24px; background: var(--color-surface);
+}
+.first { font-size: 12px; }
+.note { margin: 22px 0 0; font-size: 13px; font-style: italic; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.heading { margin: 0; font-family: var(--font-heading); font-weight: 400; font-size: 28px; }

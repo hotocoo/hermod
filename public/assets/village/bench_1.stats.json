@@ -1,0 +1,1 @@
+{"id": "bench_1", "tris_hi": 84, "tris_lod0": 224, "tex": 2048, "lm": 1024, "bytes": 1472068, "nodes": {"bench_1_L1_LOD0": 224, "bench_1_L1_LOD1": 100, "bench_1_L1_LOD2": 34}, "lod_totals": [224, 100, 34]}

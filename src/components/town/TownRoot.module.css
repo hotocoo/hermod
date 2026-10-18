@@ -1,0 +1,11 @@
+.root {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  /* clip, not hidden: focus() and scrollIntoView() can scroll an overflow:hidden box and leave the whole UI shifted up. */
+  overflow: hidden;
+  overflow: clip;
+  color: var(--color-text);
+  font-family: var(--font-body);
+  background: radial-gradient(55% 45% at 72% 18%,var(--h-sky-glow,rgba(255,240,210,.3)),transparent 70%),linear-gradient(180deg,var(--h-sky-top,#dfe6ea) 0%,var(--h-sky-bot,#f3f2f2) 72%);
+}

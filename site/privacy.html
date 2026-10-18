@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy Notice | Hermod</title>
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Lora:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="./">H<b>ð</b>rmod</a></header>
+<main class="legal">
+<h1>Hermod Privacy Notice</h1>
+<p>Version 2026-10-15</p>
+<p>This text is not legal advice; have it reviewed before relying on it.</p>
+<h2>1. Summary</h2>
+<ul><li>No accounts, no central server, no telemetry, no analytics.</li><li>Your data lives on your device and on the devices of the members of your spaces, encrypted.</li><li>Other peers can see your IP address and PeerId when your computer connects to them.</li><li>We, the Hermod contributors, do not collect or receive your data.</li></ul>
+<h2>2. Who is responsible</h2>
+<p>The Hermod contributors publish the software. Because we never receive your data, we do not hold it. You and the other members of your spaces hold it.</p>
+<h2>3. What is stored on your device</h2>
+<ul><li>Your identity key and PeerId, generated on first run, stored in the app data folder.</li><li>Your profile (name, bio, initials, optional avatar).</li><li>The events and files of every space you are in, stored encrypted with the space key.</li><li>A cache of encrypted data for other spaces (up to your configured cap), which you cannot read.</li><li>Your settings and the Terms version you accepted, with a timestamp.</li></ul>
+<h2>4. What other peers can see</h2>
+<p>When your computer connects to other Hermod peers:</p>
+<ul><li>your IP address and your PeerId;</li><li>the spaces you take part in, as network identifiers for routing, and when you are online;</li><li>encrypted blobs and events. Only members of a space hold its key and can read its content.</li></ul>
+<p>Members of a space can see what you post in it, including your profile and the time of your activity.</p>
+<p>Peers that relay for you see that traffic passes through, its size and timing, and the two endpoints, but not its content.</p>
+<h2>5. What third parties see</h2>
+<ul><li>Public IPFS bootstrap nodes: your IP address and PeerId when you look for peers.</li><li>Public STUN servers (Google): your IP address when a voice or video connection is set up.</li><li>GitHub: your IP address when you download Hermod or check for updates, under GitHub's own privacy policy.</li></ul>
+<h2>6. Telemetry and analytics</h2>
+<p>None. Hermod does not send usage data, crash reports, or analytics to anyone. The project website has no analytics and no cookies. Invite codes in website links are in the URL fragment, which your browser never sends to a server; the page reads them locally.</p>
+<h2>7. Resource sharing</h2>
+<p>If you consent, Hermod relays encrypted traffic and keeps encrypted copies for others within the limits in the Terms (section 8). This does not give us or other peers access to your files or your other network traffic.</p>
+<h2>8. Retention and deletion</h2>
+<p>Data stays on your device until you leave a space, delete it, or uninstall Hermod and remove its data folder. Copies on other members' devices, and encrypted copies cached by other peers, cannot be recalled and may remain.</p>
+<h2>9. Security</h2>
+<p>Content is encrypted with a per-space key, events are signed, and transport uses Noise. No system is perfectly secure. Anyone with a space's invite code or key can read that space. There is no member removal or re-keying in this version.</p>
+<h2>10. Children</h2>
+<p>Hermod is not for children under 13, or under 16 in the European Union or where local law sets a higher age.</p>
+<h2>11. Your rights</h2>
+<p>Because we hold no personal data about you, there is nothing for us to export, correct, or erase. You control your data on your device. For data held by other members, ask them.</p>
+<h2>12. Changes</h2>
+<p>When this notice changes, its version changes and Hermod asks you to accept it again.</p>
+<h2>13. Contact</h2>
+<p><a href="https://github.com/hotocoo/hermod/issues">https://github.com/hotocoo/hermod/issues</a>. Security issues: GitHub security advisories on the same repository.</p>
+</main>
+<footer><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a><a href="./">Home</a></footer>
+</div>
+</body>
+</html>

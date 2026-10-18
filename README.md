@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hermod
 
-## Getting Started
+Hermod is a desktop app where every install is also a small peer in an encrypted mesh. Chat, share and plan with friends in private spaces. There is no central server, no account, and no telemetry.
 
-First, run the development server:
+Built with Tauri v2, Next.js and Rust (libp2p). Licensed under Apache-2.0.
+
+Website and downloads: https://hotocoo.github.io/hermod/
+
+<!-- Screenshots: add images to docs/screenshots and link them here. -->
+> Screenshots go here.
+
+## Install
+
+Download the installer for your system from the [latest release](https://github.com/hotocoo/hermod/releases/latest). Early builds are not code-signed, so your system will warn you once.
+
+- **macOS:** right-click the app, choose Open, then Open again. Or run `xattr -dr com.apple.quarantine /Applications/Hermod.app`.
+- **Windows:** when SmartScreen appears, click "More info", then "Run anyway".
+- **Linux:** `chmod +x Hermod_*.AppImage` and run it, or install the `.deb`.
+
+Hermod checks GitHub for signed updates.
+
+## How the mesh works
+
+- Each install has its own identity key. Each space has a random key held only by its members.
+- Every change is a signed, encrypted event. Members sync events directly with each other.
+- Peers find each other on the local network, through public IPFS bootstrap nodes, and through addresses inside invite codes. Peers that are publicly reachable can relay encrypted traffic for others. Relays cannot read it.
+- Invite links look like `https://hotocoo.github.io/hermod/join#<code>`. The code is in the fragment, so it never leaves your browser, and the page opens `hermod://join/<code>` in the app.
+
+Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+### Known limits
+
+- Two users behind symmetric NATs may fail to connect until a reachable Hermod peer is online.
+- Public IPFS bootstrap nodes and public STUN servers are third-party services.
+- No member removal or re-keying in v1. Invite codes cannot be revoked.
+
+## Resource sharing
+
+With your consent, Hermod uses some CPU, bandwidth and disk to relay encrypted traffic and keep encrypted copies for spaces you are in. Defaults: 8 relay circuits, 256 KiB/s relay bandwidth, 64 MiB per circuit, 512 MiB cache for others, 64 connections. You can lower these or switch relaying off in settings. This may count against your data plan, so check your ISP terms. Full text: [legal/TERMS.md](legal/TERMS.md), [legal/PRIVACY.md](legal/PRIVACY.md).
+
+## Build from source
+
+Requirements: Node 22+, Rust 1.90+, and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+npm run tauri dev      # run the app
+npm run tauri build    # build installers
+cargo test --workspace
+npx playwright test    # UI end-to-end tests
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Release process
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Bump the version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
+2. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`. Tags with a suffix such as `-beta.1` are published as pre-releases.
+3. The `release` workflow builds macOS (Apple silicon and Intel), Linux and Windows installers, signs updater artifacts, and publishes the release with `latest.json`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Repository secrets needed: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty if the key has none). Optional for macOS signing: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`.
 
-## Learn More
+## Legal
 
-To learn more about Next.js, take a look at the following resources:
+The legal texts are written for a personal open-source project. This text is not legal advice; have it reviewed before relying on it.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Contributing and security
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).

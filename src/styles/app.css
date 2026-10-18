@@ -1,0 +1,21 @@
+/* App-wide base, grain overlay and shared keyframes (from the design template <style>). */
+html,body{margin:0;height:100%;overflow:hidden;overflow:clip;background:var(--color-bg)}
+button{font:inherit;color:inherit;cursor:pointer}
+.hm-story-in::placeholder{color:rgba(243,237,227,.6)!important}
+input::placeholder{color:color-mix(in srgb,var(--color-text) 42%,transparent);font-style:italic}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:999;opacity:calc(var(--h-grain,.05) * var(--h-grain-on,1));background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");mix-blend-mode:multiply}
+@keyframes hm-flash{0%{opacity:0}6%{opacity:.6}16%{opacity:.08}26%{opacity:.42}100%{opacity:0}}
+@keyframes hm-veil{0%{opacity:0}35%{opacity:1}65%{opacity:1}100%{opacity:0}}
+@keyframes hm-drawer{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes hm-title{0%{opacity:0;letter-spacing:.5em;filter:blur(8px)}40%{opacity:1;filter:blur(0)}80%{opacity:1}100%{opacity:0;letter-spacing:.18em}}
+@keyframes hm-letter{from{opacity:0;transform:translateX(-30px) rotate(-3deg)}to{opacity:1;transform:none}}
+@keyframes hm-float{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:1}100%{opacity:0;transform:translateY(-120px) translateX(-14px) scale(1.2)}}
+@keyframes hm-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes hm-iris{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes hm-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes hm-pop{0%{opacity:0;transform:translateY(8px) scale(.98)}100%{opacity:1;transform:none}}
+@keyframes hm-scale{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:none}}
+@keyframes hm-fade{from{opacity:0}to{opacity:1}}
+@keyframes hm-breathe{0%,100%{opacity:.35}50%{opacity:1}}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}

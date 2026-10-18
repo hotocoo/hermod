@@ -1,0 +1,30 @@
+{
+  "_doc": "Catalog entries that no layout, scene or style references. They stay in catalog.mjs (editing it would invalidate every asset stamp) but are neither built into the manifest nor shipped: assets:build and assets:check skip them. Remove an id here to ship it again.",
+  "ids": [
+    "vintage_cabinet_01",
+    "brass_candleholders",
+    "GothicCabinet_01",
+    "industrial_wall_lamp",
+    "WoodenChair_01",
+    "bar_chair_round_01",
+    "vintage_telephone_wall_clock",
+    "planter_box_01",
+    "painted_wooden_chair_02",
+    "Lantern_01",
+    "painted_wooden_shelves",
+    "painted_wooden_table",
+    "wooden_candlestick",
+    "painted_wooden_chair_01",
+    "wooden_display_shelves_01",
+    "seadogs_compass",
+    "industrial_wall_sconce",
+    "wooden_cutting_board",
+    "rough_linen",
+    "fabric_pattern_07",
+    "quatrefoil_jacquard_fabric",
+    "brown_leather",
+    "poly_wool_herringbone",
+    "wooden_stool_02",
+    "throw_pillows_01"
+  ]
+}

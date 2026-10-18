@@ -1,0 +1,9952 @@
+{
+ "schema": "hermod-assets/1",
+ "models": {
+  "nature_apple": {
+   "id": "nature_apple",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature apple",
+   "bounds": {
+    "min": [
+     -32767,
+     -28903,
+     -32767
+    ],
+    "max": [
+     32767,
+     28903,
+     32767
+    ],
+    "size": [
+     65534,
+     57806,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 57806
+   },
+   "radius": 54614.43,
+   "lods": [
+    {
+     "tris": 8918,
+     "dist": 0
+    },
+    {
+     "tris": 2237,
+     "dist": 436915.4
+    },
+    {
+     "tris": 556,
+     "dist": 1092288.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1054051,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/apple.glb",
+     "bytes": 1544936,
+     "blake3": "c4ca3f6ac1164b6a34adba6c0402787380d9372a6b3f02be5cc78c2b8ae606a3"
+    }
+   }
+  },
+  "nature_apple_0": {
+   "id": "nature_apple_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature apple 0",
+   "bounds": {
+    "min": [
+     -0.8419,
+     -0.6556,
+     -1.3653
+    ],
+    "max": [
+     0.7736,
+     0.8491,
+     0.0119
+    ],
+    "size": [
+     1.6155,
+     1.5047,
+     1.3771
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.6155,
+    "d": 1.3771,
+    "h": 1.5047
+   },
+   "radius": 1.301,
+   "lods": [
+    {
+     "tris": 3050,
+     "dist": 0
+    },
+    {
+     "tris": 1106,
+     "dist": 10.4
+    },
+    {
+     "tris": 448,
+     "dist": 26
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/apple_0.glb",
+     "bytes": 263156,
+     "blake3": "4f349c60e80cdfad2226f81b894d1fe2d5648b462f01b78ecbe6075f5600728a"
+    }
+   }
+  },
+  "nature_apple_1": {
+   "id": "nature_apple_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature apple 1",
+   "bounds": {
+    "min": [
+     -0.8854,
+     -0.782,
+     -1.4954
+    ],
+    "max": [
+     0.8699,
+     0.9785,
+     0.0114
+    ],
+    "size": [
+     1.7553,
+     1.7605,
+     1.5068
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.7553,
+    "d": 1.5068,
+    "h": 1.7605
+   },
+   "radius": 1.454,
+   "lods": [
+    {
+     "tris": 3050,
+     "dist": 0
+    },
+    {
+     "tris": 1106,
+     "dist": 11.6
+    },
+    {
+     "tris": 448,
+     "dist": 29.1
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/apple_1.glb",
+     "bytes": 263156,
+     "blake3": "ad30584a2d0599a247a349528b88d0f874d5df88ff04da72a7f40115f4b85e79"
+    }
+   }
+  },
+  "nature_apple_2": {
+   "id": "nature_apple_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature apple 2",
+   "bounds": {
+    "min": [
+     -0.7046,
+     -0.6194,
+     -1.2507
+    ],
+    "max": [
+     0.6532,
+     0.7074,
+     0.0122
+    ],
+    "size": [
+     1.3578,
+     1.3268,
+     1.2628
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.3578,
+    "d": 1.2628,
+    "h": 1.3268
+   },
+   "radius": 1.14,
+   "lods": [
+    {
+     "tris": 3050,
+     "dist": 0
+    },
+    {
+     "tris": 1106,
+     "dist": 9.1
+    },
+    {
+     "tris": 448,
+     "dist": 22.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/apple_2.glb",
+     "bytes": 263160,
+     "blake3": "cfa69acf348a9fb2ce2406868d914f0217220bd8977afd24df0be289875c7f7a"
+    }
+   }
+  },
+  "nature_apple_imp": {
+   "id": "nature_apple_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature apple imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 1086421,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/apple_imp.glb",
+     "bytes": 1089636,
+     "blake3": "ffe005a50f9473d44df750c907c2770616c476f4a4187afe6bae6ec2bc9a67a0"
+    }
+   }
+  },
+  "nature_birch": {
+   "id": "nature_birch",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature birch",
+   "bounds": {
+    "min": [
+     -28839,
+     -32767,
+     -27943
+    ],
+    "max": [
+     28839,
+     32767,
+     27943
+    ],
+    "size": [
+     57678,
+     65534,
+     55886
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 57678,
+    "d": 55886,
+    "h": 65534
+   },
+   "radius": 51828.327,
+   "lods": [
+    {
+     "tris": 11915,
+     "dist": 0
+    },
+    {
+     "tris": 3042,
+     "dist": 414626.6
+    },
+    {
+     "tris": 763,
+     "dist": 1036566.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 949251,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/birch.glb",
+     "bytes": 1588288,
+     "blake3": "9a9dce9c897c9752f7d6377f8291c62c02d87c4a54678689150cee9907a5f0cf"
+    }
+   }
+  },
+  "nature_birch_0": {
+   "id": "nature_birch_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature birch 0",
+   "bounds": {
+    "min": [
+     -1.2461,
+     -1.4661,
+     -2.277
+    ],
+    "max": [
+     1.3854,
+     1.0735,
+     0.0051
+    ],
+    "size": [
+     2.6315,
+     2.5396,
+     2.2821
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 2.6315,
+    "d": 2.2821,
+    "h": 2.5396
+   },
+   "radius": 2.155,
+   "lods": [
+    {
+     "tris": 4430,
+     "dist": 0
+    },
+    {
+     "tris": 1610,
+     "dist": 17.2
+    },
+    {
+     "tris": 640,
+     "dist": 43.1
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/birch_0.glb",
+     "bytes": 383620,
+     "blake3": "d291f13ec77b71ac5d888ec5630e560a4fac75048726e9f4893c81ffa9de4dba"
+    }
+   }
+  },
+  "nature_birch_1": {
+   "id": "nature_birch_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature birch 1",
+   "bounds": {
+    "min": [
+     -1.2517,
+     -1.092,
+     -2.2553
+    ],
+    "max": [
+     1.0718,
+     0.9848,
+     0.0054
+    ],
+    "size": [
+     2.3235,
+     2.0768,
+     2.2607
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 2.3235,
+    "d": 2.2607,
+    "h": 2.0768
+   },
+   "radius": 1.925,
+   "lods": [
+    {
+     "tris": 4430,
+     "dist": 0
+    },
+    {
+     "tris": 1610,
+     "dist": 15.4
+    },
+    {
+     "tris": 640,
+     "dist": 38.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/birch_1.glb",
+     "bytes": 383620,
+     "blake3": "72c56ab4a2f663f8f9aad4f28e0fa3256067cf59b1eb6facf4acf8e5e8768dd0"
+    }
+   }
+  },
+  "nature_birch_2": {
+   "id": "nature_birch_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature birch 2",
+   "bounds": {
+    "min": [
+     -1.1453,
+     -0.964,
+     -1.8474
+    ],
+    "max": [
+     1.0896,
+     1.0734,
+     0.0056
+    ],
+    "size": [
+     2.2349,
+     2.0375,
+     1.853
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 2.2349,
+    "d": 1.853,
+    "h": 2.0375
+   },
+   "radius": 1.773,
+   "lods": [
+    {
+     "tris": 4430,
+     "dist": 0
+    },
+    {
+     "tris": 1610,
+     "dist": 14.2
+    },
+    {
+     "tris": 640,
+     "dist": 35.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/birch_2.glb",
+     "bytes": 383620,
+     "blake3": "160bf6ad8ba0b27305e5c8e3cd78b4c25632049a1283b56fffe9cfc069847204"
+    }
+   }
+  },
+  "nature_birch_imp": {
+   "id": "nature_birch_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature birch imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 773864,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/birch_imp.glb",
+     "bytes": 777080,
+     "blake3": "9c0cfad48bc0af8fe713ac091895e4ba6934ba7d8b2e4005c1dc49efba4a454c"
+    }
+   }
+  },
+  "nature_cypress": {
+   "id": "nature_cypress",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature cypress",
+   "bounds": {
+    "min": [
+     -14629,
+     -32767,
+     -15053
+    ],
+    "max": [
+     14629,
+     32767,
+     15053
+    ],
+    "size": [
+     29258,
+     65534,
+     30106
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 29258,
+    "d": 30106,
+    "h": 65534
+   },
+   "radius": 38913.709,
+   "lods": [
+    {
+     "tris": 4337,
+     "dist": 0
+    },
+    {
+     "tris": 875,
+     "dist": 311309.7
+    },
+    {
+     "tris": 422,
+     "dist": 778274.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1263078,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/cypress.glb",
+     "bytes": 1537536,
+     "blake3": "721946ea4093942e3dc489fdec64325aa02e8758337047f220e98659aba1c45f"
+    }
+   }
+  },
+  "nature_cypress_0": {
+   "id": "nature_cypress_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature cypress 0",
+   "bounds": {
+    "min": [
+     -0.3015,
+     -0.3779,
+     -1.2669
+    ],
+    "max": [
+     0.3718,
+     0.3015,
+     0.005
+    ],
+    "size": [
+     0.6734,
+     0.6794,
+     1.2719
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 0.6734,
+    "d": 1.2719,
+    "h": 0.6794
+   },
+   "radius": 0.796,
+   "lods": [
+    {
+     "tris": 3310,
+     "dist": 0
+    },
+    {
+     "tris": 1330,
+     "dist": 6.4
+    },
+    {
+     "tris": 488,
+     "dist": 15.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/cypress_0.glb",
+     "bytes": 307368,
+     "blake3": "c655875122b0765f923ad41f7b0bc01ea10a52f8663e9e8acd34dd3df2f55516"
+    }
+   }
+  },
+  "nature_cypress_1": {
+   "id": "nature_cypress_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature cypress 1",
+   "bounds": {
+    "min": [
+     -0.3362,
+     -0.3698,
+     -1.4358
+    ],
+    "max": [
+     0.3881,
+     0.3863,
+     0.0043
+    ],
+    "size": [
+     0.7242,
+     0.7561,
+     1.4401
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 0.7242,
+    "d": 1.4401,
+    "h": 0.7561
+   },
+   "radius": 0.89,
+   "lods": [
+    {
+     "tris": 3310,
+     "dist": 0
+    },
+    {
+     "tris": 1330,
+     "dist": 7.1
+    },
+    {
+     "tris": 488,
+     "dist": 17.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/cypress_1.glb",
+     "bytes": 307372,
+     "blake3": "fc4638db5d15e99185ece567e0547a4870fb5160dcfdf3f9eada77a9ee514631"
+    }
+   }
+  },
+  "nature_cypress_2": {
+   "id": "nature_cypress_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature cypress 2",
+   "bounds": {
+    "min": [
+     -0.2969,
+     -0.306,
+     -1.2874
+    ],
+    "max": [
+     0.3424,
+     0.2834,
+     0.0051
+    ],
+    "size": [
+     0.6393,
+     0.5893,
+     1.2925
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 0.6393,
+    "d": 1.2925,
+    "h": 0.5893
+   },
+   "radius": 0.779,
+   "lods": [
+    {
+     "tris": 3310,
+     "dist": 0
+    },
+    {
+     "tris": 1330,
+     "dist": 6.2
+    },
+    {
+     "tris": 488,
+     "dist": 15.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/cypress_2.glb",
+     "bytes": 307372,
+     "blake3": "5be323c4930c64517916acd50fd2432378820e1bb3577f0abbad22b80f32d1a3"
+    }
+   }
+  },
+  "nature_cypress_imp": {
+   "id": "nature_cypress_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature cypress imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 439485,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/cypress_imp.glb",
+     "bytes": 442704,
+     "blake3": "9e8340c764d7e0090d67a56d66bd058ffa28a12275209e3107661c1625be14fe"
+    }
+   }
+  },
+  "nature_grass": {
+   "id": "nature_grass",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass",
+   "bounds": {
+    "min": [
+     -32767,
+     -27439,
+     -32767
+    ],
+    "max": [
+     32767,
+     27439,
+     32767
+    ],
+    "size": [
+     65534,
+     54878,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 54878
+   },
+   "radius": 53853.981,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 430831.9
+    },
+    {
+     "tris": 4,
+     "dist": 1077079.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 806026,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass.glb",
+     "bytes": 830708,
+     "blake3": "77838bc88e8c55f809ce7339ff356ede092ed5983fe5ab4367ef7d0ca846439e"
+    }
+   }
+  },
+  "nature_grass_0": {
+   "id": "nature_grass_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -26735,
+     -32767
+    ],
+    "max": [
+     32767,
+     26735,
+     32767
+    ],
+    "size": [
+     65534,
+     53470,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 53470
+   },
+   "radius": 53498.718,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 427989.7
+    },
+    {
+     "tris": 4,
+     "dist": 1069974.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 806026,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_0.glb",
+     "bytes": 814496,
+     "blake3": "b7149985b9996836af5dadf0f73e108acf11795d17dfa823b4fffc51a52ce83b"
+    }
+   }
+  },
+  "nature_grass_1": {
+   "id": "nature_grass_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -20090,
+     -32767
+    ],
+    "max": [
+     32767,
+     20090,
+     32767
+    ],
+    "size": [
+     65534,
+     40180,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 40180
+   },
+   "radius": 50507.036,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 404056.3
+    },
+    {
+     "tris": 4,
+     "dist": 1010140.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 806026,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_1.glb",
+     "bytes": 814508,
+     "blake3": "d92285995699402ebbb84732037aded6757da03662b309ea4076620f0b12a8f0"
+    }
+   }
+  },
+  "nature_grass_2": {
+   "id": "nature_grass_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass 2",
+   "bounds": {
+    "min": [
+     -32347,
+     -27107,
+     -32767
+    ],
+    "max": [
+     32347,
+     27107,
+     32767
+    ],
+    "size": [
+     64694,
+     54214,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 64694,
+    "d": 65534,
+    "h": 54214
+   },
+   "radius": 53430.274,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 427442.2
+    },
+    {
+     "tris": 4,
+     "dist": 1068605.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 806026,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_2.glb",
+     "bytes": 814500,
+     "blake3": "a27f34dfbc1061ae4b460b6f46e2c9e63c93e3a4cc80869f32a2189d11406850"
+    }
+   }
+  },
+  "nature_grass_3": {
+   "id": "nature_grass_3",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass 3",
+   "bounds": {
+    "min": [
+     -32767,
+     -27439,
+     -32767
+    ],
+    "max": [
+     32767,
+     27439,
+     32767
+    ],
+    "size": [
+     65534,
+     54878,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 54878
+   },
+   "radius": 53853.981,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 430831.9
+    },
+    {
+     "tris": 4,
+     "dist": 1077079.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 806026,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_3.glb",
+     "bytes": 814480,
+     "blake3": "087a53a44604145c3df90aa11bcbc23153935ac690f2041f479740116962620f"
+    }
+   }
+  },
+  "nature_grass_dry": {
+   "id": "nature_grass_dry",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass dry",
+   "bounds": {
+    "min": [
+     -32767,
+     -27439,
+     -32767
+    ],
+    "max": [
+     32767,
+     27439,
+     32767
+    ],
+    "size": [
+     65534,
+     54878,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 54878
+   },
+   "radius": 53853.981,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 430831.9
+    },
+    {
+     "tris": 4,
+     "dist": 1077079.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 804566,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_dry.glb",
+     "bytes": 829364,
+     "blake3": "acce1d479577a4ba6d2b43e0a473be41b76e568456f6bf21a0626149528906b0"
+    }
+   }
+  },
+  "nature_grass_dry_0": {
+   "id": "nature_grass_dry_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass dry 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -26735,
+     -32767
+    ],
+    "max": [
+     32767,
+     26735,
+     32767
+    ],
+    "size": [
+     65534,
+     53470,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 53470
+   },
+   "radius": 53498.718,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 427989.7
+    },
+    {
+     "tris": 4,
+     "dist": 1069974.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 804566,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_dry_0.glb",
+     "bytes": 813080,
+     "blake3": "9497fe9aff7867fd5293dcedd38f9e548695d15c7982caeaf84a6ea40f423125"
+    }
+   }
+  },
+  "nature_grass_dry_1": {
+   "id": "nature_grass_dry_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass dry 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -20090,
+     -32767
+    ],
+    "max": [
+     32767,
+     20090,
+     32767
+    ],
+    "size": [
+     65534,
+     40180,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 40180
+   },
+   "radius": 50507.036,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 404056.3
+    },
+    {
+     "tris": 4,
+     "dist": 1010140.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 804566,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_dry_1.glb",
+     "bytes": 813092,
+     "blake3": "3c5e960ead1f215c673f044a38fd28526cfc2449fa1b009e37665549a19bec1f"
+    }
+   }
+  },
+  "nature_grass_dry_2": {
+   "id": "nature_grass_dry_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass dry 2",
+   "bounds": {
+    "min": [
+     -32347,
+     -27107,
+     -32767
+    ],
+    "max": [
+     32347,
+     27107,
+     32767
+    ],
+    "size": [
+     64694,
+     54214,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 64694,
+    "d": 65534,
+    "h": 54214
+   },
+   "radius": 53430.274,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 427442.2
+    },
+    {
+     "tris": 4,
+     "dist": 1068605.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 804566,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_dry_2.glb",
+     "bytes": 813084,
+     "blake3": "a1ef1932e0e0794d41b2eb215cb94b1bf34d9420d445888db3fb0c54ab968f86"
+    }
+   }
+  },
+  "nature_grass_dry_3": {
+   "id": "nature_grass_dry_3",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature grass dry 3",
+   "bounds": {
+    "min": [
+     -32767,
+     -27439,
+     -32767
+    ],
+    "max": [
+     32767,
+     27439,
+     32767
+    ],
+    "size": [
+     65534,
+     54878,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 54878
+   },
+   "radius": 53853.981,
+   "lods": [
+    {
+     "tris": 40,
+     "dist": 0
+    },
+    {
+     "tris": 12,
+     "dist": 430831.9
+    },
+    {
+     "tris": 4,
+     "dist": 1077079.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 804566,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/grass_dry_3.glb",
+     "bytes": 813064,
+     "blake3": "146d0a39a2ad9a8585b40c61e3b3fc03a86e43d436a7c3486a17d52a6a29c627"
+    }
+   }
+  },
+  "nature_hedge": {
+   "id": "nature_hedge",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature hedge",
+   "bounds": {
+    "min": [
+     -32767,
+     -24262,
+     -28099
+    ],
+    "max": [
+     32767,
+     24262,
+     28099
+    ],
+    "size": [
+     65534,
+     48524,
+     56198
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 56198,
+    "h": 48524
+   },
+   "radius": 49516.409,
+   "lods": [
+    {
+     "tris": 1813,
+     "dist": 0
+    },
+    {
+     "tris": 854,
+     "dist": 396131.3
+    },
+    {
+     "tris": 336,
+     "dist": 990328.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1174208,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/hedge.glb",
+     "bytes": 1344288,
+     "blake3": "8fc145b499ce07a0689ce8369b818e108f46dceee780c81a20ae40c8b6689a21"
+    }
+   }
+  },
+  "nature_hedge_imp": {
+   "id": "nature_hedge_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature hedge imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 897542,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/hedge_imp.glb",
+     "bytes": 900748,
+     "blake3": "3d8bd0095a939571967ab1ae480911d0768a9e1df653d413aa92c9595ebd5284"
+    }
+   }
+  },
+  "nature_oak": {
+   "id": "nature_oak",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature oak",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -29491
+    ],
+    "max": [
+     32767,
+     32767,
+     29491
+    ],
+    "size": [
+     65534,
+     65534,
+     58982
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 58982,
+    "h": 65534
+   },
+   "radius": 54927.877,
+   "lods": [
+    {
+     "tris": 12481,
+     "dist": 0
+    },
+    {
+     "tris": 3227,
+     "dist": 439423
+    },
+    {
+     "tris": 752,
+     "dist": 1098557.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1068445,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/oak.glb",
+     "bytes": 1715968,
+     "blake3": "89781a34513d22fffa7fb8d3d00d54aa531575506d9ccda0a7a1fb5e7d5b513e"
+    }
+   }
+  },
+  "nature_oak_0": {
+   "id": "nature_oak_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature oak 0",
+   "bounds": {
+    "min": [
+     -1.7363,
+     -1.8448,
+     -2.8713
+    ],
+    "max": [
+     1.7323,
+     1.7777,
+     0.0136
+    ],
+    "size": [
+     3.4687,
+     3.6226,
+     2.8849
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 3.4687,
+    "d": 2.8849,
+    "h": 3.6226
+   },
+   "radius": 2.893,
+   "lods": [
+    {
+     "tris": 5140,
+     "dist": 0
+    },
+    {
+     "tris": 1930,
+     "dist": 23.1
+    },
+    {
+     "tris": 752,
+     "dist": 57.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/oak_0.glb",
+     "bytes": 453744,
+     "blake3": "d5cfba8671d752cb6a56e8c3773f888089570338837651cbcef977c504a55731"
+    }
+   }
+  },
+  "nature_oak_1": {
+   "id": "nature_oak_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature oak 1",
+   "bounds": {
+    "min": [
+     -1.6174,
+     -1.6824,
+     -2.5107
+    ],
+    "max": [
+     1.8482,
+     1.8249,
+     0.0146
+    ],
+    "size": [
+     3.4657,
+     3.5073,
+     2.5253
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 3.4657,
+    "d": 2.5253,
+    "h": 3.5073
+   },
+   "radius": 2.77,
+   "lods": [
+    {
+     "tris": 5140,
+     "dist": 0
+    },
+    {
+     "tris": 1930,
+     "dist": 22.2
+    },
+    {
+     "tris": 752,
+     "dist": 55.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/oak_1.glb",
+     "bytes": 453744,
+     "blake3": "4c8feaa22c6acaebe9891fc1a012d644ef819ad7dd900ef8e4badea441951fd7"
+    }
+   }
+  },
+  "nature_oak_2": {
+   "id": "nature_oak_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature oak 2",
+   "bounds": {
+    "min": [
+     -1.635,
+     -1.8483,
+     -2.5267
+    ],
+    "max": [
+     1.6962,
+     1.6698,
+     0.0145
+    ],
+    "size": [
+     3.3312,
+     3.5181,
+     2.5412
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 3.3312,
+    "d": 2.5412,
+    "h": 3.5181
+   },
+   "radius": 2.735,
+   "lods": [
+    {
+     "tris": 5140,
+     "dist": 0
+    },
+    {
+     "tris": 1930,
+     "dist": 21.9
+    },
+    {
+     "tris": 752,
+     "dist": 54.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/oak_2.glb",
+     "bytes": 453744,
+     "blake3": "2a4b9294c512b66f52c521f506c203fa293542ae7257c502df1a54dc8d18d805"
+    }
+   }
+  },
+  "nature_oak_imp": {
+   "id": "nature_oak_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature oak imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 987640,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/oak_imp.glb",
+     "bytes": 990836,
+     "blake3": "f7aedadda32ff2aa24b9d01bf171d2990c959fae4649f2cf5504823e94d1be3d"
+    }
+   }
+  },
+  "nature_olive": {
+   "id": "nature_olive",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature olive",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -27963
+    ],
+    "max": [
+     32767,
+     32767,
+     27963
+    ],
+    "size": [
+     65534,
+     65534,
+     55926
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 55926,
+    "h": 65534
+   },
+   "radius": 54122.841,
+   "lods": [
+    {
+     "tris": 15127,
+     "dist": 0
+    },
+    {
+     "tris": 3913,
+     "dist": 432982.7
+    },
+    {
+     "tris": 801,
+     "dist": 1082456.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1091310,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/olive.glb",
+     "bytes": 1935752,
+     "blake3": "b11d48ab9cde0ac84f602f5ab9321216f599851046c9f438cd66e98de328fa88"
+    }
+   }
+  },
+  "nature_olive_0": {
+   "id": "nature_olive_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature olive 0",
+   "bounds": {
+    "min": [
+     -1.2155,
+     -1.0307,
+     -1.7307
+    ],
+    "max": [
+     1.1148,
+     1.0669,
+     0.0167
+    ],
+    "size": [
+     2.3304,
+     2.0976,
+     1.7474
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 2.3304,
+    "d": 1.7474,
+    "h": 2.0976
+   },
+   "radius": 1.795,
+   "lods": [
+    {
+     "tris": 3850,
+     "dist": 0
+    },
+    {
+     "tris": 1426,
+     "dist": 14.4
+    },
+    {
+     "tris": 560,
+     "dist": 35.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/olive_0.glb",
+     "bytes": 337076,
+     "blake3": "afca9cafb90d12b5a272387f76bd89393cfb6f86f93dac1dcdb6c2f3ec31ec1e"
+    }
+   }
+  },
+  "nature_olive_1": {
+   "id": "nature_olive_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature olive 1",
+   "bounds": {
+    "min": [
+     -0.9474,
+     -1.0154,
+     -1.4408
+    ],
+    "max": [
+     0.937,
+     0.9191,
+     0.0181
+    ],
+    "size": [
+     1.8844,
+     1.9345,
+     1.4589
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.8844,
+    "d": 1.4589,
+    "h": 1.9345
+   },
+   "radius": 1.535,
+   "lods": [
+    {
+     "tris": 3850,
+     "dist": 0
+    },
+    {
+     "tris": 1426,
+     "dist": 12.3
+    },
+    {
+     "tris": 560,
+     "dist": 30.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/olive_1.glb",
+     "bytes": 337072,
+     "blake3": "b04fb797f3ceb36dacefb9d0381844d678d2ce20151352052c814494cce477f1"
+    }
+   }
+  },
+  "nature_olive_2": {
+   "id": "nature_olive_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature olive 2",
+   "bounds": {
+    "min": [
+     -0.8919,
+     -0.8164,
+     -1.2968
+    ],
+    "max": [
+     0.8898,
+     0.9882,
+     0.0183
+    ],
+    "size": [
+     1.7817,
+     1.8046,
+     1.3151
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.7817,
+    "d": 1.3151,
+    "h": 1.8046
+   },
+   "radius": 1.428,
+   "lods": [
+    {
+     "tris": 3850,
+     "dist": 0
+    },
+    {
+     "tris": 1426,
+     "dist": 11.4
+    },
+    {
+     "tris": 560,
+     "dist": 28.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/olive_2.glb",
+     "bytes": 337080,
+     "blake3": "579c189d8b949be77aafcd18a217b8b445f52135a373100041d72e32b9e0fae0"
+    }
+   }
+  },
+  "nature_olive_imp": {
+   "id": "nature_olive_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature olive imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 976275,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/olive_imp.glb",
+     "bytes": 979488,
+     "blake3": "fad5bc70aaacc4310959ea280025bde03b599116c450fd8c935faf7b67850956"
+    }
+   }
+  },
+  "nature_pine": {
+   "id": "nature_pine",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature pine",
+   "bounds": {
+    "min": [
+     -23162,
+     -32767,
+     -24514
+    ],
+    "max": [
+     23162,
+     32767,
+     24514
+    ],
+    "size": [
+     46324,
+     65534,
+     49028
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 46324,
+    "d": 49028,
+    "h": 65534
+   },
+   "radius": 47022.237,
+   "lods": [
+    {
+     "tris": 4355,
+     "dist": 0
+    },
+    {
+     "tris": 810,
+     "dist": 376177.9
+    },
+    {
+     "tris": 401,
+     "dist": 940444.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 859080,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/pine.glb",
+     "bytes": 1126668,
+     "blake3": "fef8a858600645a5814133a0b1e69b54fd9796cb4c0a91ac553bc1987fb4283f"
+    }
+   }
+  },
+  "nature_pine_0": {
+   "id": "nature_pine_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature pine 0",
+   "bounds": {
+    "min": [
+     -0.9713,
+     -0.9331,
+     -2.2223
+    ],
+    "max": [
+     1.0959,
+     1.038,
+     0.0073
+    ],
+    "size": [
+     2.0671,
+     1.9712,
+     2.2296
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 2.0671,
+    "d": 2.2296,
+    "h": 1.9712
+   },
+   "radius": 1.812,
+   "lods": [
+    {
+     "tris": 5730,
+     "dist": 0
+    },
+    {
+     "tris": 2430,
+     "dist": 14.5
+    },
+    {
+     "tris": 1030,
+     "dist": 36.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/pine_0.glb",
+     "bytes": 677244,
+     "blake3": "c4570a7b3735459389a3dbdace9bd20ed8e0ac256b1c0d593bc100e4ecc5ba3a"
+    }
+   }
+  },
+  "nature_pine_1": {
+   "id": "nature_pine_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature pine 1",
+   "bounds": {
+    "min": [
+     -0.9477,
+     -0.9997,
+     -2.2493
+    ],
+    "max": [
+     1.084,
+     1.0142,
+     0.0072
+    ],
+    "size": [
+     2.0318,
+     2.0139,
+     2.2565
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 2.0318,
+    "d": 2.2565,
+    "h": 2.0139
+   },
+   "radius": 1.822,
+   "lods": [
+    {
+     "tris": 5730,
+     "dist": 0
+    },
+    {
+     "tris": 2430,
+     "dist": 14.6
+    },
+    {
+     "tris": 1030,
+     "dist": 36.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/pine_1.glb",
+     "bytes": 677244,
+     "blake3": "ef3ba20ce1a7402070508345337a09edc5c5efdb264b232a960e2538da22237c"
+    }
+   }
+  },
+  "nature_pine_2": {
+   "id": "nature_pine_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature pine 2",
+   "bounds": {
+    "min": [
+     -0.9348,
+     -1.0549,
+     -2.2076
+    ],
+    "max": [
+     1.0434,
+     1.0245,
+     0.0074
+    ],
+    "size": [
+     1.9782,
+     2.0794,
+     2.215
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.9782,
+    "d": 2.215,
+    "h": 2.0794
+   },
+   "radius": 1.813,
+   "lods": [
+    {
+     "tris": 5730,
+     "dist": 0
+    },
+    {
+     "tris": 2430,
+     "dist": 14.5
+    },
+    {
+     "tris": 1030,
+     "dist": 36.3
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/pine_2.glb",
+     "bytes": 677248,
+     "blake3": "f8b0340940f3565694edb45cdbc0469cf2ad58ab7a5065a7f2568a9cbec7924e"
+    }
+   }
+  },
+  "nature_pine_imp": {
+   "id": "nature_pine_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature pine imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 781997,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/pine_imp.glb",
+     "bytes": 785208,
+     "blake3": "e52d0d3a2fc36e20a9fd116a2c0257a32242ba863f786f945f4687386db49f2b"
+    }
+   }
+  },
+  "nature_plane": {
+   "id": "nature_plane",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature plane",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 15046,
+     "dist": 0
+    },
+    {
+     "tris": 3240,
+     "dist": 454032.9
+    },
+    {
+     "tris": 885,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1042405,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/plane.glb",
+     "bytes": 1691344,
+     "blake3": "ed6d3803bcc776caa18e1a55032fefa9bffef32b142b5faf08492fc6ed0b750c"
+    }
+   }
+  },
+  "nature_plane_0": {
+   "id": "nature_plane_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature plane 0",
+   "bounds": {
+    "min": [
+     -1.5917,
+     -1.8005,
+     -2.7335
+    ],
+    "max": [
+     1.7823,
+     1.8376,
+     0.0144
+    ],
+    "size": [
+     3.374,
+     3.6381,
+     2.7479
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 3.374,
+    "d": 2.7479,
+    "h": 3.6381
+   },
+   "radius": 2.836,
+   "lods": [
+    {
+     "tris": 4340,
+     "dist": 0
+    },
+    {
+     "tris": 1610,
+     "dist": 22.7
+    },
+    {
+     "tris": 640,
+     "dist": 56.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/plane_0.glb",
+     "bytes": 379836,
+     "blake3": "9a877065c0aafd822cf11edf6cf1a8565c3ac8be5765c74638b9f4f1e158a227"
+    }
+   }
+  },
+  "nature_plane_1": {
+   "id": "nature_plane_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature plane 1",
+   "bounds": {
+    "min": [
+     -1.4812,
+     -1.4036,
+     -2.3401
+    ],
+    "max": [
+     1.6099,
+     1.8735,
+     0.0158
+    ],
+    "size": [
+     3.0912,
+     3.2771,
+     2.3559
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 3.0912,
+    "d": 2.3559,
+    "h": 3.2771
+   },
+   "radius": 2.542,
+   "lods": [
+    {
+     "tris": 4340,
+     "dist": 0
+    },
+    {
+     "tris": 1610,
+     "dist": 20.3
+    },
+    {
+     "tris": 640,
+     "dist": 50.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/plane_1.glb",
+     "bytes": 379836,
+     "blake3": "cf296c11ad01835c2efbe1a3c5aa41f315e0e48e9fe9f92cc4fea0b226989994"
+    }
+   }
+  },
+  "nature_plane_2": {
+   "id": "nature_plane_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature plane 2",
+   "bounds": {
+    "min": [
+     -1.7447,
+     -1.7761,
+     -2.6439
+    ],
+    "max": [
+     1.7073,
+     1.6717,
+     0.0145
+    ],
+    "size": [
+     3.452,
+     3.4478,
+     2.6584
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 3.452,
+    "d": 2.6584,
+    "h": 3.4478
+   },
+   "radius": 2.778,
+   "lods": [
+    {
+     "tris": 4340,
+     "dist": 0
+    },
+    {
+     "tris": 1610,
+     "dist": 22.2
+    },
+    {
+     "tris": 640,
+     "dist": 55.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/plane_2.glb",
+     "bytes": 379836,
+     "blake3": "1ed745ff88b8d920380ef56eee5b6ddcc8072008e4d6ee7d5be71038d3989f53"
+    }
+   }
+  },
+  "nature_plane_imp": {
+   "id": "nature_plane_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature plane imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 1023860,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/plane_imp.glb",
+     "bytes": 1027076,
+     "blake3": "913edd21bfce0c381cea713ffe9f64f02b8004382d7a995da12e9963b57e97d8"
+    }
+   }
+  },
+  "nature_poplar": {
+   "id": "nature_poplar",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature poplar",
+   "bounds": {
+    "min": [
+     -18354,
+     -32767,
+     -17290
+    ],
+    "max": [
+     18354,
+     32767,
+     17290
+    ],
+    "size": [
+     36708,
+     65534,
+     34580
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 36708,
+    "d": 34580,
+    "h": 65534
+   },
+   "radius": 41345.976,
+   "lods": [
+    {
+     "tris": 4336,
+     "dist": 0
+    },
+    {
+     "tris": 853,
+     "dist": 330767.8
+    },
+    {
+     "tris": 419,
+     "dist": 826919.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 955826,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/poplar.glb",
+     "bytes": 1228388,
+     "blake3": "a2a0653c9a0993748a92f88d31ae1feba815a86b96fe6ccfea84184d9c0e68ea"
+    }
+   }
+  },
+  "nature_poplar_0": {
+   "id": "nature_poplar_0",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature poplar 0",
+   "bounds": {
+    "min": [
+     -0.7475,
+     -0.7341,
+     -2.8474
+    ],
+    "max": [
+     0.8531,
+     0.9178,
+     0.0055
+    ],
+    "size": [
+     1.6006,
+     1.652,
+     2.8529
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.6006,
+    "d": 2.8529,
+    "h": 1.652
+   },
+   "radius": 1.832,
+   "lods": [
+    {
+     "tris": 4510,
+     "dist": 0
+    },
+    {
+     "tris": 1826,
+     "dist": 14.7
+    },
+    {
+     "tris": 808,
+     "dist": 36.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/poplar_0.glb",
+     "bytes": 403124,
+     "blake3": "12a59088b2d424bd30a93e3f066b8b4d73c16ac2006b880476150519f0b7eaab"
+    }
+   }
+  },
+  "nature_poplar_1": {
+   "id": "nature_poplar_1",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature poplar 1",
+   "bounds": {
+    "min": [
+     -0.9391,
+     -0.8966,
+     -3.2742
+    ],
+    "max": [
+     0.9472,
+     0.8448,
+     0.0048
+    ],
+    "size": [
+     1.8863,
+     1.7414,
+     3.279
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.8863,
+    "d": 3.279,
+    "h": 1.7414
+   },
+   "radius": 2.082,
+   "lods": [
+    {
+     "tris": 4510,
+     "dist": 0
+    },
+    {
+     "tris": 1826,
+     "dist": 16.7
+    },
+    {
+     "tris": 808,
+     "dist": 41.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/poplar_1.glb",
+     "bytes": 403124,
+     "blake3": "e79f99621f354174ed5a75824f72aa39a70ad01de436b6d0a93b4ae12d683c1d"
+    }
+   }
+  },
+  "nature_poplar_2": {
+   "id": "nature_poplar_2",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature poplar 2",
+   "bounds": {
+    "min": [
+     -1.0145,
+     -0.9443,
+     -3.0807
+    ],
+    "max": [
+     0.859,
+     0.8441,
+     0.0049
+    ],
+    "size": [
+     1.8735,
+     1.7884,
+     3.0855
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 1.8735,
+    "d": 3.0855,
+    "h": 1.7884
+   },
+   "radius": 2.014,
+   "lods": [
+    {
+     "tris": 4510,
+     "dist": 0
+    },
+    {
+     "tris": 1826,
+     "dist": 16.1
+    },
+    {
+     "tris": 808,
+     "dist": 40.3
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 0,
+   "texBytes": 0,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "0px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/poplar_2.glb",
+     "bytes": 403120,
+     "blake3": "2b654971c08135838c0ff7b5458f2fc04ea9ed8f9c1d5505e8d889b0241e3ccc"
+    }
+   }
+  },
+  "nature_poplar_imp": {
+   "id": "nature_poplar_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature poplar imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 526585,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/poplar_imp.glb",
+     "bytes": 529800,
+     "blake3": "24862d3ce500c31a8fc51f4c783e4aa5261da33b86eddb9715a0e1a15af94045"
+    }
+   }
+  },
+  "nature_stonepine": {
+   "id": "nature_stonepine",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature stonepine",
+   "bounds": {
+    "min": [
+     -32019,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32019,
+     32767,
+     32767
+    ],
+    "size": [
+     64038,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 64038,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56325.562,
+   "lods": [
+    {
+     "tris": 7274,
+     "dist": 0
+    },
+    {
+     "tris": 1418,
+     "dist": 450604.5
+    },
+    {
+     "tris": 232,
+     "dist": 1126511.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 881726,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/stonepine.glb",
+     "bytes": 1185256,
+     "blake3": "b069eb996dfb00c80cad8f871cb1bf35a5a6c11af306a36ec2dc701b43180013"
+    }
+   }
+  },
+  "nature_stonepine_imp": {
+   "id": "nature_stonepine_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature stonepine imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 885915,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/stonepine_imp.glb",
+     "bytes": 889152,
+     "blake3": "024f5159aa414c47113a28019cad5b7fdf36ec0a4b1930e9fcfbb14fd1123c41"
+    }
+   }
+  },
+  "nature_willow": {
+   "id": "nature_willow",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "authored"
+   ],
+   "hero": false,
+   "name": "nature willow",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 11876,
+     "dist": 0
+    },
+    {
+     "tris": 2619,
+     "dist": 454032.9
+    },
+    {
+     "tris": 1097,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 2048,
+   "texBytes": 1332877,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/willow.glb",
+     "bytes": 2024116,
+     "blake3": "f7a5ecebc53e1084964d04fa3ab7a37649bafb67d8fa1c287c537d0e51247233"
+    }
+   }
+  },
+  "nature_willow_imp": {
+   "id": "nature_willow_imp",
+   "category": "prop",
+   "tags": [
+    "nature",
+    "exterior",
+    "impostor"
+   ],
+   "hero": false,
+   "name": "nature willow imp",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     0
+    ],
+    "max": [
+     32767,
+     32767,
+     0
+    ],
+    "size": [
+     65534,
+     65534,
+     0
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 0,
+    "h": 65534
+   },
+   "radius": 46339.536,
+   "lods": [
+    {
+     "tris": 2,
+     "dist": 0
+    },
+    {
+     "tris": 2,
+     "dist": 370716.3
+    },
+    {
+     "tris": 2,
+     "dist": 926790.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 2048,
+   "texBytes": 952408,
+   "source": {
+    "page": "scripts/assets/blender/nature",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "nature/willow_imp.glb",
+     "bytes": 955628,
+     "blake3": "6b4d55b9afd2f38ddd114292ad4dd406e7ddda1d1cf309699da63e914ec46e35"
+    }
+   }
+  },
+  "village_allotment-bed_0": {
+   "id": "village_allotment-bed_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village allotment-bed 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -8905,
+     -16185
+    ],
+    "max": [
+     32767,
+     8905,
+     16185
+    ],
+    "size": [
+     65534,
+     17810,
+     32370
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 32370,
+    "h": 17810
+   },
+   "radius": 37615.549,
+   "lods": [
+    {
+     "tris": 7050,
+     "dist": 0
+    },
+    {
+     "tris": 7050,
+     "dist": 300924.4
+    },
+    {
+     "tris": 7050,
+     "dist": 752311
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 577420,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/allotment-bed_0.glb",
+     "bytes": 657248,
+     "blake3": "18d60829fca67c91cabf0e9237155c49db365ca12919f0d1c6430675ec7197d0"
+    }
+   }
+  },
+  "village_allotment-bed_1": {
+   "id": "village_allotment-bed_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village allotment-bed 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -10473,
+     -16217
+    ],
+    "max": [
+     32767,
+     10473,
+     16217
+    ],
+    "size": [
+     65534,
+     20946,
+     32434
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 32434,
+    "h": 20946
+   },
+   "radius": 38030.923,
+   "lods": [
+    {
+     "tris": 2606,
+     "dist": 0
+    },
+    {
+     "tris": 2606,
+     "dist": 304247.4
+    },
+    {
+     "tris": 2606,
+     "dist": 760618.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 587915,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/allotment-bed_1.glb",
+     "bytes": 659548,
+     "blake3": "ff8bbf481437348b5fb7381ef8ed7459417e3be0181675f2eac9eb19670a2a8a"
+    }
+   }
+  },
+  "village_arcade": {
+   "id": "village_arcade",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village arcade",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 46487,
+     "dist": 0
+    },
+    {
+     "tris": 46487,
+     "dist": 454032.9
+    },
+    {
+     "tris": 46487,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 10,
+   "texPx": 2048,
+   "texBytes": 2806997,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/arcade.glb",
+     "bytes": 3676952,
+     "blake3": "896bba5a6d4ddc9bf145f84757beee2ff7bfdd13d1d71bb0a915f49a93d68601"
+    }
+   },
+   "materialOverrides": {
+    "arcade_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    },
+    "arcade_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_barrel_0": {
+   "id": "village_barrel_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village barrel 0",
+   "bounds": {
+    "min": [
+     -28551,
+     -32767,
+     -29011
+    ],
+    "max": [
+     28551,
+     32767,
+     29011
+    ],
+    "size": [
+     57102,
+     65534,
+     58022
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 57102,
+    "d": 58022,
+    "h": 65534
+   },
+   "radius": 52253.938,
+   "lods": [
+    {
+     "tris": 966,
+     "dist": 0
+    },
+    {
+     "tris": 966,
+     "dist": 418031.5
+    },
+    {
+     "tris": 966,
+     "dist": 1045078.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 485211,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/barrel_0.glb",
+     "bytes": 515184,
+     "blake3": "35bed48411a2f386b42bf3c0aa88f7f51727b4bbbbd1f0c4c760dade3d1d6859"
+    }
+   }
+  },
+  "village_barrel_1": {
+   "id": "village_barrel_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village barrel 1",
+   "bounds": {
+    "min": [
+     -29067,
+     -32767,
+     -29059
+    ],
+    "max": [
+     29067,
+     32767,
+     29059
+    ],
+    "size": [
+     58134,
+     65534,
+     58118
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 58134,
+    "d": 58118,
+    "h": 65534
+   },
+   "radius": 52564.173,
+   "lods": [
+    {
+     "tris": 966,
+     "dist": 0
+    },
+    {
+     "tris": 966,
+     "dist": 420513.4
+    },
+    {
+     "tris": 966,
+     "dist": 1051283.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 472901,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/barrel_1.glb",
+     "bytes": 503064,
+     "blake3": "8252e72fb48a5d6608fa118e73c303cc47134d6f5e42568dc0e9027b8e6c06a1"
+    }
+   }
+  },
+  "village_barrel_2": {
+   "id": "village_barrel_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village barrel 2",
+   "bounds": {
+    "min": [
+     -29023,
+     -32767,
+     -28815
+    ],
+    "max": [
+     29023,
+     32767,
+     28815
+    ],
+    "size": [
+     58046,
+     65534,
+     57630
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 58046,
+    "d": 57630,
+    "h": 65534
+   },
+   "radius": 52405.296,
+   "lods": [
+    {
+     "tris": 966,
+     "dist": 0
+    },
+    {
+     "tris": 966,
+     "dist": 419242.4
+    },
+    {
+     "tris": 966,
+     "dist": 1048105.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 470059,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/barrel_2.glb",
+     "bytes": 500216,
+     "blake3": "c16f34114fd11aff21f79a2a1fd1eb0bc577a0fdc3c3973a49ca53b871a116ca"
+    }
+   }
+  },
+  "village_beehive_0": {
+   "id": "village_beehive_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village beehive 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -28835,
+     -13229
+    ],
+    "max": [
+     32767,
+     28835,
+     13229
+    ],
+    "size": [
+     65534,
+     57670,
+     26458
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 26458,
+    "h": 57670
+   },
+   "radius": 45608.551,
+   "lods": [
+    {
+     "tris": 830,
+     "dist": 0
+    },
+    {
+     "tris": 830,
+     "dist": 364868.4
+    },
+    {
+     "tris": 830,
+     "dist": 912171
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 560405,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/beehive_0.glb",
+     "bytes": 589296,
+     "blake3": "aa979d66ba8d28bc9e134c036aa691575a3a7f03d6708a4a611c71cf73b3d1db"
+    }
+   }
+  },
+  "village_bench_0": {
+   "id": "village_bench_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village bench 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -28147,
+     -13573
+    ],
+    "max": [
+     32767,
+     28147,
+     13573
+    ],
+    "size": [
+     65534,
+     56294,
+     27146
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 27146,
+    "h": 56294
+   },
+   "radius": 45278.651,
+   "lods": [
+    {
+     "tris": 358,
+     "dist": 0
+    },
+    {
+     "tris": 358,
+     "dist": 362229.2
+    },
+    {
+     "tris": 358,
+     "dist": 905573
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 547182,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/bench_0.glb",
+     "bytes": 562628,
+     "blake3": "04e6d4fed9fbefedc8bf9964d6e9514c742b7826cd61f692e11d03abd16e9e95"
+    }
+   }
+  },
+  "village_bench_1": {
+   "id": "village_bench_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village bench 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -28147,
+     -13573
+    ],
+    "max": [
+     32767,
+     28147,
+     13573
+    ],
+    "size": [
+     65534,
+     56294,
+     27146
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 27146,
+    "h": 56294
+   },
+   "radius": 45278.651,
+   "lods": [
+    {
+     "tris": 358,
+     "dist": 0
+    },
+    {
+     "tris": 358,
+     "dist": 362229.2
+    },
+    {
+     "tris": 358,
+     "dist": 905573
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 514970,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/bench_1.glb",
+     "bytes": 530412,
+     "blake3": "485fe29fe5526eaa68ba8959d63c73153a58893f431400902bc646d74ac9a554"
+    }
+   }
+  },
+  "village_board": {
+   "id": "village_board",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village board",
+   "bounds": {
+    "min": [
+     -32767,
+     -30803,
+     -32767
+    ],
+    "max": [
+     32767,
+     30803,
+     32767
+    ],
+    "size": [
+     65534,
+     61606,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 61606
+   },
+   "radius": 55643.305,
+   "lods": [
+    {
+     "tris": 50491,
+     "dist": 0
+    },
+    {
+     "tris": 50491,
+     "dist": 445146.4
+    },
+    {
+     "tris": 50491,
+     "dist": 1112866.1
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 8,
+   "texPx": 2048,
+   "texBytes": 2756455,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/board.glb",
+     "bytes": 3695656,
+     "blake3": "068909f4a220132ff7a93f4a84fa152dcce2e74dc5a7b2db5fb41facfeff5876"
+    }
+   },
+   "materialOverrides": {
+    "board_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_boat_0": {
+   "id": "village_boat_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village boat 0",
+   "bounds": {
+    "min": [
+     -23918,
+     -8092,
+     -32767
+    ],
+    "max": [
+     23918,
+     8092,
+     32767
+    ],
+    "size": [
+     47836,
+     16184,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 47836,
+    "d": 65534,
+    "h": 16184
+   },
+   "radius": 41366.985,
+   "lods": [
+    {
+     "tris": 1089,
+     "dist": 0
+    },
+    {
+     "tris": 1089,
+     "dist": 330935.9
+    },
+    {
+     "tris": 1089,
+     "dist": 827339.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 541319,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/boat_0.glb",
+     "bytes": 578304,
+     "blake3": "acaf4275834a3089d4a6858664ed40ab67729f00acb3dc44c1fb855f6929df0d"
+    }
+   }
+  },
+  "village_boat_1": {
+   "id": "village_boat_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village boat 1",
+   "bounds": {
+    "min": [
+     -23834,
+     -26335,
+     -32767
+    ],
+    "max": [
+     23834,
+     26335,
+     32767
+    ],
+    "size": [
+     47668,
+     52670,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 47668,
+    "d": 65534,
+    "h": 52670
+   },
+   "radius": 48324.611,
+   "lods": [
+    {
+     "tris": 1348,
+     "dist": 0
+    },
+    {
+     "tris": 1348,
+     "dist": 386596.9
+    },
+    {
+     "tris": 1348,
+     "dist": 966492.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 466045,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/boat_1.glb",
+     "bytes": 508064,
+     "blake3": "769a1502de71069aad0c8763e8b342aae4a63ef0245597b91be920cbce48d09e"
+    }
+   }
+  },
+  "village_boat_2": {
+   "id": "village_boat_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village boat 2",
+   "bounds": {
+    "min": [
+     -24198,
+     -9865,
+     -32767
+    ],
+    "max": [
+     24198,
+     9865,
+     32767
+    ],
+    "size": [
+     48396,
+     19730,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 48396,
+    "d": 65534,
+    "h": 19730
+   },
+   "radius": 41911.069,
+   "lods": [
+    {
+     "tris": 1096,
+     "dist": 0
+    },
+    {
+     "tris": 1096,
+     "dist": 335288.6
+    },
+    {
+     "tris": 1096,
+     "dist": 838221.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 544102,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/boat_2.glb",
+     "bytes": 581636,
+     "blake3": "7b5e8301319b6be8c99d137f4568baef9f92119222bdfd1eb6887f629bb8446c"
+    }
+   }
+  },
+  "village_boulder_0": {
+   "id": "village_boulder_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village boulder 0",
+   "bounds": {
+    "min": [
+     -31147,
+     -13209,
+     -32767
+    ],
+    "max": [
+     31147,
+     13209,
+     32767
+    ],
+    "size": [
+     62294,
+     26418,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 62294,
+    "d": 65534,
+    "h": 26418
+   },
+   "radius": 47098.722,
+   "lods": [
+    {
+     "tris": 302,
+     "dist": 0
+    },
+    {
+     "tris": 302,
+     "dist": 376789.8
+    },
+    {
+     "tris": 302,
+     "dist": 941974.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 421157,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/boulder_0.glb",
+     "bytes": 437156,
+     "blake3": "4c3494d69457b25d7415b8da574f3987766a8fa6969f6912d3ef871efc9a98e0"
+    }
+   }
+  },
+  "village_boulder_1": {
+   "id": "village_boulder_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village boulder 1",
+   "bounds": {
+    "min": [
+     -30859,
+     -14965,
+     -32767
+    ],
+    "max": [
+     30859,
+     14965,
+     32767
+    ],
+    "size": [
+     61718,
+     29930,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 61718,
+    "d": 65534,
+    "h": 29930
+   },
+   "radius": 47433.168,
+   "lods": [
+    {
+     "tris": 326,
+     "dist": 0
+    },
+    {
+     "tris": 326,
+     "dist": 379465.3
+    },
+    {
+     "tris": 326,
+     "dist": 948663.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 416683,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/boulder_1.glb",
+     "bytes": 433156,
+     "blake3": "4339f989f0849d0d8a9f0229914dac49c91c7a095331a81c4801bf617ce9e6d4"
+    }
+   }
+  },
+  "village_boulder_2": {
+   "id": "village_boulder_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village boulder 2",
+   "bounds": {
+    "min": [
+     -31855,
+     -12225,
+     -32767
+    ],
+    "max": [
+     31855,
+     12225,
+     32767
+    ],
+    "size": [
+     63710,
+     24450,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 63710,
+    "d": 65534,
+    "h": 24450
+   },
+   "radius": 47306.109,
+   "lods": [
+    {
+     "tris": 336,
+     "dist": 0
+    },
+    {
+     "tris": 336,
+     "dist": 378448.9
+    },
+    {
+     "tris": 336,
+     "dist": 946122.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 374827,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/boulder_2.glb",
+     "bytes": 391536,
+     "blake3": "57c6ad6d7d7ff6467e7f909fbed131a0e5313adcb4306b235f2ca7dcf4aeafdd"
+    }
+   }
+  },
+  "village_bunting-post_0": {
+   "id": "village_bunting-post_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village bunting-post 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -2216
+    ],
+    "max": [
+     32767,
+     32767,
+     2216
+    ],
+    "size": [
+     65534,
+     65534,
+     4432
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 4432,
+    "h": 65534
+   },
+   "radius": 46392.491,
+   "lods": [
+    {
+     "tris": 330,
+     "dist": 0
+    },
+    {
+     "tris": 330,
+     "dist": 371139.9
+    },
+    {
+     "tris": 330,
+     "dist": 927849.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 259514,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/bunting-post_0.glb",
+     "bytes": 279032,
+     "blake3": "f3a67c6c99241a212feed8f4fc723c9daa318be3cf222046e94e49efc39c170b"
+    }
+   },
+   "materialOverrides": {
+    "bunting-post_0_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_cart_0": {
+   "id": "village_cart_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cart 0",
+   "bounds": {
+    "min": [
+     -31227,
+     -13413,
+     -32767
+    ],
+    "max": [
+     31227,
+     13413,
+     32767
+    ],
+    "size": [
+     62454,
+     26826,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 62454,
+    "d": 65534,
+    "h": 26826
+   },
+   "radius": 47209.219,
+   "lods": [
+    {
+     "tris": 4300,
+     "dist": 0
+    },
+    {
+     "tris": 4300,
+     "dist": 377673.8
+    },
+    {
+     "tris": 4300,
+     "dist": 944184.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 617600,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cart_0.glb",
+     "bytes": 693496,
+     "blake3": "510881b23fe5898c56e9ada7fe4e7112f6271fdc688cbbe1d2b81dc1c7919fab"
+    }
+   }
+  },
+  "village_chat": {
+   "id": "village_chat",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village chat",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 69007,
+     "dist": 0
+    },
+    {
+     "tris": 69007,
+     "dist": 454032.9
+    },
+    {
+     "tris": 69007,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 8,
+   "texPx": 2048,
+   "texBytes": 2908803,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/chat.glb",
+     "bytes": 4174716,
+     "blake3": "645d8bd567eb534653ad12287fd7876764d27144715a6183ad23c77d1bb43a61"
+    }
+   },
+   "materialOverrides": {
+    "chat_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_cottage_0": {
+   "id": "village_cottage_0",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cottage 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32335
+    ],
+    "max": [
+     32767,
+     32767,
+     32335
+    ],
+    "size": [
+     65534,
+     65534,
+     64670
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 64670,
+    "h": 65534
+   },
+   "radius": 56505.794,
+   "lods": [
+    {
+     "tris": 13938,
+     "dist": 0
+    },
+    {
+     "tris": 13938,
+     "dist": 452046.4
+    },
+    {
+     "tris": 13938,
+     "dist": 1130115.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 627830,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cottage_0.glb",
+     "bytes": 912424,
+     "blake3": "ce1003c0258753d3dc6cf40fca8f1418bc47d5061ecee0f334ee1ed33529d662"
+    }
+   }
+  },
+  "village_cottage_1": {
+   "id": "village_cottage_1",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cottage 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -28695
+    ],
+    "max": [
+     32767,
+     32767,
+     28695
+    ],
+    "size": [
+     65534,
+     65534,
+     57390
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 57390,
+    "h": 65534
+   },
+   "radius": 54504.638,
+   "lods": [
+    {
+     "tris": 14304,
+     "dist": 0
+    },
+    {
+     "tris": 14304,
+     "dist": 436037.1
+    },
+    {
+     "tris": 14304,
+     "dist": 1090092.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 611347,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cottage_1.glb",
+     "bytes": 908880,
+     "blake3": "0e3e2d56a4cd3f1cc3aba3b2364c766f8ca9fed3fb2b8feb4c470157ce9e7ce3"
+    }
+   }
+  },
+  "village_cottage_2": {
+   "id": "village_cottage_2",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cottage 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32703
+    ],
+    "max": [
+     32767,
+     32767,
+     32703
+    ],
+    "size": [
+     65534,
+     65534,
+     65406
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65406,
+    "h": 65534
+   },
+   "radius": 56717.182,
+   "lods": [
+    {
+     "tris": 13598,
+     "dist": 0
+    },
+    {
+     "tris": 13598,
+     "dist": 453737.5
+    },
+    {
+     "tris": 13598,
+     "dist": 1134343.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 615233,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cottage_2.glb",
+     "bytes": 894308,
+     "blake3": "aeaf754116edb0f872874261d9348b6d07f7ef04cd376d7b231c4ece14b10b55"
+    }
+   }
+  },
+  "village_cottage_3": {
+   "id": "village_cottage_3",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cottage 3",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -27699
+    ],
+    "max": [
+     32767,
+     32767,
+     27699
+    ],
+    "size": [
+     65534,
+     65534,
+     55398
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 55398,
+    "h": 65534
+   },
+   "radius": 53986.917,
+   "lods": [
+    {
+     "tris": 12370,
+     "dist": 0
+    },
+    {
+     "tris": 12370,
+     "dist": 431895.3
+    },
+    {
+     "tris": 12370,
+     "dist": 1079738.3
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 622662,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cottage_3.glb",
+     "bytes": 877700,
+     "blake3": "8ce4e16aba6b8e9af58fd857d0f2b6793a962092e45c893b89bc7e8a82f2c7d6"
+    }
+   }
+  },
+  "village_cottage_4": {
+   "id": "village_cottage_4",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cottage 4",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32703
+    ],
+    "max": [
+     32767,
+     32767,
+     32703
+    ],
+    "size": [
+     65534,
+     65534,
+     65406
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65406,
+    "h": 65534
+   },
+   "radius": 56717.182,
+   "lods": [
+    {
+     "tris": 12526,
+     "dist": 0
+    },
+    {
+     "tris": 12526,
+     "dist": 453737.5
+    },
+    {
+     "tris": 12526,
+     "dist": 1134343.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 624169,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cottage_4.glb",
+     "bytes": 876512,
+     "blake3": "706db1106976088a06334891553657507ea16aec0e66f21da2dca5fc0b8f11bf"
+    }
+   }
+  },
+  "village_cottage_5": {
+   "id": "village_cottage_5",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village cottage 5",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -30331
+    ],
+    "max": [
+     32767,
+     32767,
+     30331
+    ],
+    "size": [
+     65534,
+     65534,
+     60662
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 60662,
+    "h": 65534
+   },
+   "radius": 55383.41,
+   "lods": [
+    {
+     "tris": 13298,
+     "dist": 0
+    },
+    {
+     "tris": 13298,
+     "dist": 443067.3
+    },
+    {
+     "tris": 13298,
+     "dist": 1107668.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 613975,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/cottage_5.glb",
+     "bytes": 888624,
+     "blake3": "5175fab92be0f31c8e51a92b9a007ec600fae91502731ff3d7bce2e7ee055d9a"
+    }
+   }
+  },
+  "village_craft-house_0": {
+   "id": "village_craft-house_0",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village craft-house 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -24755
+    ],
+    "max": [
+     32767,
+     32767,
+     24755
+    ],
+    "size": [
+     65534,
+     65534,
+     49510
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 49510,
+    "h": 65534
+   },
+   "radius": 52537.25,
+   "lods": [
+    {
+     "tris": 7936,
+     "dist": 0
+    },
+    {
+     "tris": 7936,
+     "dist": 420298
+    },
+    {
+     "tris": 7936,
+     "dist": 1050745
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 4,
+   "texPx": 1024,
+   "texBytes": 539176,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/craft-house_0.glb",
+     "bytes": 720788,
+     "blake3": "d8a5da8c97df212ef41852efe23edb6e9dd560d4bd0723ccfed8ba57156829eb"
+    }
+   }
+  },
+  "village_crate_0": {
+   "id": "village_crate_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village crate 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 282,
+     "dist": 0
+    },
+    {
+     "tris": 282,
+     "dist": 454032.9
+    },
+    {
+     "tris": 282,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 507397,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/crate_0.glb",
+     "bytes": 521060,
+     "blake3": "ca7905cbdbed162e3840cbcd7a8fadbbb710943ff7ad485befffa357613cb8f1"
+    }
+   }
+  },
+  "village_crate_1": {
+   "id": "village_crate_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village crate 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -28735,
+     -22098
+    ],
+    "max": [
+     32767,
+     28735,
+     22098
+    ],
+    "size": [
+     65534,
+     57470,
+     44196
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 44196,
+    "h": 57470
+   },
+   "radius": 48864.078,
+   "lods": [
+    {
+     "tris": 848,
+     "dist": 0
+    },
+    {
+     "tris": 848,
+     "dist": 390912.6
+    },
+    {
+     "tris": 848,
+     "dist": 977281.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 563460,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/crate_1.glb",
+     "bytes": 593320,
+     "blake3": "29062e11ba12f6f004a34b056cb2556d0ce0be546a36f5c2eb914ef325954933"
+    }
+   }
+  },
+  "village_crate_2": {
+   "id": "village_crate_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village crate 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -26479,
+     -32767
+    ],
+    "max": [
+     32767,
+     26479,
+     32767
+    ],
+    "size": [
+     65534,
+     52958,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 52958
+   },
+   "radius": 53371.247,
+   "lods": [
+    {
+     "tris": 282,
+     "dist": 0
+    },
+    {
+     "tris": 282,
+     "dist": 426970
+    },
+    {
+     "tris": 282,
+     "dist": 1067424.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 516483,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/crate_2.glb",
+     "bytes": 530708,
+     "blake3": "801a7681e14d964cfe157c33859d9f657bf5b142ef5905b84e8575854a4483af"
+    }
+   }
+  },
+  "village_desk": {
+   "id": "village_desk",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village desk",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 49826,
+     "dist": 0
+    },
+    {
+     "tris": 49826,
+     "dist": 454032.9
+    },
+    {
+     "tris": 49826,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 8,
+   "texPx": 2048,
+   "texBytes": 2756234,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/desk.glb",
+     "bytes": 3696288,
+     "blake3": "6a59963936c8ce4583cc73da4947c5b0c75a0621c1df5176bc74e9cba6aedc63"
+    }
+   },
+   "materialOverrides": {
+    "desk_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_dock-post_0": {
+   "id": "village_dock-post_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village dock-post 0",
+   "bounds": {
+    "min": [
+     -8577,
+     -32767,
+     -8513
+    ],
+    "max": [
+     8577,
+     32767,
+     8513
+    ],
+    "size": [
+     17154,
+     65534,
+     17026
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 17154,
+    "d": 17026,
+    "h": 65534
+   },
+   "radius": 34924.381,
+   "lods": [
+    {
+     "tris": 352,
+     "dist": 0
+    },
+    {
+     "tris": 352,
+     "dist": 279395
+    },
+    {
+     "tris": 352,
+     "dist": 698487.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 488329,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/dock-post_0.glb",
+     "bytes": 502876,
+     "blake3": "aa28c2cac05c5946c74aea0b3e3757cf410d3bdac10973e21fd9415d78d17dfc"
+    }
+   }
+  },
+  "village_feed": {
+   "id": "village_feed",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village feed",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 69014,
+     "dist": 0
+    },
+    {
+     "tris": 69014,
+     "dist": 454032.9
+    },
+    {
+     "tris": 69014,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 8,
+   "texPx": 2048,
+   "texBytes": 2755806,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/feed.glb",
+     "bytes": 3886076,
+     "blake3": "9a9661552054bbfab338819f8cdc6cdbe47da88c8922b61c3daf68308838bf84"
+    }
+   },
+   "materialOverrides": {
+    "feed_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_fence_0": {
+   "id": "village_fence_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village fence 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -7000,
+     -1080
+    ],
+    "max": [
+     32767,
+     7000,
+     1080
+    ],
+    "size": [
+     65534,
+     14000,
+     2160
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 2160,
+    "h": 14000
+   },
+   "radius": 33523.763,
+   "lods": [
+    {
+     "tris": 636,
+     "dist": 0
+    },
+    {
+     "tris": 636,
+     "dist": 268190.1
+    },
+    {
+     "tris": 636,
+     "dist": 670475.3
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 292605,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/fence_0.glb",
+     "bytes": 314180,
+     "blake3": "a1f9b059a6ba45c094c51143e1e930661857e92d668ed3d1d7340f3ad517d015"
+    }
+   }
+  },
+  "village_festival-table_0": {
+   "id": "village_festival-table_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village festival-table 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -18206,
+     -27707
+    ],
+    "max": [
+     32767,
+     18206,
+     27707
+    ],
+    "size": [
+     65534,
+     36412,
+     55414
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 55414,
+    "h": 36412
+   },
+   "radius": 46613.438,
+   "lods": [
+    {
+     "tris": 884,
+     "dist": 0
+    },
+    {
+     "tris": 884,
+     "dist": 372907.5
+    },
+    {
+     "tris": 884,
+     "dist": 932268.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 556574,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/festival-table_0.glb",
+     "bytes": 589700,
+     "blake3": "470be105e20233fc1ba30f1decc02d737d2725445fe0275fab41003836dea7e8"
+    }
+   },
+   "materialOverrides": {
+    "festival-table_0_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_festival-table_1": {
+   "id": "village_festival-table_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village festival-table 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -18206,
+     -27707
+    ],
+    "max": [
+     32767,
+     18206,
+     27707
+    ],
+    "size": [
+     65534,
+     36412,
+     55414
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 55414,
+    "h": 36412
+   },
+   "radius": 46613.438,
+   "lods": [
+    {
+     "tris": 884,
+     "dist": 0
+    },
+    {
+     "tris": 884,
+     "dist": 372907.5
+    },
+    {
+     "tris": 884,
+     "dist": 932268.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 550515,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/festival-table_1.glb",
+     "bytes": 583644,
+     "blake3": "07c88357853a279cbd9253237f06c27740753d0735c257ddb4e6f0d7d4879015"
+    }
+   },
+   "materialOverrides": {
+    "festival-table_1_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_festival-table_2": {
+   "id": "village_festival-table_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village festival-table 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -18206,
+     -27707
+    ],
+    "max": [
+     32767,
+     18206,
+     27707
+    ],
+    "size": [
+     65534,
+     36412,
+     55414
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 55414,
+    "h": 36412
+   },
+   "radius": 46613.438,
+   "lods": [
+    {
+     "tris": 884,
+     "dist": 0
+    },
+    {
+     "tris": 884,
+     "dist": 372907.5
+    },
+    {
+     "tris": 884,
+     "dist": 932268.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 549232,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/festival-table_2.glb",
+     "bytes": 582356,
+     "blake3": "a3e18c0384e26042f7971fb9f76d76fd37f39a7d25569ca1898e6c84a3c5eee3"
+    }
+   },
+   "materialOverrides": {
+    "festival-table_2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_firewood_0": {
+   "id": "village_firewood_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village firewood 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -16406,
+     -11913
+    ],
+    "max": [
+     32767,
+     16406,
+     11913
+    ],
+    "size": [
+     65534,
+     32812,
+     23826
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 23826,
+    "h": 32812
+   },
+   "radius": 38532.489,
+   "lods": [
+    {
+     "tris": 1556,
+     "dist": 0
+    },
+    {
+     "tris": 1556,
+     "dist": 308259.9
+    },
+    {
+     "tris": 1556,
+     "dist": 770649.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 549214,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/firewood_0.glb",
+     "bytes": 595828,
+     "blake3": "63f2b7100b0f954664ebc8df8c2adb95b8365a11253b9ca3b02ec90b734ee9b4"
+    }
+   }
+  },
+  "village_fisher-hut_0": {
+   "id": "village_fisher-hut_0",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village fisher-hut 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -30223
+    ],
+    "max": [
+     32767,
+     32767,
+     30223
+    ],
+    "size": [
+     65534,
+     65534,
+     60446
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 60446,
+    "h": 65534
+   },
+   "radius": 55324.337,
+   "lods": [
+    {
+     "tris": 4970,
+     "dist": 0
+    },
+    {
+     "tris": 4970,
+     "dist": 442594.7
+    },
+    {
+     "tris": 4970,
+     "dist": 1106486.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 509372,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/fisher-hut_0.glb",
+     "bytes": 621588,
+     "blake3": "7e5de00b18252fcd954b3f8ff88794601cfdf99b8ba7b2186f5c341e0587424e"
+    }
+   }
+  },
+  "village_flower-patch_0": {
+   "id": "village_flower-patch_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village flower-patch 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -12633,
+     -26647
+    ],
+    "max": [
+     32767,
+     12633,
+     26647
+    ],
+    "size": [
+     65534,
+     25266,
+     53294
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 53294,
+    "h": 25266
+   },
+   "radius": 44083.235,
+   "lods": [
+    {
+     "tris": 7470,
+     "dist": 0
+    },
+    {
+     "tris": 7470,
+     "dist": 352665.9
+    },
+    {
+     "tris": 7470,
+     "dist": 881664.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 608594,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/flower-patch_0.glb",
+     "bytes": 716244,
+     "blake3": "b90cf3186d74564dba8eb560b9c70fd061a96848036c5ecd7d10508b2c678f17"
+    }
+   }
+  },
+  "village_flower-patch_1": {
+   "id": "village_flower-patch_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village flower-patch 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -12633,
+     -26647
+    ],
+    "max": [
+     32767,
+     12633,
+     26647
+    ],
+    "size": [
+     65534,
+     25266,
+     53294
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 53294,
+    "h": 25266
+   },
+   "radius": 44083.235,
+   "lods": [
+    {
+     "tris": 7470,
+     "dist": 0
+    },
+    {
+     "tris": 7470,
+     "dist": 352665.9
+    },
+    {
+     "tris": 7470,
+     "dist": 881664.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 614810,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/flower-patch_1.glb",
+     "bytes": 722460,
+     "blake3": "5d67638aff6d9b14cc49b26f90d650f85f3e4d0ca90930169e4f119eb0bf3a7c"
+    }
+   }
+  },
+  "village_flower-patch_2": {
+   "id": "village_flower-patch_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village flower-patch 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -12633,
+     -26647
+    ],
+    "max": [
+     32767,
+     12633,
+     26647
+    ],
+    "size": [
+     65534,
+     25266,
+     53294
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 53294,
+    "h": 25266
+   },
+   "radius": 44083.235,
+   "lods": [
+    {
+     "tris": 7470,
+     "dist": 0
+    },
+    {
+     "tris": 7470,
+     "dist": 352665.9
+    },
+    {
+     "tris": 7470,
+     "dist": 881664.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 627412,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/flower-patch_2.glb",
+     "bytes": 735068,
+     "blake3": "439cda878f6d5644291cdded4ea03374338e82238850eeb1d2f975abededbc6c"
+    }
+   }
+  },
+  "village_flower-patch_3": {
+   "id": "village_flower-patch_3",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village flower-patch 3",
+   "bounds": {
+    "min": [
+     -32767,
+     -12633,
+     -26647
+    ],
+    "max": [
+     32767,
+     12633,
+     26647
+    ],
+    "size": [
+     65534,
+     25266,
+     53294
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 53294,
+    "h": 25266
+   },
+   "radius": 44083.235,
+   "lods": [
+    {
+     "tris": 7470,
+     "dist": 0
+    },
+    {
+     "tris": 7470,
+     "dist": 352665.9
+    },
+    {
+     "tris": 7470,
+     "dist": 881664.7
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 610545,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/flower-patch_3.glb",
+     "bytes": 718196,
+     "blake3": "1e2e3f9acfca57ebd9feb4fb2573ba81bf2b67a004af12553801b550b68b89f5"
+    }
+   }
+  },
+  "village_haystack_0": {
+   "id": "village_haystack_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village haystack 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -24386,
+     -32767
+    ],
+    "max": [
+     32767,
+     24386,
+     32767
+    ],
+    "size": [
+     65534,
+     48772,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 48772
+   },
+   "radius": 52364.392,
+   "lods": [
+    {
+     "tris": 192,
+     "dist": 0
+    },
+    {
+     "tris": 192,
+     "dist": 418915.1
+    },
+    {
+     "tris": 192,
+     "dist": 1047287.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 279936,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/haystack_0.glb",
+     "bytes": 291684,
+     "blake3": "9ee1de8478bcf10b19078a7858945defc2e200aa6059330a783e1fe17f281d4a"
+    }
+   }
+  },
+  "village_haystack_1": {
+   "id": "village_haystack_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village haystack 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -25079,
+     -32767
+    ],
+    "max": [
+     32767,
+     25079,
+     32767
+    ],
+    "size": [
+     65534,
+     50158,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 50158
+   },
+   "radius": 52690.69,
+   "lods": [
+    {
+     "tris": 192,
+     "dist": 0
+    },
+    {
+     "tris": 192,
+     "dist": 421525.5
+    },
+    {
+     "tris": 192,
+     "dist": 1053813.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 327482,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/haystack_1.glb",
+     "bytes": 339204,
+     "blake3": "b550e95a52c7088cfecf338fadb4d345d3f2588f3a5e5d415406c7d8e0413a6e"
+    }
+   }
+  },
+  "village_haystack_2": {
+   "id": "village_haystack_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village haystack 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -24867,
+     -32767
+    ],
+    "max": [
+     32767,
+     24867,
+     32767
+    ],
+    "size": [
+     65534,
+     49734,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 49734
+   },
+   "radius": 52590.116,
+   "lods": [
+    {
+     "tris": 192,
+     "dist": 0
+    },
+    {
+     "tris": 192,
+     "dist": 420720.9
+    },
+    {
+     "tris": 192,
+     "dist": 1051802.3
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 267619,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/haystack_2.glb",
+     "bytes": 279280,
+     "blake3": "b38504fce8a19ad78b7cae8ef6e40486e89a3aca6cd244899eb4ed92bc5ed98f"
+    }
+   }
+  },
+  "village_hearth": {
+   "id": "village_hearth",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village hearth",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 72509,
+     "dist": 0
+    },
+    {
+     "tris": 72509,
+     "dist": 454032.9
+    },
+    {
+     "tris": 72509,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 6,
+   "texPx": 2048,
+   "texBytes": 3235814,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/hearth.glb",
+     "bytes": 4391688,
+     "blake3": "f28309cfe8b578292a98aa784250d451993719e3dad53995f6e540622d5e7ddc"
+    }
+   },
+   "materialOverrides": {
+    "hearth_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_hedge_0": {
+   "id": "village_hedge_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village hedge 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -9201,
+     -13557
+    ],
+    "max": [
+     32767,
+     9201,
+     13557
+    ],
+    "size": [
+     65534,
+     18402,
+     27114
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 27114,
+    "h": 18402
+   },
+   "radius": 36635.051,
+   "lods": [
+    {
+     "tris": 2938,
+     "dist": 0
+    },
+    {
+     "tris": 2938,
+     "dist": 293080.4
+    },
+    {
+     "tris": 2938,
+     "dist": 732701
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 610903,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/hedge_0.glb",
+     "bytes": 655632,
+     "blake3": "d9f646d0426c9747ab4addaca56d9a856831eda6e24eee59b25a131fddeb781d"
+    }
+   }
+  },
+  "village_hedge_1": {
+   "id": "village_hedge_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village hedge 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -10473,
+     -13461
+    ],
+    "max": [
+     32767,
+     10473,
+     13461
+    ],
+    "size": [
+     65534,
+     20946,
+     26922
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 26922,
+    "h": 20946
+   },
+   "radius": 36939.931,
+   "lods": [
+    {
+     "tris": 3034,
+     "dist": 0
+    },
+    {
+     "tris": 3034,
+     "dist": 295519.5
+    },
+    {
+     "tris": 3034,
+     "dist": 738798.6
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 606488,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/hedge_1.glb",
+     "bytes": 653024,
+     "blake3": "aafb0ae7f574d3fe64756a5f8a0477b742ea519b74d5970658076b65139a74ee"
+    }
+   }
+  },
+  "village_lamp_0": {
+   "id": "village_lamp_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village lamp 0",
+   "bounds": {
+    "min": [
+     -31127,
+     -32767,
+     -31127
+    ],
+    "max": [
+     31127,
+     32767,
+     31127
+    ],
+    "size": [
+     62254,
+     65534,
+     62254
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 62254,
+    "d": 62254,
+    "h": 65534
+   },
+   "radius": 54876.74,
+   "lods": [
+    {
+     "tris": 1476,
+     "dist": 0
+    },
+    {
+     "tris": 1476,
+     "dist": 439013.9
+    },
+    {
+     "tris": 1476,
+     "dist": 1097534.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 450353,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/lamp_0.glb",
+     "bytes": 477592,
+     "blake3": "fa88fc49bed65b5cf3e89d2601e17378dfa4cf02188c52bc42a31992edbd5c07"
+    }
+   }
+  },
+  "village_lighthouse_0": {
+   "id": "village_lighthouse_0",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village lighthouse 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 6876,
+     "dist": 0
+    },
+    {
+     "tris": 6876,
+     "dist": 454032.9
+    },
+    {
+     "tris": 6876,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 602672,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/lighthouse_0.glb",
+     "bytes": 731292,
+     "blake3": "0e96698eb1feeda593245154b8a175dea680527510db0285e2e4613c2aea5600"
+    }
+   }
+  },
+  "village_maypole_0": {
+   "id": "village_maypole_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village maypole 0",
+   "bounds": {
+    "min": [
+     -31443,
+     -32767,
+     -30811
+    ],
+    "max": [
+     31443,
+     32767,
+     30811
+    ],
+    "size": [
+     62886,
+     65534,
+     61622
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 62886,
+    "d": 61622,
+    "h": 65534
+   },
+   "radius": 54878.559,
+   "lods": [
+    {
+     "tris": 1176,
+     "dist": 0
+    },
+    {
+     "tris": 1176,
+     "dist": 439028.5
+    },
+    {
+     "tris": 1176,
+     "dist": 1097571.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 341577,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/maypole_0.glb",
+     "bytes": 379060,
+     "blake3": "4441fb5d080445da7bd33d2f30ecfbb202358ea29cdaf66848407c77907097d9"
+    }
+   },
+   "materialOverrides": {
+    "maypole_0_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_net-rack_0": {
+   "id": "village_net-rack_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village net-rack 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -26811,
+     -3696
+    ],
+    "max": [
+     32767,
+     26811,
+     3696
+    ],
+    "size": [
+     65534,
+     53622,
+     7392
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 7392,
+    "h": 53622
+   },
+   "radius": 42499.017,
+   "lods": [
+    {
+     "tris": 1912,
+     "dist": 0
+    },
+    {
+     "tris": 1912,
+     "dist": 339992.1
+    },
+    {
+     "tris": 1912,
+     "dist": 849980.3
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 549641,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/net-rack_0.glb",
+     "bytes": 581780,
+     "blake3": "085aff30e5772dc4294257bf6baee04a78fdf45b3fed4a879993abcd0a0217fd"
+    }
+   }
+  },
+  "village_pier_0": {
+   "id": "village_pier_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village pier 0",
+   "bounds": {
+    "min": [
+     -10449,
+     -9397,
+     -32767
+    ],
+    "max": [
+     10449,
+     9397,
+     32767
+    ],
+    "size": [
+     20898,
+     18794,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 20898,
+    "d": 65534,
+    "h": 18794
+   },
+   "radius": 35653.352,
+   "lods": [
+    {
+     "tris": 3528,
+     "dist": 0
+    },
+    {
+     "tris": 3528,
+     "dist": 285226.8
+    },
+    {
+     "tris": 3528,
+     "dist": 713067
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 575580,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/pier_0.glb",
+     "bytes": 667476,
+     "blake3": "c4bb62d25d9d45129b469a6505aacbf6625a208e0836d9bdcdc8c7535150ce35"
+    }
+   }
+  },
+  "village_reed_0": {
+   "id": "village_reed_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village reed 0",
+   "bounds": {
+    "min": [
+     -7540,
+     -32767,
+     -7036
+    ],
+    "max": [
+     7540,
+     32767,
+     7036
+    ],
+    "size": [
+     15080,
+     65534,
+     14072
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 15080,
+    "d": 14072,
+    "h": 65534
+   },
+   "radius": 34351.611,
+   "lods": [
+    {
+     "tris": 1040,
+     "dist": 0
+    },
+    {
+     "tris": 1040,
+     "dist": 274812.9
+    },
+    {
+     "tris": 1040,
+     "dist": 687032.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 394292,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/reed_0.glb",
+     "bytes": 427352,
+     "blake3": "8316f7c4eac36b95d583d785419e8ac8babd50e5446cf0b309b6d07575817d4c"
+    }
+   }
+  },
+  "village_reed_1": {
+   "id": "village_reed_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village reed 1",
+   "bounds": {
+    "min": [
+     -7540,
+     -32767,
+     -7036
+    ],
+    "max": [
+     7540,
+     32767,
+     7036
+    ],
+    "size": [
+     15080,
+     65534,
+     14072
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 15080,
+    "d": 14072,
+    "h": 65534
+   },
+   "radius": 34351.611,
+   "lods": [
+    {
+     "tris": 1040,
+     "dist": 0
+    },
+    {
+     "tris": 1040,
+     "dist": 274812.9
+    },
+    {
+     "tris": 1040,
+     "dist": 687032.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 394292,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/reed_1.glb",
+     "bytes": 427352,
+     "blake3": "3ace7a1992e439c59bd276983a39a7c8620bf8994b4097d0861f3c38c38a0708"
+    }
+   }
+  },
+  "village_reed_2": {
+   "id": "village_reed_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village reed 2",
+   "bounds": {
+    "min": [
+     -7540,
+     -32767,
+     -7036
+    ],
+    "max": [
+     7540,
+     32767,
+     7036
+    ],
+    "size": [
+     15080,
+     65534,
+     14072
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 15080,
+    "d": 14072,
+    "h": 65534
+   },
+   "radius": 34351.611,
+   "lods": [
+    {
+     "tris": 1040,
+     "dist": 0
+    },
+    {
+     "tris": 1040,
+     "dist": 274812.9
+    },
+    {
+     "tris": 1040,
+     "dist": 687032.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 394292,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/reed_2.glb",
+     "bytes": 427352,
+     "blake3": "8c012cee7c92d968688d57760a77f163b691510484fe84dd63eecdf0f2b59175"
+    }
+   }
+  },
+  "village_rock_0": {
+   "id": "village_rock_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village rock 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -13073,
+     -31983
+    ],
+    "max": [
+     32767,
+     13073,
+     31983
+    ],
+    "size": [
+     65534,
+     26146,
+     63966
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 63966,
+    "h": 26146
+   },
+   "radius": 47618.189,
+   "lods": [
+    {
+     "tris": 330,
+     "dist": 0
+    },
+    {
+     "tris": 330,
+     "dist": 380945.5
+    },
+    {
+     "tris": 330,
+     "dist": 952363.8
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 382193,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/rock_0.glb",
+     "bytes": 399128,
+     "blake3": "9c4b260b1ccedd63664616a3e789605164994eacb3f530a267bc6c7fefdd1f08"
+    }
+   },
+   "materialOverrides": {
+    "rock_0": {
+     "pom": 1
+    }
+   }
+  },
+  "village_rock_1": {
+   "id": "village_rock_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village rock 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -13109,
+     -30971
+    ],
+    "max": [
+     32767,
+     13109,
+     30971
+    ],
+    "size": [
+     65534,
+     26218,
+     61942
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 61942,
+    "h": 26218
+   },
+   "radius": 46954.499,
+   "lods": [
+    {
+     "tris": 278,
+     "dist": 0
+    },
+    {
+     "tris": 278,
+     "dist": 375636
+    },
+    {
+     "tris": 278,
+     "dist": 939090
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 361633,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/rock_1.glb",
+     "bytes": 377072,
+     "blake3": "06f176326925bdd1e9668acaba4d87b6e441c540d05e4c7f1078d7f423a03a4b"
+    }
+   },
+   "materialOverrides": {
+    "rock_1": {
+     "pom": 1
+    }
+   }
+  },
+  "village_rock_2": {
+   "id": "village_rock_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village rock 2",
+   "bounds": {
+    "min": [
+     -32315,
+     -12877,
+     -32767
+    ],
+    "max": [
+     32315,
+     12877,
+     32767
+    ],
+    "size": [
+     64630,
+     25754,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 64630,
+    "d": 65534,
+    "h": 25754
+   },
+   "radius": 47788.625,
+   "lods": [
+    {
+     "tris": 256,
+     "dist": 0
+    },
+    {
+     "tris": 256,
+     "dist": 382309
+    },
+    {
+     "tris": 256,
+     "dist": 955772.5
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 381865,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/rock_2.glb",
+     "bytes": 396436,
+     "blake3": "97ca0e95947f5d10cda870a01fb8fbf5b91f534a8219b777050a34707b219cf6"
+    }
+   },
+   "materialOverrides": {
+    "rock_2": {
+     "pom": 1
+    }
+   }
+  },
+  "village_scarecrow_0": {
+   "id": "village_scarecrow_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village scarecrow 0",
+   "bounds": {
+    "min": [
+     -28955,
+     -32767,
+     -17478
+    ],
+    "max": [
+     28955,
+     32767,
+     17478
+    ],
+    "size": [
+     57910,
+     65534,
+     34956
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 57910,
+    "d": 34956,
+    "h": 65534
+   },
+   "radius": 47090.857,
+   "lods": [
+    {
+     "tris": 626,
+     "dist": 0
+    },
+    {
+     "tris": 626,
+     "dist": 376726.9
+    },
+    {
+     "tris": 626,
+     "dist": 941817.1
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 538566,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/scarecrow_0.glb",
+     "bytes": 560080,
+     "blake3": "169466f33c204df4c8e310a94ccb175d6208cf335cc649be07062f1746fcabd8"
+    }
+   },
+   "materialOverrides": {
+    "scarecrow_0_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_shrub_0": {
+   "id": "village_shrub_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village shrub 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -27671,
+     -31207
+    ],
+    "max": [
+     32767,
+     27671,
+     31207
+    ],
+    "size": [
+     65534,
+     55342,
+     62414
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 62414,
+    "h": 55342
+   },
+   "radius": 53039.96,
+   "lods": [
+    {
+     "tris": 2678,
+     "dist": 0
+    },
+    {
+     "tris": 2678,
+     "dist": 424319.7
+    },
+    {
+     "tris": 2678,
+     "dist": 1060799.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 459077,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/shrub_0.glb",
+     "bytes": 495608,
+     "blake3": "10b724901ea0a606c15b680ea462d0598ad15fd02c4676fd91ba53f0dc000f42"
+    }
+   }
+  },
+  "village_shrub_1": {
+   "id": "village_shrub_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village shrub 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -27671,
+     -31207
+    ],
+    "max": [
+     32767,
+     27671,
+     31207
+    ],
+    "size": [
+     65534,
+     55342,
+     62414
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 62414,
+    "h": 55342
+   },
+   "radius": 53039.96,
+   "lods": [
+    {
+     "tris": 2678,
+     "dist": 0
+    },
+    {
+     "tris": 2678,
+     "dist": 424319.7
+    },
+    {
+     "tris": 2678,
+     "dist": 1060799.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 459077,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/shrub_1.glb",
+     "bytes": 495608,
+     "blake3": "0fc2b55a9208f529678c50215e39e983d4bc673e16df54df7688a78b7918c537"
+    }
+   }
+  },
+  "village_shrub_2": {
+   "id": "village_shrub_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village shrub 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -27671,
+     -31207
+    ],
+    "max": [
+     32767,
+     27671,
+     31207
+    ],
+    "size": [
+     65534,
+     55342,
+     62414
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 62414,
+    "h": 55342
+   },
+   "radius": 53039.96,
+   "lods": [
+    {
+     "tris": 2678,
+     "dist": 0
+    },
+    {
+     "tris": 2678,
+     "dist": 424319.7
+    },
+    {
+     "tris": 2678,
+     "dist": 1060799.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 459077,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/shrub_2.glb",
+     "bytes": 495608,
+     "blake3": "53a80a35940e63a25184f7c0746f79324931fd576756dc6c4085e3c2e0278f1d"
+    }
+   }
+  },
+  "village_signpost": {
+   "id": "village_signpost",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village signpost",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 3884,
+     "dist": 0
+    },
+    {
+     "tris": 3884,
+     "dist": 454032.9
+    },
+    {
+     "tris": 3884,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 1,
+   "texPx": 1024,
+   "texBytes": 542464,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/signpost.glb",
+     "bytes": 628284,
+     "blake3": "6d0d14b449f88d7ac1b7746dcfdb80e8892f980974fdc3c53b78ea1bf8d229f6"
+    }
+   }
+  },
+  "village_skein": {
+   "id": "village_skein",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village skein",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -32767
+    ],
+    "max": [
+     32767,
+     32767,
+     32767
+    ],
+    "size": [
+     65534,
+     65534,
+     65534
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 65534,
+    "h": 65534
+   },
+   "radius": 56754.109,
+   "lods": [
+    {
+     "tris": 51002,
+     "dist": 0
+    },
+    {
+     "tris": 51002,
+     "dist": 454032.9
+    },
+    {
+     "tris": 51002,
+     "dist": 1135082.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 7,
+   "texPx": 2048,
+   "texBytes": 3064104,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "2048px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/skein.glb",
+     "bytes": 3976360,
+     "blake3": "bd4d56b2b889ebd36aaf444e8dd65ca80a15d0673fb33e17586e3df8e8f14312"
+    }
+   },
+   "materialOverrides": {
+    "skein_L2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_stall_0": {
+   "id": "village_stall_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village stall 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -22406,
+     -25631
+    ],
+    "max": [
+     32767,
+     22406,
+     25631
+    ],
+    "size": [
+     65534,
+     44812,
+     51262
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 51262,
+    "h": 44812
+   },
+   "radius": 47250.961,
+   "lods": [
+    {
+     "tris": 4174,
+     "dist": 0
+    },
+    {
+     "tris": 4174,
+     "dist": 378007.7
+    },
+    {
+     "tris": 4174,
+     "dist": 945019.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 613187,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/stall_0.glb",
+     "bytes": 688256,
+     "blake3": "474f74e6702763d29894d1a2c60f40814c17f792545a0efb3379ecaa97e4c5c4"
+    }
+   },
+   "materialOverrides": {
+    "stall_0_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_stall_1": {
+   "id": "village_stall_1",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village stall 1",
+   "bounds": {
+    "min": [
+     -32767,
+     -22406,
+     -25631
+    ],
+    "max": [
+     32767,
+     22406,
+     25631
+    ],
+    "size": [
+     65534,
+     44812,
+     51262
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 51262,
+    "h": 44812
+   },
+   "radius": 47250.961,
+   "lods": [
+    {
+     "tris": 4174,
+     "dist": 0
+    },
+    {
+     "tris": 4174,
+     "dist": 378007.7
+    },
+    {
+     "tris": 4174,
+     "dist": 945019.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 603948,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/stall_1.glb",
+     "bytes": 679024,
+     "blake3": "dd01239f806036b1592e8b4864564bfd41b9a5ff83354a3d7465c4de6db84a1c"
+    }
+   },
+   "materialOverrides": {
+    "stall_1_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_stall_2": {
+   "id": "village_stall_2",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village stall 2",
+   "bounds": {
+    "min": [
+     -32767,
+     -22406,
+     -25631
+    ],
+    "max": [
+     32767,
+     22406,
+     25631
+    ],
+    "size": [
+     65534,
+     44812,
+     51262
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 51262,
+    "h": 44812
+   },
+   "radius": 47250.961,
+   "lods": [
+    {
+     "tris": 4174,
+     "dist": 0
+    },
+    {
+     "tris": 4174,
+     "dist": 378007.7
+    },
+    {
+     "tris": 4174,
+     "dist": 945019.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 604947,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/stall_2.glb",
+     "bytes": 680008,
+     "blake3": "0a79f9f57cecac3b6201463bd56e12ff6377c03b31bca56b6082f32506d2f015"
+    }
+   },
+   "materialOverrides": {
+    "stall_2_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_stall_3": {
+   "id": "village_stall_3",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village stall 3",
+   "bounds": {
+    "min": [
+     -32767,
+     -22406,
+     -25631
+    ],
+    "max": [
+     32767,
+     22406,
+     25631
+    ],
+    "size": [
+     65534,
+     44812,
+     51262
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 51262,
+    "h": 44812
+   },
+   "radius": 47250.961,
+   "lods": [
+    {
+     "tris": 4174,
+     "dist": 0
+    },
+    {
+     "tris": 4174,
+     "dist": 378007.7
+    },
+    {
+     "tris": 4174,
+     "dist": 945019.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 608220,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/stall_3.glb",
+     "bytes": 683296,
+     "blake3": "97bac76ce11acbc5d170d7ed84170792c2c7020f16953fb6d4572a26ef79d506"
+    }
+   },
+   "materialOverrides": {
+    "stall_3_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_stall_4": {
+   "id": "village_stall_4",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village stall 4",
+   "bounds": {
+    "min": [
+     -32767,
+     -22406,
+     -25631
+    ],
+    "max": [
+     32767,
+     22406,
+     25631
+    ],
+    "size": [
+     65534,
+     44812,
+     51262
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 51262,
+    "h": 44812
+   },
+   "radius": 47250.961,
+   "lods": [
+    {
+     "tris": 4174,
+     "dist": 0
+    },
+    {
+     "tris": 4174,
+     "dist": 378007.7
+    },
+    {
+     "tris": 4174,
+     "dist": 945019.2
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 613033,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/stall_4.glb",
+     "bytes": 688104,
+     "blake3": "120ac15e8c13bf62e07016e16071eeb6a786ffb417877c78f1f366a755fe1f90"
+    }
+   },
+   "materialOverrides": {
+    "stall_4_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_washing-line_0": {
+   "id": "village_washing-line_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village washing-line 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -20610,
+     -1344
+    ],
+    "max": [
+     32767,
+     20610,
+     1344
+    ],
+    "size": [
+     65534,
+     41220,
+     2688
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 2688,
+    "h": 41220
+   },
+   "radius": 38733.122,
+   "lods": [
+    {
+     "tris": 359,
+     "dist": 0
+    },
+    {
+     "tris": 359,
+     "dist": 309865
+    },
+    {
+     "tris": 359,
+     "dist": 774662.4
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 392513,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/washing-line_0.glb",
+     "bytes": 409956,
+     "blake3": "b600f737c8a8b7ecf36ca8f24bb9fb2debe287910b905dd6fb9bfda29ebafd9e"
+    }
+   },
+   "materialOverrides": {
+    "washing-line_0_cloth": {
+     "sheen": 1,
+     "sheenRoughness": 0.5,
+     "sheenColor": "#9a9a9a"
+    }
+   }
+  },
+  "village_watermill_0": {
+   "id": "village_watermill_0",
+   "category": "structure",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village watermill 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -31007
+    ],
+    "max": [
+     32767,
+     32767,
+     31007
+    ],
+    "size": [
+     65534,
+     65534,
+     62014
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 62014,
+    "h": 65534
+   },
+   "radius": 55756.494,
+   "lods": [
+    {
+     "tris": 8392,
+     "dist": 0
+    },
+    {
+     "tris": 8392,
+     "dist": 446052
+    },
+    {
+     "tris": 8392,
+     "dist": 1115129.9
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 3,
+   "texPx": 1024,
+   "texBytes": 515836,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/watermill_0.glb",
+     "bytes": 720680,
+     "blake3": "6fd8d6860390529bbe29a5f25ef2b0567febafcbfbc584a5ce9c03be41fb761b"
+    }
+   }
+  },
+  "village_well_0": {
+   "id": "village_well_0",
+   "category": "prop",
+   "tags": [
+    "village",
+    "exterior"
+   ],
+   "hero": false,
+   "name": "village well 0",
+   "bounds": {
+    "min": [
+     -32767,
+     -32767,
+     -26831
+    ],
+    "max": [
+     32767,
+     32767,
+     26831
+    ],
+    "size": [
+     65534,
+     65534,
+     53662
+    ]
+   },
+   "pivot": "bottom-center",
+   "footprint": {
+    "w": 65534,
+    "d": 53662,
+    "h": 65534
+   },
+   "radius": 53546.757,
+   "lods": [
+    {
+     "tris": 2566,
+     "dist": 0
+    },
+    {
+     "tris": 2566,
+     "dist": 428374.1
+    },
+    {
+     "tris": 2566,
+     "dist": 1070935.1
+    }
+   ],
+   "surfaces": [],
+   "lights": [],
+   "shadow": {
+    "cast": true,
+    "receive": true
+   },
+   "materials": 2,
+   "texPx": 1024,
+   "texBytes": 530474,
+   "source": {
+    "page": "scripts/assets/blender/village",
+    "authors": [
+     "Hermod"
+    ],
+    "license": "CC0-1.0 (authored here)",
+    "res": "1024px",
+    "origin": "blender",
+    "lightmap": false
+   },
+   "tiers": {
+    "high": {
+     "file": "village/well_0.glb",
+     "bytes": 604472,
+     "blake3": "8b4982ab6ef54d0a07ce865c8642dc48cf36c1c9ec68e116aa2ee1929036de66"
+    }
+   }
+  }
+ },
+ "terrain": {
+  "sanctuary_cliff": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/cliff_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/cliff_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/cliff_orm.ktx2",
+    "ultra:bc": "nature/terrain/sanctuary/ultra/cliff_bc.ktx2",
+    "ultra:n": "nature/terrain/sanctuary/ultra/cliff_n.ktx2",
+    "ultra:orm": "nature/terrain/sanctuary/ultra/cliff_orm.ktx2"
+   }
+  },
+  "sanctuary_cobble": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/cobble_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/cobble_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/cobble_orm.ktx2"
+   }
+  },
+  "sanctuary_dirt": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/dirt_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/dirt_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/dirt_orm.ktx2"
+   }
+  },
+  "sanctuary_flagstone": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/flagstone_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/flagstone_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/flagstone_orm.ktx2"
+   }
+  },
+  "sanctuary_grass": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/grass_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/grass_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/grass_orm.ktx2"
+   }
+  },
+  "sanctuary_meadow": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/meadow_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/meadow_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/meadow_orm.ktx2"
+   }
+  },
+  "sanctuary_mud": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/mud_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/mud_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/mud_orm.ktx2"
+   }
+  },
+  "sanctuary_path": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/path_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/path_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/path_orm.ktx2"
+   }
+  },
+  "sanctuary_sand": {
+   "palette": "sanctuary",
+   "files": {
+    "high:bc": "nature/terrain/sanctuary/high/sand_bc.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/sand_n.ktx2",
+    "high:orm": "nature/terrain/sanctuary/high/sand_orm.ktx2"
+   }
+  },
+  "sanctuary_water": {
+   "palette": "sanctuary",
+   "files": {
+    "high:flow": "nature/terrain/sanctuary/high/water_flow.ktx2",
+    "high:n": "nature/terrain/sanctuary/high/water_n.ktx2"
+   }
+  },
+  "village_cliff": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/cliff_bc.ktx2",
+    "high:n": "nature/terrain/village/high/cliff_n.ktx2",
+    "high:orm": "nature/terrain/village/high/cliff_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/cliff_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/cliff_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/cliff_orm.ktx2"
+   }
+  },
+  "village_cobble": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/cobble_bc.ktx2",
+    "high:n": "nature/terrain/village/high/cobble_n.ktx2",
+    "high:orm": "nature/terrain/village/high/cobble_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/cobble_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/cobble_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/cobble_orm.ktx2"
+   }
+  },
+  "village_dirt": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/dirt_bc.ktx2",
+    "high:n": "nature/terrain/village/high/dirt_n.ktx2",
+    "high:orm": "nature/terrain/village/high/dirt_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/dirt_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/dirt_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/dirt_orm.ktx2"
+   }
+  },
+  "village_flagstone": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/flagstone_bc.ktx2",
+    "high:n": "nature/terrain/village/high/flagstone_n.ktx2",
+    "high:orm": "nature/terrain/village/high/flagstone_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/flagstone_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/flagstone_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/flagstone_orm.ktx2"
+   }
+  },
+  "village_grass": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/grass_bc.ktx2",
+    "high:n": "nature/terrain/village/high/grass_n.ktx2",
+    "high:orm": "nature/terrain/village/high/grass_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/grass_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/grass_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/grass_orm.ktx2"
+   }
+  },
+  "village_meadow": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/meadow_bc.ktx2",
+    "high:n": "nature/terrain/village/high/meadow_n.ktx2",
+    "high:orm": "nature/terrain/village/high/meadow_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/meadow_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/meadow_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/meadow_orm.ktx2"
+   }
+  },
+  "village_mud": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/mud_bc.ktx2",
+    "high:n": "nature/terrain/village/high/mud_n.ktx2",
+    "high:orm": "nature/terrain/village/high/mud_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/mud_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/mud_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/mud_orm.ktx2"
+   }
+  },
+  "village_path": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/path_bc.ktx2",
+    "high:n": "nature/terrain/village/high/path_n.ktx2",
+    "high:orm": "nature/terrain/village/high/path_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/path_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/path_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/path_orm.ktx2"
+   }
+  },
+  "village_sand": {
+   "palette": "village",
+   "files": {
+    "high:bc": "nature/terrain/village/high/sand_bc.ktx2",
+    "high:n": "nature/terrain/village/high/sand_n.ktx2",
+    "high:orm": "nature/terrain/village/high/sand_orm.ktx2",
+    "ultra:bc": "nature/terrain/village/ultra/sand_bc.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/sand_n.ktx2",
+    "ultra:orm": "nature/terrain/village/ultra/sand_orm.ktx2"
+   }
+  },
+  "village_water": {
+   "palette": "village",
+   "files": {
+    "high:flow": "nature/terrain/village/high/water_flow.ktx2",
+    "high:n": "nature/terrain/village/high/water_n.ktx2",
+    "ultra:flow": "nature/terrain/village/ultra/water_flow.ktx2",
+    "ultra:n": "nature/terrain/village/ultra/water_n.ktx2"
+   }
+  }
+ }
+}

@@ -1,0 +1,596 @@
+[
+ {
+  "id": "stoa_short",
+  "tris_hi": 42512,
+  "tris_lod0": 1932,
+  "tex": 512,
+  "bytes": 278152,
+  "tris_lods": [
+   1932,
+   868,
+   308
+  ]
+ },
+ {
+  "id": "statue",
+  "tris_hi": 412,
+  "tris_lod0": 176,
+  "tex": 512,
+  "bytes": 52472,
+  "tris_lods": [
+   176,
+   78,
+   28
+  ]
+ },
+ {
+  "id": "torch",
+  "tris_hi": 120,
+  "tris_lod0": 84,
+  "tex": 256,
+  "bytes": 18360,
+  "tris_lods": [
+   84,
+   36,
+   12
+  ]
+ },
+ {
+  "id": "temple",
+  "tris_hi": 144124,
+  "tris_lod0": 6668,
+  "tex": 2048,
+  "bytes": 1403976,
+  "tris_lods": [
+   6668,
+   3000,
+   1066
+  ]
+ },
+ {
+  "id": "stoa",
+  "tris_hi": 72296,
+  "tris_lod0": 3204,
+  "tex": 1024,
+  "bytes": 528520,
+  "tris_lods": [
+   3204,
+   1440,
+   512
+  ]
+ },
+ {
+  "id": "tholos",
+  "tris_hi": 76452,
+  "tris_lod0": 4356,
+  "tex": 1024,
+  "bytes": 696388,
+  "tris_lods": [
+   4356,
+   1960,
+   696
+  ]
+ },
+ {
+  "id": "treasury",
+  "tris_hi": 21012,
+  "tris_lod0": 920,
+  "tex": 1024,
+  "bytes": 218764,
+  "tris_lods": [
+   920,
+   414,
+   146
+  ]
+ },
+ {
+  "id": "treasury_small",
+  "tris_hi": 10552,
+  "tris_lod0": 532,
+  "tex": 512,
+  "bytes": 116088,
+  "tris_lods": [
+   532,
+   238,
+   84
+  ]
+ },
+ {
+  "id": "workshop",
+  "tris_hi": 2460,
+  "tris_lod0": 444,
+  "tex": 1024,
+  "bytes": 146864,
+  "tris_lods": [
+   444,
+   198,
+   70
+  ]
+ },
+ {
+  "id": "tower",
+  "tris_hi": 10372,
+  "tris_lod0": 640,
+  "tex": 1024,
+  "bytes": 177068,
+  "tris_lods": [
+   640,
+   288,
+   102
+  ]
+ },
+ {
+  "id": "bouleuterion",
+  "tris_hi": 21768,
+  "tris_lod0": 1040,
+  "tex": 1024,
+  "bytes": 285180,
+  "tris_lods": [
+   1040,
+   468,
+   166
+  ]
+ },
+ {
+  "id": "palaestra",
+  "tris_hi": 66160,
+  "tris_lod0": 3224,
+  "tex": 1024,
+  "bytes": 529580,
+  "tris_lods": [
+   3224,
+   1450,
+   514
+  ]
+ },
+ {
+  "id": "hostel",
+  "tris_hi": 41160,
+  "tris_lod0": 1936,
+  "tex": 1024,
+  "bytes": 341760,
+  "tris_lods": [
+   1936,
+   870,
+   308
+  ]
+ },
+ {
+  "id": "propylon",
+  "tris_hi": 37440,
+  "tris_lod0": 1700,
+  "tex": 1024,
+  "bytes": 393224,
+  "tris_lods": [
+   1700,
+   764,
+   272
+  ]
+ },
+ {
+  "id": "herm",
+  "tris_hi": 144,
+  "tris_lod0": 96,
+  "tex": 512,
+  "bytes": 34888,
+  "tris_lods": [
+   96,
+   42,
+   14
+  ]
+ },
+ {
+  "id": "altar",
+  "tris_hi": 376,
+  "tris_lod0": 192,
+  "tex": 512,
+  "bytes": 60840,
+  "tris_lods": [
+   192,
+   86,
+   30
+  ]
+ },
+ {
+  "id": "stadium",
+  "tris_hi": 3672,
+  "tris_lod0": 560,
+  "tex": 1536,
+  "bytes": 184072,
+  "tris_lods": [
+   560,
+   252,
+   88
+  ]
+ },
+ {
+  "id": "cottage_0",
+  "tris_hi": 2270,
+  "tris_lod0": 518,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 227752,
+  "tris_lods": [
+   518,
+   233,
+   81
+  ]
+ },
+ {
+  "id": "cottage_1",
+  "tris_hi": 1456,
+  "tris_lod0": 484,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 194768,
+  "tris_lods": [
+   484,
+   216,
+   76
+  ]
+ },
+ {
+  "id": "cottage_2",
+  "tris_hi": 3636,
+  "tris_lod0": 372,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 199440,
+  "tris_lods": [
+   372,
+   166,
+   58
+  ]
+ },
+ {
+  "id": "cottage_3",
+  "tris_hi": 2258,
+  "tris_lod0": 542,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 192588,
+  "tris_lods": [
+   542,
+   242,
+   86
+  ]
+ },
+ {
+  "id": "cottage_4",
+  "tris_hi": 2048,
+  "tris_lod0": 426,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 263800,
+  "tris_lods": [
+   426,
+   190,
+   68
+  ]
+ },
+ {
+  "id": "cottage_5",
+  "tris_hi": 2232,
+  "tris_lod0": 580,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 244036,
+  "tris_lods": [
+   580,
+   260,
+   92
+  ]
+ },
+ {
+  "id": "amphora",
+  "tris_hi": 464,
+  "tris_lod0": 216,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 68184,
+  "tris_lods": [
+   216,
+   96,
+   34
+  ]
+ },
+ {
+  "id": "amphora_stack",
+  "tris_hi": 812,
+  "tris_lod0": 500,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 138764,
+  "tris_lods": [
+   500,
+   224,
+   80
+  ]
+ },
+ {
+  "id": "well",
+  "tris_hi": 760,
+  "tris_lod0": 352,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 94452,
+  "tris_lods": [
+   352,
+   158,
+   56
+  ]
+ },
+ {
+  "id": "cistern",
+  "tris_hi": 240,
+  "tris_lod0": 132,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 93944,
+  "tris_lods": [
+   132,
+   58,
+   30
+  ]
+ },
+ {
+  "id": "basin",
+  "tris_hi": 384,
+  "tris_lod0": 224,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 64648,
+  "tris_lods": [
+   224,
+   100,
+   34
+  ]
+ },
+ {
+  "id": "kline",
+  "tris_hi": 300,
+  "tris_lod0": 300,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 97600,
+  "tris_lods": [
+   300,
+   134,
+   48
+  ]
+ },
+ {
+  "id": "loom",
+  "tris_hi": 716,
+  "tris_lod0": 324,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 77944,
+  "tris_lods": [
+   324,
+   144,
+   50
+  ]
+ },
+ {
+  "id": "kiln",
+  "tris_hi": 1940,
+  "tris_lod0": 644,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 154980,
+  "tris_lods": [
+   644,
+   288,
+   102
+  ]
+ },
+ {
+  "id": "tripod",
+  "tris_hi": 240,
+  "tris_lod0": 180,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 59916,
+  "tris_lods": [
+   180,
+   80,
+   28
+  ]
+ },
+ {
+  "id": "offering_table",
+  "tris_hi": 340,
+  "tris_lod0": 340,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 86592,
+  "tris_lods": [
+   340,
+   152,
+   54
+  ]
+ },
+ {
+  "id": "stall",
+  "tris_hi": 1648,
+  "tris_lod0": 1276,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 319720,
+  "tris_lods": [
+   1276,
+   573,
+   204
+  ]
+ },
+ {
+  "id": "garden_bed",
+  "tris_hi": 1320,
+  "tris_lod0": 84,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 77000,
+  "tris_lods": [
+   84,
+   36,
+   14
+  ]
+ },
+ {
+  "id": "rock_a",
+  "tris_hi": 1280,
+  "tris_lod0": 80,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 55612,
+  "tris_lods": [
+   80,
+   36,
+   12
+  ]
+ },
+ {
+  "id": "rock_b",
+  "tris_hi": 2560,
+  "tris_lod0": 160,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 81452,
+  "tris_lods": [
+   160,
+   72,
+   24
+  ]
+ },
+ {
+  "id": "rock_c",
+  "tris_hi": 2560,
+  "tris_lod0": 160,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 83316,
+  "tris_lods": [
+   160,
+   72,
+   24
+  ]
+ },
+ {
+  "id": "step_stone",
+  "tris_hi": 1280,
+  "tris_lod0": 80,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 34852,
+  "tris_lods": [
+   80,
+   36,
+   12
+  ]
+ },
+ {
+  "id": "boat_a",
+  "tris_hi": 304,
+  "tris_lod0": 304,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 129448,
+  "tris_lods": [
+   304,
+   134,
+   48
+  ]
+ },
+ {
+  "id": "boat_b",
+  "tris_hi": 228,
+  "tris_lod0": 228,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 65332,
+  "tris_lods": [
+   228,
+   100,
+   35
+  ]
+ },
+ {
+  "id": "hut",
+  "tris_hi": 1860,
+  "tris_lod0": 396,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 193640,
+  "tris_lods": [
+   396,
+   178,
+   62
+  ]
+ },
+ {
+  "id": "net_rack",
+  "tris_hi": 324,
+  "tris_lod0": 324,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 67580,
+  "tris_lods": [
+   324,
+   144,
+   50
+  ]
+ },
+ {
+  "id": "woodpile",
+  "tris_hi": 180,
+  "tris_lod0": 72,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 34172,
+  "tris_lods": [
+   72,
+   32,
+   12
+  ]
+ },
+ {
+  "id": "bollard",
+  "tris_hi": 156,
+  "tris_lod0": 120,
+  "tex": 256,
+  "lm": 512,
+  "bytes": 39828,
+  "tris_lods": [
+   120,
+   54,
+   18
+  ]
+ },
+ {
+  "id": "banner_pole",
+  "tris_hi": 212,
+  "tris_lod0": 212,
+  "tex": 512,
+  "lm": 512,
+  "bytes": 55804,
+  "tris_lods": [
+   212,
+   94,
+   32
+  ]
+ },
+ {
+  "id": "xystos",
+  "tris_hi": 91232,
+  "tris_lod0": 11960,
+  "tex": 1024,
+  "lm": 512,
+  "bytes": 1956148,
+  "tris_lods": [
+   11960,
+   5382,
+   1912
+  ]
+ }
+]

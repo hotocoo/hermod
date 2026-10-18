@@ -39,3 +39,40 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/target
+/design-src
+
+# playwright
+/playwright-report/
+/test-results/
+
+# release hygiene
+target/
+/out/
+.next/
+node_modules/
+*.key
+.env*
+/playwright-report/
+/test-results/
+design-src/
+/src-tauri/gen/
+.e2e-site-*/
+test-results-*/
+playwright-report-*/
+
+# asset pipeline
+/assets/cache/
+/dist-assets/
+/.cache/
+perf-results/
+
+# ultra asset pack link for dev (scripts/assets/ultra-link.mjs)
+/public/assets/ultra
+
+# local dev/tool caches
+/.next-*/
+*.log
+/.serena/cache/
+/.serena/project.local.yml

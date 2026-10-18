@@ -1,0 +1,629 @@
+[
+ {
+  "id": "altar",
+  "tris": [
+   524,
+   234,
+   82
+  ],
+  "kb": 190,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "amphora",
+  "tris": [
+   248,
+   110,
+   38
+  ],
+  "kb": 95,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "amphora_stack",
+  "tris": [
+   516,
+   232,
+   82
+  ],
+  "kb": 208,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "banner_pole",
+  "tris": [
+   262,
+   116,
+   40
+  ],
+  "kb": 114,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "basin",
+  "tris": [
+   252,
+   112,
+   40
+  ],
+  "kb": 77,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "boat_a",
+  "tris": [
+   414,
+   186,
+   66
+  ],
+  "kb": 294,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "boat_b",
+  "tris": [
+   290,
+   129,
+   45
+  ],
+  "kb": 140,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "bollard",
+  "tris": [
+   288,
+   128,
+   46
+  ],
+  "kb": 102,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "bouleuterion",
+  "tris": [
+   8862,
+   3987,
+   1417
+  ],
+  "kb": 2211,
+  "textures": 4,
+  "px": 2048
+ },
+ {
+  "id": "bridge",
+  "tris": [
+   726,
+   326,
+   116
+  ],
+  "kb": 454,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "cistern",
+  "tris": [
+   276,
+   126,
+   126
+  ],
+  "kb": 164,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "cottage_0",
+  "tris": [
+   846,
+   379,
+   134
+  ],
+  "kb": 445,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "cottage_1",
+  "tris": [
+   1104,
+   497,
+   175
+  ],
+  "kb": 548,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "cottage_2",
+  "tris": [
+   792,
+   356,
+   126
+  ],
+  "kb": 495,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "cottage_3",
+  "tris": [
+   896,
+   402,
+   143
+  ],
+  "kb": 493,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "cottage_4",
+  "tris": [
+   890,
+   400,
+   142
+  ],
+  "kb": 501,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "cottage_5",
+  "tris": [
+   882,
+   395,
+   141
+  ],
+  "kb": 464,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "foundation",
+  "tris": [
+   248,
+   110,
+   38
+  ],
+  "kb": 148,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "garden_bed",
+  "tris": [
+   292,
+   130,
+   46
+  ],
+  "kb": 188,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "gate_pier",
+  "tris": [
+   328,
+   146,
+   66
+  ],
+  "kb": 121,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "herm",
+  "tris": [
+   268,
+   120,
+   42
+  ],
+  "kb": 166,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "hostel",
+  "tris": [
+   5705,
+   2567,
+   912
+  ],
+  "kb": 945,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "hut",
+  "tris": [
+   588,
+   264,
+   94
+  ],
+  "kb": 395,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "kiln",
+  "tris": [
+   756,
+   340,
+   120
+  ],
+  "kb": 226,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "kline",
+  "tris": [
+   372,
+   167,
+   58
+  ],
+  "kb": 186,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "loom",
+  "tris": [
+   420,
+   188,
+   66
+  ],
+  "kb": 166,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "mole_seg",
+  "tris": [
+   744,
+   334,
+   118
+  ],
+  "kb": 236,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "net_rack",
+  "tris": [
+   372,
+   166,
+   59
+  ],
+  "kb": 132,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "offering_table",
+  "tris": [
+   356,
+   160,
+   56
+  ],
+  "kb": 116,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "palaestra",
+  "tris": [
+   10386,
+   4672,
+   1660
+  ],
+  "kb": 1350,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "pier_deck",
+  "tris": [
+   277,
+   123,
+   44
+  ],
+  "kb": 124,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "pier_post",
+  "tris": [
+   576,
+   258,
+   92
+  ],
+  "kb": 71,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "propylon",
+  "tris": [
+   14235,
+   6405,
+   2276
+  ],
+  "kb": 2041,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "retain_seg",
+  "tris": [
+   245,
+   109,
+   39
+  ],
+  "kb": 155,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "rock_a",
+  "tris": [
+   186,
+   82,
+   28
+  ],
+  "kb": 149,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "rock_b",
+  "tris": [
+   365,
+   163,
+   57
+  ],
+  "kb": 199,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "rock_c",
+  "tris": [
+   256,
+   114,
+   40
+  ],
+  "kb": 186,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "stadium",
+  "tris": [
+   8001,
+   3600,
+   1280
+  ],
+  "kb": 2073,
+  "textures": 4,
+  "px": 2048
+ },
+ {
+  "id": "stair_seg",
+  "tris": [
+   174,
+   78,
+   26
+  ],
+  "kb": 93,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "stall",
+  "tris": [
+   1234,
+   555,
+   197
+  ],
+  "kb": 541,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "statue",
+  "tris": [
+   2085,
+   938,
+   332
+  ],
+  "kb": 326,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "step_stone",
+  "tris": [
+   158,
+   70,
+   24
+  ],
+  "kb": 88,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "stoa",
+  "tris": [
+   10068,
+   4530,
+   1610
+  ],
+  "kb": 1350,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "stoa_short",
+  "tris": [
+   6052,
+   2722,
+   968
+  ],
+  "kb": 1000,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "temple",
+  "tris": [
+   29320,
+   13194,
+   4690
+  ],
+  "kb": 4198,
+  "textures": 4,
+  "px": 2048
+ },
+ {
+  "id": "tholos",
+  "tris": [
+   15779,
+   7100,
+   2523
+  ],
+  "kb": 2818,
+  "textures": 4,
+  "px": 2048
+ },
+ {
+  "id": "torch",
+  "tris": [
+   260,
+   116,
+   40
+  ],
+  "kb": 92,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "tower",
+  "tris": [
+   2196,
+   988,
+   351
+  ],
+  "kb": 728,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "treasury",
+  "tris": [
+   7365,
+   3314,
+   1177
+  ],
+  "kb": 1169,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "treasury_small",
+  "tris": [
+   6170,
+   2775,
+   987
+  ],
+  "kb": 864,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "tripod",
+  "tris": [
+   262,
+   117,
+   41
+  ],
+  "kb": 99,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "wall_post",
+  "tris": [
+   220,
+   98,
+   34
+  ],
+  "kb": 100,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "wall_seg",
+  "tris": [
+   268,
+   120,
+   42
+  ],
+  "kb": 160,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "well",
+  "tris": [
+   654,
+   293,
+   103
+  ],
+  "kb": 195,
+  "textures": 3,
+  "px": 512
+ },
+ {
+  "id": "woodpile",
+  "tris": [
+   232,
+   104,
+   36
+  ],
+  "kb": 111,
+  "textures": 4,
+  "px": 512
+ },
+ {
+  "id": "workshop",
+  "tris": [
+   1144,
+   514,
+   182
+  ],
+  "kb": 483,
+  "textures": 4,
+  "px": 1024
+ },
+ {
+  "id": "xystos",
+  "tris": [
+   12500,
+   5624,
+   2000
+  ],
+  "kb": 1495,
+  "textures": 4,
+  "px": 1024
+ }
+]

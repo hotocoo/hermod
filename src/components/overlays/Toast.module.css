@@ -1,0 +1,25 @@
+.root {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  z-index: 60;
+  pointer-events: none;
+  transition: transform 520ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.03 28%,1.02 36%,1.005 46%,1),opacity 240ms ease;
+  padding: 11px 18px;
+  border: 1px solid var(--color-accent);
+  border-radius: 24px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-md);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.glyph {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-accent);
+}

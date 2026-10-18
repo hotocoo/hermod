@@ -1,0 +1,618 @@
+{
+ "id": "arcade",
+ "section": "arcade",
+ "name": "The Games Hall",
+ "cam": {
+  "cam": [
+   4.7,
+   1.9,
+   3.8
+  ],
+  "look": [
+   -1.8,
+   1.2,
+   -2.2
+  ]
+ },
+ "shell": {
+  "w": 11,
+  "d": 8.6,
+  "h": 4.4,
+  "floor": "plank_flooring_02",
+  "wall": "plastered_wall_02",
+  "trim": "lacquered_cherry_wood",
+  "ceiling": "dark_planks",
+  "wainscot": {
+   "material": "brown_planks_03",
+   "h": 1.05
+  },
+  "beams": {
+   "material": "rough_wood",
+   "every": 2.2,
+   "size": [
+    0.2,
+    0.28
+   ],
+   "axis": "x"
+  },
+  "baseboard": {
+   "h": 0.16,
+   "d": 0.03
+  },
+  "crown": {
+   "h": 0.14,
+   "d": 0.12
+  },
+  "openings": [
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": -3.5,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": 3.5,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "w",
+    "at": 2.0,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   }
+  ],
+  "keepClear": [
+   {
+    "x": [
+     2.4,
+     5.0
+    ],
+    "z": [
+     2.2,
+     4.1
+    ]
+   }
+  ],
+  "hdri": "abandoned_hall_01"
+ },
+ "rules": [
+  {
+   "kind": "wallrow",
+   "wall": "n",
+   "y": 2.0,
+   "count": 1,
+   "span": [
+    0,
+    0
+   ],
+   "group": "leaderboard",
+   "asset": "notice_board"
+  },
+  {
+   "kind": "wallrow",
+   "wall": "e",
+   "y": 1.7,
+   "count": 1,
+   "span": [
+    -0.3,
+    -0.3
+   ],
+   "group": "games",
+   "asset": "dartboard"
+  },
+  {
+   "kind": "set",
+   "table": "round_wooden_table_01",
+   "at": [
+    -2.8,
+    -1.6
+   ],
+   "rotY": 0,
+   "group": "tables",
+   "chairs": {
+    "assets": [
+     "dining_chair_02"
+    ],
+    "long": 0,
+    "short": 0,
+    "ring": 4,
+    "tuck": 0.12
+   }
+  },
+  {
+   "kind": "set",
+   "table": "round_wooden_table_01",
+   "at": [
+    0.0,
+    -0.2
+   ],
+   "rotY": 0.4,
+   "group": "tables",
+   "chairs": {
+    "assets": [
+     "dining_chair_02"
+    ],
+    "long": 0,
+    "short": 0,
+    "ring": 4,
+    "tuck": 0.12
+   }
+  },
+  {
+   "kind": "set",
+   "table": "round_wooden_table_01",
+   "at": [
+    -3.6,
+    1.6
+   ],
+   "rotY": 0.8,
+   "group": "tables",
+   "chairs": {
+    "assets": [
+     "dining_chair_02"
+    ],
+    "long": 0,
+    "short": 0,
+    "ring": 3,
+    "tuck": 0.12
+   }
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    3.2,
+    -2.4
+   ],
+   "group": "lounge",
+   "spread": 0.01,
+   "rotY": 1.5708,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "Sofa_01",
+   "at": [
+    4.6,
+    -2.4
+   ],
+   "group": "lounge",
+   "spread": 0.3,
+   "rotY": -1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "ArmChair_01",
+   "at": [
+    2.5,
+    -3.2
+   ],
+   "group": "lounge",
+   "spread": 0.3,
+   "face": [
+    3.4,
+    -2.4
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "ArmChair_01",
+   "at": [
+    2.5,
+    -1.4
+   ],
+   "group": "lounge",
+   "spread": 0.3,
+   "face": [
+    3.4,
+    -2.4
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "CoffeeTable_01",
+   "at": [
+    3.4,
+    -2.4
+   ],
+   "group": "lounge",
+   "spread": 0.2,
+   "rotY": 1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    -1.4,
+    1.2
+   ],
+   "group": "mid",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    -3.0,
+    0.2
+   ],
+   "group": "side",
+   "spread": 0.01,
+   "rotY": 1.5708,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    2.3,
+    0.9
+   ],
+   "group": "play",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "CoffeeTable_01",
+   "at": [
+    2.3,
+    0.9
+   ],
+   "group": "play",
+   "spread": 0.2,
+   "rotY": 0.2
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_stool_01",
+   "at": [
+    1.55,
+    0.95
+   ],
+   "group": "play",
+   "spread": 0.2,
+   "rotY": 1.0
+  },
+  {
+   "kind": "place",
+   "asset": "folding_wooden_stool",
+   "at": [
+    3.05,
+    0.8
+   ],
+   "group": "play",
+   "spread": 0.2,
+   "rotY": -2.0
+  },
+  {
+   "kind": "place",
+   "asset": "wine_barrel_01",
+   "at": [
+    4.9,
+    0.6
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "treasure_chest",
+   "at": [
+    5.0,
+    1.0
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": -1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_crate_01",
+   "at": [
+    0.2,
+    3.6
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": 0.5
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_stool_01",
+   "at": [
+    -0.4,
+    2.8
+   ],
+   "group": "stools",
+   "spread": 0.6,
+   "rotY": 0.3
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_stool_01",
+   "at": [
+    1.0,
+    2.6
+   ],
+   "group": "stools",
+   "spread": 0.6,
+   "rotY": 1.2
+  },
+  {
+   "kind": "place",
+   "asset": "painted_wooden_bench",
+   "at": [
+    -4.5,
+    -3.7
+   ],
+   "group": "seating",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    1.8,
+    3.7
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "side_table_tall_01",
+   "at": [
+    -5.0,
+    0.6
+   ],
+   "group": "plinths",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "anchor",
+   "asset": "ClassicConsole_01",
+   "wall": "s",
+   "along": "auto",
+   "group": "bar"
+  },
+  {
+   "kind": "anchor",
+   "asset": "ClassicConsole_01",
+   "wall": "s",
+   "along": "auto",
+   "group": "bar"
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    -4.9,
+    3.5
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "wine_barrel_01",
+   "at": [
+    -5.0,
+    -3.4
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "planter_pot_clay",
+   "at": [
+    5.0,
+    3.2
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "wallrow",
+   "wall": "s",
+   "y": 1.75,
+   "count": 2,
+   "span": [
+    0.5,
+    0.9
+   ],
+   "group": "hooks",
+   "assets": [
+    "fishermans_hat",
+    "life_jacket"
+   ]
+  },
+  {
+   "kind": "ceiling",
+   "asset": "Chandelier_01",
+   "at": [
+    [
+     -2.8,
+     -1.6
+    ],
+    [
+     0.0,
+     -0.2
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "ceiling",
+   "asset": "lantern_chandelier_01",
+   "at": [
+    [
+     -3.6,
+     1.6
+    ],
+    [
+     3.4,
+     -2.4
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "round_wooden_table_01"
+   },
+   "assets": [
+    "chess_set",
+    "brass_goblets",
+    "tea_set_01",
+    "candle_taper_mid",
+    "wooden_bowl_01",
+    "book_row_b",
+    "carved_wooden_plate",
+    "brass_diya_lantern"
+   ],
+   "perHost": [
+    2,
+    4
+   ],
+   "yaw": "free",
+   "group": "table"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "ClassicConsole_01"
+   },
+   "assets": [
+    "wine_bottles_01",
+    "brass_goblets",
+    "candle_taper_tall",
+    "ceramic_vase_02",
+    "tea_set_01"
+   ],
+   "perHost": [
+    3,
+    4
+   ],
+   "yaw": "free",
+   "group": "bar"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "CoffeeTable_01"
+   },
+   "assets": [
+    "chess_set",
+    "candle_stub",
+    "book_row_b"
+   ],
+   "perHost": [
+    1,
+    2
+   ],
+   "yaw": "free",
+   "group": "lounge"
+  }
+ ],
+ "presence": {
+  "tags": [
+   "seat"
+  ],
+  "traces": [
+   "metal_jug",
+   "wooden_bowl_01",
+   "binder_notebook",
+   "brass_goblets",
+   "carved_wooden_plate",
+   "clipboard"
+  ],
+  "figures": [
+   "figure_a",
+   "figure_b",
+   "figure_c",
+   "figure_d"
+  ],
+  "clips": {
+   "table": [
+    "idle_read",
+    "idle_write",
+    "idle_sip"
+   ],
+   "free": [
+    "idle_sit",
+    "idle_read",
+    "idle_sip"
+   ]
+  }
+ },
+ "content": [
+  {
+   "asset": "notice_board",
+   "slot": "content",
+   "feed": "notes",
+   "px": 2048
+  }
+ ],
+ "lights": {
+  "kinds": {
+   "fire": {
+    "color": "#ff8f3d",
+    "intensity": 60,
+    "distance": 11,
+    "decay": 1.5,
+    "flicker": 0.25
+   },
+   "bulb": {
+    "color": "#ffc98a",
+    "intensity": 26,
+    "distance": 9,
+    "decay": 1.6,
+    "cast": true
+   },
+   "flame": {
+    "color": "#ffa855",
+    "intensity": 2.2,
+    "distance": 3.2,
+    "decay": 1.9,
+    "flicker": 0.3
+   }
+  },
+  "window": {
+   "color": "#fff0d6",
+   "intensity": 14,
+   "distance": 12
+  },
+  "fill": {
+   "sky": "#fff1dc",
+   "ground": "#6a5646",
+   "intensity": 0.3
+  },
+  "shadowLights": 1,
+  "maxLights": 12,
+  "env": 0.7
+ }
+}

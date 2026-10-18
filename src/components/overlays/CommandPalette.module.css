@@ -1,0 +1,119 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: color-mix(in srgb,var(--color-neutral-900) 38%,transparent);
+  backdrop-filter: blur(3px);
+  animation: hm-fade 160ms ease both;
+}
+
+.dialog {
+  width: min(640px,calc(100% - 40px));
+  margin: 12vh auto 0;
+  background: var(--color-bg);
+  border: 1px solid var(--color-divider);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: hm-pop 280ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.searchIcon {
+  color: var(--color-accent);
+}
+
+.input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-heading);
+  font-size: 23px;
+  color: var(--color-text);
+}
+
+.escKey {
+  font-size: 11px;
+  padding: 2px 7px;
+  border: 1px solid var(--color-divider);
+  border-radius: 4px;
+  color: color-mix(in srgb,var(--color-text) 55%,transparent);
+}
+
+.results {
+  max-height: 52vh;
+  overflow: auto;
+  padding: 8px;
+}
+
+.empty {
+  padding: 30px;
+  text-align: center;
+  font-style: italic;
+  color: color-mix(in srgb,var(--color-text) 60%,transparent);
+}
+
+.groupLabel {
+  padding: 10px 12px 4px;
+  font-size: 10px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb,var(--color-text) 50%,transparent);
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.resultIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--color-divider);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.resultText {
+  flex: 1;
+  min-width: 0;
+}
+
+.resultLabel {
+  display: block;
+  font-size: 15px;
+}
+
+.resultSub {
+  display: block;
+  font-size: 12px;
+  color: color-mix(in srgb,var(--color-text) 55%,transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  gap: 18px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--color-divider);
+  font-size: 11px;
+  color: color-mix(in srgb,var(--color-text) 52%,transparent);
+}

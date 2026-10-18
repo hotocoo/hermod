@@ -1,0 +1,131 @@
+{
+  "_doc": "Material tag rules: first match per family wins. match = regex on the glTF material name (lowercase); cat = optional model categories; metal = optional min/max metallicFactor of the glTF material; skipIfExt = skip when the glTF already carries that KHR_materials_* extension (authored values always win). useId = also test the model id (many props have one material named after the model); unless = skip when one of these families already matched. pom = relief material: parallax occlusion on ultra (the loader flags userData.pom, town's fxSweep patches it).",
+  "rules": [
+    {
+      "family": "glass",
+      "match": "glass|bottle|goblet|crystal",
+      "not": "window|frame|brass|metal|cork|seal|label|wax|magnif",
+      "set": {
+        "transmission": 1,
+        "ior": 1.5,
+        "thickness": 0.02,
+        "roughness": 0.03,
+        "attenuationDistance": 1.5,
+        "attenuationColor": "#e8f3f0"
+      },
+      "skipIfExt": "transmission"
+    },
+    {
+      "family": "clearcoat",
+      "match": "lacquer|varnish|polished|glossy|piano|ebony|mahogany|cherry|walnut|veneer|painted_wood",
+      "set": {
+        "clearcoat": 0.7,
+        "clearcoatRoughness": 0.1
+      },
+      "skipIfExt": "clearcoat",
+      "useId": true,
+      "unless": [
+        "sheen"
+      ]
+    },
+    {
+      "family": "clearcoat",
+      "match": "wood|plank|timber|chair|stool|bench|(?<![a-z])(oak|pine|teak|maple|birch|elm|cabinet|table|desk|console|shelf|bookcase|wardrobe|sideboard|nightstand|chest|dresser)",
+      "cat": [
+        "seating",
+        "table",
+        "storage",
+        "decor",
+        "tool",
+        "craft",
+        "play",
+        "books"
+      ],
+      "set": {
+        "clearcoat": 0.28,
+        "clearcoatRoughness": 0.35
+      },
+      "skipIfExt": "clearcoat",
+      "useId": true,
+      "unless": [
+        "sheen"
+      ],
+      "not": "armchair|sofa|cushion|pillow|rug|bed|curtain|metal|vice"
+    },
+    {
+      "family": "clearcoat",
+      "match": "leather",
+      "set": {
+        "clearcoat": 0.18,
+        "clearcoatRoughness": 0.45
+      },
+      "skipIfExt": "clearcoat",
+      "useId": false
+    },
+    {
+      "family": "clearcoat",
+      "match": "ceramic|porcelain|enamel|glazed|plate|mug|cup|vase|teapot|jug",
+      "not": "brass|metal",
+      "set": {
+        "clearcoat": 0.6,
+        "clearcoatRoughness": 0.08
+      },
+      "skipIfExt": "clearcoat"
+    },
+    {
+      "family": "sheen",
+      "match": "fabric|linen|wool|cloth|cushion|rug|carpet|velvet|tapestry|curtain|drape|cotton|jacquard|upholster|blanket|pillow|quilt|silk|tweed|herringbone|felt|armchair|sofa|ottoman",
+      "set": {
+        "sheen": 1,
+        "sheenRoughness": 0.5,
+        "sheenColor": "#9a9a9a"
+      },
+      "skipIfExt": "sheen",
+      "useId": true
+    },
+    {
+      "family": "sheen",
+      "match": "^human(\\.low-poly\\.\\d+)?$|(?<![a-z])skin",
+      "cat": [
+        "figure"
+      ],
+      "set": {
+        "sheen": 0.35,
+        "sheenRoughness": 0.6,
+        "sheenColor": "#ffffff"
+      },
+      "skipIfExt": "sheen"
+    },
+    {
+      "family": "anisotropy",
+      "match": "brushed|steel|iron|pewter|alumin|chrome|copper|brass|bronze|metal|gold|silver",
+      "metal": [
+        0.5,
+        1
+      ],
+      "set": {
+        "anisotropy": 0.55,
+        "anisotropyRotation": 0
+      },
+      "skipIfExt": "anisotropy",
+      "not": "flame|glass|wick|wax|cloth"
+    },
+    {
+      "family": "anisotropy",
+      "match": "(?<![a-z])(hair|fur)(?![a-z])",
+      "set": {
+        "anisotropy": 0.5,
+        "anisotropyRotation": 1.5708
+      },
+      "skipIfExt": "anisotropy"
+    },
+    {
+      "family": "pom",
+      "match": "^(rock_|step_stone|stone$|stone_fire|hearth_stone)|masonry",
+      "not": "pine|rocking",
+      "set": {
+        "pom": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+.kicker { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--color-accent-700); }
+.muted { color: color-mix(in srgb, var(--color-text) 62%, transparent); }
+.mono { font-family: ui-monospace, Menlo, monospace; }
+.stage { background: repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 1px, transparent 1px 10px), var(--h-stage); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--color-divider);
+  border-radius: 6px; background: transparent; font-size: 13px; color: var(--color-text);
+}
+.btn:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btnAccent {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid var(--color-accent);
+  border-radius: 6px; background: transparent; color: var(--color-accent-700); font-family: var(--font-heading); font-weight: 600; font-size: 14px;
+}
+.btnAccent:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.avatar {
+  border-radius: 50%; display: grid; place-items: center; font-family: var(--font-heading); font-weight: 600;
+}

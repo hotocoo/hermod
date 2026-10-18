@@ -1,0 +1,59 @@
+[package]
+name = "hermodr"
+version = "0.1.0"
+description = "Hermod"
+authors = ["The Hermod contributors"]
+license = "Apache-2.0"
+repository = "https://github.com/hotocoo/hermod"
+edition = "2024"
+rust-version = "1.90"
+default-run = "hermodr"
+
+[lib]
+name = "hermodr_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "hermodr"
+path = "src/main.rs"
+
+# Dev and E2E only: real Core and Node behind HTTP. Never part of a bundle.
+[[bin]]
+name = "hermod-devhost"
+path = "src/bin/hermod-devhost.rs"
+required-features = ["devhost"]
+
+[features]
+devhost = ["dep:axum", "dep:tower-http", "dep:tokio-stream", "dep:clap", "dep:tracing-subscriber"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.3", features = [] }
+
+[dependencies]
+hermod-core = { version = "0.1.0", path = "../crates/hermod-core" }
+hermod-node = { version = "0.1.0", path = "../crates/hermod-node" }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tracing = { version = "0.1", features = ["log"] }
+futures = "0.3"
+hex = "0.4"
+infer = "0.22"
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+libp2p = { version = "0.57", default-features = false, features = ["ed25519"] }
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros", "fs", "io-util", "net", "signal"] }
+tauri = { version = "2.12.4", features = ["tray-icon"] }
+tauri-plugin-log = "2"
+tauri-plugin-deep-link = "2.6.2"
+tauri-plugin-updater = "2.14.0"
+tauri-plugin-notification = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = { version = "2.5.4", features = ["deep-link"] }
+axum = { version = "0.8", optional = true }
+tower-http = { version = "0.6", optional = true, features = ["cors"] }
+tokio-stream = { version = "0.1", optional = true, features = ["sync"] }
+clap = { version = "4", optional = true, features = ["derive"] }
+tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3"

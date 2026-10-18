@@ -1,0 +1,418 @@
+//! Three-node localhost integration tests. `MemStore` is a test double for `NodeStore`;
+//! it lives here and is never part of the shipped crate.
+
+use std::collections::BTreeMap;
+use std::future::Future;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
+
+use hermod_node::config::{Limits, NodeConfig, RelayMode};
+use hermod_node::store::{
+    Author, BlobId, IngestOutcome, ManifestInfo, NodeStore, SpaceId, StoreError, StoreResult,
+};
+use hermod_node::{Multiaddr, Node, NodeEvent, NodeHandle};
+use libp2p::identity::ed25519;
+use tokio::sync::mpsc::UnboundedReceiver;
+
+const CHUNK: usize = 1024;
+const SPACE: SpaceId = [9u8; 32];
+
+#[derive(Default)]
+struct Inner {
+    events: BTreeMap<Author, BTreeMap<u64, Vec<u8>>>,
+    manifests: BTreeMap<BlobId, Vec<u8>>,
+    chunks: BTreeMap<(BlobId, u32), Vec<u8>>,
+}
+
+#[derive(Default)]
+struct MemStore(Mutex<Inner>);
+
+// Event wire format in tests: "<author>|<seq>|<payload>".
+fn ev(author: &str, seq: u64) -> Vec<u8> {
+    format!("{author}|{seq}|hello-{seq}").into_bytes()
+}
+
+fn parse(b: &[u8]) -> Option<(String, u64)> {
+    let s = std::str::from_utf8(b).ok()?;
+    let mut it = s.splitn(3, '|');
+    Some((it.next()?.to_string(), it.next()?.parse().ok()?))
+}
+
+fn manifest_bytes(data: &[u8]) -> Vec<u8> {
+    let mut out = (data.len() as u64).to_le_bytes().to_vec();
+    for c in data.chunks(CHUNK) {
+        out.extend_from_slice(blake3::hash(c).as_bytes());
+    }
+    out
+}
+
+fn parse_manifest(b: &[u8]) -> Option<ManifestInfo> {
+    let size = u64::from_le_bytes(b.get(..8)?.try_into().ok()?);
+    let chunks: Vec<[u8; 32]> = b[8..]
+        .chunks(32)
+        .map(|c| c.try_into().ok())
+        .collect::<Option<_>>()?;
+    (chunks.len() as u64 == size.div_ceil(CHUNK as u64)).then_some(ManifestInfo { size, chunks })
+}
+
+impl MemStore {
+    fn add_event(&self, author: &str, seq: u64) -> Vec<u8> {
+        let b = ev(author, seq);
+        self.0
+            .lock()
+            .unwrap()
+            .events
+            .entry(author.into())
+            .or_default()
+            .insert(seq, b.clone());
+        b
+    }
+    fn count(&self) -> usize {
+        self.0
+            .lock()
+            .unwrap()
+            .events
+            .values()
+            .map(|m| m.len())
+            .sum()
+    }
+    /// Store a full blob; `corrupt` flips a byte in chunk 1 after hashing.
+    fn add_blob(&self, data: &[u8], corrupt: bool) -> BlobId {
+        let m = manifest_bytes(data);
+        let id = *blake3::hash(&m).as_bytes();
+        let mut g = self.0.lock().unwrap();
+        g.manifests.insert(id, m);
+        for (i, c) in data.chunks(CHUNK).enumerate() {
+            let mut c = c.to_vec();
+            if corrupt && i == 1 {
+                c[0] ^= 0xff;
+            }
+            g.chunks.insert((id, i as u32), c);
+        }
+        id
+    }
+    fn read_blob(&self, id: &BlobId) -> Option<Vec<u8>> {
+        let g = self.0.lock().unwrap();
+        let info = parse_manifest(g.manifests.get(id)?)?;
+        let mut out = Vec::new();
+        for i in 0..info.chunks.len() as u32 {
+            out.extend_from_slice(g.chunks.get(&(*id, i))?);
+        }
+        Some(out)
+    }
+}
+
+impl NodeStore for MemStore {
+    fn joined_spaces(&self) -> Vec<SpaceId> {
+        Vec::new()
+    }
+    fn vector(&self, _: &SpaceId) -> BTreeMap<Author, u64> {
+        let g = self.0.lock().unwrap();
+        g.events
+            .iter()
+            .filter_map(|(a, m)| Some((a.clone(), *m.keys().next_back()?)))
+            .collect()
+    }
+    fn events_after(&self, _: &SpaceId, v: &BTreeMap<Author, u64>, limit: usize) -> Vec<Vec<u8>> {
+        let g = self.0.lock().unwrap();
+        let mut out = Vec::new();
+        for (a, m) in &g.events {
+            let have = v.get(a).copied().unwrap_or(0);
+            out.extend(m.range(have + 1..).map(|(_, b)| b.clone()));
+        }
+        out.truncate(limit);
+        out
+    }
+    fn ingest(&self, _: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome> {
+        let Some((a, seq)) = parse(bytes) else {
+            return Ok(IngestOutcome::Rejected("malformed".into()));
+        };
+        let mut g = self.0.lock().unwrap();
+        let m = g.events.entry(a).or_default();
+        let top = m.keys().next_back().copied().unwrap_or(0);
+        Ok(if seq <= top {
+            IngestOutcome::Duplicate
+        } else if seq == top + 1 {
+            m.insert(seq, bytes.to_vec());
+            IngestOutcome::Applied
+        } else {
+            IngestOutcome::MissingPrior
+        })
+    }
+    fn blob_has(&self, b: &BlobId) -> bool {
+        self.read_blob(b).is_some()
+    }
+    fn blob_manifest(&self, b: &BlobId) -> Option<Vec<u8>> {
+        self.0.lock().unwrap().manifests.get(b).cloned()
+    }
+    fn blob_put_manifest(&self, b: &BlobId, bytes: &[u8]) -> StoreResult<ManifestInfo> {
+        if blake3::hash(bytes).as_bytes() != b {
+            return Err(StoreError("manifest does not hash to id".into()));
+        }
+        let info = parse_manifest(bytes).ok_or_else(|| StoreError("bad manifest".into()))?;
+        self.0.lock().unwrap().manifests.insert(*b, bytes.to_vec());
+        Ok(info)
+    }
+    fn blob_missing(&self, b: &BlobId) -> Vec<u32> {
+        let g = self.0.lock().unwrap();
+        let Some(info) = g.manifests.get(b).and_then(|m| parse_manifest(m)) else {
+            return Vec::new();
+        };
+        (0..info.chunks.len() as u32)
+            .filter(|i| !g.chunks.contains_key(&(*b, *i)))
+            .collect()
+    }
+    fn event_author(&self, bytes: &[u8]) -> Option<Author> {
+        parse(bytes).map(|p| p.0)
+    }
+    fn blob_chunk(&self, b: &BlobId, i: u32) -> Option<Vec<u8>> {
+        self.0.lock().unwrap().chunks.get(&(*b, i)).cloned()
+    }
+    fn blob_put_chunk(&self, b: &BlobId, i: u32, bytes: &[u8]) -> StoreResult<()> {
+        self.0
+            .lock()
+            .unwrap()
+            .chunks
+            .insert((*b, i), bytes.to_vec());
+        Ok(())
+    }
+}
+
+fn test_cfg() -> NodeConfig {
+    NodeConfig {
+        listen: vec!["/ip4/127.0.0.1/tcp/0".parse().unwrap()],
+        bootstrap: vec![],
+        enable_mdns: false,
+        enable_upnp: false,
+        enable_dht: false,
+        allow_private_addrs: true,
+        relay_mode: RelayMode::Never,
+        gossip_heartbeat: Duration::from_millis(200),
+        blob_timeout: Duration::from_secs(10),
+        ..NodeConfig::default()
+    }
+}
+
+struct Peer {
+    h: NodeHandle,
+    store: Arc<MemStore>,
+    events: UnboundedReceiver<NodeEvent>,
+}
+
+async fn spawn(cfg: NodeConfig) -> Peer {
+    let store = Arc::new(MemStore::default());
+    let key: [u8; 32] = ed25519::Keypair::generate()
+        .secret()
+        .as_ref()
+        .try_into()
+        .unwrap();
+    let (h, events) = Node::start(cfg, key, store.clone()).await.unwrap();
+    Peer { h, store, events }
+}
+
+async fn within<F: Future>(what: &str, f: F) -> F::Output {
+    tokio::time::timeout(Duration::from_secs(20), f)
+        .await
+        .unwrap_or_else(|_| panic!("timed out: {what}"))
+}
+
+async fn until(what: &str, mut cond: impl FnMut() -> bool) {
+    within(what, async {
+        while !cond() {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+}
+
+async fn first_addr(h: &NodeHandle) -> Multiaddr {
+    within("listen addr", async {
+        loop {
+            if let Some(a) = h.local_addrs().await.unwrap().into_iter().next() {
+                return a;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn gossip_backfill_and_blob() {
+    let a = spawn(test_cfg()).await;
+    let b = spawn(test_cfg()).await;
+    let mut c = spawn(test_cfg()).await;
+    a.h.join_space(SPACE).await.unwrap();
+    b.h.join_space(SPACE).await.unwrap();
+
+    // Published with nobody around: sits in the outbox, flushes once B connects.
+    let e1 = a.store.add_event("alice", 1);
+    a.h.publish_event(SPACE, e1).await.unwrap();
+    assert_eq!(a.h.status().await.unwrap().outbox, 1);
+    let a_addr = first_addr(&a.h).await;
+    b.h.dial(vec![a_addr.clone()]).await.unwrap();
+    until("B receives gossip", || b.store.count() == 1).await;
+
+    // Live publish while connected.
+    let e2 = a.store.add_event("alice", 2);
+    a.h.publish_event(SPACE, e2).await.unwrap();
+    until("B receives second event", || b.store.count() == 2).await;
+    assert_eq!(a.h.status().await.unwrap().outbox, 0);
+
+    // C joins late and backfills through sync.
+    a.store.add_event("alice", 3);
+    c.h.join_space(SPACE).await.unwrap();
+    c.h.dial(vec![a_addr]).await.unwrap();
+    until("C backfills", || c.store.count() == 3).await;
+    within("C ingest event", async {
+        while let Some(e) = c.events.recv().await {
+            if matches!(e, NodeEvent::EventsIngested { .. }) {
+                return;
+            }
+        }
+    })
+    .await;
+
+    // Blob: 2.5 chunks from A to C, verified per chunk.
+    let data: Vec<u8> = (0..CHUNK * 2 + CHUNK / 2)
+        .map(|i| (i % 251) as u8)
+        .collect();
+    let id = a.store.add_blob(&data, false);
+    a.h.announce_blob(SPACE, id).await.unwrap();
+    within("blob fetch", c.h.request_blob(id)).await.unwrap();
+    assert_eq!(c.store.read_blob(&id).unwrap(), data);
+
+    // Ephemeral message reaches B, never the store.
+    let mut b = b;
+    a.h.send_ephemeral(SPACE, "typing", vec![1]).await.unwrap();
+    within("ephemeral", async {
+        while let Some(e) = b.events.recv().await {
+            if let NodeEvent::Ephemeral { kind, .. } = e {
+                assert_eq!(kind, "typing");
+                return;
+            }
+        }
+    })
+    .await;
+    for p in [&a, &b, &c] {
+        p.h.shutdown().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn corrupt_chunk_is_rejected() {
+    let a = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    let data = vec![7u8; CHUNK * 3];
+    let id = a.store.add_blob(&data, true);
+    c.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+    let err = within("blob fetch", c.h.request_blob(id))
+        .await
+        .unwrap_err();
+    assert!(err.to_string().contains("no reachable peer"), "{err}");
+    assert!(!c.store.blob_has(&id));
+}
+
+async fn relay_setup(circuits: u32) -> (Peer, Peer, Multiaddr) {
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter("hermod_node=debug,libp2p_relay=debug,libp2p_swarm=debug")
+        .with_test_writer()
+        .try_init();
+    let relay_cfg = NodeConfig {
+        relay_mode: RelayMode::Always,
+        limits: Limits {
+            relay_circuits: circuits,
+            ..Limits::default()
+        },
+        ..test_cfg()
+    };
+    let a = spawn(relay_cfg).await;
+    let relay_addr = first_addr(&a.h).await;
+    let b = spawn(NodeConfig {
+        relays: vec![relay_addr],
+        reserve_always: true,
+        ..test_cfg()
+    })
+    .await;
+    let circuit = within("relay reservation", async {
+        loop {
+            let s = b.h.status().await.unwrap();
+            if let Some(x) = s.relay_listen.first() {
+                return x.clone();
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await;
+    // B advertises the circuit address for invites.
+    let advertised = b.h.local_addrs().await.unwrap();
+    assert!(
+        advertised
+            .iter()
+            .any(|a| a.to_string().contains("p2p-circuit")),
+        "{advertised:?} vs {circuit}"
+    );
+    let dial_addr = advertised
+        .into_iter()
+        .find(|a| a.to_string().contains("p2p-circuit"))
+        .unwrap();
+    (a, b, dial_addr)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reach_peer_behind_relay() {
+    let (a, mut b, circuit) = relay_setup(8).await;
+    let c = spawn(test_cfg()).await;
+    b.h.join_space(SPACE).await.unwrap();
+    c.h.join_space(SPACE).await.unwrap();
+    let reached = c.h.dial(vec![circuit]).await.unwrap();
+    assert_eq!(reached, b.h.peer_id());
+    assert_eq!(a.h.status().await.unwrap().relaying_circuits, 1);
+    c.h.send_signal(SPACE, Some(b.h.peer_id()), b"offer".to_vec())
+        .await
+        .unwrap();
+    within("signal over circuit", async {
+        while let Some(e) = b.events.recv().await {
+            if let NodeEvent::Signal { payload, from, .. } = e {
+                assert_eq!(payload, b"offer");
+                assert_eq!(from, c.h.peer_id());
+                return;
+            }
+        }
+    })
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn governor_enforces_circuit_limit() {
+    let (a, _b, circuit) = relay_setup(1).await;
+    let c1 = spawn(test_cfg()).await;
+    let c2 = spawn(test_cfg()).await;
+    c1.h.dial(vec![circuit.clone()]).await.unwrap();
+    assert_eq!(a.h.status().await.unwrap().relaying_circuits, 1);
+    let err = c2.h.dial(vec![circuit]).await.unwrap_err();
+    assert!(matches!(err, hermod_node::NodeError::Dial(_)), "{err}");
+
+    // Pausing relaying turns the server off at runtime.
+    a.h.set_limits(Limits {
+        relay_paused: true,
+        ..Limits::default()
+    })
+    .await
+    .unwrap();
+    assert!(!a.h.status().await.unwrap().relay_serving);
+}
+
+#[test]
+fn limits_clamp_to_ceilings() {
+    let l = Limits {
+        relay_circuits: 999,
+        relay_bandwidth_bps: u64::MAX,
+        max_connections: 10_000,
+        ..Limits::default()
+    }
+    .clamped();
+    assert_eq!(l.relay_circuits, 32);
+    assert_eq!(l.relay_bandwidth_bps, 2 * 1024 * 1024);
+    assert_eq!(l.max_connections, 256);
+}

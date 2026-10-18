@@ -1,0 +1,12 @@
+.kicker {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+
+.meta {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}

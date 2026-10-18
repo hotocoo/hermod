@@ -1,0 +1,20 @@
+.backdrop {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--color-neutral-900) 42%, transparent); backdrop-filter: blur(4px);
+  animation: hm-fade 220ms ease both;
+}
+.dialog {
+  position: relative; width: min(520px, 100%); max-height: calc(100dvh - 32px); overflow: auto; padding: 24px 26px 22px;
+  border: 1px solid var(--color-divider); border-radius: 14px; background: var(--color-bg); box-shadow: var(--shadow-lg);
+  animation: hm-drawer 380ms cubic-bezier(.22, 1, .36, 1) both;
+}
+.wide { width: min(760px, 100%); }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.kicker { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--color-accent-700); }
+.title { margin: 4px 0 0; font-family: var(--font-heading); font-size: 28px; line-height: 1.1; font-weight: 400; }
+.close {
+  flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%;
+  border: 1px solid var(--color-divider); background: transparent;
+}
+.close:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.body { display: flex; flex-direction: column; gap: 14px; }

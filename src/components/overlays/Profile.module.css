@@ -1,0 +1,235 @@
+.backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  background: color-mix(in srgb,var(--color-neutral-900) 40%,transparent);
+  backdrop-filter: blur(4px);
+  animation: hm-fade 240ms ease both;
+}
+
+.dialog {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: min(720px,calc(100% - 32px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-divider);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+  animation: hm-drawer 520ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.cover {
+  position: relative;
+  height: 170px;
+  flex: none;
+  background: repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-text) 7%,transparent) 0 1px,transparent 1px 9px),var(--color-neutral-200);
+}
+
+.coverHint {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  font-family: ui-monospace,Menlo,monospace;
+  font-size: 11px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--color-divider);
+  background: var(--color-bg);
+  display: grid;
+  place-items: center;
+}
+
+.body {
+  padding: 0 28px;
+  flex: none;
+}
+
+.headRow {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  margin-top: -46px;
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 4px solid var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-accent);
+  background: var(--color-surface);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 34px;
+}
+
+.identity {
+  flex: 1;
+  padding-bottom: 6px;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1;
+}
+
+.handle {
+  font-size: 13px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-accent-700);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+.editBtn:hover {
+  background: color-mix(in srgb,var(--color-accent) 10%,transparent) !important;
+}
+
+.editForm {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  animation: hm-rise 360ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.field {
+  font-size: 12px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.nameInput {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--color-text);
+  outline: none;
+}
+
+.bioInput {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  min-height: 70px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  resize: vertical;
+}
+
+.bio {
+  margin: 14px 0 0;
+  max-width: 520px;
+  font-size: 14px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.stats {
+  display: flex;
+  gap: 28px;
+  margin: 16px 0 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-divider);
+  border-bottom: 1px solid var(--color-divider);
+}
+
+.statValue {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tab {
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-heading);
+  font-size: 16px;
+}
+
+.gridWrap {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 28px 28px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+}
+
+.tile {
+  position: relative;
+  border: 4px solid var(--color-surface);
+  outline: 1px solid var(--color-divider);
+  background: repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-text) 7%,transparent) 0 1px,transparent 1px 9px),var(--color-neutral-200);
+}
+
+.tileLabel {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-family: ui-monospace,Menlo,monospace;
+  font-size: 11px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}

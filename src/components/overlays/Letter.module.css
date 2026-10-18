@@ -1,0 +1,67 @@
+.root {
+  position: absolute;
+  right: 24px;
+  top: 76px;
+  z-index: 32;
+  width: min(340px,calc(100vw - 140px));
+  padding: 16px 18px;
+  border: 1px solid var(--color-accent);
+  border-radius: 4px;
+  background: var(--color-bg);
+  box-shadow: var(--shadow-lg);
+  animation: hm-letter 620ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1) both;
+}
+
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+}
+
+.quote {
+  margin: 8px 0 12px;
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.where {
+  flex: 1;
+  font-size: 12px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.readBtn {
+  padding: 6px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-accent-700);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+}
+.readBtn:hover {
+  background: color-mix(in srgb,var(--color-accent) 12%,transparent) !important;
+}
+
+.dismissBtn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}

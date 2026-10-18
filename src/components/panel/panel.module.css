@@ -1,0 +1,47 @@
+.panel {
+  z-index: 22; position: absolute; top: 16px; right: 16px; bottom: 16px; display: flex; flex-direction: column;
+  border: 1px solid var(--color-divider); border-radius: 16px; overflow: hidden;
+  background: color-mix(in srgb, var(--color-bg) 66%, transparent); backdrop-filter: blur(18px) saturate(1.12); box-shadow: var(--shadow-lg);
+  transition: clip-path 820ms cubic-bezier(.76,0,.18,1), width 640ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.03 28%,1.02 36%,1.005 46%,1);
+}
+.body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.iris { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; animation: hm-iris 620ms cubic-bezier(.22,1,.36,1) 180ms both; }
+.empty { flex: 1; display: grid; place-items: center; padding: 40px; text-align: center; }
+.plot { max-width: 440px; }
+.fresh { max-width: 420px; }
+.plotIcon {
+  width: 84px; height: 84px; margin: 0 auto 18px; border: 1px dashed var(--color-accent); border-radius: 8px;
+  display: grid; place-items: center; color: var(--color-accent);
+}
+.plotTitle { margin: 8px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 34px; line-height: 1.1; }
+.plotLine { margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
+.raise {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border: 1px solid var(--color-accent); border-radius: 8px;
+  background: transparent; color: var(--color-accent-700); font-family: var(--font-heading); font-weight: 600; font-size: 17px;
+}
+.raise:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.raise:active { transform: scale(.97); }
+.eth { font-family: var(--font-heading); font-style: italic; font-size: 64px; line-height: 1; color: var(--color-accent); }
+.freshTitle { margin: 10px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 32px; }
+.freshLine { margin: 0; font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
+.head { display: flex; align-items: center; gap: 14px; padding: 16px 20px 14px; border-bottom: 1px solid var(--color-divider); }
+.back {
+  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 8px; border: 1px solid var(--color-divider);
+  border-radius: 18px; background: transparent; font-family: var(--font-heading); font-weight: 600; font-size: 14px;
+}
+.back:hover { border-color: var(--color-accent); color: var(--color-accent-700); }
+.titles { flex: 1; min-width: 0; }
+.title { font-family: var(--font-heading); font-size: 26px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--color-divider); border-radius: 20px; }
+.tab {
+  width: 34px; height: 34px; border: 0; border-radius: 50%; display: grid; place-items: center;
+  transition: background 240ms ease, color 240ms ease;
+}
+.tab:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.sub { position: relative; display: flex; gap: 4px; padding: 10px 24px 0; border-bottom: 1px solid var(--color-divider); }
+.subTab {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px 11px; border: 0; background: transparent; font-family: var(--font-heading); font-size: 16px;
+  transition: color 200ms ease, box-shadow 300ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
+}
+.subTab:hover { color: var(--color-accent-700); }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: hm-breathe 1.6s ease-in-out infinite; }

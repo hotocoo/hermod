@@ -1,0 +1,27 @@
+.root {
+  position: absolute;
+  inset: 0;
+  z-index: 41;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 104px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--color-text);
+  text-transform: none;
+  animation: hm-title 3200ms cubic-bezier(.22,1,.36,1) both;
+}
+
+.subtitle {
+  margin-top: 10px;
+  font-style: italic;
+  font-size: 16px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+  animation: hm-title 3200ms cubic-bezier(.22,1,.36,1) 200ms both;
+}

@@ -1,0 +1,14 @@
+{
+  "rig": "default_no_toes",
+  "clips": ["idle_stand", "idle_read", "idle_write", "idle_warm", "idle_sip", "idle_sit"],
+  "figures": [
+    { "id": "figure_a", "macros": { "gender": 1.0, "age": 0.62, "muscle": 0.5, "weight": 0.5, "proportions": 0.55, "height": 0.62, "race": { "asian": 0.1, "caucasian": 0.8, "african": 0.1 } },
+      "skin": "middleage_caucasian_male", "eyes": "brown", "hair": "short02", "eyebrows": "eyebrow001", "eyelashes": "eyelashes01", "clothes": ["toigo_fisherman_sweater", "toigo_wool_pants", "culturalibre_male_boots"] },
+    { "id": "figure_b", "macros": { "gender": 0.0, "age": 0.5, "muscle": 0.4, "weight": 0.45, "proportions": 0.5, "height": 0.5, "race": { "asian": 0.8, "caucasian": 0.1, "african": 0.1 } },
+      "skin": "young_asian_female", "eyes": "brown", "hair": "toigo_blunt_bob", "eyebrows": "eyebrow002", "eyelashes": "eyelashes02", "clothes": ["toigo_halter_dress_midi", "toigo_ankle_boots_female"] },
+    { "id": "figure_c", "macros": { "gender": 0.0, "age": 0.8, "muscle": 0.4, "weight": 0.6, "proportions": 0.5, "height": 0.4, "race": { "asian": 0.1, "caucasian": 0.1, "african": 0.8 } },
+      "skin": "old_african_female", "eyes": "brown", "hair": "bob01", "eyebrows": "eyebrow003", "eyelashes": "eyelashes01", "clothes": ["toigo_long_full_skirt", "toigo_turtleneck_halter_top", "toigo_flats"] },
+    { "id": "figure_d", "macros": { "gender": 1.0, "age": 0.35, "muscle": 0.6, "weight": 0.5, "proportions": 0.6, "height": 0.7, "race": { "asian": 0.1, "caucasian": 0.1, "african": 0.8 } },
+      "skin": "young_african_male", "eyes": "green", "hair": "short03", "eyebrows": "eyebrow004", "eyelashes": "eyelashes01", "clothes": ["namuhekam_male_polo_shirt", "cortu_cargo_pants", "culturalibre_male_boots"] }
+  ]
+}

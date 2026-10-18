@@ -1,0 +1,776 @@
+{
+ "chat": {
+  "high": {
+   "glb": "rooms/chat.glb",
+   "lightmap": "rooms/chat_lm.png",
+   "furniture": {
+    "image": "rooms/chat_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "nook:ArmChair_01:3",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "nook:ArmChair_01:4",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "nook:Rockingchair_01:5",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "dining:dining_table:9",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "dining:dining_table:16",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:23",
+      "tile": [
+       0.6666666666666666,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:24",
+      "tile": [
+       0,
+       0.6666666666666666,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:25",
+      "tile": [
+       0.3333333333333333,
+       0.6666666666666666,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 2815597,
+   "blake3": "40841c34af8f5dbd6e392df8729758b552d0e6ed0fd0adae6b0d6e23f8cead5e"
+  },
+  "ultra": {
+   "glb": "rooms/chat.glb",
+   "lightmap": "rooms/chat_lm.png",
+   "furniture": {
+    "image": "rooms/chat_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "nook:ArmChair_01:3",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "nook:ArmChair_01:4",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "nook:Rockingchair_01:5",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "dining:dining_table:9",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "dining:dining_table:16",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:23",
+      "tile": [
+       0.6666666666666666,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:24",
+      "tile": [
+       0,
+       0.6666666666666666,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:25",
+      "tile": [
+       0.3333333333333333,
+       0.6666666666666666,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 10298681,
+   "blake3": "436858e7104e906c02bead8742485c405ee26a7868b34e2c22b41ba614e6292f"
+  }
+ },
+ "arcade": {
+  "high": {
+   "glb": "rooms/arcade.glb",
+   "lightmap": "rooms/arcade_lm.png",
+   "furniture": {
+    "image": "rooms/arcade_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "tables:round_wooden_table_01:2",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "tables:round_wooden_table_01:7",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "tables:round_wooden_table_01:12",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "lounge:Sofa_01:17",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "lounge:ArmChair_01:18",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "lounge:ArmChair_01:19",
+      "tile": [
+       0.6666666666666666,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "seating:painted_wooden_bench:32",
+      "tile": [
+       0,
+       0.6666666666666666,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 2291311,
+   "blake3": "1b60152a9c245d47d8c383aa145139868b6750fed10e3e4af7e6f5e594bf6dc3"
+  },
+  "ultra": {
+   "glb": "rooms/arcade.glb",
+   "lightmap": "rooms/arcade_lm.png",
+   "furniture": {
+    "image": "rooms/arcade_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "tables:round_wooden_table_01:2",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "tables:round_wooden_table_01:7",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "tables:round_wooden_table_01:12",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "lounge:Sofa_01:17",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "lounge:ArmChair_01:18",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "lounge:ArmChair_01:19",
+      "tile": [
+       0.6666666666666666,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "seating:painted_wooden_bench:32",
+      "tile": [
+       0,
+       0.6666666666666666,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 8533196,
+   "blake3": "b84389dfcb9d13b427535902edc91fcf43c88a2a583d6a04f44ef3525128ac9a"
+  }
+ },
+ "board": {
+  "high": {
+   "glb": "rooms/board.glb",
+   "lightmap": "rooms/board_lm.png",
+   "furniture": {
+    "image": "rooms/board_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "benches:WoodenTable_03:2",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:WoodenTable_03:3",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:metal_office_desk:4",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:WoodenTable_03:33",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:WoodenTable_03:34",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 2496418,
+   "blake3": "2105182cbe83b2b668db083d3aeddc3e2488684fc353436ff20a0fa2092c9348"
+  },
+  "ultra": {
+   "glb": "rooms/board.glb",
+   "lightmap": "rooms/board_lm.png",
+   "furniture": {
+    "image": "rooms/board_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "benches:WoodenTable_03:2",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:WoodenTable_03:3",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:metal_office_desk:4",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:WoodenTable_03:33",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "benches:WoodenTable_03:34",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 9616662,
+   "blake3": "0788b15dae729655b1516044ad261e5c95b6786d5eaf894d5c8cac7edf7c106e"
+  }
+ },
+ "desk": {
+  "high": {
+   "glb": "rooms/desk.glb",
+   "lightmap": "rooms/desk_lm.png",
+   "furniture": {
+    "image": "rooms/desk_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "desks:metal_office_desk:3",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "desks:metal_office_desk:6",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "desks:metal_office_desk:9",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:16",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:17",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "waiting:sofa_02:19",
+      "tile": [
+       0.6666666666666666,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 2333460,
+   "blake3": "abb06c05b27c9dcfee1a2578a463343e4a568847aeef4463f08612a13069450c"
+  },
+  "ultra": {
+   "glb": "rooms/desk.glb",
+   "lightmap": "rooms/desk_lm.png",
+   "furniture": {
+    "image": "rooms/desk_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "desks:metal_office_desk:3",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "desks:metal_office_desk:6",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "desks:metal_office_desk:9",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:16",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:17",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "waiting:sofa_02:19",
+      "tile": [
+       0.6666666666666666,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 8802030,
+   "blake3": "6bb301f9d3f1461b2c079e36f7a4772a33537468a705f38dbf2cc2dc5d14ec92"
+  }
+ },
+ "feed": {
+  "high": {
+   "glb": "rooms/feed.glb",
+   "lightmap": "rooms/feed_lm.png",
+   "furniture": {
+    "image": "rooms/feed_fm.png",
+    "grid": 2,
+    "tiles": [
+     {
+      "key": "lounge:sofa_02:1",
+      "tile": [
+       0,
+       0,
+       0.5
+      ]
+     },
+     {
+      "key": "lounge:sofa_02:2",
+      "tile": [
+       0.5,
+       0,
+       0.5
+      ]
+     },
+     {
+      "key": "lounge:ArmChair_01:5",
+      "tile": [
+       0,
+       0.5,
+       0.5
+      ]
+     },
+     {
+      "key": "reading:painted_wooden_bench:35",
+      "tile": [
+       0.5,
+       0.5,
+       0.5
+      ]
+     }
+    ]
+   },
+   "bytes": 2176546,
+   "blake3": "dc55ac9566fda7c150910b37f7307dc2f462ffb1d205b35eda2cb0766a0fb940"
+  },
+  "ultra": {
+   "glb": "rooms/feed.glb",
+   "lightmap": "rooms/feed_lm.png",
+   "furniture": {
+    "image": "rooms/feed_fm.png",
+    "grid": 2,
+    "tiles": [
+     {
+      "key": "lounge:sofa_02:1",
+      "tile": [
+       0,
+       0,
+       0.5
+      ]
+     },
+     {
+      "key": "lounge:sofa_02:2",
+      "tile": [
+       0.5,
+       0,
+       0.5
+      ]
+     },
+     {
+      "key": "lounge:ArmChair_01:5",
+      "tile": [
+       0,
+       0.5,
+       0.5
+      ]
+     },
+     {
+      "key": "reading:painted_wooden_bench:35",
+      "tile": [
+       0.5,
+       0.5,
+       0.5
+      ]
+     }
+    ]
+   },
+   "bytes": 8790719,
+   "blake3": "146547b178ef2dcbd2c1ad5ef468dc10f7744608419cedf7e028a08d249c90a9"
+  }
+ },
+ "hearth": {
+  "high": {
+   "glb": "rooms/hearth.glb",
+   "lightmap": "rooms/hearth_lm.png",
+   "furniture": {
+    "image": "rooms/hearth_fm.png",
+    "grid": 2,
+    "tiles": [
+     {
+      "key": "seating:painted_wooden_bench:9",
+      "tile": [
+       0,
+       0,
+       0.5
+      ]
+     },
+     {
+      "key": "seating:Sofa_01:10",
+      "tile": [
+       0.5,
+       0,
+       0.5
+      ]
+     }
+    ]
+   },
+   "bytes": 2925365,
+   "blake3": "26be58f0acbf66ca56e65120371433a7b07a5d9588d504d16b06d081d460c654"
+  },
+  "ultra": {
+   "glb": "rooms/hearth.glb",
+   "lightmap": "rooms/hearth_lm.png",
+   "furniture": {
+    "image": "rooms/hearth_fm.png",
+    "grid": 2,
+    "tiles": [
+     {
+      "key": "seating:painted_wooden_bench:9",
+      "tile": [
+       0,
+       0,
+       0.5
+      ]
+     },
+     {
+      "key": "seating:Sofa_01:10",
+      "tile": [
+       0.5,
+       0,
+       0.5
+      ]
+     }
+    ]
+   },
+   "bytes": 11801590,
+   "blake3": "68876f38da6a5e3f04cf9f995bc948a2f59e99822f4e9ab722c844753d395527"
+  }
+ },
+ "skein": {
+  "high": {
+   "glb": "rooms/skein.glb",
+   "lightmap": "rooms/skein_lm.png",
+   "furniture": {
+    "image": "rooms/skein_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "seating:vintage_day_bed:4",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "seating:Rockingchair_01:5",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:8",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:9",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:10",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 3218511,
+   "blake3": "65896acb0b0e118b0669b6b180263e81e21dfe7100f2bf9d3878ec6e524e332d"
+  },
+  "ultra": {
+   "glb": "rooms/skein.glb",
+   "lightmap": "rooms/skein_lm.png",
+   "furniture": {
+    "image": "rooms/skein_fm.png",
+    "grid": 3,
+    "tiles": [
+     {
+      "key": "seating:vintage_day_bed:4",
+      "tile": [
+       0,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "seating:Rockingchair_01:5",
+      "tile": [
+       0.3333333333333333,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:8",
+      "tile": [
+       0.6666666666666666,
+       0,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:9",
+      "tile": [
+       0,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     },
+     {
+      "key": "shelves:wooden_bookshelf_worn:10",
+      "tile": [
+       0.3333333333333333,
+       0.3333333333333333,
+       0.3333333333333333
+      ]
+     }
+    ]
+   },
+   "bytes": 12644979,
+   "blake3": "40ee1b8f026cb5a37b267698401062a318b25cf8ead6ad3bd3c8e86380221e40"
+  }
+ }
+}

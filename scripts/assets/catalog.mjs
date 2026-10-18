@@ -1,0 +1,161 @@
+// Curated CC0 asset catalog. Every entry resolves against the Poly Haven API at fetch time; the
+// lock file (assets.lock.json) pins URL + BLAKE3 so later builds are reproducible.
+// px = [high, ultra] texture edge sizes. role tags drive the layout solver (see src/scene/rooms/hifi/solver.ts).
+// [id, category, [highPx, ultraPx], tags, opts]  opts: lights (emitter fractions of bounds), clutter set names, hero flag.
+const m = (id, cat, px, tags = [], o = {}) => ({ id, cat, px, tags, ...o, lm: o.lm ?? (!!o.hero && ['seating', 'table', 'storage'].includes(cat)) });
+// Budget policy (decided with coordinator): high tier ~150 MB, heroes 2K, props 1K, tiling materials 2K; ultra pack 4K heroes/materials, 2K props. Textures are never resized below their authored size for a tier.
+const F = [1024, 2048], H = [2048, 4096], S = [512, 1024];
+// HF: hero ultra (4K) but a 1K high tier, for small props whose 2K high textures never show (high-tier asset budget, ARCHITECTURE 12).
+const HF = [1024, 4096];
+
+export const MODELS = [
+  // lived-in set (books, ceramics, planters, wall lamps)
+  m('book_encyclopedia_set_01', 'books', F, ['books', 'tabletop', 'clutter:shelf', 'clutter:desk']),
+  m('hanging_picture_frame_03', 'art', F, ['frame', 'wall-mount', 'art-slot'], { slots: { hanging_picture_frame_03_artwork: 'paint' } }),
+  m('ceramic_pot', 'decor', F, ['pot', 'tabletop', 'clutter:shelf', 'clutter:table']),
+  m('carved_wooden_plate', 'tableware', S, ['plate', 'tabletop', 'clutter:table']),
+  m('planter_pot_clay', 'plant', F, ['plant', 'floor', 'clutter:floor']),
+  m('brass_vase_02', 'decor', F, ['vase', 'tabletop', 'clutter:shelf', 'clutter:table']),
+  m('ceramic_vase_03', 'decor', F, ['vase', 'tabletop', 'clutter:shelf', 'clutter:table']),
+  m('industrial_wall_lamp', 'light', F, ['light', 'wall-mount'], { lights: [{ kind: 'bulb', at: [0.5, 0.5, 0.6], n: 1 }] }),
+  m('brass_diya_lantern', 'light', S, ['light', 'tabletop', 'clutter:table'], { lights: [{ kind: 'flame', at: [0.5, 0.4, 0.5], n: 1 }] }),
+  // lived-in set 2 (plinths, hung clothing, tool wall, cabinets)
+  m('side_table_tall_01', 'table', F, ['table', 'surface:table-top', 'plinth', 'tall']),
+  m('side_table_01', 'table', F, ['table', 'surface:table-top', 'low']),
+  m('fishermans_hat', 'decor', S, ['hat', 'wall-mount', 'hook']),
+  m('life_jacket', 'decor', S, ['coat', 'wall-mount', 'hook']),
+  m('hatchet', 'tool', S, ['tool', 'wall-mount', 'tabletop', 'clutter:desk']),
+  m('rusted_hacksaw', 'tool', S, ['tool', 'wall-mount', 'tabletop', 'clutter:desk']),
+  m('adjustable_wrench', 'tool', S, ['tool', 'wall-mount', 'tabletop', 'clutter:desk']),
+  m('metal_toolbox', 'storage', F, ['chest', 'surface:table-top', 'tools']),
+  m('industrial_storage_cart', 'storage', F, ['cart', 'surface:table-top', 'tools']),
+  m('painted_wooden_cabinet', 'storage', F, ['cabinet', 'surface:table-top', 'wall']),
+  m('ladder_sectioned_01', 'tool', F, ['ladder', 'floor'], { fit: { h: 1.95 } }),
+  m('painted_wooden_nightstand', 'table', F, ['table', 'surface:table-top', 'low']),
+  // seating
+  m('WoodenChair_01', 'seating', F, ['seat', 'chair', 'wood'], { fit: { h: 0.95 } }),
+  m('painted_wooden_chair_01', 'seating', F, ['seat', 'chair', 'wood'], { refine: true }),
+  m('painted_wooden_chair_02', 'seating', F, ['seat', 'chair', 'wood'], { refine: true }),
+  m('dining_chair_02', 'seating', F, ['seat', 'chair']),
+  m('wooden_stool_01', 'seating', F, ['seat', 'stool']),
+  m('wooden_stool_02', 'seating', F, ['seat', 'stool']),
+  m('folding_wooden_stool', 'seating', S, ['seat', 'stool']),
+  m('bar_chair_round_01', 'seating', F, ['seat', 'stool', 'bar']),
+  m('painted_wooden_bench', 'seating', H, ['seat', 'bench'], { hero: true , refine: true }),
+  m('Rockingchair_01', 'seating', H, ['seat', 'chair', 'soft'], { hero: true }),
+  m('ArmChair_01', 'seating', H, ['seat', 'armchair', 'soft'], { hero: true }),
+  m('Sofa_01', 'seating', H, ['seat', 'sofa', 'soft'], { hero: true }),
+  m('sofa_02', 'seating', H, ['seat', 'sofa', 'soft'], { hero: true }),
+  m('Ottoman_01', 'seating', F, ['seat', 'ottoman', 'soft']),
+  m('vintage_day_bed', 'seating', H, ['seat', 'daybed', 'soft'], { hero: true }),
+  // tables, desks, storage
+  m('dining_table', 'table', H, ['table', 'surface:table-top', 'hero'], { hero: true , refine: true }),
+  m('WoodenTable_03', 'table', H, ['table', 'surface:table-top', 'workbench'], { hero: true }),
+  m('round_wooden_table_01', 'table', H, ['table', 'surface:table-top', 'round'], { hero: true }),
+  m('painted_wooden_table', 'table', F, ['table', 'surface:table-top'], { refine: true }),
+  m('metal_office_desk', 'table', H, ['table', 'surface:table-top', 'desk'], { hero: true }),
+  m('ClassicConsole_01', 'table', F, ['table', 'surface:table-top', 'console', 'wall']),
+  m('CoffeeTable_01', 'table', F, ['table', 'surface:table-top', 'low']),
+  m('wooden_bookshelf_worn', 'storage', H, ['shelf', 'surface:shelf', 'wall', 'books'], { hero: true }),
+  m('painted_wooden_shelves', 'storage', F, ['shelf', 'surface:shelf', 'wall'], { refine: true }),
+  m('wooden_display_shelves_01', 'storage', F, ['shelf', 'surface:shelf', 'wall']),
+  m('steel_frame_shelves_01', 'storage', F, ['shelf', 'surface:shelf', 'wall', 'industrial'], { fit: { h: 2.0 } }),
+  m('GothicCabinet_01', 'storage', H, ['cabinet', 'surface:table-top', 'wall'], { hero: true }),
+  m('vintage_cabinet_01', 'storage', H, ['cabinet', 'surface:table-top', 'wall'], { hero: true }),
+  m('drawer_cabinet', 'storage', F, ['cabinet', 'surface:table-top', 'wall']),
+  m('treasure_chest', 'storage', F, ['chest', 'surface:table-top']),
+  m('metal_tool_chest', 'storage', F, ['chest', 'surface:table-top', 'tools']),
+  m('tool_cart', 'storage', F, ['cart', 'surface:table-top', 'tools']),
+  m('wooden_crate_01', 'storage', F, ['crate', 'surface:table-top']),
+  m('wine_barrel_01', 'storage', F, ['barrel', 'surface:table-top']),
+  m('wicker_basket_01', 'storage', F, ['basket']),
+  // lights (emitter = fraction of bounds where the practical light sits)
+  m('Chandelier_01', 'light', F, ['light', 'ceiling'], { lights: [{ kind: 'bulb', at: [0.5, 0.55, 0.5], n: 1 }] }),
+  m('lantern_chandelier_01', 'light', F, ['light', 'ceiling'], { lights: [{ kind: 'flame', at: [0.5, 0.45, 0.5], n: 1 }] }),
+  m('caged_hanging_light', 'light', F, ['light', 'ceiling', 'industrial'], { lights: [{ kind: 'bulb', at: [0.5, 0.35, 0.5], n: 1 }] }),
+  m('hanging_industrial_lamp', 'light', F, ['light', 'ceiling', 'industrial'], { lights: [{ kind: 'bulb', at: [0.5, 0.3, 0.5], n: 1 }] }),
+  m('vintage_oil_lamp', 'light', F, ['light', 'tabletop', 'clutter:table'], { lights: [{ kind: 'flame', at: [0.5, 0.45, 0.5], n: 1 }] }),
+  m('wooden_candlestick', 'light', S, ['light', 'tabletop', 'clutter:table'], { lights: [{ kind: 'flame', at: [0.5, 1.02, 0.5], n: 1 }] }),
+  m('brass_candleholders', 'light', F, ['light', 'tabletop', 'clutter:table'], { lights: [{ kind: 'flame', at: [0.5, 0.95, 0.5], n: 1 }] }),
+  m('desk_lamp_arm_01', 'light', F, ['light', 'tabletop', 'clutter:desk'], { lights: [{ kind: 'bulb', at: [0.2, 0.8, 0.5], n: 1 }] }),
+  m('Lantern_01', 'light', S, ['light', 'tabletop', 'clutter:table'], { lights: [{ kind: 'flame', at: [0.5, 0.4, 0.5], n: 1 }] }),
+  m('industrial_wall_sconce', 'light', S, ['light', 'wall-mount'], { lights: [{ kind: 'bulb', at: [0.5, 0.5, 0.6], n: 1 }] }),
+  // decor, art
+  m('hanging_picture_frame_01', 'art', F, ['frame', 'wall-mount', 'art-slot'], { slots: { hanging_picture_frame_01_artwork: 'paint' } , refine: true }),
+  m('hanging_picture_frame_02', 'art', F, ['frame', 'wall-mount', 'art-slot'], { slots: { hanging_picture_frame_02_artwork: 'paint' } }),
+  m('fancy_picture_frame_01', 'art', H, ['frame', 'wall-mount', 'art-slot'], { hero: true, slots: { fancy_picture_frame_01_canvas: 'paint' } , refine: true }),
+  m('fancy_picture_frame_02', 'art', HF, ['frame', 'wall-mount', 'art-slot'], { hero: true, slots: { fancy_picture_frame_02_canvas: 'paint' } }),
+  m('standing_picture_frame_01', 'art', S, ['frame', 'tabletop', 'clutter:table'], { slots: { standing_picture_frame_01_artwork: 'paint' } , refine: true }),
+  m('ornate_mirror_01', 'art', F, ['mirror', 'wall-mount']),
+  m('marble_bust_01', 'art', HF, ['statue', 'plinth'], { hero: true }),
+  m('gothic_statue', 'art', H, ['statue', 'plinth'], { hero: true }),
+  m('bronze_whale_statue', 'art', F, ['statue', 'plinth', 'tabletop']),
+  m('horse_statue_01', 'art', F, ['statue', 'plinth', 'tabletop']),
+  m('antique_ceramic_vase_01', 'decor', F, ['vase', 'tabletop', 'clutter:table', 'clutter:shelf']),
+  m('ceramic_vase_01', 'decor', F, ['vase', 'tabletop', 'clutter:table', 'clutter:shelf']),
+  m('ceramic_vase_02', 'decor', F, ['vase', 'tabletop', 'clutter:table', 'clutter:shelf']),
+  m('brass_vase_01', 'decor', F, ['vase', 'tabletop', 'clutter:table', 'clutter:shelf']),
+  m('mantel_clock_01', 'decor', F, ['clock', 'tabletop', 'clutter:shelf', 'clutter:mantel']),
+  m('throw_pillows_01', 'decor', F, ['soft', 'clutter:seat']),
+  m('seadogs_compass', 'decor', S, ['compass', 'tabletop', 'clutter:table', 'clutter:desk']),
+  // plants
+  m('potted_plant_02', 'plant', HF, ['plant', 'floor', 'clutter:floor'], { hero: true }),
+  m('potted_plant_04', 'plant', F, ['plant', 'tabletop', 'clutter:table', 'clutter:shelf']),
+  m('calathea_orbifolia_01', 'plant', F, ['plant', 'floor', 'clutter:floor'], { pick: ['calathea_orbifolia_01_b'] }),
+  m('fern_02', 'plant', F, ['plant', 'tabletop', 'clutter:shelf'], { pick: ['fern_02_b'] }),
+  m('planter_box_01', 'plant', F, ['plant', 'floor', 'wall']),
+  // tableware, books, paper
+  m('tea_set_01', 'tableware', H, ['tableware', 'tabletop', 'clutter:table'], { hero: true }),
+  m('brass_goblets', 'tableware', F, ['tableware', 'tabletop', 'clutter:table']),
+  m('wine_bottles_01', 'tableware', F, ['bottle', 'tabletop', 'clutter:table', 'clutter:shelf']),
+  m('wooden_bowl_01', 'tableware', F, ['tableware', 'tabletop', 'clutter:table']),
+  m('metal_jug', 'tableware', F, ['tableware', 'tabletop', 'clutter:table']),
+  m('brass_pot_01', 'tableware', F, ['tableware', 'tabletop', 'clutter:table', 'clutter:mantel']),
+  m('wooden_cutting_board', 'tableware', S, ['tableware', 'tabletop', 'clutter:table']),
+  m('binder_notebook', 'paper', F, ['paper', 'tabletop', 'clutter:desk', 'clutter:table']),
+  m('clipboard', 'paper', S, ['paper', 'tabletop', 'clutter:desk', 'clutter:bench']),
+  m('postcard_set_01', 'paper', S, ['paper', 'tabletop', 'clutter:desk', 'clutter:table'], { pick: ['postcard_01', 'postcard_02', 'postcard_03', 'postcard_04'] }),
+  m('magnifying_glass_01', 'tool', S, ['tool', 'tabletop', 'clutter:desk']),
+  m('round_spectacles', 'tool', S, ['tool', 'tabletop', 'clutter:desk']),
+  m('wall_clock', 'decor', F, ['clock', 'wall-mount']),
+  m('alarm_clock_01', 'decor', F, ['clock', 'tabletop', 'clutter:desk']),
+  m('CashRegister_01', 'prop', F, ['prop', 'tabletop', 'clutter:desk'], { hero: true }),
+  m('vintage_telephone_wall_clock', 'decor', F, ['clock', 'wall-mount']),
+  // workshop tools
+  m('bench_vice_01', 'tool', F, ['tool', 'tabletop', 'clutter:bench']),
+  m('hand_plane_no4', 'tool', F, ['tool', 'tabletop', 'clutter:bench']),
+  m('handsaw_wood', 'tool', F, ['tool', 'tabletop', 'clutter:bench']),
+  m('cross_pein_hammer', 'tool', S, ['tool', 'tabletop', 'clutter:bench']),
+  m('wooden_hammer_01', 'tool', S, ['tool', 'tabletop', 'clutter:bench']),
+  m('wooden_ladder', 'tool', F, ['tool', 'wall', 'floor']),
+  m('wooden_broom', 'tool', F, ['tool', 'wall', 'floor']),
+  m('wooden_bucket_01', 'tool', F, ['tool', 'floor', 'clutter:floor']),
+  m('industrial_microscope', 'tool', F, ['tool', 'tabletop', 'clutter:bench', 'clutter:desk']),
+  m('standing_chalkboard_01', 'prop', F, ['board', 'floor', 'content-slot'], { slots: { standing_chalkboard_01_board: 'paint' } }),
+  // fire, loom, play
+  m('scandinavian_masonry_heater', 'fire', H, ['fireplace', 'wall', 'hero'], { hero: true, lights: [{ kind: 'fire', at: [0.5, 0.2, 0.9], n: 1 }] }),
+  m('stone_fire_pit', 'fire', F, ['fireplace', 'floor'], { lights: [{ kind: 'fire', at: [0.5, 0.5, 0.5], n: 1 }] }),
+  m('spinning_wheel_01', 'craft', H, ['craft', 'floor', 'hero'], { hero: true }),
+  m('chess_set', 'play', HF, ['game', 'tabletop', 'clutter:table'], { hero: true }),
+  m('dartboard', 'play', F, ['game', 'wall-mount']),
+];
+
+// PBR texture sets for shells. px = [high, ultra]. use: floor | wall | trim | cloth | stone.
+const t = (id, use, px = [2048, 4096]) => ({ id, use, px });
+export const MATERIALS = [
+  t('old_wood_floor', 'floor', [2048, 4096]), t('plank_flooring_02', 'floor', [2048, 4096]), 
+  t('monastery_stone_floor', 'floor', [2048, 4096]), t('marble_tiles', 'floor', [2048, 4096]), t('brown_planks_03', 'floor', [2048, 4096]),
+  t('plastered_wall_02', 'wall', [2048, 4096]), t('painted_plaster_wall', 'wall', [2048, 4096]), 
+  t('castle_brick_02_red', 'wall', [2048, 4096]), 
+  t('dark_planks', 'trim', [2048, 4096]), t('lacquered_cherry_wood', 'trim', [2048, 4096]), t('rough_wood', 'trim', [2048, 4096]),
+  t('rough_linen', 'cloth', [2048, 4096]), t('fabric_pattern_07', 'cloth', [2048, 4096]), t('quatrefoil_jacquard_fabric', 'cloth', [2048, 4096]),
+  t('brown_leather', 'cloth', [2048, 4096]), t('poly_wool_herringbone', 'cloth', [2048, 4096]), 
+  t('large_sandstone_blocks_01', 'stone', [2048, 4096]), 
+];
+
+// HDRIs: interior lighting probes + sky. px = [high, ultra] ('1k' | '2k' | '4k').
+export const HDRIS = [
+  { id: 'art_studio', use: 'interior-gallery', px: ['1k', '2k'] },
+  { id: 'artist_workshop', use: 'interior-workshop', px: ['1k', '2k'] },
+  { id: 'abandoned_hall_01', use: 'interior-hall', px: ['1k', '2k'] },
+];

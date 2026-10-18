@@ -1,0 +1,687 @@
+{
+ "id": "feed",
+ "section": "feed",
+ "name": "The Gallery",
+ "cam": {
+  "cam": [
+   5.3,
+   1.8,
+   3.9
+  ],
+  "look": [
+   -2.0,
+   1.55,
+   -2.4
+  ]
+ },
+ "shell": {
+  "w": 12,
+  "d": 9,
+  "h": 5,
+  "floor": "marble_tiles",
+  "wall": "painted_plaster_wall",
+  "trim": "lacquered_cherry_wood",
+  "ceiling": "painted_plaster_wall",
+  "baseboard": {
+   "h": 0.2,
+   "d": 0.035
+  },
+  "crown": {
+   "h": 0.18,
+   "d": 0.14
+  },
+  "openings": [
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": -4.2,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 1.4,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": 4.2,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 1.4,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "e",
+    "at": -2.5,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 1.4,
+    "asset": "window_casement"
+   }
+  ],
+  "keepClear": [
+   {
+    "x": [
+     2.8,
+     5.8
+    ],
+    "z": [
+     2.4,
+     4.3
+    ]
+   }
+  ],
+  "hdri": "art_studio"
+ },
+ "rules": [
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    -1.0,
+    0.3
+   ],
+   "group": "lounge",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "sofa_02",
+   "at": [
+    -1.0,
+    1.45
+   ],
+   "group": "lounge",
+   "spread": 0.3,
+   "rotY": 3.1416
+  },
+  {
+   "kind": "place",
+   "asset": "sofa_02",
+   "at": [
+    -1.0,
+    -1.15
+   ],
+   "group": "lounge",
+   "spread": 0.3,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "CoffeeTable_01",
+   "at": [
+    -1.0,
+    0.15
+   ],
+   "group": "lounge",
+   "spread": 0.2,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "Ottoman_01",
+   "at": [
+    1.2,
+    0.2
+   ],
+   "group": "lounge",
+   "spread": 0.6,
+   "rotY": 0.5
+  },
+  {
+   "kind": "place",
+   "asset": "ArmChair_01",
+   "at": [
+    -3.6,
+    0.3
+   ],
+   "group": "lounge",
+   "spread": 0.5,
+   "face": [
+    -1.0,
+    0.3
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "n",
+   "y": 2.25,
+   "count": 1,
+   "span": [
+    0,
+    0
+   ],
+   "group": "frames",
+   "assets": [
+    "fancy_picture_frame_02"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "w",
+   "y": 2.1,
+   "count": 4,
+   "span": [
+    -0.75,
+    0.75
+   ],
+   "group": "frames",
+   "assets": [
+    "fancy_picture_frame_01",
+    "fancy_picture_frame_02",
+    "hanging_picture_frame_01",
+    "hanging_picture_frame_02"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "e",
+   "y": 2.1,
+   "count": 2,
+   "span": [
+    0.2,
+    0.8
+   ],
+   "group": "frames",
+   "assets": [
+    "hanging_picture_frame_03",
+    "hanging_picture_frame_02"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "s",
+   "y": 2.2,
+   "count": 3,
+   "span": [
+    -0.6,
+    0.4
+   ],
+   "group": "frames",
+   "assets": [
+    "hanging_picture_frame_01",
+    "hanging_picture_frame_03",
+    "fancy_picture_frame_01"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "w",
+   "y": 3.7,
+   "count": 1,
+   "span": [
+    0,
+    0
+   ],
+   "group": "mirror",
+   "asset": "ornate_mirror_01"
+  },
+  {
+   "kind": "place",
+   "asset": "side_table_tall_01",
+   "at": [
+    -4.9,
+    -3.4
+   ],
+   "group": "plinths",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "side_table_tall_01",
+   "at": [
+    4.8,
+    -3.3
+   ],
+   "group": "plinths",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "side_table_tall_01",
+   "at": [
+    -1.0,
+    -3.6
+   ],
+   "group": "plinths",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "side_table_tall_01",
+   "at": [
+    2.4,
+    -3.6
+   ],
+   "group": "plinths",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "gothic_statue",
+   "at": [
+    4.6,
+    0.3
+   ],
+   "group": "statues",
+   "spread": 0.5,
+   "rotY": -1.6
+  },
+  {
+   "kind": "place",
+   "asset": "painted_wooden_nightstand",
+   "at": [
+    -5.2,
+    1.4
+   ],
+   "group": "plinths",
+   "spread": 0.5,
+   "rotY": 1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    1.4,
+    3.9
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "wallrow",
+   "wall": "e",
+   "y": 1.75,
+   "count": 2,
+   "span": [
+    -0.9,
+    -0.5
+   ],
+   "group": "hooks",
+   "assets": [
+    "fishermans_hat",
+    "life_jacket"
+   ]
+  },
+  {
+   "kind": "scatter",
+   "assets": [
+    "wicker_basket_01",
+    "wooden_stool_01",
+    "ceramic_pot",
+    "planter_pot_clay"
+   ],
+   "count": [
+    3,
+    5
+   ],
+   "region": "edge",
+   "group": "floor"
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    3.8,
+    -1.2
+   ],
+   "group": "gallery",
+   "spread": 0.01,
+   "rotY": 1.5708,
+   "under": true
+  },
+  {
+   "kind": "anchor",
+   "asset": "ClassicConsole_01",
+   "wall": "s",
+   "along": "auto",
+   "group": "console"
+  },
+  {
+   "kind": "anchor",
+   "asset": "ClassicConsole_01",
+   "wall": "e",
+   "along": "auto",
+   "group": "console"
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    -5.3,
+    3.6
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "calathea_orbifolia_01",
+   "at": [
+    5.4,
+    -3.9
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "easel_gallery",
+   "at": [
+    3.6,
+    -1.8
+   ],
+   "group": "easels",
+   "spread": 0.8,
+   "face": [
+    0.5,
+    2.5
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "easel_gallery",
+   "at": [
+    -3.9,
+    2.4
+   ],
+   "group": "easels",
+   "spread": 0.8,
+   "face": [
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "easel_gallery",
+   "at": [
+    1.2,
+    -3.2
+   ],
+   "group": "easels",
+   "spread": 0.6,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    3.4,
+    2.6
+   ],
+   "group": "reading",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "painted_wooden_bench",
+   "at": [
+    3.4,
+    3.4
+   ],
+   "group": "reading",
+   "spread": 0.4,
+   "rotY": 3.1416
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    1.0,
+    3.8
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "planter_pot_clay",
+   "at": [
+    -5.4,
+    0.2
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    -3.6,
+    -2.2
+   ],
+   "group": "gallery2",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "Ottoman_01",
+   "at": [
+    -3.6,
+    -2.2
+   ],
+   "group": "gallery2",
+   "spread": 0.4,
+   "rotY": 0.3
+  },
+  {
+   "kind": "ceiling",
+   "asset": "Chandelier_01",
+   "at": [
+    [
+     -1.0,
+     0.2
+    ],
+    [
+     3.2,
+     -1.5
+    ],
+    [
+     -4.2,
+     -1.5
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "side_table_tall_01"
+   },
+   "assets": [
+    "marble_bust_01",
+    "bronze_whale_statue",
+    "horse_statue_01",
+    "brass_vase_02",
+    "ceramic_vase_03",
+    "antique_ceramic_vase_01"
+   ],
+   "perHost": [
+    1,
+    1
+   ],
+   "yaw": "free",
+   "group": "plinth-art"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "painted_wooden_nightstand"
+   },
+   "assets": [
+    "brass_diya_lantern",
+    "book_encyclopedia_set_01",
+    "ceramic_pot"
+   ],
+   "perHost": [
+    2,
+    3
+   ],
+   "yaw": "free",
+   "group": "clutter"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "ClassicConsole_01"
+   },
+   "assets": [
+    "bronze_whale_statue",
+    "horse_statue_01",
+    "ceramic_vase_01",
+    "brass_vase_02",
+    "standing_picture_frame_01",
+    "candle_taper_mid",
+    "postcard_set_01",
+    "ceramic_vase_03"
+   ],
+   "perHost": [
+    3,
+    4
+   ],
+   "yaw": "free",
+   "group": "clutter"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "CoffeeTable_01"
+   },
+   "assets": [
+    "book_encyclopedia_set_01",
+    "tea_set_01",
+    "candle_stub",
+    "ceramic_pot"
+   ],
+   "perHost": [
+    2,
+    3
+   ],
+   "yaw": "free",
+   "group": "clutter"
+  }
+ ],
+ "presence": {
+  "tags": [
+   "seat"
+  ],
+  "traces": [
+   "metal_jug",
+   "wooden_bowl_01",
+   "binder_notebook",
+   "brass_goblets",
+   "carved_wooden_plate",
+   "clipboard"
+  ],
+  "figures": [
+   "figure_a",
+   "figure_b",
+   "figure_c",
+   "figure_d"
+  ],
+  "clips": {
+   "table": [
+    "idle_read",
+    "idle_write",
+    "idle_sip"
+   ],
+   "free": [
+    "idle_sit",
+    "idle_read",
+    "idle_sip"
+   ]
+  }
+ },
+ "content": [
+  {
+   "asset": "fancy_picture_frame_01",
+   "slot": "fancy_picture_frame_01_canvas",
+   "feed": "frames",
+   "px": 2048
+  },
+  {
+   "asset": "fancy_picture_frame_02",
+   "slot": "fancy_picture_frame_02_canvas",
+   "feed": "frames",
+   "px": 2048
+  },
+  {
+   "asset": "hanging_picture_frame_01",
+   "slot": "hanging_picture_frame_01_artwork",
+   "feed": "frames",
+   "px": 1024
+  },
+  {
+   "asset": "hanging_picture_frame_02",
+   "slot": "hanging_picture_frame_02_artwork",
+   "feed": "frames",
+   "px": 1024
+  },
+  {
+   "asset": "hanging_picture_frame_03",
+   "slot": "hanging_picture_frame_03_artwork",
+   "feed": "frames",
+   "px": 1024
+  },
+  {
+   "asset": "easel_gallery",
+   "slot": "canvas",
+   "feed": "frames",
+   "px": 1024
+  }
+ ],
+ "lights": {
+  "kinds": {
+   "fire": {
+    "color": "#ff8f3d",
+    "intensity": 60,
+    "distance": 11,
+    "decay": 1.5,
+    "flicker": 0.25
+   },
+   "bulb": {
+    "color": "#ffc98a",
+    "intensity": 26,
+    "distance": 9,
+    "decay": 1.6,
+    "cast": true
+   },
+   "flame": {
+    "color": "#ffa855",
+    "intensity": 2.2,
+    "distance": 3.2,
+    "decay": 1.9,
+    "flicker": 0.3
+   }
+  },
+  "window": {
+   "color": "#fff0d6",
+   "intensity": 14,
+   "distance": 12
+  },
+  "fill": {
+   "sky": "#fff1dc",
+   "ground": "#6a5646",
+   "intensity": 0.4
+  },
+  "shadowLights": 1,
+  "maxLights": 12,
+  "env": 0.9
+ }
+}

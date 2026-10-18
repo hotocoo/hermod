@@ -1,0 +1,601 @@
+{
+ "id": "commons",
+ "section": "chat",
+ "name": "The Commons",
+ "cam": {
+  "cam": [
+   5.1,
+   1.9,
+   4.1
+  ],
+  "look": [
+   -1.4,
+   1.15,
+   -1.4
+  ]
+ },
+ "shell": {
+  "w": 11,
+  "d": 9,
+  "h": 4.4,
+  "floor": "old_wood_floor",
+  "wall": "plastered_wall_02",
+  "trim": "dark_planks",
+  "ceiling": "painted_plaster_wall",
+  "beams": {
+   "material": "rough_wood",
+   "every": 2.2,
+   "size": [
+    0.2,
+    0.28
+   ],
+   "axis": "x"
+  },
+  "wainscot": {
+   "material": "brown_planks_03",
+   "h": 1.05
+  },
+  "baseboard": {
+   "h": 0.16,
+   "d": 0.03
+  },
+  "crown": {
+   "h": 0.14,
+   "d": 0.12
+  },
+  "openings": [
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": -3.5,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": 3.5,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "w",
+    "at": 3.2,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "w",
+    "at": -3.2,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   }
+  ],
+  "keepClear": [
+   {
+    "x": [
+     2.6,
+     5.0
+    ],
+    "z": [
+     2.6,
+     4.5
+    ]
+   }
+  ],
+  "hdri": "abandoned_hall_01"
+ },
+ "rules": [
+  {
+   "kind": "anchor",
+   "asset": "hearth_stone",
+   "wall": "w",
+   "along": 0,
+   "group": "hearth"
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    -3.2,
+    0
+   ],
+   "group": "nook",
+   "spread": 0.01,
+   "rotY": 1.5708,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "CoffeeTable_01",
+   "at": [
+    -3.0,
+    0
+   ],
+   "group": "nook",
+   "spread": 0.2,
+   "rotY": 1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "ArmChair_01",
+   "at": [
+    -3.0,
+    -1.7
+   ],
+   "group": "nook",
+   "spread": 0.3,
+   "face": [
+    -3.0,
+    0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "ArmChair_01",
+   "at": [
+    -3.0,
+    1.7
+   ],
+   "group": "nook",
+   "spread": 0.3,
+   "face": [
+    -3.0,
+    0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "Rockingchair_01",
+   "at": [
+    -1.7,
+    0.1
+   ],
+   "group": "nook",
+   "spread": 0.3,
+   "face": [
+    -3.6,
+    0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "log_pile",
+   "at": [
+    -4.55,
+    1.8
+   ],
+   "group": "hearth",
+   "spread": 0.4,
+   "rotY": 1.2
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_bucket_01",
+   "at": [
+    -4.7,
+    -1.9
+   ],
+   "group": "hearth",
+   "spread": 0.4,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    1.4,
+    -1.2
+   ],
+   "group": "dining",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "set",
+   "table": "dining_table",
+   "at": [
+    1.4,
+    -2.5
+   ],
+   "rotY": 0,
+   "group": "dining",
+   "chairs": {
+    "assets": [
+     "dining_chair_02"
+    ],
+    "long": 2,
+    "short": 1,
+    "tuck": 0.14
+   }
+  },
+  {
+   "kind": "set",
+   "table": "dining_table",
+   "at": [
+    1.4,
+    0.5
+   ],
+   "rotY": 0,
+   "group": "dining",
+   "chairs": {
+    "assets": [
+     "dining_chair_02"
+    ],
+    "long": 2,
+    "short": 1,
+    "tuck": 0.14
+   }
+  },
+  {
+   "kind": "anchor",
+   "asset": "wooden_bookshelf_worn",
+   "wall": "e",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "wooden_bookshelf_worn",
+   "wall": "e",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "wooden_bookshelf_worn",
+   "wall": "s",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "wallrow",
+   "wall": "n",
+   "y": 1.95,
+   "count": 1,
+   "span": [
+    0,
+    0
+   ],
+   "group": "board",
+   "asset": "notice_board"
+  },
+  {
+   "kind": "wallrow",
+   "wall": "n",
+   "y": 2.1,
+   "count": 2,
+   "span": [
+    -0.45,
+    0.45
+   ],
+   "group": "frames",
+   "assets": [
+    "hanging_picture_frame_01",
+    "hanging_picture_frame_02",
+    "hanging_picture_frame_03"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "w",
+   "y": 3.1,
+   "count": 1,
+   "span": [
+    -0.12,
+    -0.12
+   ],
+   "group": "mirror",
+   "asset": "ornate_mirror_01"
+  },
+  {
+   "kind": "wallrow",
+   "wall": "s",
+   "y": 2.2,
+   "count": 2,
+   "span": [
+    -0.5,
+    0.2
+   ],
+   "group": "frames",
+   "assets": [
+    "hanging_picture_frame_02",
+    "hanging_picture_frame_03"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "s",
+   "y": 1.75,
+   "count": 3,
+   "span": [
+    0.4,
+    0.95
+   ],
+   "group": "hooks",
+   "assets": [
+    "fishermans_hat",
+    "life_jacket"
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "painted_wooden_cabinet",
+   "at": [
+    4.9,
+    0.2
+   ],
+   "group": "storage",
+   "spread": 0.5,
+   "rotY": -1.5708
+  },
+  {
+   "kind": "ceiling",
+   "asset": "Chandelier_01",
+   "at": [
+    [
+     1.4,
+     -2.5
+    ],
+    [
+     1.4,
+     0.5
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "ceiling",
+   "asset": "lantern_chandelier_01",
+   "at": [
+    [
+     -3.0,
+     0
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    4.6,
+    -3.7
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "calathea_orbifolia_01",
+   "at": [
+    -4.8,
+    3.7
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "fern_02",
+   "at": [
+    -1.6,
+    3.7
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "planter_pot_clay",
+   "at": [
+    4.9,
+    1.6
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "scatter",
+   "assets": [
+    "wicker_basket_01",
+    "wooden_crate_01"
+   ],
+   "count": [
+    1,
+    2
+   ],
+   "region": {
+    "x": [
+     2.6,
+     4.6
+    ],
+    "z": [
+     -3.8,
+     -2.6
+    ]
+   },
+   "group": "floor"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "dining_table"
+   },
+   "assets": [
+    "tea_set_01",
+    "brass_goblets",
+    "wooden_bowl_01",
+    "binder_notebook",
+    "wine_bottles_01",
+    "ceramic_vase_01",
+    "vintage_oil_lamp",
+    "candle_taper_mid",
+    "candle_taper_tall",
+    "metal_jug",
+    "carved_wooden_plate",
+    "brass_diya_lantern"
+   ],
+   "perHost": [
+    4,
+    6
+   ],
+   "yaw": "free",
+   "group": "table"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "CoffeeTable_01"
+   },
+   "assets": [
+    "book_row_b",
+    "candle_stub",
+    "brass_pot_01",
+    "tea_set_01",
+    "brass_diya_lantern"
+   ],
+   "perHost": [
+    2,
+    3
+   ],
+   "yaw": "free",
+   "group": "table"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "wooden_bookshelf_worn"
+   },
+   "assets": [
+    "book_row_a",
+    "book_row_b",
+    "book_encyclopedia_set_01",
+    "antique_ceramic_vase_01",
+    "brass_vase_01",
+    "mantel_clock_01",
+    "candle_stub",
+    "potted_plant_04",
+    "ceramic_pot",
+    "wicker_basket_01",
+    "ceramic_vase_03"
+   ],
+   "perHost": [
+    6,
+    9
+   ],
+   "yaw": "aligned",
+   "group": "shelf"
+  }
+ ],
+ "presence": {
+  "tags": [
+   "seat"
+  ],
+  "traces": [
+   "metal_jug",
+   "wooden_bowl_01",
+   "binder_notebook",
+   "brass_goblets",
+   "carved_wooden_plate",
+   "clipboard"
+  ],
+  "figures": [
+   "figure_a",
+   "figure_b",
+   "figure_c",
+   "figure_d"
+  ],
+  "clips": {
+   "table": [
+    "idle_read",
+    "idle_write",
+    "idle_sip"
+   ],
+   "free": [
+    "idle_sit",
+    "idle_read",
+    "idle_sip"
+   ]
+  }
+ },
+ "content": [
+  {
+   "asset": "notice_board",
+   "slot": "content",
+   "feed": "notes",
+   "px": 2048
+  },
+  {
+   "asset": "hanging_picture_frame_01",
+   "slot": "hanging_picture_frame_01_artwork",
+   "feed": "frames",
+   "px": 1024
+  },
+  {
+   "asset": "hanging_picture_frame_02",
+   "slot": "hanging_picture_frame_02_artwork",
+   "feed": "frames",
+   "px": 1024
+  },
+  {
+   "asset": "hanging_picture_frame_03",
+   "slot": "hanging_picture_frame_03_artwork",
+   "feed": "frames",
+   "px": 1024
+  }
+ ],
+ "lights": {
+  "kinds": {
+   "fire": {
+    "color": "#ff8f3d",
+    "intensity": 60,
+    "distance": 11,
+    "decay": 1.5,
+    "flicker": 0.25
+   },
+   "bulb": {
+    "color": "#ffc98a",
+    "intensity": 26,
+    "distance": 9,
+    "decay": 1.6,
+    "cast": true
+   },
+   "flame": {
+    "color": "#ffa855",
+    "intensity": 2.2,
+    "distance": 3.2,
+    "decay": 1.9,
+    "flicker": 0.3
+   }
+  },
+  "window": {
+   "color": "#fff0d6",
+   "intensity": 14,
+   "distance": 12
+  },
+  "fill": {
+   "sky": "#fff1dc",
+   "ground": "#6a5646",
+   "intensity": 0.3
+  },
+  "shadowLights": 1,
+  "maxLights": 12,
+  "env": 0.6
+ }
+}

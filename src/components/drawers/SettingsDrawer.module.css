@@ -1,0 +1,76 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--color-divider);
+  background: transparent;
+  text-align: left;
+}
+
+.rowText {
+  flex: 1;
+}
+
+.rowLabel {
+  display: block;
+  font-size: 14px;
+}
+
+.rowSub {
+  display: block;
+  font-size: 12px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.switchTrack {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  transition: all 240ms ease;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: transform 320ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.welcomeBtn {
+  padding: 8px 14px;
+  border: 1px solid var(--color-accent);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-accent-700);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+}
+.welcomeBtn:hover {
+  background: color-mix(in srgb,var(--color-accent) 12%,transparent) !important;
+}
+
+.flyoverBtn {
+  padding: 8px 14px;
+  border: 1px solid var(--color-divider);
+  border-radius: 6px;
+  background: transparent;
+  font-size: 13px;
+}
+.flyoverBtn:hover {
+  border-color: var(--color-accent) !important;
+}

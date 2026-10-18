@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Join a space on Hermod</title>
+<link rel="icon" href="../icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Lora:wght@400;600&display=swap">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+<header class="top"><a class="brand" href="../">H<b>ð</b>rmod</a></header>
+<main class="join">
+  <h1>You are invited</h1>
+  <p id="lead">Checking your invite link.</p>
+  <p class="spacename" id="name" hidden></p>
+  <div class="btns" style="justify-content:center" id="actions" hidden>
+    <a class="btn primary" id="open" href="#">Open in Hermod</a>
+    <button class="btn" id="copy" type="button">Copy code</button>
+  </div>
+  <p role="status" class="small" id="msg"></p>
+  <div class="card" style="margin-top:2rem;text-align:left">
+    <p style="margin-top:0"><strong>Don't have Hermod?</strong></p>
+    <p class="small">Install it first, then come back to this page and press Open in Hermod. Your code stays in this browser tab and is never sent anywhere.</p>
+    <a class="btn" id="dl" href="../#download">Download</a>
+  </div>
+</main>
+<footer><a href="../terms.html">Terms</a><a href="../privacy.html">Privacy</a></footer>
+</div>
+<script>
+// BEGIN decoder
+var B58="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function b58decode(s){
+  var n=0n,i,j,c,bytes=[];
+  for(i=0;i<s.length;i++){c=B58.indexOf(s[i]);if(c<0)throw new Error("bad char");n=n*58n+BigInt(c)}
+  while(n>0n){bytes.push(Number(n&255n));n>>=8n}
+  for(j=0;j<s.length&&s[j]==="1";j++)bytes.push(0);
+  return new Uint8Array(bytes.reverse());
+}
+// Minimal CBOR reader: walks a top-level map and returns only the text value for key "name".
+function cborName(b){
+  var p=0,dec=new TextDecoder("utf-8",{fatal:true}),depth=0;
+  function need(n){if(p+n>b.length)throw new Error("truncated")}
+  function head(){
+    need(1);var ib=b[p++],mt=ib>>5,ai=ib&31,v=ai;
+    if(ai>=24&&ai<=27){
+      var len=1<<(ai-24);need(len);v=0;
+      for(var i=0;i<len;i++)v=v*256+b[p++];
+    }else if(ai>27&&!(mt===7&&ai===31))throw new Error("unsupported");
+    return {mt:mt,v:v,ai:ai};
+  }
+  function skip(){
+    if(++depth>16)throw new Error("deep");
+    var h=head(),i;
+    if(h.mt===2||h.mt===3){need(h.v);p+=h.v}
+    else if(h.mt===4)for(i=0;i<h.v;i++)skip();
+    else if(h.mt===5)for(i=0;i<h.v*2;i++)skip();
+    else if(h.mt===6)skip();
+    else if(h.mt===7&&h.ai===31)throw new Error("unsupported");
+    depth--;
+  }
+  var m=head();
+  if(m.mt!==5)throw new Error("not a map");
+  for(var k=0;k<m.v;k++){
+    var kh=head();
+    if(kh.mt!==3)throw new Error("key");
+    need(kh.v);var key=dec.decode(b.subarray(p,p+kh.v));p+=kh.v;
+    if(key==="name"){
+      var vh=head();
+      if(vh.mt!==3)throw new Error("name type");
+      need(vh.v);return dec.decode(b.subarray(p,p+vh.v));
+    }
+    skip();
+  }
+  return null;
+}
+// END decoder
+(function(){
+  var $=function(i){return document.getElementById(i)};
+  var code=decodeURIComponent(location.hash.slice(1)).trim();
+  var ua=navigator.userAgent,p=(navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||"";
+  var os=/mac/i.test(p+ua)?"macOS":/win/i.test(p+ua)?"Windows":/linux|x11/i.test(p+ua)?"Linux":null;
+  if(os)$("dl").textContent="Download for "+os;
+  if(!/^[1-9A-HJ-NP-Za-km-z]{16,4000}$/.test(code)){
+    $("lead").textContent="This link has no valid invite code. Ask the person who invited you to send it again.";
+    return;
+  }
+  var name=null;
+  try{name=cborName(b58decode(code))}catch(e){}
+  if(name){
+    name=name.replace(/[\u0000-\u001f\u007f‪-‮⁦-⁩]/g,"").slice(0,80);
+    $("lead").textContent="You have been invited to join";
+    $("name").textContent=name;$("name").hidden=false;
+  }else{
+    $("lead").textContent="You have been invited to join a space.";
+  }
+  $("open").href="hermod://join/"+code;
+  $("actions").hidden=false;
+  $("copy").addEventListener("click",function(){
+    var done=function(t){$("msg").textContent=t};
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(function(){done("Code copied. Paste it in Hermod under Join a space.")},function(){done("Copy failed. Select the code from the address bar.")});
+    }else done("Copy is not available here. Select the code from the address bar.");
+  });
+})();
+</script>
+</body>
+</html>

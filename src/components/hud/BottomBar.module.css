@@ -1,0 +1,84 @@
+.root {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 400ms ease,transform 600ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-divider);
+  border-radius: 24px;
+  background: color-mix(in srgb,var(--color-bg) 82%,transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-text);
+}
+.btn:hover {
+  background: color-mix(in srgb,var(--color-text) 7%,transparent) !important;
+}
+
+.compassBtn {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-accent);
+}
+.compassBtn:hover {
+  background: color-mix(in srgb,var(--color-text) 7%,transparent) !important;
+}
+
+.divider {
+  width: 1px;
+  height: 22px;
+  background: var(--color-divider);
+  margin: 0 4px;
+}
+
+.utilBtn {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+}
+.utilBtn:hover {
+  background: color-mix(in srgb,var(--color-text) 7%,transparent) !important;
+}
+
+.hint {
+  font-size: 12px;
+  font-style: italic;
+  color: color-mix(in srgb,var(--color-text) 60%,transparent);
+  text-align: center;
+}

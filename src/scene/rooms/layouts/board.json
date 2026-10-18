@@ -1,0 +1,627 @@
+{
+ "id": "board",
+ "section": "board",
+ "name": "The Workshop",
+ "cam": {
+  "cam": [
+   5.3,
+   1.95,
+   4.0
+  ],
+  "look": [
+   -2.0,
+   1.2,
+   -2.2
+  ]
+ },
+ "shell": {
+  "w": 12,
+  "d": 9,
+  "h": 4.6,
+  "floor": "monastery_stone_floor",
+  "wall": "castle_brick_02_red",
+  "trim": "rough_wood",
+  "ceiling": "dark_planks",
+  "beams": {
+   "material": "dark_planks",
+   "every": 2.0,
+   "size": [
+    0.24,
+    0.3
+   ],
+   "axis": "x"
+  },
+  "baseboard": {
+   "h": 0.16,
+   "d": 0.03
+  },
+  "crown": {
+   "h": 0.14,
+   "d": 0.12
+  },
+  "openings": [
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": -3.8,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": 3.8,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "w",
+    "at": -2.0,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   }
+  ],
+  "keepClear": [
+   {
+    "x": [
+     2.8,
+     5.8
+    ],
+    "z": [
+     2.6,
+     4.3
+    ]
+   }
+  ],
+  "hdri": "artist_workshop"
+ },
+ "rules": [
+  {
+   "kind": "wallrow",
+   "wall": "n",
+   "y": 2.0,
+   "count": 1,
+   "span": [
+    0,
+    0
+   ],
+   "group": "board",
+   "asset": "notice_board"
+  },
+  {
+   "kind": "anchor",
+   "asset": "standing_chalkboard_01",
+   "wall": "e",
+   "along": "auto",
+   "group": "board"
+  },
+  {
+   "kind": "place",
+   "asset": "WoodenTable_03",
+   "at": [
+    -1.0,
+    -2.0
+   ],
+   "group": "benches",
+   "spread": 0.3,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "WoodenTable_03",
+   "at": [
+    1.8,
+    -2.0
+   ],
+   "group": "benches",
+   "spread": 0.3,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "metal_office_desk",
+   "at": [
+    -3.8,
+    0.4
+   ],
+   "group": "benches",
+   "spread": 0.3,
+   "rotY": 1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "folding_wooden_stool",
+   "at": [
+    -1.0,
+    -0.9
+   ],
+   "group": "stools",
+   "spread": 0.3,
+   "face": [
+    -1.0,
+    -2.0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "folding_wooden_stool",
+   "at": [
+    1.8,
+    -0.9
+   ],
+   "group": "stools",
+   "spread": 0.3,
+   "face": [
+    1.8,
+    -2.0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_stool_01",
+   "at": [
+    -2.7,
+    0.4
+   ],
+   "group": "stools",
+   "spread": 0.3,
+   "face": [
+    -3.8,
+    0.4
+   ]
+  },
+  {
+   "kind": "anchor",
+   "asset": "steel_frame_shelves_01",
+   "wall": "w",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "steel_frame_shelves_01",
+   "wall": "e",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "steel_frame_shelves_01",
+   "wall": "s",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "metal_tool_chest",
+   "wall": "s",
+   "along": "auto",
+   "group": "storage"
+  },
+  {
+   "kind": "place",
+   "asset": "tool_cart",
+   "at": [
+    -4.6,
+    2.5
+   ],
+   "group": "storage",
+   "spread": 0.5,
+   "rotY": 0.4
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_ladder",
+   "at": [
+    5.2,
+    -0.5
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": -1.4
+  },
+  {
+   "kind": "place",
+   "asset": "wine_barrel_01",
+   "at": [
+    -5.2,
+    -3.7
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "wine_barrel_01",
+   "at": [
+    -4.4,
+    -3.9
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "wallrow",
+   "wall": "e",
+   "y": 1.55,
+   "count": 6,
+   "span": [
+    -0.7,
+    0.9
+   ],
+   "group": "toolwall",
+   "assets": [
+    "hatchet",
+    "rusted_hacksaw",
+    "adjustable_wrench",
+    "handsaw_wood",
+    "hand_plane_no4",
+    "cross_pein_hammer"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "w",
+   "y": 1.55,
+   "count": 5,
+   "span": [
+    0.1,
+    0.9
+   ],
+   "group": "toolwall",
+   "assets": [
+    "hatchet",
+    "rusted_hacksaw",
+    "adjustable_wrench",
+    "handsaw_wood",
+    "wooden_hammer_01"
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "s",
+   "y": 1.75,
+   "count": 3,
+   "span": [
+    0.3,
+    0.9
+   ],
+   "group": "hooks",
+   "assets": [
+    "fishermans_hat",
+    "life_jacket"
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "metal_toolbox",
+   "at": [
+    4.9,
+    1.5
+   ],
+   "group": "storage",
+   "spread": 0.5,
+   "rotY": -1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "industrial_storage_cart",
+   "at": [
+    -1.6,
+    3.4
+   ],
+   "group": "storage",
+   "spread": 0.5,
+   "rotY": 3.14
+  },
+  {
+   "kind": "place",
+   "asset": "ladder_sectioned_01",
+   "at": [
+    -5.3,
+    1.0
+   ],
+   "group": "floor",
+   "spread": 0.5,
+   "rotY": 1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "WoodenTable_03",
+   "at": [
+    -4.2,
+    -2.3
+   ],
+   "group": "benches",
+   "spread": 0.4,
+   "rotY": 1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "WoodenTable_03",
+   "at": [
+    0.4,
+    1.2
+   ],
+   "group": "benches",
+   "spread": 0.6,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    5.2,
+    -3.7
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    0.4,
+    0.8
+   ],
+   "group": "bench",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "scatter",
+   "assets": [
+    "wooden_crate_01",
+    "wooden_bucket_01",
+    "wicker_basket_01",
+    "wooden_broom"
+   ],
+   "count": [
+    3,
+    4
+   ],
+   "region": "edge",
+   "group": "floor"
+  },
+  {
+   "kind": "ceiling",
+   "asset": "hanging_industrial_lamp",
+   "at": [
+    [
+     -1.0,
+     -2.0
+    ],
+    [
+     1.8,
+     -2.0
+    ],
+    [
+     -3.8,
+     0.4
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "ceiling",
+   "asset": "caged_hanging_light",
+   "at": [
+    [
+     0.4,
+     1.9
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "WoodenTable_03"
+   },
+   "assets": [
+    "bench_vice_01",
+    "hand_plane_no4",
+    "handsaw_wood",
+    "cross_pein_hammer",
+    "wooden_hammer_01",
+    "clipboard",
+    "candle_taper_mid",
+    "wooden_bowl_01",
+    "metal_jug",
+    "brass_pot_01"
+   ],
+   "perHost": [
+    4,
+    6
+   ],
+   "yaw": "free",
+   "group": "tools"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "metal_office_desk"
+   },
+   "assets": [
+    "desk_lamp_arm_01",
+    "binder_notebook",
+    "clipboard",
+    "magnifying_glass_01",
+    "industrial_microscope",
+    "candle_stub"
+   ],
+   "perHost": [
+    3,
+    5
+   ],
+   "yaw": "free",
+   "group": "desk"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "steel_frame_shelves_01"
+   },
+   "assets": [
+    "wicker_basket_01",
+    "brass_pot_01",
+    "wooden_bowl_01",
+    "metal_jug",
+    "book_row_a",
+    "book_row_b",
+    "ceramic_pot"
+   ],
+   "perHost": [
+    5,
+    8
+   ],
+   "yaw": "aligned",
+   "group": "shelf-clutter"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "industrial_storage_cart"
+   },
+   "assets": [
+    "clipboard",
+    "metal_jug",
+    "bench_vice_01",
+    "binder_notebook"
+   ],
+   "perHost": [
+    2,
+    3
+   ],
+   "yaw": "free",
+   "group": "tools"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "metal_toolbox"
+   },
+   "assets": [
+    "hatchet",
+    "adjustable_wrench"
+   ],
+   "perHost": [
+    1,
+    2
+   ],
+   "yaw": "free",
+   "group": "tools"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "tool_cart"
+   },
+   "assets": [
+    "hand_plane_no4",
+    "handsaw_wood",
+    "clipboard"
+   ],
+   "perHost": [
+    1,
+    2
+   ],
+   "yaw": "free",
+   "group": "tools"
+  }
+ ],
+ "presence": {
+  "tags": [
+   "seat"
+  ],
+  "traces": [
+   "metal_jug",
+   "wooden_bowl_01",
+   "binder_notebook",
+   "brass_goblets",
+   "carved_wooden_plate",
+   "clipboard"
+  ],
+  "figures": [
+   "figure_a",
+   "figure_b",
+   "figure_c",
+   "figure_d"
+  ],
+  "clips": {
+   "table": [
+    "idle_read",
+    "idle_write",
+    "idle_sip"
+   ],
+   "free": [
+    "idle_sit",
+    "idle_read",
+    "idle_sip"
+   ]
+  }
+ },
+ "content": [
+  {
+   "asset": "notice_board",
+   "slot": "content",
+   "feed": "notes",
+   "px": 2048
+  },
+  {
+   "asset": "standing_chalkboard_01",
+   "slot": "standing_chalkboard_01_board",
+   "feed": "chalk",
+   "px": 1024
+  }
+ ],
+ "lights": {
+  "kinds": {
+   "fire": {
+    "color": "#ff8f3d",
+    "intensity": 60,
+    "distance": 11,
+    "decay": 1.5,
+    "flicker": 0.25
+   },
+   "bulb": {
+    "color": "#ffc98a",
+    "intensity": 26,
+    "distance": 9,
+    "decay": 1.6,
+    "cast": true
+   },
+   "flame": {
+    "color": "#ffa855",
+    "intensity": 2.2,
+    "distance": 3.2,
+    "decay": 1.9,
+    "flicker": 0.3
+   }
+  },
+  "window": {
+   "color": "#fff0d6",
+   "intensity": 14,
+   "distance": 12
+  },
+  "fill": {
+   "sky": "#fff1dc",
+   "ground": "#6a5646",
+   "intensity": 0.3
+  },
+  "shadowLights": 1,
+  "maxLights": 12,
+  "env": 0.9
+ }
+}

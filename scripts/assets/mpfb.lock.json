@@ -1,0 +1,238 @@
+{
+ "version": 1,
+ "mpfb": {
+  "version": "2.0.18",
+  "source": "https://extensions.blender.org/add-ons/mpfb/",
+  "license": "GPL-3.0-or-later (build tool only)"
+ },
+ "archives": [
+  {
+   "name": "dress01.zip",
+   "blake3": "1d82e62005ef517a71f3157d91c1f7af3c5629ad6398e26afa6e058c055a843a",
+   "bytes": 46598791
+  },
+  {
+   "name": "eyebrows01.zip",
+   "blake3": "fbdc25155407008dbeea5150a07979d83c0ca698d9bd6ebc91fb8fbc61b59105",
+   "bytes": 11477790
+  },
+  {
+   "name": "eyelashes01.zip",
+   "blake3": "72b024913964b9776ee12fc4cd4b18a3fe87bb31b23fb6413e69df557133f8bf",
+   "bytes": 3493692
+  },
+  {
+   "name": "hair01.zip",
+   "blake3": "83e37b20864324dbd6b29e08eec745ff73d4a3cdb5a891cbe828164de6fa1816",
+   "bytes": 227775853
+  },
+  {
+   "name": "makehuman_system_assets.zip",
+   "blake3": "ad6efe88fe2999a5c445ecedb8f1c05bbf0a77a59481818dde4564419192134b",
+   "bytes": 280737770
+  },
+  {
+   "name": "mpfb.zip",
+   "blake3": "d5fedd4127e3f73734ce2e399630339ded8ee31ae413fe774b4971ffc603a989",
+   "bytes": 45956992
+  },
+  {
+   "name": "pants01.zip",
+   "blake3": "100dc11b0bfd70d32dcd3a8574e5f1759a02a332fd471710f768dc17abd704ba",
+   "bytes": 21908723
+  },
+  {
+   "name": "shirts01.zip",
+   "blake3": "c9f114a2e27ae95117c66779d548805aa1e34cda73087756196a9c5e71894cef",
+   "bytes": 24479483
+  },
+  {
+   "name": "shoes01.zip",
+   "blake3": "08eff955da08a1f67a55d1ae2341eb8aaf863a8f6d36fe6545a7fd394c21a617",
+   "bytes": 82953569
+  },
+  {
+   "name": "skins01.zip",
+   "blake3": "a0e16032a8619107829f6abd438d1a103e5f8a8ee04d7bdbf8eab89226cf81b3",
+   "bytes": 104227958
+  },
+  {
+   "name": "skirts01.zip",
+   "blake3": "71f8b25c52ce7d312e1cd5071769683c50e7e88085add356b0f3b0d13aed9054",
+   "bytes": 29554534
+  },
+  {
+   "name": "suits01.zip",
+   "blake3": "931fbed8ccc3250aa71c49729e2ea92fd58e2c321635cc95bb6f2fc0c4f59703",
+   "bytes": 42624017
+  },
+  {
+   "name": "system_clothes_materials01.zip",
+   "blake3": "257e847728a203efd6afcbbd0f2b2b04e981b8f9e8735a8c08acb1b403b1eec1",
+   "bytes": 48153166
+  },
+  {
+   "name": "system_hair_materials01.zip",
+   "blake3": "aef904ebf40159aa58f46ff6922a7fb3cfed53543e3f85f4afae361a41cfa8a4",
+   "bytes": 86848462
+  }
+ ],
+ "used": [
+  {
+   "name": "middleage_caucasian_male",
+   "kind": "skins",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "short02",
+   "kind": "hair",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "eyebrow001",
+   "kind": "eyebrows",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "eyelashes01",
+   "kind": "eyelashes",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "brown",
+   "kind": "eyes",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_fisherman_sweater",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_wool_pants",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "culturalibre_male_boots",
+   "kind": "clothes",
+   "author": "culturalibre",
+   "license": "CC0"
+  },
+  {
+   "name": "young_asian_female",
+   "kind": "skins",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_blunt_bob",
+   "kind": "hair",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "eyebrow002",
+   "kind": "eyebrows",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "eyelashes02",
+   "kind": "eyelashes",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_halter_dress_midi",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_ankle_boots_female",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "old_african_female",
+   "kind": "skins",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "bob01",
+   "kind": "hair",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "eyebrow003",
+   "kind": "eyebrows",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_long_full_skirt",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_turtleneck_halter_top",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "toigo_flats",
+   "kind": "clothes",
+   "author": "MargaretToigo",
+   "license": "CC0"
+  },
+  {
+   "name": "young_african_male",
+   "kind": "skins",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "short03",
+   "kind": "hair",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "eyebrow004",
+   "kind": "eyebrows",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "green",
+   "kind": "eyes",
+   "author": "makehuman_system",
+   "license": "CC0"
+  },
+  {
+   "name": "namuhekam_male_polo_shirt",
+   "kind": "clothes",
+   "author": "namuhekam",
+   "license": "CC0"
+  },
+  {
+   "name": "cortu_cargo_pants",
+   "kind": "clothes",
+   "author": "Cortu",
+   "license": "CC0"
+  }
+ ]
+}

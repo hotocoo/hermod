@@ -1,0 +1,28 @@
+[package]
+name = "hermod-node"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Hermod P2P node: libp2p swarm, space sync, blob transfer, relay and resource governor"
+
+[[bin]]
+name = "hermod-node"
+path = "src/bin/hermod-node.rs"
+
+[dependencies]
+anyhow = "1"
+blake3 = "1.8"
+ciborium = "0.2"
+clap = { version = "4", features = ["derive"] }
+futures = "0.3"
+hex = "0.4"
+libp2p = { version = "0.57", features = ["tokio", "tcp", "quic", "noise", "yamux", "identify", "kad", "gossipsub", "request-response", "cbor", "mdns", "autonat", "upnp", "relay", "dcutr", "macros", "ping", "dns", "ed25519"] }
+serde.workspace = true
+serde_bytes = "0.11"
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net", "fs", "io-util", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+

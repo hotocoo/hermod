@@ -1,0 +1,156 @@
+.clock {
+  font-family: var(--font-heading);
+  font-size: 54px;
+  font-weight: 400;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin-top: 6px;
+}
+
+.period {
+  font-family: var(--font-heading);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--color-accent-700);
+}
+
+.timeWrap {
+  margin-top: 18px;
+}
+
+.slider {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.preset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 11px;
+  transition: all 220ms ease;
+}
+.preset:hover {
+  border-color: var(--color-accent) !important;
+}
+
+.swatch {
+  width: 26px;
+  height: 14px;
+  border-radius: 7px;
+  outline: 1px solid var(--color-divider);
+}
+
+.clockModes {
+  display: flex;
+  border: 1px solid var(--color-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.clockMode {
+  flex: 1;
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-divider);
+  margin: 18px 0 14px;
+}
+
+.sectionLabel {
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--color-accent-700);
+  margin-bottom: 10px;
+}
+
+.weatherGrid {
+  display: grid;
+  grid-template-columns: repeat(5,minmax(0,1fr));
+  gap: 6px;
+}
+
+.weatherBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 4px;
+  border-radius: 8px;
+  font-size: 11px;
+  transition: all 220ms ease;
+}
+.weatherBtn:hover {
+  border-color: var(--color-accent) !important;
+}
+
+.autoRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.autoText {
+  flex: 1;
+}
+
+.autoLabel {
+  display: block;
+  font-size: 14px;
+}
+
+.autoSub {
+  display: block;
+  font-size: 12px;
+  color: color-mix(in srgb,var(--color-text) 62%,transparent);
+}
+
+.switchTrack {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  transition: all 240ms ease;
+}
+
+.switchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: transform 320ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
+}

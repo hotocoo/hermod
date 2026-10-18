@@ -1,0 +1,393 @@
+{
+ "id": "skein",
+ "section": "skein",
+ "name": "The Loom",
+ "cam": {
+  "cam": [
+   4.1,
+   1.8,
+   3.5
+  ],
+  "look": [
+   -1.2,
+   1.2,
+   -1.6
+  ]
+ },
+ "shell": {
+  "w": 9,
+  "d": 8,
+  "h": 4.4,
+  "floor": "large_sandstone_blocks_01",
+  "wall": "plastered_wall_02",
+  "trim": "dark_planks",
+  "ceiling": "rough_wood",
+  "beams": {
+   "material": "rough_wood",
+   "every": 1.8,
+   "size": [
+    0.22,
+    0.28
+   ],
+   "axis": "z"
+  },
+  "baseboard": {
+   "h": 0.16,
+   "d": 0.03
+  },
+  "crown": {
+   "h": 0.14,
+   "d": 0.12
+  },
+  "openings": [
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": -2.2,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "n",
+    "at": 2.2,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "e",
+    "at": 1.0,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   },
+   {
+    "kind": "window",
+    "wall": "w",
+    "at": 1.0,
+    "w": 1.16,
+    "h": 1.91,
+    "sill": 0.95,
+    "asset": "window_casement"
+   }
+  ],
+  "keepClear": [
+   {
+    "x": [
+     1.4,
+     4.2
+    ],
+    "z": [
+     2.0,
+     3.8
+    ]
+   }
+  ],
+  "hdri": "abandoned_hall_01"
+ },
+ "rules": [
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    -0.3,
+    -1.6
+   ],
+   "group": "loomzone",
+   "spread": 0.01,
+   "rotY": 0,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "loom_warp_weighted",
+   "at": [
+    -0.3,
+    -2.0
+   ],
+   "group": "loom",
+   "spread": 0.3,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "spinning_wheel_01",
+   "at": [
+    -2.9,
+    0.2
+   ],
+   "group": "craft",
+   "spread": 0.4,
+   "rotY": 1.2
+  },
+  {
+   "kind": "place",
+   "asset": "rug_woven",
+   "at": [
+    2.6,
+    0.5
+   ],
+   "group": "rest",
+   "spread": 0.01,
+   "rotY": 1.5708,
+   "under": true
+  },
+  {
+   "kind": "place",
+   "asset": "vintage_day_bed",
+   "at": [
+    3.2,
+    -1.2
+   ],
+   "group": "seating",
+   "spread": 0.4,
+   "rotY": -1.5708
+  },
+  {
+   "kind": "place",
+   "asset": "Rockingchair_01",
+   "at": [
+    -2.6,
+    2.3
+   ],
+   "group": "seating",
+   "spread": 0.5,
+   "face": [
+    -1.0,
+    0.0
+   ]
+  },
+  {
+   "kind": "place",
+   "asset": "wooden_stool_01",
+   "at": [
+    -1.4,
+    -0.2
+   ],
+   "group": "seating",
+   "spread": 0.4,
+   "face": [
+    -0.3,
+    -2.0
+   ]
+  },
+  {
+   "kind": "wallrow",
+   "wall": "w",
+   "y": 2.0,
+   "count": 1,
+   "span": [
+    -0.5,
+    -0.5
+   ],
+   "group": "board",
+   "asset": "notice_board"
+  },
+  {
+   "kind": "anchor",
+   "asset": "wooden_bookshelf_worn",
+   "wall": "s",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "wooden_bookshelf_worn",
+   "wall": "s",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "anchor",
+   "asset": "wooden_bookshelf_worn",
+   "wall": "e",
+   "along": "auto",
+   "group": "shelves"
+  },
+  {
+   "kind": "place",
+   "asset": "fern_02",
+   "at": [
+    -3.9,
+    3.0
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "planter_pot_clay",
+   "at": [
+    -3.9,
+    -3.2
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "place",
+   "asset": "potted_plant_02",
+   "at": [
+    3.8,
+    -3.2
+   ],
+   "group": "plants",
+   "spread": 0.5,
+   "rotY": 0
+  },
+  {
+   "kind": "wallrow",
+   "wall": "e",
+   "y": 1.75,
+   "count": 2,
+   "span": [
+    -0.8,
+    -0.4
+   ],
+   "group": "hooks",
+   "assets": [
+    "fishermans_hat",
+    "life_jacket"
+   ]
+  },
+  {
+   "kind": "scatter",
+   "assets": [
+    "wicker_basket_01",
+    "wooden_stool_01",
+    "wooden_bucket_01"
+   ],
+   "count": [
+    3,
+    4
+   ],
+   "region": "edge",
+   "group": "floor"
+  },
+  {
+   "kind": "ceiling",
+   "asset": "lantern_chandelier_01",
+   "at": [
+    [
+     -0.3,
+     -0.6
+    ],
+    [
+     -2.6,
+     1.8
+    ]
+   ],
+   "group": "lights"
+  },
+  {
+   "kind": "surface",
+   "host": {
+    "asset": "wooden_bookshelf_worn"
+   },
+   "assets": [
+    "book_row_a",
+    "book_row_b",
+    "book_encyclopedia_set_01",
+    "antique_ceramic_vase_01",
+    "brass_vase_01",
+    "mantel_clock_01",
+    "candle_stub",
+    "potted_plant_04",
+    "ceramic_pot",
+    "wicker_basket_01",
+    "ceramic_vase_03"
+   ],
+   "perHost": [
+    6,
+    9
+   ],
+   "yaw": "aligned",
+   "group": "shelf-clutter"
+  }
+ ],
+ "presence": {
+  "tags": [
+   "seat"
+  ],
+  "traces": [
+   "metal_jug",
+   "wooden_bowl_01",
+   "binder_notebook",
+   "brass_goblets",
+   "carved_wooden_plate",
+   "clipboard"
+  ],
+  "figures": [
+   "figure_a",
+   "figure_b",
+   "figure_c",
+   "figure_d"
+  ],
+  "clips": {
+   "table": [
+    "idle_read",
+    "idle_write",
+    "idle_sip"
+   ],
+   "free": [
+    "idle_sit",
+    "idle_read",
+    "idle_sip"
+   ]
+  }
+ },
+ "content": [
+  {
+   "asset": "notice_board",
+   "slot": "content",
+   "feed": "notes",
+   "px": 2048
+  }
+ ],
+ "lights": {
+  "kinds": {
+   "fire": {
+    "color": "#ff8f3d",
+    "intensity": 60,
+    "distance": 11,
+    "decay": 1.5,
+    "flicker": 0.25
+   },
+   "bulb": {
+    "color": "#ffc98a",
+    "intensity": 26,
+    "distance": 9,
+    "decay": 1.6,
+    "cast": true
+   },
+   "flame": {
+    "color": "#ffa855",
+    "intensity": 2.2,
+    "distance": 3.2,
+    "decay": 1.9,
+    "flicker": 0.3
+   }
+  },
+  "window": {
+   "color": "#fff0d6",
+   "intensity": 14,
+   "distance": 12
+  },
+  "fill": {
+   "sky": "#fff1dc",
+   "ground": "#6a5646",
+   "intensity": 0.7
+  },
+  "shadowLights": 1,
+  "maxLights": 12,
+  "env": 0.9
+ }
+}
