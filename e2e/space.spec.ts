@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { Browser, BrowserContext, Page, Route } from '@playwright/test';
 import {
   test, expect, bootApp, acceptTerms, createSpace, createInviteCode, joinWithCode, openSpaceSettings, enterSection, expectInside, expectOnIsland,
-  toIsland, toast, panel, twoUsers, unique, watchErrors, UI_URL, DEVHOST_FRESH,
+  toIsland, toast, panel, twoUsers, unique, watchErrors, pngBuffer, UI_URL, DEVHOST_FRESH,
 } from './fixtures';
 import { freshDevhosts } from './devhosts';
 
@@ -136,6 +136,22 @@ test.describe('a shared Space between two users', () => {
     const dlg = await openSpaceSettings(b, 'Members');
     await expect(dlg.getByRole('row', { name: new RegExp(newName) })).toBeVisible({ timeout: 60_000 });
     await dlg.getByRole('button', { name: 'Close' }).click();
+  });
+
+  test('a profile photo shows in the profile and the top bar, and survives a name edit', async () => {
+    await a.getByTitle('Your profile').click();
+    const prof = dialog(a, 'Profile');
+    const [chooser] = await Promise.all([a.waitForEvent('filechooser'), prof.getByRole('button', { name: 'Change photo' }).click()]);
+    await chooser.setFiles([{ name: 'me.png', mimeType: 'image/png', buffer: pngBuffer(200, 120, 60) }]);
+    const photos = () => [prof.locator('img'), a.getByTitle('Your profile').locator('img')];
+    for (const img of photos()) await expect(img).toBeVisible({ timeout: 30_000 });
+    await prof.getByRole('button', { name: 'Edit profile' }).click();
+    await prof.getByLabel('Bio').fill('Now with a photo');
+    await prof.getByRole('button', { name: 'Save' }).click();
+    await expect(prof.getByText('Now with a photo')).toBeVisible({ timeout: 30_000 });
+    for (const img of photos()) await expect(img).toBeVisible();
+    await a.keyboard.press('Escape');
+    await expect(prof).toBeHidden();
   });
 
   test('the owner promotes B to admin and back to member; the badge and powers follow on both peers', async () => {

@@ -115,7 +115,7 @@ function profileVm(x: Ctx) {
   return {
     profOpen: s.profile, openProfile: s.openProfile, closeProfile: s.closeProfile,
     prof: {
-      ...prof, role: prof.role || (s.me ? `@${s.me.handle}` : ''), initials: s.me?.initials ?? '',
+      ...prof, role: prof.role || (s.me ? `@${s.me.handle}` : ''), initials: s.me?.initials ?? '', av: s.me?.avatar?.hash ?? '',
       stats: [{ n: num(st.posts.length + st.videos.length), l: 'Posts' }, { n: num(st.snaps.length), l: 'Snapshots' }, { n: num(st.saved.length), l: 'Saved' }, { n: num(st.spaces), l: 'Spaces' }],
     },
     setAvatar: () => { void s.setAvatar(); },

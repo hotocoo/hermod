@@ -17,14 +17,14 @@ export function hearthVm(x: Ctx) {
     const muted = mine ? !!(call && call.muted) : !!room?.muted?.[p];
     const spk = p === speaking;
     return {
-      id: p, name: mine ? 'You' : P(p).name, first: mine ? 'You' : firstName(P(p).name), initials: P(p).i, isMe: mine, cam, noCam: !cam, speaking: spk, muted,
+      id: p, name: mine ? 'You' : P(p).name, first: mine ? 'You' : firstName(P(p).name), initials: P(p).i, av: P(p).av ?? '', isMe: mine, cam, noCam: !cam, speaking: spk, muted,
       ring: spk ? ACCENT : 'transparent',
       glow: spk ? `0 0 0 1px ${ACCENT}, 0 0 32px ${mixAccent(35)}` : `0 0 0 1px ${DIVIDER}`,
       scale: spk ? '1.04' : '1', anim: anim(i, 'hm-scale'),
       label: cam ? `camera · ${mine ? 'you' : firstName(P(p).name).toLowerCase()}` : '',
     };
   });
-  const faces = room ? room.inRoom.map((p) => ({ initials: P(p).i, name: P(p).name, first: p === me ? 'You' : firstName(P(p).name), speaking: p === speaking, ring: ringOf(p === speaking) })) : [];
+  const faces = room ? room.inRoom.map((p) => ({ initials: P(p).i, av: P(p).av ?? '', name: P(p).name, first: p === me ? 'You' : firstName(P(p).name), speaking: p === speaking, ring: ringOf(p === speaking) })) : [];
   const count = roomCount(room);
   const hearth = room ? {
     name: room.name, topic: room.topic, count, empty: count === 0, notEmpty: count > 0,

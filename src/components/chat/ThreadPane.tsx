@@ -1,5 +1,6 @@
 import type { VmProps } from '@/components/panel/types';
 import s from './chat.module.css';
+import { Face } from '@/components/ui/Face';
 
 export function ThreadPane({ vm }: VmProps) {
   const t = vm.thread;
@@ -22,7 +23,7 @@ export function ThreadPane({ vm }: VmProps) {
             </div>
             {t.replies.map((rp, i) => (
               <div key={i} className={s.reply} style={{ animation: rp.anim }}>
-                <div className={s.rFace}>{rp.initials}</div>
+                <div className={s.rFace}><Face initials={rp.initials} av={rp.av} /></div>
                 <div><div className={s.rBy}><span className={s.rName}>{rp.name}</span><span className={s.tTime}>{rp.t}</span></div><p className={s.rText}>{rp.text}</p></div>
               </div>
             ))}

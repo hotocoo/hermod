@@ -2,6 +2,7 @@ import type { ViewModel } from '@/state/viewModel';
 import { pe } from '../ui/css';
 import { SyncPill } from './SyncPill';
 import s from './TopBar.module.css';
+import { Face } from '@/components/ui/Face';
 
 export function TopBar({ vm }: { vm: ViewModel }) {
   const { clockText, hasRookUnread, hudEvents, hudLive, hudOp, hudUnread, icS, openPalette, openProfile, openRookery, openSettings, openSky, openNetwork, openInvite, canInvite, netState, netPeers, meInitials, period, pillsDisp, rookUnread, wxIcon } = vm;
@@ -43,7 +44,7 @@ export function TopBar({ vm }: { vm: ViewModel }) {
       <button className={s.settingsBtn} onClick={vm.toggleListView} aria-pressed={vm.listView} aria-label="List view" title="List view: the town as a list, for keyboard and screen readers">{icS.list}</button>
       <SyncPill pending={vm.syncPending} offline={vm.netState === 'off' && vm.syncPending > 0} />
       <div className={s.avatar} onClick={openProfile} role="button" tabIndex={0} title="Your profile">
-        {meInitials}
+        <Face initials={meInitials} av={vm.meAvatar} />
         <span className={s.avatarDot} />
       </div>
     </div>

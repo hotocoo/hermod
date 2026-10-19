@@ -6,8 +6,7 @@ Built with Tauri v2, Next.js and Rust (libp2p). Licensed under Apache-2.0.
 
 Website and downloads: https://hotocoo.github.io/hermod/
 
-<!-- Screenshots: add images to docs/screenshots and link them here. -->
-> Screenshots go here.
+![A new Hermod space: the island town with its buildings and empty plots](docs/screenshots/town.png)
 
 ## Install
 

@@ -23,6 +23,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
+  // A broken boot fails every spec; stop early instead of burning the 2 h job limit.
+  maxFailures: process.env.CI ? 5 : 0,
   reporter: [['list'], ['html', { open: 'never', outputFolder: BASE === 7781 ? 'playwright-report' : `playwright-report-${BASE}` }]],
   use: {
     baseURL: `http://localhost:${PORT}`,

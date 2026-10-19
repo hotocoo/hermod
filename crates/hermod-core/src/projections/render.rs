@@ -141,12 +141,14 @@ impl<'a> World<'a> {
                         name,
                         i,
                         role: p.bio.clone(),
+                        av: p.avatar.as_ref().map(|b| b.hash.clone()),
                     }
                 }
                 None => Person {
                     i: initials_of(&handle),
                     name: handle,
                     role: String::new(),
+                    av: None,
                 },
             };
             out.insert(user, person);
@@ -157,6 +159,7 @@ impl<'a> World<'a> {
                 name: "Herm\u{f3}\u{f0}r".into(),
                 i: "H".into(),
                 role: String::new(),
+                av: None,
             },
         );
         out

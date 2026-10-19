@@ -66,7 +66,8 @@ jobs:
         if: failure()
         with:
           name: playwright-report
+          # Traces and videos push the artifact past 4 GB; the page snapshot and screenshot are enough to triage.
           path: |
-            playwright-report
-            test-results
+            test-results/**/error-context.md
+            test-results/**/*.png
           if-no-files-found: ignore

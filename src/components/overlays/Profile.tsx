@@ -2,6 +2,7 @@
 import { useTrap } from '@/components/ui/useTrap';
 import type { ViewModel } from '@/state/viewModel';
 import s from './Profile.module.css';
+import { Face } from '@/components/ui/Face';
 
 export function Profile({ vm }: { vm: ViewModel }) {
   return vm.profOpen && vm.prof ? <ProfileDialog vm={vm} /> : null;
@@ -18,7 +19,7 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
         </div>
         <div className={s.body}>
           <div className={s.headRow}>
-            <div className={s.avatar}>{prof.initials}</div>
+            <div className={s.avatar}><Face initials={prof.initials} av={prof.av} /></div>
             <div className={s.identity}>
               {profView ? (
                 <>

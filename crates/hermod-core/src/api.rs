@@ -69,6 +69,8 @@ pub struct IdentityInfo {
     pub name: String,
     pub bio: String,
     pub initials: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<BlobRef>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -573,6 +575,7 @@ impl Core {
             name: p.name,
             bio: p.bio,
             initials: p.initials,
+            avatar: p.avatar,
         })
     }
 

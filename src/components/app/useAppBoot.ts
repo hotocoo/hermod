@@ -8,6 +8,21 @@ import { useAppStore } from '@/state/store';
 import { attachKeyboard, attachTown, startShell, startTimers, townHandlers } from '@/state/townSync';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+/** Last update version already offered, so the prompt shows once per release. */
+const UPDATE_OFFERED_KEY = 'hermod.updateOffered';
+
+/** Open Settings > Updates when GitHub has a newer stable release than this install. */
+function offerUpdate(isCancelled: () => boolean): void {
+  const bridge = getBridge();
+  if (bridge.kind !== 'tauri') return; // the devhost has no updater
+  bridge.updateCheck().then((u) => {
+    // Never replace a dialog the user has open; the next launch offers again.
+    if (isCancelled() || !u.available || !u.version || useAppStore.getState().modal) return;
+    try { if (localStorage.getItem(UPDATE_OFFERED_KEY) === u.version) return; } catch { /* no storage: offer every launch */ }
+    useAppStore.getState().openModal({ kind: 'appSettings', tab: 'updates' });
+    try { localStorage.setItem(UPDATE_OFFERED_KEY, u.version); } catch { /* no storage */ }
+  }).catch((e) => console.warn('update check failed', e)); // offline: Settings > Updates can retry
+}
 
 /** Walk the gates (Terms, profile, create/join), then start the app controllers and build the 3D town once the mount node exists. */
 export function useAppBoot(): void {
@@ -26,6 +41,7 @@ export function useAppBoot(): void {
     const cleanups = [startShell(useAppStore), attachKeyboard(useAppStore), startTimers(useAppStore), startBridgeSync(useAppStore)];
     let detachTown: (() => void) | null = null;
     let cancelled = false;
+    offerUpdate(() => cancelled);
     const mount = getMount();
     if (mount) {
       import('@/scene/town')

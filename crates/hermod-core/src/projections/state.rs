@@ -64,6 +64,7 @@ pub struct ProfileSt {
     pub name: String,
     pub bio: String,
     pub initials: String,
+    pub avatar: Option<BlobRef>,
     pub ord: (u64, u64),
 }
 
@@ -662,6 +663,7 @@ impl SpaceState {
                 name,
                 bio,
                 initials,
+                avatar,
                 ..
             } => {
                 self.profiles.insert(
@@ -670,6 +672,7 @@ impl SpaceState {
                         name: name.clone(),
                         bio: bio.clone(),
                         initials: initials.clone(),
+                        avatar: avatar.clone(),
                         ord: (ev.lamport, ev.seq),
                     },
                 );

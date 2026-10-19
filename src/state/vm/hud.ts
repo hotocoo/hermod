@@ -54,7 +54,7 @@ export function hudVm(x: Ctx, door: ReturnType<typeof doorVm>) {
     drawerSky: s.drawer === 'sky', drawerRook: s.drawer === 'rook', drawerSet: s.drawer === 'set', drawerNet: s.drawer === 'net', closeDrawer: s.closeDrawer,
     openSky: () => s.toggleDrawer('sky'), openRookery: () => s.toggleDrawer('rook'), openSettings: () => s.toggleDrawer('set'), openNetwork: () => s.toggleDrawer('net'),
     netPeers: s.node?.peers ?? 0, netState: s.node ? (s.node.running ? (s.node.peers > 0 ? 'ok' : 'alone') : 'off') : 'off', syncPending: s.syncPending,
-    meInitials: s.me?.initials ?? '',
+    meInitials: s.me?.initials ?? '', meAvatar: s.me?.avatar?.hash ?? '',
     openInvite: () => s.openModal({ kind: 'invite', space: sp.id }), openSpaceSettings: () => s.openModal({ kind: 'spaceSettings', space: sp.id }),
     openNewSpace: () => s.openModal({ kind: 'newSpace' }), openJoin: () => s.openModal({ kind: 'join' }), openShortcuts: () => s.openModal({ kind: 'shortcuts' }),
     canInvite: sp.kind !== 'Personal',

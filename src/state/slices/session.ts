@@ -47,7 +47,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
 
     saveProfile: async (name, bio) => {
       try {
-        const me = await bridge().profileSet({ name: name.trim(), bio: bio.trim() });
+        const me = await bridge().profileSet({ name: name.trim(), bio: bio.trim(), avatar: get().me?.avatar });
         set({ me });
         await get().refresh();
         return true;

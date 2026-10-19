@@ -2,7 +2,7 @@
 import type { Role } from '../bridge/types';
 import type { SpaceGrowth } from '../../scene/types';
 
-export interface Person { name: string; i: string; role: string }
+export interface Person { name: string; i: string; role: string; /** Avatar blob hash. */ av?: string }
 export interface Space {
   id: string; name: string; mono: string; kind: string; tagline: string;
   members?: number; online?: number; sections: SectionId[];

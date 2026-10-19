@@ -3,7 +3,7 @@ mod common;
 use std::collections::BTreeMap;
 
 use hermod_core::crypto::SpaceKey;
-use hermod_core::event::{EventBody, SignedEvent};
+use hermod_core::event::{BlobRef, EventBody, SignedEvent};
 use hermod_core::identity::Identity;
 use hermod_core::ids::SpaceId;
 use hermod_core::invite::InviteV1;
@@ -479,6 +479,38 @@ fn shuffled_ingest_converges_in_the_store() {
     let reference = run(forward);
     assert_eq!(run(reversed), reference);
     assert_eq!(run(interleaved), reference);
+}
+
+#[test]
+fn profile_avatar_reaches_identity_and_people() {
+    let (_d, c) = core();
+    c.space_create("One", "", "Team").unwrap();
+    let pic = BlobRef {
+        hash: "ab".repeat(32),
+        size: 3,
+        name: "me.png".into(),
+        mime: "image/png".into(),
+    };
+    c.profile_set(ProfileInput {
+        name: "Juno Park".into(),
+        avatar: Some(pic.clone()),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(c.identity().unwrap().avatar, Some(pic.clone()));
+    let me = c.user_id().to_string();
+    assert_eq!(snap(&c).people[&me].av.as_deref(), Some(pic.hash.as_str()));
+    c.profile_set(ProfileInput {
+        name: "Juno Park".into(),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(
+        c.identity().unwrap().avatar,
+        None,
+        "no avatar in the input clears it"
+    );
+    assert_eq!(snap(&c).people[&me].av, None);
 }
 
 #[test]

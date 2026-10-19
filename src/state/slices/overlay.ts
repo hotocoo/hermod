@@ -77,7 +77,7 @@ export const createOverlaySlice: StateCreator<AppStore, [], [], OverlaySlice> = 
     if (!s.profEdit) { set({ profEdit: true, prof: effectiveProfile(s) }); return; }
     const p = effectiveProfile(s);
     try {
-      const me = await getBridge().profileSet({ name: p.name.trim(), bio: p.bio.trim() });
+      const me = await getBridge().profileSet({ name: p.name.trim(), bio: p.bio.trim(), avatar: s.me?.avatar });
       set({ me, profEdit: false, prof: null });
       await get().refresh();
       get().showToast(COPY.profileSaved, TOAST_MS.profileSaved);

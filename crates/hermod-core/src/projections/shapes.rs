@@ -13,6 +13,9 @@ pub struct Person {
     pub name: String,
     pub i: String,
     pub role: String,
+    /// Avatar blob hash from the member's latest `profile.set`, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub av: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

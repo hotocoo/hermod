@@ -40,6 +40,7 @@
   "exclude": [
     "node_modules",
     "design-src",
-    "src-tauri"
+    "src-tauri",
+    "target"
   ]
 }

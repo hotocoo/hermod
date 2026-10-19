@@ -17,7 +17,7 @@ function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
   const role = s.spaces.find((q) => q.id === s.space)?.role;
   const snapFull = m.snap ? findSnap(s, m.snap.id) : null;
   return {
-    raw: m, id: m.id, name: p.name, initials: p.i, t: m.t, text: m.text, isMe: m.by === me, isSystem: m.by === 'system', by: m.by,
+    raw: m, id: m.id, name: p.name, initials: p.i, av: p.av ?? '', t: m.t, text: m.text, isMe: m.by === me, isSystem: m.by === 'system', by: m.by,
     blocked: !!s.blocked[m.by] && m.by !== me, removed: m.removed ?? null, edited: !!m.edited, canEdit: m.by === me && !m.removed, canRemove: m.by !== me && !m.removed && m.by !== 'system' && (role === 'owner' || role === 'admin'), editing: s.editing === m.id,
     editDraft: s.editDraft, onEditDraft: (e: InputEvt) => s.setEditDraft(e.target.value), saveEdit: s.saveEdit, cancelEdit: s.cancelEdit,
     startEdit: () => s.startEdit(m.id, m.text), onDelete: () => { void s.deleteMessage(m.id); },
@@ -36,7 +36,7 @@ function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
     hasThread: thread.length > 0, threadCount: thread.length, threadLabel: `${thread.length}${thread.length === 1 ? ' reply' : ' replies'}`,
     threadFaces: thread.map((r) => r.by).filter((v, k, a) => a.indexOf(v) === k).slice(0, LIMITS.threadFaces).map((b) => ({ i: P(b).i })),
     threadOpen,
-    replies: thread.map((r, j) => ({ name: P(r.by).name, initials: P(r.by).i, t: r.t, text: r.text, isMe: r.by === me, anim: anim(j) })),
+    replies: thread.map((r, j) => ({ name: P(r.by).name, initials: P(r.by).i, av: P(r.by).av ?? '', t: r.t, text: r.text, isMe: r.by === me, anim: anim(j) })),
     onThread: () => s.toggleThread(m.id), onPlus: () => { void s.react(key, m.id, REACTION_QUICK); },
     anim: m.fresh ? anim(0, 'hm-pop') : anim(i), sel: threadOpen ? mixAccent(7) : 'transparent',
   };

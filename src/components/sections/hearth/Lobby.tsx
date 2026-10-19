@@ -1,6 +1,7 @@
 'use client';
 import { useViewModel } from '@/state/useViewModel';
 import s from './hearth.module.css';
+import { Face } from '@/components/ui/Face';
 
 /** Drop-in room lobby shown while not in a call. */
 export function Lobby() {
@@ -16,7 +17,7 @@ export function Lobby() {
         <div className={s.faces}>
           {hearth.faces.map((f, i) => (
             <div key={`${f.name}-${i}`} className={s.face}>
-              <div className={s.avatar} style={{ borderColor: f.ring, boxShadow: `0 0 0 5px var(--color-bg),0 0 0 6px ${f.ring}` }}>{f.initials}</div>
+              <div className={s.avatar} style={{ borderColor: f.ring, boxShadow: `0 0 0 5px var(--color-bg),0 0 0 6px ${f.ring}` }}><Face initials={f.initials} av={f.av} /></div>
               <span className={s.faceName}>{f.first}</span>
             </div>
           ))}
