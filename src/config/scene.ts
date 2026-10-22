@@ -70,7 +70,7 @@ export interface QualitySpec {
   readonly pixelRatio: number;
   readonly shadowMap: number; readonly shadowRadius: number;
   /** Post pipeline (EffectComposer) on/off; off renders straight to the canvas. */
-  readonly post: boolean; readonly msaa: number; readonly ao: boolean; readonly aoScale: number; readonly bloom: boolean; readonly bloomScale: number; /** Temporal anti-aliasing and resolve at 1x (sub-pixel jitter + clamped history). */ readonly taa: boolean; /** Radial god rays from the sun (ultra). */ readonly godRays: boolean;
+  readonly post: boolean; readonly msaa: number; readonly ao: boolean; readonly bloom: boolean; /** Temporal anti-aliasing and resolve at 1x (sub-pixel jitter + clamped history). */ readonly taa: boolean; /** Radial god rays from the sun (ultra). */ readonly godRays: boolean;
   /** Max grass blades drawn on the base island (scaled by island area). */
   readonly grass: number; readonly anisotropy: number; readonly texSize: number;
   /** Street lamps that get a real point light. */
@@ -80,10 +80,10 @@ export interface QualitySpec {
 }
 /** Quality tiers. Auto-detected from the GPU string, device pixel ratio and core count, then downgraded when fps stays low. */
 export const QUALITY: Readonly<Record<QualityTier, QualitySpec>> = {
-  low: { pixelRatio: 1, shadowMap: 1024, shadowRadius: 2, post: false, msaa: 0, ao: false, aoScale: 1, bloom: false, bloomScale: 1, taa: false, godRays: false, grass: 2200, anisotropy: 2, texSize: 512, lampLights: 0, dof: false, motionBlur: false, smallShadows: false, env: true, interiorShadow: false, treeDensity: 0.7, gi: null },
-  medium: { pixelRatio: 1.25, shadowMap: 2048, shadowRadius: 3, post: true, msaa: 2, ao: false, aoScale: 1, bloom: true, bloomScale: 1, taa: false, godRays: false, grass: 4500, anisotropy: 4, texSize: 1024, lampLights: 2, dof: false, motionBlur: false, smallShadows: true, env: true, interiorShadow: false, treeDensity: 0.85, gi: null },
-  high: { pixelRatio: 1.5, shadowMap: 2048, shadowRadius: 3.5, post: true, msaa: 2, ao: false, aoScale: 1, bloom: true, bloomScale: 1, taa: true, godRays: false, grass: 7000, anisotropy: 8, texSize: 1024, lampLights: 5, dof: true, motionBlur: false, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 3, cube: 16, perFrame: 2, bounces: 0 } },
-  ultra: { pixelRatio: 2, shadowMap: 4096, shadowRadius: 4, post: true, msaa: 4, ao: true, aoScale: 1, bloom: true, bloomScale: 1, taa: true, godRays: true, grass: 9500, anisotropy: 16, texSize: 2048, lampLights: 5, dof: true, motionBlur: true, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 2, cube: 16, perFrame: 6, bounces: 1 } },
+  low: { pixelRatio: 1, shadowMap: 1024, shadowRadius: 2, post: false, msaa: 0, ao: false, bloom: false, taa: false, godRays: false, grass: 2200, anisotropy: 2, texSize: 512, lampLights: 0, dof: false, motionBlur: false, smallShadows: false, env: true, interiorShadow: false, treeDensity: 0.7, gi: null },
+  medium: { pixelRatio: 1.25, shadowMap: 2048, shadowRadius: 3, post: true, msaa: 2, ao: false, bloom: true, taa: false, godRays: false, grass: 4500, anisotropy: 4, texSize: 1024, lampLights: 2, dof: false, motionBlur: false, smallShadows: true, env: true, interiorShadow: false, treeDensity: 0.85, gi: null },
+  high: { pixelRatio: 1.5, shadowMap: 2048, shadowRadius: 3.5, post: true, msaa: 2, ao: false, bloom: true, taa: true, godRays: false, grass: 7000, anisotropy: 8, texSize: 1024, lampLights: 5, dof: true, motionBlur: false, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 3, cube: 16, perFrame: 2, bounces: 0 } },
+  ultra: { pixelRatio: 2, shadowMap: 4096, shadowRadius: 4, post: true, msaa: 4, ao: true, bloom: true, taa: true, godRays: true, grass: 9500, anisotropy: 16, texSize: 2048, lampLights: 5, dof: true, motionBlur: true, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 2, cube: 16, perFrame: 6, bounces: 1 } },
 };
 /** Probe GI volume: world-space padding around the island, vertical extent, hours of sky change that trigger a rebake, indirect strength. */
 export const GI = { minRoomMs: 2, probeSmallR: 1, fitStableFrames: 24, pad: 3, floor: -0.5, height: 10, rebakeHours: 0.6, rebakeEmissiveDelta: 0.35, interactBudgetMs: 1, frameBudgetMs: 8, busySpeed: 0.1, busyTurn: 0.1, maxFrameMs: 20, hemiScale: 0.62, envScale: 0.7, near: 0.2, far: 60 } as const;
@@ -96,6 +96,8 @@ export const QUALITY_DETECT = {
   midGpu: /adreno|intel|iris xe|apple a\d|apple gpu(?! m)/i,
   ultraGpu: /rtx|radeon rx [6-9]|geforce gtx 1[06]|nvidia.*(quadro|titan)/i,
   highGpu: /apple m\d|radeon|geforce|amd|nvidia/i,
+  /** WKWebView hides the chip name ("Apple GPU"): at or above this many cores it is treated as a high tier Apple silicon part. */
+  appleGpu: /apple gpu(?! m)/i, appleHighCores: 8,
   smallScreenPx: 760, lowCores: 4,
   /** Downgrade when the 1s average fps stays under `fps` for `windows` consecutive windows. */
   adaptive: { fps: 44, windows: 4, windowMs: 1000, warmupMs: 7000 },

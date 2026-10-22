@@ -8,7 +8,7 @@ import { mergeStatic } from './staticMerge';
 /** Member cottages: small gabled houses with lit windows, merged to a handful of draw calls each. Door faces +z (the plaza). */
 export function createHouses(M: Mats, arch: Architecture) {
   const CT = GROWTH.cottage;
-  const roofs = CT.roofs.map((c) => { const m = M.slate.clone(); m.color.set(c); m.userData.base = m.color.clone(); return m; });
+  const roofs = CT.roofs.map((c) => { const m = M.slate.clone(); m.color.set(c); m.userData.base = m.color.clone(); m.userData.shared = true; return m; }); // pooled across cottages: not freed with one
   const walls = [M.plasterW, M.brickW, M.stoneW, M.plasterW];
   const hedgeGeo = new THREE.IcosahedronGeometry(0.14, 1); const greens = [0x55663d, 0x66794a, 0x4c5d37];
 

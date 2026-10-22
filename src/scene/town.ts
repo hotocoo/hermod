@@ -12,6 +12,7 @@ import type {
 } from './types';
 import { isMesh } from './util';
 import { createWeather } from './weather';
+import { disposeTree, sharedOf } from './dispose';
 import { createWorld } from './world';
 import type { SkySample } from './sky';
 import { createAdaptive, detectTier, gpuName, lowerTier, savedQuality } from './render/quality';
@@ -49,7 +50,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   const probe = document.createElement('canvas');
   const probeGl = (probe.getContext('webgl2') || probe.getContext('webgl')) as WebGLRenderingContext | null;
   if (!probeGl) throw new Error('WebGL unavailable');
-  const gpu = gpuName(probeGl);
+  const gpu = gpuName(probeGl); probeGl.getExtension('WEBGL_lose_context')?.loseContext(); // only needed to read the GPU string: free the context
   const autoTier = () => detectTier(gpu, navigator.hardwareConcurrency || 0, window.devicePixelRatio || 1, Math.min(window.innerWidth, window.innerHeight), 'ontouchstart' in window);
   const saved = savedQuality(); let autoQ = !saved; let tier: QualityTier = saved ?? autoTier(); let Q: QualitySpec = QUALITY[tier];
 
@@ -123,6 +124,16 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     island.add(g); return { g, from: new THREE.Vector3(), to: new THREE.Vector3(), t: 1, dur: 1, R, s: spring(0, SPRINGS.person), wait: R() * 2 };
   }
   const miniGrass = new THREE.MeshStandardMaterial({ color: COLORS.mini, roughness: 0.95 });
+  /** Kit materials (and their maps) shared by every plot, person and mini: never freed with a removed group. */
+  const kitShared = sharedOf(M); kitShared.add(miniGrass);
+  /** Detach a group from its parent and free its own GPU resources. */
+  const drop = (g: THREE.Object3D) => { g.removeFromParent(); disposeTree(g, kitShared); };
+  /** Deferred work tied to the current space: cancelled on a space switch so a stale build or raise never lands in the next space. */
+  const timers = new Set<ReturnType<typeof setTimeout>>();
+  const later = (fn: () => void, ms: number) => { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); };
+  const cancelLater = () => { timers.forEach(clearTimeout); timers.clear(); };
+  /** Space waiting for its switch build (`current` already names it). */
+  let pendingBuild: SpaceInfo | null = null;
   function makeMini(sp: SpaceInfo) {
     const g = new THREE.Group(); g.userData.isle = sp.id;
     const top2 = WK.B(0.01, 0.01, 0.01, miniGrass) as THREE.Mesh; top2.geometry = new THREE.CylinderGeometry(5, 5, 0.3, 160); top2.position.y = -0.15; g.add(top2);
@@ -137,7 +148,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     g.traverse((o) => { if (isMesh(o)) { o.castShadow = o.material !== M.leafCard; o.receiveShadow = true; } }); g.scale.setScalar(0.0001);
     return mergeStatic(g);
   }
-  let minis: MiniIsle[] = [];
+  let minis: MiniIsle[] = []; let miniKey = '';
   function makeThread(fromId: SectionId, toId: SectionId): ThreadActor {
     const a = anchorOf(fromId) ?? PP[fromId], b = anchorOf(toId) ?? PP[toId]; const ay = (anchorOf(fromId)?.y ?? 0), by = (anchorOf(toId)?.y ?? 0);
     const pa = new THREE.Vector3(a.x, ay + 4.3, a.z), pb = new THREE.Vector3(b.x, by + (toId === 'chat' ? 3.6 : 3.0), b.z);
@@ -148,11 +159,12 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     return { tube, pulse, curve, t: Math.random(), s: spring(0, SPRINGS.thread) };
   }
 
+  const dropThread = (t: ThreadActor) => { drop(t.tube); drop(t.pulse); };
   function clearAll() {
-    Object.values(plots).forEach((p) => island.remove(p.g)); for (const k in plots) delete plots[k];
-    people.forEach((p) => island.remove(p.g)); people = [];
+    Object.values(plots).forEach((p) => drop(p.g)); for (const k in plots) delete plots[k];
+    people.forEach((p) => drop(p.g)); people = [];
     houses.forEach((h) => site?.releaseHouse(h.g)); houses = [];
-    threads.forEach((t) => { island.remove(t.tube); island.remove(t.pulse); }); threads = [];
+    threads.forEach(dropThread); threads = [];
     fx.spool = null; fx.fireLights = []; fx.smokeOrigin = null; fx.seats = null; fx.smoke.forEach((s) => island.remove(s.m)); fx.smoke = [];
   }
 
@@ -202,7 +214,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   const lightRank = (t: string | undefined) => (t ? QUALITY_ORDER.indexOf(t as QualityTier) : 0);
   function build(info: SpaceInfo, first: boolean) {
     clearAll(); current = info;
-    gs = resolveGrowth(info.growth, info.sections); createSite(info, first); const rtr = reduced || instant;
+    gs = resolveGrowth(info.growth, info.sections); createSite(info, first);
     const ids = SECTION_ORDER;
     ids.forEach((id, i) => { plots[id] = makePlot(id, gs.levels[id] > 0, (first ? TIMING.plotDelayFirst : TIMING.plotDelayNext) + i * TIMING.plotStagger, Math.max(1, gs.levels[id]) as BuildingLevel); });
     houses = site!.houses.map((h, i) => makeHouse(h, info, i, first));
@@ -210,9 +222,8 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     const n = Math.min(ISLAND.peopleMax, Math.max(ISLAND.peopleMin, Math.round((info.online || 4) / ((info.online || 0) > 50 ? 20 : 1))));
     for (let i = 0; i < n; i++) people.push(makePerson(rng(info.id + i), i));
     applyRoom(); if (!loomLight.parent) island.add(loomLight);
-    visitors.forEach((v) => island.remove(v.g)); visitors = []; if (info.sections.includes('feed')) { const an = site!.plotAnchors.feed; const d = Math.hypot(an.x, an.z) || 1; for (let k = 0; k < 4; k++) { const g = WK.person(rng('vis' + info.id + k), k + 3); const side = (k - 1.5) * 0.55; const r = d - 2.3 - (k % 2) * 0.35; g.position.set((an.x / d) * r + (an.z / d) * side, siteH((an.x / d) * r, (an.z / d) * r), (an.z / d) * r - (an.x / d) * side); const yaw = Math.atan2(an.x - g.position.x, an.z - g.position.z); g.rotation.y = yaw; g.scale.setScalar(0.0001); island.add(g); visitors.push({ g, s: spring(0, SPRINGS.person), on: false, yaw }); } applyVisitors(); }
+    visitors.forEach((v) => drop(v.g)); visitors = []; if (info.sections.includes('feed')) { const an = site!.plotAnchors.feed; const d = Math.hypot(an.x, an.z) || 1; for (let k = 0; k < 4; k++) { const g = WK.person(rng('vis' + info.id + k), k + 3); const side = (k - 1.5) * 0.55; const r = d - 2.3 - (k % 2) * 0.35; g.position.set((an.x / d) * r + (an.z / d) * side, siteH((an.x / d) * r, (an.z / d) * r), (an.z / d) * r - (an.x / d) * side); const yaw = Math.atan2(an.x - g.position.x, an.z - g.position.z); g.rotation.y = yaw; g.scale.setScalar(0.0001); island.add(g); visitors.push({ g, s: spring(0, SPRINGS.person), on: false, yaw }); } applyVisitors(); }
     if (info.sections.includes('skein')) { (['chat', 'board'] as SectionId[]).forEach((t) => { if (info.sections.includes(t)) threads.push(makeThread('skein', t)); }); }
-    void rtr;
     void prep(island, { gate: !first, maxMs: 6000 }); // upload textures and compile the new space's shaders in parallel before it is first drawn
   }
   /** Build and compile the interior rooms one at a time while idle, so stepping inside never hitches on geometry or shader compiles. */
@@ -306,12 +317,12 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   /** Rebuild one plot with a new level (pop animation like raise). */
   function raiseLevel(id: SectionId, level: BuildingLevel, built: boolean) {
     const old = plots[id]; if (!old) return; old.dying = true; old.scale.t = 0;
-    setTimeout(() => { island.remove(old.g); plots[id] = makePlot(id, built, 0, level); applyRoom(); }, reduced ? 0 : TIMING.raiseMs);
+    later(() => { drop(old.g); plots[id] = makePlot(id, built, 0, level); applyRoom(); }, reduced ? 0 : TIMING.raiseMs);
   }
 
   function raise(id: SectionId) {
     const old = plots[id]; if (!old) return; old.dying = true; old.scale.t = 0; const lvl = Math.max(1, gs.levels[id]) as BuildingLevel; gs.levels[id] = lvl;
-    setTimeout(() => { island.remove(old.g); plots[id] = makePlot(id, true, 0, lvl); applyRoom(); if (id === 'skein' || current!.sections.includes('skein')) { threads.forEach((t) => { island.remove(t.tube); island.remove(t.pulse); }); threads = []; (['chat', 'board'] as SectionId[]).forEach((t) => { if (current!.sections.includes(t) && current!.sections.includes('skein')) threads.push(makeThread('skein', t)); }); } }, reduced ? 0 : TIMING.raiseMs);
+    later(() => { drop(old.g); plots[id] = makePlot(id, true, 0, lvl); applyRoom(); if (id === 'skein' || current!.sections.includes('skein')) { threads.forEach(dropThread); threads = []; (['chat', 'board'] as SectionId[]).forEach((t) => { if (current!.sections.includes(t) && current!.sections.includes('skein')) threads.push(makeThread('skein', t)); }); } }, reduced ? 0 : TIMING.raiseMs);
   }
 
   // Camera rig
@@ -423,7 +434,8 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   /** Any pointer activity, over the HUD and labels too, holds the idle orbit: a label must not slide away under the cursor. */
   const onAnyMove = () => { idle = 0; }; window.addEventListener('pointermove', onAnyMove, { passive: true });
   let lastInputAt = performance.now(); const markInput = () => { lastInputAt = performance.now(); };
-  for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart']) window.addEventListener(ev, markInput, { passive: true });
+  const INPUT_EVENTS = ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart'] as const;
+  for (const ev of INPUT_EVENTS) window.addEventListener(ev, markInput, { passive: true });
   function recenter() { userTx = userTz = 0; userDist = styleHome.dist * camK; home.el = styleHome.el; userAz = Math.round((userAz - Math.PI / 4) / (Math.PI * 2)) * Math.PI * 2 + Math.PI / 4; rig.tx.t = 0; rig.tz.t = 0; rig.dist.t = userDist; rig.el.t = home.el; rig.az.t = userAz;  }
   el.style.cursor = 'grab';
 
@@ -477,7 +489,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   function frame(now: number) { const t0f = performance.now(); try { frameInner(now); } catch (e) { if (!errLogged) { errLogged = true; console.error('Town frame: ' + ((e as Error) && (e as Error).stack || e)); } }  const ms = performance.now() - t0f; gi.noteFrame(ms); if (ms > 40 && gating === 0) { const mi = renderer.info; const progs = mi.programs?.length ?? 0; console.info(`[spike] frame ${ms.toFixed(0)} ms | programs ${progs} (+${progs - lastProg}) textures ${mi.memory.textures} (+${mi.memory.textures - lastTex}) geometries ${mi.memory.geometries} calls ${mi.render.calls} tris ${mi.render.triangles} | mode ${mode} tier ${tier} still ${still.engaged ? 'on' : 'off'} gi ${gi.progress.toFixed(2)}`); } lastProg = renderer.info.programs?.length ?? 0; lastTex = renderer.info.memory.textures; }
   function frameInner(now: number) {
     if (!alive) return; raf = requestAnimationFrame(frame);
-    if (idle > DIRECTOR.idleThrottleAfter && mode === 'island' && !focusId && !down && (++skipTick & 1)) return; // ambient motion only: half rate
+    if (idle > DIRECTOR.idleThrottleAfter && mode === 'island' && !focusId && !down && (++skipTick & 1)) { adaptive.reset(); return; } // a throttled frame is not a slow one: rawDt would span two frames // ambient motion only: half rate
     const rawDt = (now - last) / 1000; if (autoQ && rawDt > 0 && !warming && gating === 0) adaptive.push(rawDt); else if (warming || gating > 0) adaptive.reset(); const dt = Math.max(0, Math.min(0.05, rawDt)); last = Math.max(last, now); const t = (now - t0) / 1000;
     if (mode === 'inside' && insideAt) { rig.az.t = insideAt.az; rig.el.t = insideAt.el; } else if (!focusId) rig.az.t = userAz;
     if (!focusId && !(down && down.moved)) rig.el.t = home.el;
@@ -504,7 +516,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     camera.lookAt(tg); if (hk > 0.001) camera.rotateZ(hh.roll * DIRECTOR.handheld.roll * hk);
     if (process.env.NODE_ENV !== 'production') { const co = (window as unknown as { __camOverride?: number[] }).__camOverride; if (co) { const [az, el, d, x, y, z] = co; camera.position.set(x + Math.sin(az) * Math.cos(el) * d, y + Math.sin(el) * d, z + Math.cos(az) * Math.cos(el) * d); camera.lookAt(x, y, z); } } // dev only: fx-shots close-up cameras
     { const want = Q.dof && !reduced ? (mode === 'inside' ? DIRECTOR.dof.strengthInside : mode === 'door' ? DIRECTOR.dof.strengthDoor : focusId ? DIRECTOR.dof.strengthFocus : 0) : 0; dofS.t = want; dofS.step(dt); dofF.t = camera.position.distanceTo(tg); dofF.step(dt); pipeline.setDof(dofS.x, dofF.x, mode === 'inside' ? DIRECTOR.dof.nearInside : 1); }
-    camera.fov = Math.max(10, fov.x + archiK.x * 6 - photoK.x * 6); camera.far = 300 + archiK.x * 200; camera.setViewOffset(W, H, rig.off.x * W, 0, W, H);
+    camera.fov = Math.max(10, fov.x + archiK.x * 6 - photoK.x * 6); camera.far = 300 + archiK.x * 200; pipeline.setPanOffset(rig.off.x);
 
     hourS.step(dt); if (clockMode === 'live' && now - liveScan > 5000) { liveScan = now; const d = new Date(); setHour(d.getHours() + d.getMinutes() / 60); } if (clockMode === 'lapse' && !reduced) { hourS.t += dt * 0.25; }
     const hr = ((hourS.x % 24) + 24) % 24; if (!skyCache || Math.abs(hr - skyCacheHr) > 0.0008) { skyCache = sampleSky(hr); skyCacheHr = hr; } const S = skyCache; const k = S.night;
@@ -637,17 +649,19 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
       IN.setContext({ seed: info.id, online: info.online ?? 0 });
       applyArcade(info);
       spaceStyle = info.map_style ?? null; const wantStyle = resolveMapStyle(spaceStyle);
+      if (pendingBuild && info.id === pendingBuild.id) { pendingBuild = info; current = info; styleId = wantStyle; return; }
       if (current && info.id === current.id && wantStyle !== styleId) { current = info; switchStyle(wantStyle); return; }
       if (!current || info.id !== current.id) styleId = wantStyle;
       if (o && o.raise) { current = info; raise(o.raise); return; }
       if (!current) { build(info, true); return; }
       if (info.id === current.id && info.sections.length === current.sections.length && info.sections.every((x) => current!.sections.includes(x))) { applyGrowth(info); return; }
       ravens.scatterPerched(); ravens.holdPerch(TIMING.perchCooldownSwitch);
-      Object.values(plots).forEach((p, i) => { p.dying = true; p.delay = 0; setTimeout(() => { p.scale.t = 0; }, reduced ? 0 : i * TIMING.plotKillStagger); });
+      cancelLater(); pendingBuild = info; current = info;
+      Object.values(plots).forEach((p, i) => { p.dying = true; p.delay = 0; later(() => { p.scale.t = 0; }, reduced ? 0 : i * TIMING.plotKillStagger); });
       people.forEach((p) => { p.s.t = 0; });
-      threads.forEach((th) => { th.s.t = 0; island.remove(th.tube); });
-      userAz += 1.1; if (!focusId) rig.az.t = userAz; if (!reduced) { ferry.t = 1; setTimeout(() => { ferry.t = 0; }, TIMING.switchFerryMs); }
-      setTimeout(() => build(info, false), reduced ? 0 : TIMING.switchBuildMs);
+      threads.forEach((th) => { th.s.t = 0; th.tube.visible = false; });
+      userAz += 1.1; if (!focusId) rig.az.t = userAz; if (!reduced) { ferry.t = 1; later(() => { ferry.t = 0; }, TIMING.switchFerryMs); }
+      later(() => { const next = pendingBuild; pendingBuild = null; if (next) build(next, false); }, reduced ? 0 : TIMING.switchBuildMs);
     },
     approach, enter, leave: leaveInside, mode: () => mode, paintInterior(id, data) { IN.paint(id, data); },
     focus, setTheme, hover: setHover, screenPos, recenter, zoomBy: (d) => zoomAt(d), rotateBy: (a) => { userAz += a; rig.az.t = userAz; },
@@ -661,7 +675,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     setHints(h) { hints = Object.assign(hints, h || {}); applyVisitors(); },
     setTimeOfDay(v) { clockMode = 'manual'; setHour(v * 24); },
     setHour(h, instant) { clockMode = 'manual'; setHour(h, instant); }, setClockMode(m) { clockMode = m; liveScan = 0; if (m === 'live') { const d = new Date(); setHour(d.getHours() + d.getMinutes() / 60); } }, getHour: () => ((hourS.x % 24) + 24) % 24,
-    setArchipelago(on, list) { idle = 0; if (on && list) { minis.forEach((m) => world.remove(m.g)); const others = list.filter((x) => !current || x.id !== current.id); minis = others.map((sp, i) => { const g = makeMini(sp); const a = (i / others.length) * Math.PI * 2 + Math.PI / 5; g.position.set(Math.cos(a) * ISLAND.archiRadius, -0.5, Math.sin(a) * ISLAND.archiRadius); world.add(g); return { id: sp.id, g, s: spring(0, SPRINGS.mini) }; }); minis.forEach((m, i) => { setTimeout(() => { m.s.v = 0; }, i * TIMING.archiStagger); }); } archi = !!on; if (on) { userTx = userTz = 0; } },
+    setArchipelago(on, list) { idle = 0; if (on && list) { const others = list.filter((x) => !current || x.id !== current.id); const key = JSON.stringify(others.map((sp) => [sp.id, sp.map_style, sp.sections, sp.growth?.buildings, arcadeWaitingOf(sp)])); if (key !== miniKey) { miniKey = key; minis.forEach((m) => drop(m.g)); minis = others.map((sp, i) => { const g = makeMini(sp); const a = (i / others.length) * Math.PI * 2 + Math.PI / 5; g.position.set(Math.cos(a) * ISLAND.archiRadius, -0.5, Math.sin(a) * ISLAND.archiRadius); world.add(g); return { id: sp.id, g, s: spring(0, SPRINGS.mini) }; }); minis.forEach((m, i) => { later(() => { m.s.v = 0; }, i * TIMING.archiStagger); }); } } archi = !!on; if (on) { userTx = userTz = 0; } },
     setPhoto(on) { photo = !!on; photoK.t = on ? 1 : 0; idle = 0; },
     snapshotStill: (samples) => still.capture(samples),
     snapshot() { pipeline.render(0); return renderer.domElement.toDataURL('image/png'); },
@@ -670,7 +684,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     getMapStyle: () => ({ style: styleId, local: getLocalMapStyle() !== null }),
     renderInfo: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, site: site ? site.stats() : null, meshesInScene: (() => { const c: Record<string, number> = {}; scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; let v = true, q: THREE.Object3D | null = m; while (q) { if (!q.visible) v = false; q = q.parent; } if (!v) return; const k = (m.name || (m.material as THREE.Material).name || m.geometry.type).replace(/[0-9._]+/g, '#').slice(0, 28); c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 12); })() }),
     getQuality: () => ({ tier, auto: autoQ, giProgress: gi.progress, stillSamples: still.samples, stillEngaged: still.engaged }),
-    dispose() { puffs.dispose(); waterPlanar.dispose(); winLights.dispose(); hifiOff?.(); hifiOff = null; site?.dispose(); site = null; gi.dispose(); still.dispose(); document.removeEventListener('visibilitychange', onVis); pipeline.dispose(); env.dispose(); clearInterval(watchdog); window.removeEventListener('keydown', onKeyNav); window.removeEventListener('pointermove', onAnyMove); alive = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); },
+    dispose() { puffs.dispose(); waterPlanar.dispose(); winLights.dispose(); hifiOff?.(); hifiOff = null; site?.dispose(); site = null; gi.dispose(); still.dispose(); document.removeEventListener('visibilitychange', onVis); pipeline.dispose(); env.dispose(); clearInterval(watchdog); window.removeEventListener('keydown', onKeyNav); for (const ev of INPUT_EVENTS) window.removeEventListener(ev, markInput); cancelLater(); minis.forEach((m) => drop(m.g)); minis = []; window.removeEventListener('pointermove', onAnyMove); alive = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); },
   };
   return api;
 }
