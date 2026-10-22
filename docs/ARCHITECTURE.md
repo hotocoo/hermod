@@ -149,9 +149,10 @@ Commands (all async, all return `Result<T, String>`):
 | `read_mark` / `read_markers` / `block_user` / `unblock_user` / `notify_settings_get` / `notify_settings_set` / `retention_set` | local state (added by feature audit) |
 | `storage_usage` / `storage_clear_cache` / `audit_list` / `log_tail` / `outbox_status` / `blob_save_as` / `save_file` | ops (added by feature audit) |
 | `update_check` / `update_install` | auto-update (added by feature audit) |
+| `deeplink_pending` | the `hermod://join/<code>` link that opened the app before the UI listened, read once at boot |
 Events (added by feature audit): `hermod://sync { pending }`, ephemeral gossip topics `presence`, `typing`, `hearts` (not in the log).
 
-Events (Rust to UI): `hermod://changed { space_id, collections[] }` (UI re-fetches `snapshot` slices), `hermod://node { status }`, `hermod://signal { from, payload }`, `hermod://deeplink { code }`.
+Events (Rust to UI): `hermod://changed { space_id, collections[] }` (UI re-fetches `snapshot` slices), `hermod://node { status }`, `hermod://signal { from, payload }`, `hermod://deeplink { code }` (a link that arrives before the webview listens is also kept for one `deeplink_pending` read).
 
 ### 6.1 Wire conventions and UI-requested additions (src/lib/bridge)
 
@@ -159,7 +160,7 @@ The UI's `Bridge` interface (`src/lib/bridge/bridge.ts`, types in `types.ts`) ha
 
 - Command arguments are the camelCase keys Tauri uses at the IPC boundary (`spaceId`, `shareResources`, `expiresIn`). The devhost accepts exactly the same JSON object as the POST body of `/invoke/<command>`, so the browser build and Tauri send identical payloads. Results and event bodies use serde's snake_case (`user_id`, `accepted_version`).
 - `space_id` / `spaceId` is the UI label: `home` for the home space, else the hex id (what `Core::resolve_space` accepts).
-- Devhost events: SSE `GET /events`, each message is `event: hermod://<name>` with `data:` the JSON payload. The devhost sends `Access-Control-Allow-Origin: *` (the page is served from another origin). Blobs: `GET /blob/<hash>` with Range support (Tauri uses `hermod-blob://<hash>`).
+- Devhost events: SSE `GET /events`, each message is `event: hermod://<name>` with `data:` the JSON payload. The devhost sends `Access-Control-Allow-Origin: *` (the page is served from another origin). Blobs: `GET /blob/<hash>` with Range support (Tauri uses `hermod-blob://<hash>`). `POST /deeplink { url }` opens a `hermod://join/<code>` link as the OS would (E2E only).
 - A devhost build may be pointed at another peer per page with `?devhost=http://127.0.0.1:<port>` (build-time `NEXT_PUBLIC_HERMOD_DEVHOST` gives the default), which is how one build drives two users.
 
 Argument and result shapes the UI codes against (all in `types.ts`):

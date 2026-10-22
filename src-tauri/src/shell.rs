@@ -1,18 +1,14 @@
 //! Desktop shell: deep links, single instance, tray.
+use std::sync::Arc;
+
 use tauri::{
-    AppHandle, Emitter, Manager, Wry,
+    AppHandle, Manager, Wry,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
 use tauri_plugin_deep_link::DeepLinkExt;
 
-const SCHEME_PREFIX: &str = "hermod://join/";
-
-/// `hermod://join/<code>` to `<code>`. Codes are base58, so anything else is rejected.
-fn invite_code(url: &str) -> Option<&str> {
-    let code = url.strip_prefix(SCHEME_PREFIX)?.trim_end_matches('/');
-    (!code.is_empty() && code.chars().all(|c| c.is_ascii_alphanumeric())).then_some(code)
-}
+use crate::ctx::Ctx;
 
 pub const TRAY_ID: &str = "main";
 const APP_NAME: &str = "Hermod";
@@ -34,10 +30,15 @@ fn show_main(app: &AppHandle) {
     }
 }
 
+/// Hand a join link to the UI through `Ctx`, which also keeps it for a webview that is not
+/// listening yet (cold start).
 fn emit_code(app: &AppHandle, url: &str) {
-    if let Some(code) = invite_code(url) {
+    let Some(ctx) = app.try_state::<Arc<Ctx>>() else {
+        tracing::warn!("deep link before the app finished starting");
+        return;
+    };
+    if ctx.open_link(url) {
         show_main(app);
-        let _ = app.emit("hermod://deeplink", serde_json::json!({ "code": code }));
     }
 }
 
@@ -90,7 +91,8 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{invite_code, tray_tooltip};
+    use super::tray_tooltip;
+    use crate::ctx::invite_code;
 
     #[test]
     fn tooltip_shows_unread() {

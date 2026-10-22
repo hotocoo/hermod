@@ -20,7 +20,11 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
     await get().refresh();
     const spaces = get().spaces;
     const hasShared = spaces.some((x) => x.kind !== HOME_KIND);
-    set({ phase: hasShared || readFlag(STORAGE_KEYS.spaced) ? 'app' : 'welcome' });
+    if (!hasShared && !readFlag(STORAGE_KEYS.spaced)) { set({ phase: 'welcome' }); return; }
+    set({ phase: 'app' });
+    // A link that arrived during the gates skips Welcome here, so offer it now.
+    const code = get().pendingCode;
+    if (code) get().openModal({ kind: 'join', code });
   };
 
   return {

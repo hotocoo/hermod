@@ -70,6 +70,8 @@ export interface Bridge {
   appReset(): Promise<void>;
   updateCheck(): Promise<UpdateInfo>;
   updateInstall(): Promise<void>;
+  /** The `hermod://join/<code>` code that opened the app before the UI listened; null after the first read. */
+  deeplinkPending(): Promise<string | null>;
   deviceLinkStart(): Promise<DeviceLink>;
   deviceLinkAccept(code: string): Promise<void>;
   deviceList(): Promise<DeviceInfo[]>;
@@ -173,6 +175,7 @@ export function createBridge(t: Transport): Bridge {
     appReset: () => none('app_reset'),
     updateCheck: () => call('update_check'),
     updateInstall: () => none('update_install'),
+    deeplinkPending: () => call('deeplink_pending'),
     deviceLinkStart: () => call('device_link_start'),
     deviceLinkAccept: (code) => none('device_link_accept', { code }),
     deviceList: () => call('device_list'),

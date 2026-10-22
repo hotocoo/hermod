@@ -2,7 +2,8 @@
 //! `Core` and a real `Node`. Never shipped (cargo feature `devhost`, excluded from bundles).
 //!
 //! `POST /invoke/{command}` (JSON args) -> JSON result or an error string with HTTP 400,
-//! `GET /events` SSE (`event:` is the Tauri event name), `GET /blob/{hash}` with Range.
+//! `GET /events` SSE (`event:` is the Tauri event name), `GET /blob/{hash}` with Range,
+//! `POST /deeplink` (`{ "url" }`) to open a join link as the OS would.
 
 use std::convert::Infallible;
 use std::net::SocketAddr;
@@ -86,6 +87,27 @@ async fn invoke(
     }
 }
 
+/// E2E stand-in for the OS opening a link: JSON `{ "url": "hermod://join/<code>" }` takes the
+/// same path as the desktop shell (event now, pending until the page first asks).
+async fn deeplink(
+    State(ctx): State<Shared>,
+    Extension(port): Extension<u16>,
+    headers: HeaderMap,
+    body: axum::body::Bytes,
+) -> Response {
+    if !invoke_allowed(&headers, port) {
+        return (StatusCode::FORBIDDEN, "request not allowed").into_response();
+    }
+    let url = match serde_json::from_slice::<serde_json::Value>(&body) {
+        Ok(v) => v.get("url").and_then(|u| u.as_str()).map(str::to_string),
+        Err(e) => return (StatusCode::BAD_REQUEST, format!("bad json: {e}")).into_response(),
+    };
+    match url {
+        Some(u) if ctx.open_link(&u) => StatusCode::NO_CONTENT.into_response(),
+        _ => (StatusCode::BAD_REQUEST, "not a hermod://join/ link").into_response(),
+    }
+}
+
 async fn events(State(ctx): State<Shared>) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let stream = BroadcastStream::new(ctx.subscribe()).filter_map(|m| {
         m.ok()
@@ -157,6 +179,7 @@ async fn main() -> anyhow_free::Result<()> {
             "/invoke/{command}",
             post(invoke).layer(DefaultBodyLimit::max(INVOKE_BODY_LIMIT)),
         )
+        .route("/deeplink", post(deeplink))
         .route("/events", get(events))
         .route("/blob/{hash}", get(blob_route))
         .layer(Extension(a.port))

@@ -31,7 +31,12 @@ export function useAppBoot(): void {
 
   useEffect(() => {
     // Deep links can arrive while a gate is still open, so listen from the very start.
-    const off = getBridge().on('deeplink', (e) => useAppStore.getState().onDeeplink(e.code));
+    const bridge = getBridge();
+    const off = bridge.on('deeplink', (e) => useAppStore.getState().onDeeplink(e.code));
+    // A cold-start link fired before this listener existed; Rust kept it for this one read.
+    bridge.deeplinkPending()
+      .then((code) => { if (code) useAppStore.getState().onDeeplink(code); })
+      .catch((e) => console.warn('pending deep link unavailable', e));
     void useAppStore.getState().boot();
     return off;
   }, []);

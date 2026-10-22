@@ -20,6 +20,14 @@ use tokio::sync::{RwLock, broadcast, mpsc};
 use crate::adapter::{self, CoreStore, Notice};
 use crate::{blob, notify, settings};
 
+const JOIN_LINK_PREFIX: &str = "hermod://join/";
+
+/// `hermod://join/<code>` to `<code>`. Codes are base58, so anything else is rejected.
+pub fn invite_code(url: &str) -> Option<&str> {
+    let code = url.strip_prefix(JOIN_LINK_PREFIX)?.trim_end_matches('/');
+    (!code.is_empty() && code.chars().all(|c| c.is_ascii_alphanumeric())).then_some(code)
+}
+
 pub type BoxFut<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 
 /// Every projection collection the UI reads; used when we cannot tell what changed.
@@ -260,6 +268,17 @@ pub struct Ctx {
     live: RwLock<Option<Arc<Live>>>,
     picked: Mutex<HashSet<PathBuf>>,
     background: AtomicBool,
+    link: Mutex<PendingLink>,
+}
+
+/// A join link that arrived before the UI first asked for one (a cold start opens the app
+/// from the link, and its event fires before the webview listens).
+#[derive(Default)]
+struct PendingLink {
+    code: Option<String>,
+    /// The UI has asked once; from then on links reach it only as events, so a reload never
+    /// replays an old one.
+    read: bool,
 }
 
 fn open_live(dir: &Path) -> Result<Arc<Live>, String> {
@@ -302,6 +321,7 @@ impl Ctx {
             live: RwLock::new(Some(live)),
             picked: Mutex::new(HashSet::new()),
             background: AtomicBool::new(false),
+            link: Mutex::new(PendingLink::default()),
         });
         ctx.refresh_background().await;
         if ctx.legal_accepted().await
@@ -365,6 +385,30 @@ impl Ctx {
                 .unwrap_or(false);
             self.background.store(on, Ordering::Relaxed);
         }
+    }
+
+    /// Route an OS-opened `hermod://join/<code>` link to the UI as `hermod://deeplink { code }`,
+    /// keeping it for [`Ctx::take_pending_link`] until the UI has asked once. False for any
+    /// other URL.
+    pub fn open_link(&self, url: &str) -> bool {
+        let Some(code) = invite_code(url) else {
+            return false;
+        };
+        {
+            let mut p = lock(&self.link);
+            if !p.read {
+                p.code = Some(code.to_string());
+            }
+        }
+        self.emit("deeplink", json!({ "code": code }));
+        true
+    }
+
+    /// The link that arrived before the UI was listening, handed out once.
+    pub fn take_pending_link(&self) -> Option<String> {
+        let mut p = lock(&self.link);
+        p.read = true;
+        p.code.take()
     }
 
     /// Remember a path the native picker returned so `blob_put` may read it.
