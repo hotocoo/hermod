@@ -35,6 +35,8 @@ pub use crate::projections::AuditEntry;
 
 /// Database file name inside the app data dir.
 pub const DB_FILE: &str = "hermod.db";
+/// Scratch directory inside the data dir where a backup is unpacked before being moved into place.
+const RESTORE_DIR: &str = ".restore";
 /// Label the UI uses for the home space.
 pub const HOME_LABEL: &str = "home";
 /// Kind of the home space (the UI keys off this value).
@@ -263,6 +265,19 @@ fn affects_keys(body: &EventBody) -> bool {
     )
 }
 
+/// Applied peer events worth a `sync_keys` fold: a rekey that wraps a key for `me`, or a role
+/// change that can authorize an earlier rekey. Joins and invites cannot, and backfill is full
+/// of them, so they must not each trigger a full fold.
+fn changes_my_keys(body: &EventBody, me: &str) -> bool {
+    match body {
+        EventBody::SpaceRekey { wraps, .. } => wraps.iter().any(|w| w.user == me),
+        EventBody::MemberRole { .. }
+        | EventBody::MemberRemove { .. }
+        | EventBody::SpaceCreate { .. } => true,
+        _ => false,
+    }
+}
+
 impl Inner {
     fn stored_profile(&self) -> Result<StoredProfile> {
         match self.store.kv_get(PROFILE_KEY)? {
@@ -386,13 +401,14 @@ impl Inner {
             return Ok(out);
         }
         let keys = self.store.all_keys(&ev.space_id)?;
+        let me = self.identity.user_id().to_string();
         let relevant = out.applied.iter().any(|id| {
             self.store
                 .event_by_id(id)
                 .ok()
                 .flatten()
                 .and_then(|e| keys.get(&e.epoch).and_then(|ks| e.open_any(ks).ok()))
-                .is_some_and(|d| affects_keys(&d.body))
+                .is_some_and(|d| changes_my_keys(&d.body, &me))
         });
         if relevant {
             out.applied.extend(self.sync_keys(&ev.space_id)?);
@@ -876,9 +892,13 @@ impl Core {
             addrs: inv.addrs.clone(),
             events: Vec::new(),
         };
+        let mut reopened = false;
         match inner.store.space(&inv.space_id)? {
             Some(s) if !s.left => return Ok(joined),
-            Some(_) => inner.store.reopen_space(&inv.space_id)?,
+            Some(_) => {
+                inner.store.reopen_space(&inv.space_id)?;
+                reopened = true;
+            }
             None => {
                 let row = SpaceRow {
                     id: inv.space_id,
@@ -893,19 +913,35 @@ impl Core {
                 inner.store.add_space(&row)?;
             }
         }
-        inner
-            .store
-            .add_key(&inv.space_id, inv.epoch, &inv.space_key)?;
-        inner.store.raise_lamport_floor(&inv.space_id, inv.lc)?;
-        let join = EventBody::MemberJoin {
-            via_invite_from: Some(inv.inviter.to_string()),
-            invite: Some(inv.id.clone()),
-        };
-        let profile = inner.profile_body()?;
-        joined.events = vec![
-            inner.append(&inv.space_id, &join)?,
-            inner.append(&inv.space_id, &profile)?,
-        ];
+        let fresh = !reopened;
+        let steps = (|| -> Result<Vec<SignedEvent>> {
+            inner
+                .store
+                .add_key(&inv.space_id, inv.epoch, &inv.space_key)?;
+            inner.store.raise_lamport_floor(&inv.space_id, inv.lc)?;
+            let join = EventBody::MemberJoin {
+                via_invite_from: Some(inv.inviter.to_string()),
+                invite: Some(inv.id.clone()),
+            };
+            let profile = inner.profile_body()?;
+            Ok(vec![
+                inner.append(&inv.space_id, &join)?,
+                inner.append(&inv.space_id, &profile)?,
+            ])
+        })();
+        match steps {
+            Ok(events) => joined.events = events,
+            Err(e) => {
+                // Undo the half-made join so a retry starts clean.
+                let undo = if fresh {
+                    inner.store.forget_space(&inv.space_id)
+                } else {
+                    inner.store.mark_left(&inv.space_id)
+                };
+                undo?;
+                return Err(e);
+            }
+        }
         Ok(joined)
     }
 
@@ -1320,6 +1356,32 @@ impl Core {
                 "the data directory already holds an identity",
             ));
         }
+        // Restore beside the target, then move into place: a failure leaves `dir` untouched.
+        let tmp = dir.join(RESTORE_DIR);
+        let _ = fs::remove_dir_all(&tmp);
+        fs::create_dir_all(&tmp)?;
+        let moved = Self::restore_into(&tmp, &payload).and_then(|()| {
+            // The identity moves last: its presence is what marks `dir` as already restored.
+            for name in [
+                DB_FILE,
+                "hermod.db-wal",
+                "hermod.db-shm",
+                "blobs",
+                identity::KEY_FILE,
+            ] {
+                match fs::rename(tmp.join(name), dir.join(name)) {
+                    Ok(()) => {}
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e.into()),
+                }
+            }
+            Ok(())
+        });
+        let _ = fs::remove_dir_all(&tmp);
+        moved
+    }
+
+    fn restore_into(dir: &Path, payload: &backup::Payload) -> Result<()> {
         Identity::from_seed(payload.identity_seed).save(&dir.join(identity::KEY_FILE))?;
         let mut store = Store::open(&dir.join(DB_FILE))?;
         for sp in &payload.spaces {
@@ -1484,5 +1546,32 @@ impl Core {
         };
         self.blob_meta_put(&r)?;
         Ok(r)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_role_changes_and_my_wraps_trigger_a_key_sync() {
+        let join = EventBody::MemberJoin {
+            via_invite_from: None,
+            invite: None,
+        };
+        assert!(!changes_my_keys(&join, "me"));
+        let rekey = |user: &str| EventBody::SpaceRekey {
+            epoch: 1,
+            wraps: vec![KeyWrap {
+                user: user.into(),
+                sealed_key: String::new(),
+            }],
+        };
+        assert!(changes_my_keys(&rekey("me"), "me"));
+        assert!(!changes_my_keys(&rekey("you"), "me"));
+        assert!(changes_my_keys(
+            &EventBody::MemberRemove { user: "x".into() },
+            "me"
+        ));
     }
 }

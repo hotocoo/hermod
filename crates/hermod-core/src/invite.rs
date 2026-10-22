@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::crypto::SpaceKey;
 use crate::error::{Error, Result};
 use crate::ids::{SpaceId, UserId};
+use crate::store::{MAX_CLOCK, MAX_EPOCH};
 
 /// Landing page that forwards to the app. The code lives in the fragment and never reaches a server.
 pub const LINK_BASE: &str = "https://hotocoo.github.io/hermod/join#";
@@ -91,6 +92,8 @@ impl InviteV1 {
             || inv.id.chars().count() > MAX_ID_CHARS
             || inv.addrs.len() > MAX_ADDRS
             || inv.addrs.iter().any(|a| a.len() > MAX_ADDR_CHARS)
+            || inv.lc > MAX_CLOCK
+            || inv.epoch > MAX_EPOCH
         {
             return Err(Error::invalid("invite", "field out of bounds"));
         }
@@ -191,5 +194,11 @@ mod tests {
         let mut many = sample(None);
         many.addrs = vec!["a".into(); 40];
         assert!(InviteV1::decode(&many.encode().unwrap()).is_err());
+        let mut clock = sample(None);
+        clock.lc = MAX_CLOCK + 1;
+        assert!(InviteV1::decode(&clock.encode().unwrap()).is_err());
+        let mut epoch = sample(None);
+        epoch.epoch = MAX_EPOCH + 1;
+        assert!(InviteV1::decode(&epoch.encode().unwrap()).is_err());
     }
 }
