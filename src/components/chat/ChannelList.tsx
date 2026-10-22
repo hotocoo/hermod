@@ -42,7 +42,7 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
     return (
       <div key={c.id} className={x.chRow}>
         <button type="button" onClick={c.onClick} className={s.ch} aria-current={c.active ? 'page' : undefined} style={{ background: c.bg, color: c.color, fontWeight: c.weight, opacity: muted ? 0.6 : 1, flex: 1 }}>
-          {c.isDm ? <span className={s.chFace} aria-hidden="true">{c.initials}<PresenceDot id={c.dmId} /></span> : <Icon name={icon} size={14} strokeWidth={1.8} />}
+          {c.isDm ? <span className={s.chFace}><span aria-hidden="true">{c.initials}</span><PresenceDot id={c.dmId} /></span> : <Icon name={icon} size={14} strokeWidth={1.8} />}
           <span className={s.chName}>{c.name}</span>
           {voiceIn(c.id) > 0 && <span className={x.badge} title="In voice now">{voiceIn(c.id)}</span>}
           {pinned.includes(k) && <Icon name="pin" size={11} />}

@@ -74,7 +74,7 @@ export function hearthVm(x: Ctx) {
     tileCols: tiles.length <= 1 ? TILE_COLS.one : (tiles.length <= 4 ? TILE_COLS.two : TILE_COLS.three),
     call: callV, hasCall: !!callV, callAway: !!(callV && callV.away), returnToCall: s.returnToCall,
     toggleMute: () => { void s.toggleMute(); }, toggleCam: () => { void s.toggleCam(); }, toggleShare: () => { void s.toggleShare(); }, toggleRecord: () => { void s.toggleRecord(); },
-    toggleHand: () => { void s.toggleHand(); }, react: (r: string) => { void s.react(r); }, reactions: MEDIA.call.signal.reactions,
+    toggleHand: () => { void s.toggleHand(); }, react: (r: string) => { void s.callReact(r); }, reactions: MEDIA.call.signal.reactions,
     makeMeeting: () => { void s.makeMeeting(); }, leave: () => { void s.leave(); },
     stageBig: s.stageBig, stageSmall: !s.stageBig, toggleStage: s.toggleStage,
     agenda, notes, hasNotes: notes.length > 0, noteDraft: s.noteDraft, onNoteDraft: (e: InputEvt) => s.setNoteDraft(e.target.value),

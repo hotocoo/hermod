@@ -16,21 +16,9 @@ import { createWorkSlice } from './slices/work';
 import { createMessagingSlice } from './slices/messaging';
 import type { AppStore } from './types';
 
-export const useAppStore = create<AppStore>()((...a) => ({
-  ...createCoreSlice(...a),
-  ...createSessionSlice(...a),
-  ...createNavSlice(...a),
-  ...createSceneSlice(...a),
-  ...createSkySlice(...a),
-  ...createChatSlice(...a),
-  ...createCallSlice(...a),
-  ...createMediaSlice(...a),
-  ...createWorkSlice(...a),
-  ...createRavenSlice(...a),
-  ...createOverlaySlice(...a),
-  ...createUiSlice(...a),
-  ...createDeskSlice(...a),
-  ...createMessagingSlice(...a),
-}));
+/** Every slice, in merge order. Exported so a test can prove no two slices define the same key (a later spread would silently replace the earlier one). */
+export const SLICES = [createCoreSlice, createSessionSlice, createNavSlice, createSceneSlice, createSkySlice, createChatSlice, createCallSlice, createMediaSlice, createWorkSlice, createRavenSlice, createOverlaySlice, createUiSlice, createDeskSlice, createMessagingSlice] as const;
+
+export const useAppStore = create<AppStore>()((...a) => Object.assign({}, ...SLICES.map((make) => make(...a))) as AppStore);
 
 export type AppStoreApi = typeof useAppStore;

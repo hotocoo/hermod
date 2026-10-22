@@ -2,6 +2,7 @@
 import { PRESENCE } from '../config/app';
 import { getBridge } from '../lib/bridge';
 import { isIdle } from './presence';
+import { isHomeSpace } from './selectors';
 import { timer } from './timers';
 import type { StoreLike } from './types';
 
@@ -16,8 +17,10 @@ export function startPresence(store: StoreLike): () => void {
     if (!s.privacy.presence) { sentAway = null; return; }
     const away = isIdle(lastInput, now, PRESENCE.idleMs);
     if (away === sentAway && now - lastSent < PRESENCE.everyMs) return;
+    // Home is local only and has no topic; a node reported off has nothing to send through (status may still be unknown at boot: send then)
+    if (s.node && !s.node.running) return;
     sentAway = away; lastSent = now;
-    s.spaces.forEach((sp) => { void getBridge().sendEphemeral(sp.id, 'presence', { away }).catch(() => { /* a dropped beacon is repeated next interval */ }); });
+    s.spaces.filter((sp) => !isHomeSpace(sp)).forEach((sp) => { void getBridge().sendEphemeral(sp.id, 'presence', { away }).catch(() => { /* a dropped beacon is repeated next interval */ }); });
   };
   const onInput = () => { lastInput = Date.now(); if (sentAway) tick(); };
   PRESENCE.inputEvents.forEach((e) => window.addEventListener(e, onInput, { passive: true }));

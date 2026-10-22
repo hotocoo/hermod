@@ -192,8 +192,11 @@ test('typing indicator shows for the other person', async () => {
 });
 
 test('presence dot shows on the other person\'s messages', async () => {
+  // The dot sits on the other person's avatar, so A needs a message from Bo in view.
+  await say(b, 'here and online');
+  await expect(msg(a, 'here and online')).toBeVisible({ timeout: 30_000 });
   // Beacons go out every PRESENCE.everyMs (20 s); the first may precede the space list, so allow two intervals.
-  await expect(a.getByRole('article').getByRole('img', { name: 'online' }).first()).toBeVisible({ timeout: 50_000 });
+  await expect(msg(a, 'here and online').getByRole('img', { name: 'online' })).toBeVisible({ timeout: 50_000 });
 });
 
 test('slowmode drops a second post from a member inside the window', async () => {

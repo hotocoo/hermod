@@ -73,7 +73,7 @@ function MessageView({ m, icons, people }: Props) {
   }
   return (
     <article id={`msg-${m.id}`} className={cls} style={{ background: m.sel, animation: m.anim }} aria-label={`${m.name}, ${m.t}`}>
-      <div>{m.showHead && <div className={s.face} aria-hidden="true"><Face initials={m.initials} av={m.av} />{!m.isMe && <PresenceDot id={m.by} />}</div>}</div>
+      <div>{m.showHead && <div className={s.face}><span aria-hidden="true"><Face initials={m.initials} av={m.av} /></span>{!m.isMe && <PresenceDot id={m.by} />}</div>}</div>
       <div className={s.body}>
         {!m.removed && !m.editing && <Actions m={m} />}
         {m.showHead && (
@@ -154,9 +154,11 @@ function MessageView({ m, icons, people }: Props) {
   );
 }
 
-/** The view model hands a fresh object per message on every rebuild; only these inputs change what is drawn. */
-const same = (a: Msg, b: Msg): boolean => a.raw === b.raw && a.snap?.seal === b.snap?.seal
-  && (Object.keys(a) as (keyof Msg)[]).every((k) => { const v = a[k]; return v !== null && typeof v === 'object' || typeof v === 'function' || v === b[k]; });
+/** The view model hands a fresh object (and fresh handlers) per message on every rebuild: compare the drawn data, skip the handlers. Objects (reactions, receipts, quote) compare by value. */
+const same = (a: Msg, b: Msg): boolean => (Object.keys(a) as (keyof Msg)[]).every((k) => {
+  const v = a[k], w = b[k];
+  return typeof v === 'function' || v === w || (v !== null && typeof v === 'object' && JSON.stringify(v) === JSON.stringify(w));
+});
 
 export const Message = memo(MessageView, (a, b) => a.people === b.people && a.icons.ic === b.icons.ic && a.icons.icS === b.icons.icS && same(a.m, b.m));
 

@@ -495,7 +495,7 @@ impl Driver {
         payload: Vec<u8>,
     ) -> Result<(), NodeError> {
         if !self.spaces.contains(&space) {
-            return Err(NodeError::Invalid("space not joined".into()));
+            return Ok(()); // not joined yet (the node subscribes after the space is created): ephemeral data is droppable by design
         }
         if kind.len() > MAX_EPHEMERAL_KIND || payload.len() > MAX_EPHEMERAL_BYTES {
             return Err(NodeError::Invalid("ephemeral message too large".into()));

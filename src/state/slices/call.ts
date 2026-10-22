@@ -115,7 +115,7 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
       const on = !useMediaRt.getState().hands[me];
       setHand(me, on); signal({ hand: on });
     },
-    react: async (r) => {
+    callReact: async (r) => {
       const me = meId(get()); if (!me || !get().call || !REACTIONS.includes(r)) return;
       showReaction(me, r); signal({ react: r });
     },
