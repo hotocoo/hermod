@@ -2,25 +2,29 @@ import type { StateCreator } from 'zustand';
 import { CALENDAR, CARD } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { getBridge } from '../../lib/bridge';
-import { fmtHalfHour } from '../../lib/format';
+import { fmtHalfHour, isIsoDate } from '../../lib/format';
 import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
 import { coll, type DocBlock } from '../dataTypes';
 import { withKey } from '../helpers';
-import { curSpace, todayIndex } from '../selectors';
+import { curSpace, personOf, todayIndex } from '../selectors';
 import type { AppStore, PromptField, WorkSlice } from '../types';
 
-const HALF_HOURS = Array.from({ length: (CALENDAR.hours.length + 1) * 2 }, (_, i) => CALENDAR.startHour + i / 2);
+/** Half-hour start times that fit in the calendar day. */
+const HALF_HOURS = Array.from({ length: CALENDAR.hours.length * 2 }, (_, i) => CALENDAR.startHour + i / 2);
+/** First hour past the last calendar row: no event may end after it. */
+const DAY_END = CALENDAR.startHour + CALENDAR.hours.length;
 
-/** Place that turns an event into a meeting joined in the Hearth room. */
-const HEARTH_PLACE = 'The Hearth';
+type Choice = { value: string; label: string };
+/** Options plus the form's current value when it is not among them (an event another client made), so the select shows what is stored. */
+const withCurrent = (options: Choice[], current: Choice): Choice[] => (options.some((o) => o.value === current.value) ? options : [...options, current]);
 
 /** Event form shared by New and Edit; `initial` fills the fields. */
 const eventFields = (initial: { title: string; day: number; start: number; len: number; where: string; note: string }): PromptField[] => [
   { key: 'title', label: 'Title', initial: initial.title, required: true },
   { key: 'day', label: 'Day', initial: String(initial.day), options: CALENDAR.days.map((d, i) => ({ value: String(i), label: d })) },
-  { key: 'start', label: 'Starts', initial: String(initial.start), options: HALF_HOURS.map((h) => ({ value: String(h), label: fmtHalfHour(h) })) },
-  { key: 'len', label: 'Length', initial: String(initial.len), options: [{ value: '0.5', label: '30 minutes' }, { value: '1', label: '1 hour' }, { value: '2', label: '2 hours' }] },
+  { key: 'start', label: 'Starts', initial: String(initial.start), options: withCurrent(HALF_HOURS.map((h) => ({ value: String(h), label: fmtHalfHour(h) })), { value: String(initial.start), label: fmtHalfHour(initial.start) }) },
+  { key: 'len', label: 'Length', initial: String(initial.len), options: withCurrent(CALENDAR.lengths.map((h) => ({ value: String(h), label: COPY.event.length(h) })), { value: String(initial.len), label: COPY.event.length(initial.len) }) },
   { key: 'where', label: 'Where', initial: initial.where },
   { key: 'note', label: 'Note', initial: initial.note, multiline: true },
 ];
@@ -62,19 +66,28 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       if (!card) return;
       const members = (await guarded(get, () => getBridge().spaceMembers(sp)))?.filter((m) => !m.removed);
       if (!members) return;
+      const assignee = card.assignee ?? '';
+      // A former member can still be the stored assignee; keep them selectable so the select matches the stored value.
+      const options = withCurrent([{ value: '', label: COPY.card.unassigned }, ...members.map((m) => ({ value: m.user_id, label: m.name }))], { value: assignee, label: assignee ? personOf(seed(), assignee).name : '' });
       const v = await s.ask({
-        title: 'Edit card', submit: 'Save',
+        title: COPY.card.editTitle, submit: 'Save',
         fields: [
           { key: 'title', label: 'Title', initial: card.title, required: true },
           { key: 'tag', label: 'Tag', initial: card.tag },
-          { key: 'assignee', label: 'Assigned to', initial: card.assignee ?? '', options: [{ value: '', label: COPY.card.unassigned }, ...members.map((m) => ({ value: m.user_id, label: m.name }))] },
-          { key: 'due', label: 'Due', placeholder: COPY.card.duePlaceholder, initial: card.due ?? '' },
+          { key: 'assignee', label: COPY.card.assignedTo, initial: assignee, options },
+          { key: 'due', label: COPY.card.dueLabel, placeholder: COPY.card.duePlaceholder, initial: card.due ?? '' },
         ],
       });
       if (!v) return;
       const due = v.due.trim();
-      if (due && !CARD.dueFormat.test(due)) { s.showToast(COPY.card.dueInvalid, undefined, 'error'); return; }
-      await appendEvent(get, sp, { t: 'card.update', card_id: cardId, title: v.title.trim(), tag: v.tag.trim(), assignee: v.assignee, due });
+      if (due && !(CARD.dueFormat.test(due) && isIsoDate(due))) { s.showToast(COPY.card.dueInvalid, undefined, 'error'); return; }
+      // Only changed fields go out: the core merges per field, so untouched ones keep a concurrent peer's edit.
+      const title = v.title.trim(); const tag = v.tag.trim();
+      const changes = {
+        ...(title !== card.title && { title }), ...(tag !== card.tag && { tag }),
+        ...(v.assignee !== assignee && { assignee: v.assignee }), ...(due !== (card.due ?? '') && { due }),
+      };
+      if (Object.keys(changes).length) await appendEvent(get, sp, { t: 'card.update', card_id: cardId, ...changes });
     },
     deleteCard: async (cardId) => {
       const ok = await get().confirmAction({ title: 'Delete this card?', body: 'It is removed from the board for everyone.', confirm: 'Delete', danger: true });
@@ -130,22 +143,30 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
     editEvent: async () => {
       const s = get(); const ev = s.events.find((e) => e.id === s.evSel);
       if (!ev) return;
-      const v = await s.ask({ title: 'Edit meeting', kicker: curSpace(s).name, submit: 'Save', fields: eventFields({ title: ev.t, day: ev.d, start: ev.s, len: ev.e - ev.s, where: ev.where, note: ev.note }) });
+      const v = await s.ask({ title: COPY.event.editTitle, kicker: curSpace(s).name, submit: 'Save', fields: eventFields({ title: ev.t, day: ev.d, start: ev.s, len: ev.e - ev.s, where: ev.where, note: ev.note }) });
       if (!v) return;
-      const start = Number(v.start);
-      await appendEvent(get, ev.spaceId ?? here(), { t: 'event.update', ev_id: ev.id, day: Number(v.day), start, end: start + Number(v.len), title: v.title.trim(), where: v.where.trim(), note: v.note.trim(), meeting: v.where.trim() === HEARTH_PLACE });
+      const start = Number(v.start); const end = start + Number(v.len); const day = Number(v.day);
+      if (end > DAY_END) { s.showToast(COPY.event.outsideGrid, undefined, 'error'); return; }
+      const title = v.title.trim(); const where = v.where.trim(); const note = v.note.trim();
+      // Only changed fields go out so an edit of one does not overwrite a concurrent edit of another.
+      const changes = {
+        ...(day !== ev.d && { day }), ...((start !== ev.s || end !== ev.e) && { start, end }),
+        ...(title !== ev.t && { title }), ...(where !== ev.where && { where, meeting: where === CALENDAR.hearthPlace }), ...(note !== ev.note && { note }),
+      };
+      if (Object.keys(changes).length) await appendEvent(get, ev.spaceId ?? here(), { t: 'event.update', ev_id: ev.id, ...changes });
     },
     newEvent: async () => {
       const s = get();
       const now = new Date(); const nextHour = Math.min(CALENDAR.startHour + CALENDAR.hours.length - 1, Math.max(CALENDAR.startHour, now.getHours() + 1));
       const v = await s.ask({
         title: 'New meeting', kicker: curSpace(s).name, submit: 'Add to calendar',
-        fields: eventFields({ title: '', day: todayIndex(), start: nextHour, len: 1, where: HEARTH_PLACE, note: '' }),
+        fields: eventFields({ title: '', day: todayIndex(), start: nextHour, len: 1, where: CALENDAR.hearthPlace, note: '' }),
       });
       if (!v) return;
       const start = Number(v.start);
+      if (start + Number(v.len) > DAY_END) { s.showToast(COPY.event.outsideGrid, undefined, 'error'); return; }
       const id = uid('e');
-      if (await appendEvent(get, here(), { t: 'event.create', ev_id: id, day: Number(v.day), start, end: start + Number(v.len), title: v.title.trim(), where: v.where.trim(), note: v.note.trim(), meeting: v.where.trim() === HEARTH_PLACE })) set({ evSel: id });
+      if (await appendEvent(get, here(), { t: 'event.create', ev_id: id, day: Number(v.day), start, end: start + Number(v.len), title: v.title.trim(), where: v.where.trim(), note: v.note.trim(), meeting: v.where.trim() === CALENDAR.hearthPlace })) set({ evSel: id });
     },
     rsvp: async () => {
       const s = get(); const ev = s.events.find((e) => e.id === s.evSel);

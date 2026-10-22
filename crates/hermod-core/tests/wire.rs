@@ -94,18 +94,20 @@ fn feed_post_comment_and_delete_sync() {
     append(
         &b,
         &s,
-        json!({"t": "message.post", "channel_id": "general", "msg_id": "c1", "text": "nice", "attachments": [], "target": "p1"}),
+        json!({"t": "message.post", "channel_id": "", "msg_id": "c1", "text": "nice", "attachments": [], "target": "p1"}),
     );
     sync(&b, &a, &s);
     let sn = snap(&a);
     let post = &sn.collections.feed[&s.to_string()][0];
     assert_eq!(post.comments.as_ref().unwrap()[0].text, "nice");
-    let in_channel = sn
+    let in_channels = sn
         .collections
         .messages
-        .get(&format!("{s}/general"))
-        .map_or(0, |m| m.iter().filter(|m| m.text == "nice").count());
-    assert_eq!(in_channel, 0, "a post comment is not a channel message");
+        .values()
+        .flatten()
+        .filter(|m| m.text == "nice")
+        .count();
+    assert_eq!(in_channels, 0, "a post comment is not a channel message");
 
     append(&a, &s, json!({"t": "post.delete", "post_id": "p1"}));
     sync(&a, &b, &s);
@@ -204,4 +206,103 @@ fn board_card_assign_due_and_delete_sync() {
     append(&a, &s, json!({"t": "card.delete", "card_id": "k1"}));
     sync(&a, &b, &s);
     assert!(card(&b).is_none());
+}
+
+#[test]
+fn calendar_rejects_slots_outside_the_grid() {
+    let (a, _b, s, _d) = pair();
+    let ev = |c: &Core| snap(c).collections.events.clone();
+    for (day, start, end) in [
+        (5, 10.0, 11.0),
+        (1, 7.0, 9.0),
+        (1, 17.0, 19.0),
+        (1, 11.0, 10.0),
+        (1, 10.0, 10.0),
+    ] {
+        append(
+            &a,
+            &s,
+            json!({"t": "event.create", "ev_id": "bad", "day": day, "start": start, "end": end, "title": "x", "where": "", "note": "", "meeting": false}),
+        );
+        assert!(ev(&a).is_empty(), "create {day} {start} {end} must drop");
+    }
+    append(
+        &a,
+        &s,
+        json!({"t": "event.create", "ev_id": "e1", "day": 4, "start": 17.0, "end": 18.0, "title": "Edge", "where": "", "note": "", "meeting": false}),
+    );
+    assert_eq!(ev(&a).len(), 1);
+    // The merged result is what must fit: moving only `end` before the stored start drops the update.
+    for patch in [
+        json!({"day": 5}),
+        json!({"end": 16.0}),
+        json!({"start": 18.0}),
+        json!({"end": 19.0}),
+    ] {
+        let mut raw = json!({"t": "event.update", "ev_id": "e1"});
+        raw.as_object_mut()
+            .unwrap()
+            .extend(patch.as_object().unwrap().clone());
+        append(&a, &s, raw);
+        let e = &ev(&a)[0];
+        assert_eq!((e.d, e.s, e.e), (4, 17.0, 18.0), "{patch} must drop");
+    }
+    assert_eq!(
+        ev(&a)[0].by.as_deref(),
+        Some(a.user_id().to_string().as_str())
+    );
+}
+
+#[test]
+fn card_update_rejects_bad_due_and_non_member_assignee() {
+    let (a, b, s, _d) = pair();
+    a.append(
+        &s,
+        EventBody::BoardCreate {
+            board_id: "b1".into(),
+            name: "Sprint".into(),
+            due: String::new(),
+            cols: vec![ColumnIn {
+                col_id: "todo".into(),
+                name: "Todo".into(),
+            }],
+        },
+    )
+    .unwrap();
+    append(
+        &a,
+        &s,
+        json!({"t": "card.create", "board_id": "b1", "card_id": "k1", "col_id": "todo", "title": "Ship", "tag": "x"}),
+    );
+    let card = |c: &Core| snap(c).collections.workboards[&s.to_string()].cols[0].cards[0].clone();
+    for due in ["2030-99-99", "2030-02-30", "2030-1-2", "soon"] {
+        append(
+            &a,
+            &s,
+            json!({"t": "card.update", "card_id": "k1", "title": "T", "due": due}),
+        );
+        let k = card(&a);
+        assert_eq!(
+            (k.title.as_str(), k.due),
+            ("Ship", None),
+            "due {due} must drop the update"
+        );
+    }
+    append(
+        &a,
+        &s,
+        json!({"t": "card.update", "card_id": "k1", "assignee": "stranger"}),
+    );
+    assert_eq!(card(&a).assignee, None);
+    let b_uid = b.user_id().to_string();
+    append(
+        &a,
+        &s,
+        json!({"t": "card.update", "card_id": "k1", "assignee": b_uid, "due": "2032-02-29"}),
+    );
+    let k = card(&a);
+    assert_eq!(
+        (k.assignee.as_deref(), k.due.as_deref()),
+        (Some(b_uid.as_str()), Some("2032-02-29"))
+    );
 }

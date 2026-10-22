@@ -2,7 +2,7 @@ import { anim, num } from '../../lib/format';
 import { blobUrl } from '../../lib/upload';
 import { isFollowing, toggleFollow } from '../../lib/follow';
 import { coll, type Post } from '../dataTypes';
-import { meId, personOf } from '../selectors';
+import { meId, personOf, roleIn } from '../selectors';
 import type { Ctx } from './context';
 import { ACCENT } from './css';
 
@@ -21,7 +21,8 @@ export function feedVm(x: Ctx) {
       likeFg: liked ? ACCENT : 'currentColor', saveFg: saved ? ACCENT : 'currentColor',
       heart: I('heart', 15, liked ? 2.2 : 1.6), mark: I('bookmark', 15, saved ? 2.2 : 1.6), saveLabel: saved ? 'Saved' : 'Save',
       onLike: () => { void s.toggleLike(p.id, sp); }, onSave: () => { void s.toggleSave(p.id, sp); },
-      comments: (p.comments ?? []).map((c) => ({ name: personOf(seed, c.by).name, t: c.t, text: c.text })),
+      canComment: roleIn(s, sp) !== 'guest',
+      comments: (p.comments ?? []).filter((c) => !s.blocked[c.by]).map((c) => ({ name: personOf(seed, c.by).name, t: c.t, text: c.text })),
       onComment: (text: string) => s.commentPost(p.id, sp, text),
       mine: p.by === me, onDelete: () => { void s.deletePost(p.id, sp); },
       following: isFollowing(p.by), onFollow: () => { toggleFollow(p.by); s.forceUpdate(); }, anim: anim(i),

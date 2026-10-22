@@ -32,10 +32,16 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
       const ok = await get().confirmAction({ title: 'Delete this post?', body: 'It disappears for everyone in this Space.', confirm: 'Delete', danger: true });
       if (ok) await appendEvent(get, spaceFor(space), { t: 'post.delete', post_id: id });
     },
-    commentPost: (id, space, text) => {
+    commentPost: async (id, space, text) => {
       const body = text.trim();
-      if (!body) return Promise.resolve(false);
-      return appendEvent(get, spaceFor(space), { t: 'message.post', channel_id: POST_COMMENT_CHANNEL, msg_id: uid('m'), text: body, attachments: [], target: id });
+      if (!body) return false;
+      const count = () => Object.values(coll(get().seed!, 'feed')).flat().find((p) => p.id === id)?.comments?.length ?? 0;
+      const before = count();
+      if (!await appendEvent(get, spaceFor(space), { t: 'message.post', channel_id: POST_COMMENT_CHANNEL, msg_id: uid('m'), text: body, attachments: [], target: id })) return false;
+      // The core drops a comment on a deleted post or from a guest without an error; say so instead of clearing the draft.
+      if (count() > before) return true;
+      get().showToast(COPY.comments.dropped, undefined, 'error');
+      return false;
     },
     markFeedSeen: (space) => set((s) => ({ feedSeen: withKey(s.feedSeen, space, true) })),
 

@@ -6,7 +6,7 @@ export interface FeedPost {
   id: string; title: string; by: string; byId: string; space: string; isNote: boolean; isMedia: boolean; isVideo: boolean; label: string; text?: string; dur?: string;
   h: string; likes: string; liked: boolean; saved: boolean; likeFg: string; saveFg: string; heart: ReactNode; mark: ReactNode; saveLabel: string;
   media: { url: string; mime: string; open: () => void } | null; mine: boolean; following: boolean;
-  comments: { name: string; t: string; text: string }[]; onComment: (text: string) => Promise<boolean>;
+  canComment: boolean; comments: { name: string; t: string; text: string }[]; onComment: (text: string) => Promise<boolean>;
   onLike: MouseEventHandler; onSave: MouseEventHandler; onDelete: MouseEventHandler; onFollow: MouseEventHandler; anim: string;
 }
 
@@ -63,10 +63,12 @@ export function FeedCard({ p, play, trash }: { p: FeedPost; play: ReactNode; tra
               {p.comments.map((c, i) => <li key={i} className={s.comment}><b>{c.name}</b> {c.text} <span className={s.commentT}>{c.t}</span></li>)}
             </ul>
           )}
-          <form className={s.commentForm} onSubmit={send}>
-            <input className={s.commentInput} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label={COPY.comments.field} placeholder={COPY.comments.field} />
-            <button type="submit" className={s.follow} disabled={!draft.trim() || busy}>{COPY.comments.send}</button>
-          </form>
+          {p.canComment && (
+            <form className={s.commentForm} onSubmit={send}>
+              <input className={s.commentInput} value={draft} onChange={(e) => setDraft(e.target.value)} aria-label={COPY.comments.field} placeholder={COPY.comments.field} />
+              <button type="submit" className={s.follow} disabled={!draft.trim() || busy}>{COPY.comments.send}</button>
+            </form>
+          )}
         </div>
       )}
     </article>

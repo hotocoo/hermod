@@ -21,6 +21,21 @@ pub type Ord3 = (u64, [u8; 32], u64);
 /// Upper bound on fold passes while [`Prior`] settles; it normally does after one or two.
 pub const MAX_FOLD_PASSES: usize = 4;
 
+// Calendar grid an event must sit in; mirrors CALENDAR in src/config/app.ts (Mon..Fri, 08:00 to 18:00).
+const EVENT_DAYS: u32 = 5;
+const EVENT_FIRST_HOUR: f64 = 8.0;
+const EVENT_LAST_HOUR: f64 = 18.0;
+
+/// A slot the calendar can draw: a real day, and a non-empty span inside the grid hours.
+fn slot_ok(day: u32, start: f64, end: f64) -> bool {
+    day < EVENT_DAYS && start >= EVENT_FIRST_HOUR && end <= EVENT_LAST_HOUR && end > start
+}
+
+/// `YYYY-MM-DD` naming a real calendar day (chrono alone also accepts `2030-1-2`).
+fn real_date(d: &str) -> bool {
+    d.len() == 10 && chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").is_ok()
+}
+
 /// Facts one fold pass derives from authorized events that the next pass applies independent of
 /// fold position, so an author-chosen lamport cannot place an event before the fact that kills it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -1133,6 +1148,14 @@ impl SpaceState {
                 assignee,
                 due,
             } => {
+                // A peer can send anything: an assignee must be a current member, a due a real date.
+                let assignee_ok = assignee
+                    .as_deref()
+                    .is_none_or(|a| a.is_empty() || self.role_of(a).is_some());
+                let due_ok = due.as_deref().is_none_or(|d| d.is_empty() || real_date(d));
+                if !assignee_ok || !due_ok {
+                    return;
+                }
                 if let Some(c) = self
                     .boards
                     .iter_mut()
@@ -1255,6 +1278,9 @@ impl SpaceState {
                 note,
                 meeting,
             } => {
+                if !slot_ok(*day, *start, *end) {
+                    return;
+                }
                 if !self.cal.iter().any(|c| &c.id == ev_id) {
                     self.cal.push(CalSt {
                         id: ev_id.clone(),
@@ -1296,6 +1322,9 @@ impl SpaceState {
                     .iter_mut()
                     .find(|c| &c.id == ev_id && (c.by == by || admin))
                 {
+                    if !slot_ok(day.unwrap_or(c.d), start.unwrap_or(c.s), end.unwrap_or(c.e)) {
+                        return;
+                    }
                     if let Some(v) = day {
                         c.d = *v;
                     }

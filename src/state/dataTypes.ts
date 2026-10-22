@@ -72,7 +72,7 @@ export interface Doc {
   comments: { by: string; on: string; text: string }[]; versions: { t: string; seal: string }[];
 }
 export interface CalEvent {
-  spaceId?: string; going?: boolean; id: string; d: number; s: number; e: number; t: string; where: string; meeting?: boolean; note: string;
+  spaceId?: string; going?: boolean; id: string; /** Author user id; only they or an admin can edit it. */ by?: string; d: number; s: number; e: number; t: string; where: string; meeting?: boolean; note: string;
   people: string[]; fresh?: boolean;
 }
 export interface Letter { by: string; ch: string; text: string }

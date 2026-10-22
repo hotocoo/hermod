@@ -1,11 +1,20 @@
 /** User-facing strings the state layer writes (toasts, labels). */
 export const COPY = {
-  card: { unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.' },
+  card: {
+    unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.',
+    editTitle: 'Edit card', assignedTo: 'Assigned to', dueLabel: 'Due', due: (d: string) => `Due ${d}`,
+  },
+  event: {
+    editTitle: 'Edit meeting', edit: 'Edit meeting',
+    length: (h: number) => ({ 0.5: '30 minutes', 1: '1 hour', 2: '2 hours' } as Record<number, string>)[h] ?? `${h} hours`,
+    outsideGrid: 'That meeting runs past the end of the calendar day. Pick an earlier start or a shorter length.',
+  },
   comments: {
     toggle: (n: number) => (n ? `${n} ${n === 1 ? 'comment' : 'comments'}` : 'Comment'),
     list: 'Comments',
     field: 'Add a comment',
     send: 'Post',
+    dropped: 'The comment did not land. The post may have been deleted, or you cannot comment here.',
   },
   syncPending: (n: string, offline: boolean, alone: boolean) => (offline ? `${n} to sync, offline` : alone ? `${n} saved here, no peer online` : `${n} to sync`),
   syncPendingTitle: 'Changes made here that other peers have not received yet',

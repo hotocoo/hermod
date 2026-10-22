@@ -76,10 +76,11 @@ Total order for folding: `(lamport, author, seq)`. Folding is deterministic, so 
 | meeting.start / meeting.end | topic, agenda[] | hearth meetings |
 | agenda.toggle / note.add | idx / text | hearth meetings |
 | board.create / column.create | board_id, name, due, cols[{col_id,name}] / board_id, col_id, name | board |
-| card.create / card.move / card.update | card_id, col_id, title, tag, snap? | board |
+| card.create / card.move / card.update | card_id, col_id, title, tag, snap?; update also assignee? (member id, empty clears), due? (`YYYY-MM-DD`, empty clears); absent fields stay, an assignee who is not a member or a due that is not a real date drops the update | board |
 | pinboard.create / pin.add | board_id, name / blob, title, label | pinboards |
 | doc.create / doc.block | doc_id, title, kicker / doc_id, op (insert/update/delete/toggle), block_id, block?, after? | docs |
 | event.create / event.rsvp | ev_id, day, start, end, title, where, note, meeting | calendar |
+| event.update | ev_id, then any of day, start, end, title, where, note, meeting (absent stays; author or admin only; a day, start or end outside the grid or end <= start drops it) | calendar |
 | line.create | line_id, name, note, from_line | skein |
 | snap.create | snap_id, line_id, title, kind, files[{path, blob, adds, dels}], parent? | skein |
 | line.weave | line_id, into | skein |
@@ -90,7 +91,8 @@ Total order for folding: `(lamport, author, seq)`. Folding is deterministic, so 
 | content.remove / content.report | target_id, reason? | moderation (added by feature audit) |
 | story.reply / story.love | story_id, text? | stories (added by feature audit) |
 | doc.comment | doc_id, block_id, text | docs (added by feature audit) |
-| event.cancel / post.delete / card.delete / message.pin | target id | lifecycle (added by feature audit) |
+| event.cancel / post.delete / card.delete / message.pin | ev_id / post_id / card_id / msg_id | lifecycle (added by feature audit) |
+| message.post with `target` | post_id as `target`; `channel_id` is ignored; a comment on a missing or deleted post, or from a guest, is dropped | post comments (F-008) |
 | read.mark | channel_id, upto | optional receipts (added by feature audit) |
 | device.link / device.revoke | device_pub, cert / device_pub | multi-device (added by feature audit) |
 | (extended) post.create chapters[], captions; message.post mentions[], preview?, target?; profile.set x25519; event header epoch | | added by feature audit |

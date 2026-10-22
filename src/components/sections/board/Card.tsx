@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type MouseEventHandler, type ReactNode } from 'react';
+import { COPY } from '@/config/copy';
 import { Icon } from '@/components/ui/Icon';
 import s from './board.module.css';
 
@@ -26,7 +27,7 @@ export function Card({ cd, line }: { cd: BoardCard; line: ReactNode }) {
       onDragEnd={() => setDrag(false)}>
       <span className={s.tag}>{cd.tag}</span>
       <div className={s.cardTitle}>{cd.title}</div>
-      {(cd.assignee || cd.due) && <div className={s.assign}>{cd.assignee && <span>{cd.assignee}</span>}{cd.due && <span>Due {cd.due}</span>}</div>}
+      {(cd.assignee || cd.due) && <div className={s.assign}>{cd.assignee && <span>{cd.assignee}</span>}{cd.due && <span>{COPY.card.due(cd.due)}</span>}</div>}
       {cd.hasSnap && <button type="button" className={s.snap} onClick={cd.onSnap}>{line}<span className={s.snapTitle}>{cd.snapTitle}</span></button>}
       <div className={s.foot}>
         <span className={s.who} title={cd.name}>{cd.initials}</span>

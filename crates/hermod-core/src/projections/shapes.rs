@@ -469,6 +469,9 @@ pub struct CalEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub going: Option<bool>,
     pub id: String,
+    /// User id of the author; only they or an admin can edit or cancel it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
     pub d: u32,
     pub s: f64,
     pub e: f64,

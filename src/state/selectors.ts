@@ -10,6 +10,9 @@ export const meId = (s: Pick<AppStore, 'me'>): string => s.me?.user_id ?? '';
 export const initialsOf = (name: string): string => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 /** A person from the snapshot; ids the core has not seen (yet) get their short handle. */
 export const personOf = (seed: Seed, id: string): Person => seed.people[id] ?? { name: id.slice(0, 8), i: initialsOf(id), role: '' };
+/** The signed-in user's role in a Space (undefined for Home and unknown Spaces). */
+export const roleIn = (s: Pick<AppStore, 'spaces'>, spaceId: string) => s.spaces.find((q) => q.id === spaceId)?.role;
+export const isAdminRole = (role?: string) => role === 'owner' || role === 'admin';
 export const curSpace = (s: AppStore): Space => spaceOf(s.spaces, s.space);
 /** Home is the personal Space (no members, DMs only). */
 export const isHomeSpace = (sp: Space) => sp.kind === HOME_KIND;

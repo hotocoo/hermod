@@ -278,7 +278,9 @@ test.describe('calendar (V-028..V-030)', () => {
     await expect(a.getByRole('heading', { name: renamed })).toBeVisible();
     await expect(b.getByRole('button', { name: new RegExp(renamed) })).toBeVisible(sync);
     await b.getByRole('button', { name: new RegExp(renamed) }).click();
-    await expect(b.getByRole('button', { name: 'Edit meeting' })).toBeVisible();
+    // B is a member, not the author or an admin: the core would drop their edit, so the buttons are hidden.
+    await expect(b.getByRole('button', { name: 'Edit meeting' })).toHaveCount(0);
+    await expect(b.getByRole('button', { name: 'Cancel meeting' })).toHaveCount(0);
 
     await btn(a, 'Cancel meeting').click();
     await a.getByRole('dialog').getByRole('button', { name: 'Cancel meeting' }).click();

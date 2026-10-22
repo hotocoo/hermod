@@ -131,6 +131,10 @@ export const CALENDAR = {
   hourPx: 52,
   minEventPx: 26,
   eventGapPx: 4,
+  /** Event lengths in hours the edit form offers. */
+  lengths: [0.5, 1, 2],
+  /** Place that turns an event into a meeting joined in the Hearth room. */
+  hearthPlace: 'The Hearth',
 } as const;
 
 export const POSTCARD = {

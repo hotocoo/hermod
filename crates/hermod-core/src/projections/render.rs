@@ -1076,6 +1076,7 @@ impl<'a> World<'a> {
                 space_id: Some(self.label(s)),
                 going: c.people.contains(&self.me).then_some(true),
                 id: c.id.clone(),
+                by: Some(c.by.clone()),
                 d: c.d,
                 s: c.s,
                 e: c.e,

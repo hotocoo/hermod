@@ -680,8 +680,8 @@ fn search_finds_across_types_and_honours_removal_and_blocks() {
         EventBody::EventCreate {
             ev_id: "e".into(),
             day: 1,
-            start: 1.0,
-            end: 2.0,
+            start: 9.0,
+            end: 10.0,
             title: "Open the kiln".into(),
             place: "Studio".into(),
             note: "".into(),
