@@ -65,6 +65,7 @@ pub enum Internal {
         more: bool,
     },
     BlobServed {
+        peer: PeerId,
         channel: ResponseChannel<BlobResp>,
         resp: BlobResp,
     },
@@ -153,6 +154,10 @@ pub struct Driver {
     pub event_rate: RateMap,
     pub eph_in_rate: RateMap,
     pub eph_out_rate: RateMap,
+    pub sync_in_rate: RateMap,
+    pub signal_in_rate: RateMap,
+    /// Blob requests currently being served, per requesting peer.
+    pub serving: HashMap<PeerId, u32>,
     pub bytes_in: u64,
     pub bytes_out: u64,
     pub last_bytes: (u64, u64, Instant),
@@ -210,6 +215,9 @@ impl Driver {
             event_rate: RateMap::new(100.0, 400.0),
             eph_in_rate: RateMap::new(20.0, 60.0),
             eph_out_rate: RateMap::new(20.0, 60.0),
+            sync_in_rate: RateMap::new(SYNC_IN_RATE.0, SYNC_IN_RATE.1),
+            signal_in_rate: RateMap::new(SIGNAL_IN_RATE.0, SIGNAL_IN_RATE.1),
+            serving: HashMap::new(),
             bytes_in: 0,
             bytes_out: 0,
             last_bytes: (0, 0, Instant::now()),
@@ -489,7 +497,7 @@ impl Driver {
         if !self.spaces.contains(&space) {
             return Err(NodeError::Invalid("space not joined".into()));
         }
-        if kind.len() > 32 || payload.len() > MAX_EPHEMERAL_BYTES {
+        if kind.len() > MAX_EPHEMERAL_KIND || payload.len() > MAX_EPHEMERAL_BYTES {
             return Err(NodeError::Invalid("ephemeral message too large".into()));
         }
         if !self.eph_out_rate.allow(&hex::encode(space)) {
@@ -698,6 +706,8 @@ impl Driver {
         self.event_rate.gc();
         self.eph_in_rate.gc();
         self.eph_out_rate.gc();
+        self.sync_in_rate.gc();
+        self.signal_in_rate.gc();
         self.flush_book();
     }
 
@@ -786,6 +796,8 @@ impl Driver {
                     }
                 }
                 self.sync_inflight.retain(|(p, _)| *p != peer_id);
+                self.peer_addrs.remove(&peer_id);
+                self.relay_hops.remove(&peer_id);
                 self.report_sync();
             }
             SwarmEvent::OutgoingConnectionError {
@@ -947,7 +959,7 @@ impl Driver {
         }
     }
 
-    fn strike(&mut self, peer: PeerId) {
+    pub fn strike(&mut self, peer: PeerId) {
         let n = self.strikes.entry(peer).or_default();
         *n += 1;
         if *n >= STRIKE_LIMIT {
@@ -1019,15 +1031,22 @@ impl Driver {
                 });
             }
             Some(Gossip::Provide(blob)) => {
-                let v = self.providers.entry(blob).or_default();
-                if !v.contains(&src) && v.len() < 32 {
-                    v.push(src);
+                // Only for blobs we are fetching: otherwise a peer could grow the map at will.
+                if self.jobs.contains_key(&blob) {
+                    let v = self.providers.entry(blob).or_default();
+                    if !v.contains(&src) && v.len() < MAX_PROVIDERS_PER_BLOB {
+                        v.push(src);
+                    }
+                    self.pump_job(&blob);
                 }
-                self.pump_job(&blob);
             }
             Some(Gossip::Signal { to, payload }) => {
                 let mine = to.as_deref().is_none_or(|t| t == self.local.to_string());
-                if mine && src != self.local && payload.len() <= MAX_SIGNAL_BYTES {
+                if mine
+                    && src != self.local
+                    && payload.len() <= MAX_SIGNAL_BYTES
+                    && self.signal_allowed(space, src)
+                {
                     self.emit(NodeEvent::Signal {
                         space,
                         from: src,
@@ -1039,12 +1058,28 @@ impl Driver {
         }
     }
 
+    /// A signal is accepted only from a known member of the space within its rate budget.
+    pub fn signal_allowed(&mut self, space: SpaceId, peer: PeerId) -> bool {
+        if !self
+            .space_peers
+            .get(&space)
+            .is_some_and(|p| p.contains(&peer))
+        {
+            return false;
+        }
+        if !self.signal_in_rate.allow(&peer.to_string()) {
+            self.strike(peer);
+            return false;
+        }
+        true
+    }
+
     fn on_ephemeral(&mut self, space: SpaceId, src: PeerId, data: &[u8]) {
         if !self.eph_in_rate.allow(&src.to_string()) {
             return;
         }
         if let Some(e) = decode::<Ephemeral>(data)
-            && e.payload.len() <= MAX_EPHEMERAL_BYTES
+            && e.fits()
         {
             self.emit(NodeEvent::Ephemeral {
                 space,
@@ -1065,8 +1100,9 @@ impl Driver {
             ..
         } = e
         {
-            let ok =
-                self.spaces.contains(&request.space) && request.payload.len() <= MAX_SIGNAL_BYTES;
+            let ok = self.spaces.contains(&request.space)
+                && request.payload.len() <= MAX_SIGNAL_BYTES
+                && self.signal_allowed(request.space, peer);
             self.bytes_in += request.payload.len() as u64;
             if ok {
                 self.emit(NodeEvent::Signal {
@@ -1141,7 +1177,12 @@ impl Driver {
                 }
                 self.report_sync();
             }
-            Internal::BlobServed { channel, resp } => {
+            Internal::BlobServed {
+                peer,
+                channel,
+                resp,
+            } => {
+                crate::blobjob::release_serve(&mut self.serving, peer);
                 self.bytes_out += resp.data.as_ref().map_or(0, |d| d.len() as u64);
                 let _ = self.swarm.behaviour_mut().blob.send_response(channel, resp);
             }

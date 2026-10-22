@@ -416,3 +416,56 @@ fn limits_clamp_to_ceilings() {
     assert_eq!(l.relay_bandwidth_bps, 2 * 1024 * 1024);
     assert_eq!(l.max_connections, 256);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn backfill_pages_through_the_sync_limit() {
+    let a = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    let n = hermod_node::proto::SYNC_PAGE_EVENTS as u64 * 2 + 5;
+    for seq in 1..=n {
+        a.store.add_event("alice", seq);
+    }
+    a.h.join_space(SPACE).await.unwrap();
+    c.h.join_space(SPACE).await.unwrap();
+    c.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+    until("C pulls every page", || c.store.count() == n as usize).await;
+    for p in [&a, &c] {
+        p.h.shutdown().await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn signal_flood_is_rate_limited() {
+    let a = spawn(test_cfg()).await;
+    let mut b = spawn(test_cfg()).await;
+    a.h.join_space(SPACE).await.unwrap();
+    b.h.join_space(SPACE).await.unwrap();
+    let b_id = b.h.peer_id();
+    b.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+    // Signals are dropped until B has seen A subscribe, so probe until one gets through.
+    within("first signal", async {
+        loop {
+            a.h.send_signal(SPACE, Some(b_id), vec![1]).await.unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            while let Ok(e) = b.events.try_recv() {
+                if matches!(e, NodeEvent::Signal { .. }) {
+                    return;
+                }
+            }
+        }
+    })
+    .await;
+    let burst = hermod_node::proto::SIGNAL_IN_RATE.1 as usize;
+    for _ in 0..burst * 4 {
+        a.h.send_signal(SPACE, Some(b_id), vec![1]).await.unwrap();
+    }
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    let mut got = 0;
+    while let Ok(e) = b.events.try_recv() {
+        got += matches!(e, NodeEvent::Signal { .. }) as usize;
+    }
+    assert!(got > 0 && got <= burst + 10, "got {got} signals");
+    for p in [&a, &b] {
+        p.h.shutdown().await;
+    }
+}
