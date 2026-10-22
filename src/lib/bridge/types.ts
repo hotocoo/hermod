@@ -118,7 +118,7 @@ export type EventBody =
   | { t: 'column.create'; board_id: string; col_id: string; name: string }
   | { t: 'card.create'; board_id: string; card_id: string; col_id: string; title: string; tag: string; snap?: string }
   | { t: 'card.move'; card_id: string; col_id: string }
-  | { t: 'card.update'; card_id: string; title?: string; tag?: string; snap?: string }
+  | { t: 'card.update'; card_id: string; title?: string; tag?: string; snap?: string; assignee?: string; due?: string }
   | { t: 'pinboard.create'; board_id: string; name: string }
   | { t: 'pin.add'; board_id: string; blob: BlobRef; title: string; label: string }
   | { t: 'doc.create'; doc_id: string; title: string; kicker: string }
@@ -139,9 +139,10 @@ export type EventBody =
   | { t: 'story.reply'; story_id: string; text: string }
   | { t: 'story.love'; story_id: string }
   | { t: 'doc.comment'; doc_id: string; block_id: string; text: string }
-  | { t: 'event.cancel'; target_id: string }
-  | { t: 'post.delete'; target_id: string }
-  | { t: 'card.delete'; target_id: string }
+  | { t: 'event.cancel'; ev_id: string }
+  | { t: 'event.update'; ev_id: string; day?: number; start?: number; end?: number; title?: string; where?: string; note?: string; meeting?: boolean }
+  | { t: 'post.delete'; post_id: string }
+  | { t: 'card.delete'; card_id: string }
   | { t: 'message.pin'; msg_id: string }
   | { t: 'read.mark'; channel_id: string; upto: number }
   | { t: 'message.viewed'; msg_id: string }

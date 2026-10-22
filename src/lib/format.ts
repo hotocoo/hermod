@@ -13,6 +13,11 @@ export const dur = (ms: number) => {
 export const fmtSec = (sec: number) => `${Math.floor(sec / 60)}:${pad(Math.floor(sec % 60))}`;
 /** hh:mm with half-hour precision for calendar events (30 or 00). */
 export const fmtHalfHour = (h: number) => `${pad(Math.floor(h))}:${h % 1 ? '30' : '00'}`;
+/** True for a real calendar day written `YYYY-MM-DD` (rejects `2030-02-30`, `2030-99-99`). */
+export const isIsoDate = (s: string) => {
+  const d = new Date(`${s}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+};
 export const num = (n: number) => n.toLocaleString('en');
 /** "1 card", "3 cards"; pass `many` for irregular plurals. */
 export const count = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;

@@ -118,6 +118,32 @@ test.describe('feed (F-001..F-005, F-009)', () => {
     await b.keyboard.press('Escape');
     await expect(box).toBeHidden();
   });
+
+  test('B comments on A\'s post and both see it; A deletes the post and it leaves both feeds (F-007, F-008)', async () => {
+    const title = unique('Doomed note');
+    const comment = unique('lovely glaze');
+    await btn(a, 'New post').click();
+    await a.getByRole('radiogroup', { name: 'Kind of post' }).getByText('Note', { exact: true }).click();
+    await a.getByLabel('Title (required)').fill(title);
+    await a.getByLabel('Note (required)').fill('short lived');
+    await btn(a, 'Publish').click();
+    const onA = a.getByRole('article', { name: title });
+    const onB = b.getByRole('article', { name: title });
+    await expect(onB).toBeVisible(sync);
+
+    await onB.getByRole('button', { name: 'Comment', exact: true }).click();
+    await onB.getByLabel('Add a comment').fill(comment);
+    await onB.getByRole('button', { name: 'Post', exact: true }).click();
+    await expect(onB.getByText(comment)).toBeVisible();
+    await expect(onA.getByRole('button', { name: '1 comment' })).toBeVisible(sync);
+    await onA.getByRole('button', { name: '1 comment' }).click();
+    await expect(onA.getByText(comment)).toBeVisible();
+
+    await onA.getByRole('button', { name: 'Delete this post' }).click();
+    await a.getByRole('dialog').getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(onA).toHaveCount(0);
+    await expect(onB).toHaveCount(0, sync);
+  });
 });
 
 test.describe('stories (V-016, V-017)', () => {
@@ -242,6 +268,25 @@ test.describe('calendar (V-028..V-030)', () => {
     await expect(b.getByText(/Bo Tester/).last()).toBeVisible();
     await expect(a.getByText(/Bo Tester/).last()).toBeVisible(sync);
   });
+
+  test('A edits the meeting, B sees the new title; A cancels it and it leaves both calendars (V-033)', async () => {
+    const renamed = unique('Glaze retro');
+    await btn(a, 'Edit meeting').click();
+    await a.getByLabel('Title (required)').fill(renamed);
+    await a.getByLabel('Where').fill('The Kiln');
+    await btn(a, /^Save$/).click();
+    await expect(a.getByRole('heading', { name: renamed })).toBeVisible();
+    await expect(b.getByRole('button', { name: new RegExp(renamed) })).toBeVisible(sync);
+    await b.getByRole('button', { name: new RegExp(renamed) }).click();
+    // B is a member, not the author or an admin: the core would drop their edit, so the buttons are hidden.
+    await expect(b.getByRole('button', { name: 'Edit meeting' })).toHaveCount(0);
+    await expect(b.getByRole('button', { name: 'Cancel meeting' })).toHaveCount(0);
+
+    await btn(a, 'Cancel meeting').click();
+    await a.getByRole('dialog').getByRole('button', { name: 'Cancel meeting' }).click();
+    await expect(a.getByRole('button', { name: new RegExp(renamed) })).toHaveCount(0);
+    await expect(b.getByRole('button', { name: new RegExp(renamed) })).toHaveCount(0, sync);
+  });
 });
 
 test.describe('board (B-001..B-005, B-007)', () => {
@@ -294,6 +339,20 @@ test.describe('board (B-001..B-005, B-007)', () => {
     const settled = await where(a);
     await a.waitForTimeout(2_000);
     expect([await where(a), await where(b)]).toEqual([settled, settled]);
+  });
+
+  test('assign and due date show on the peer; delete removes the card for both (B-006)', async () => {
+    await a.getByRole('button', { name: `Edit ${card}` }).click();
+    await a.getByLabel('Assigned to').selectOption({ label: 'Bo Tester' });
+    await a.getByLabel('Due').fill('2030-01-31');
+    await btn(a, /^Save$/).click();
+    const onB = b.locator('div').filter({ hasText: card }).filter({ hasText: 'Due 2030-01-31' }).last();
+    await expect(onB).toContainText('Bo Tester', sync);
+
+    await a.getByRole('button', { name: `Delete ${card}` }).click();
+    await a.getByRole('dialog').getByRole('button', { name: 'Delete', exact: true }).click();
+    await expect(a.getByText(card)).toHaveCount(0);
+    await expect(b.getByText(card)).toHaveCount(0, sync);
   });
 });
 

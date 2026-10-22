@@ -19,6 +19,9 @@ export const HOME_ID = 'home';
 /** Kind of a direct or group message Space (made by `dm_start`, shared only by its members). */
 export const DM_KIND = 'dm';
 
+/** `channel_id` a post comment carries. The core files comments under the post, not in a channel, and ignores it. */
+export const POST_COMMENT_CHANNEL = '';
+
 export const TIMING = {
   introMs: 3400,
   onboardingDelayMs: 3900,
@@ -120,6 +123,9 @@ export const MEDIA = {
 
 export const PROFILE_GRID = { max: 12 } as const;
 
+/** Card due dates are typed as `YYYY-MM-DD` and stored as that label. */
+export const CARD = { dueFormat: /^\d{4}-\d{2}-\d{2}$/ } as const;
+
 export const CALENDAR = {
   days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
   hours: ['08', '09', '10', '11', '12', '13', '14', '15', '16', '17'],
@@ -127,6 +133,10 @@ export const CALENDAR = {
   hourPx: 52,
   minEventPx: 26,
   eventGapPx: 4,
+  /** Event lengths in hours the edit form offers. */
+  lengths: [0.5, 1, 2],
+  /** Place that turns an event into a meeting joined in the Hearth room. */
+  hearthPlace: 'The Hearth',
 } as const;
 
 export const POSTCARD = {

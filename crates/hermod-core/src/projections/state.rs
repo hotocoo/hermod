@@ -21,6 +21,21 @@ pub type Ord3 = (u64, [u8; 32], u64);
 /// Upper bound on fold passes while [`Prior`] settles; it normally does after one or two.
 pub const MAX_FOLD_PASSES: usize = 4;
 
+// Calendar grid an event must sit in; mirrors CALENDAR in src/config/app.ts (Mon..Fri, 08:00 to 18:00).
+const EVENT_DAYS: u32 = 5;
+const EVENT_FIRST_HOUR: f64 = 8.0;
+const EVENT_LAST_HOUR: f64 = 18.0;
+
+/// A slot the calendar can draw: a real day, and a non-empty span inside the grid hours.
+fn slot_ok(day: u32, start: f64, end: f64) -> bool {
+    day < EVENT_DAYS && start >= EVENT_FIRST_HOUR && end <= EVENT_LAST_HOUR && end > start
+}
+
+/// `YYYY-MM-DD` naming a real calendar day (chrono alone also accepts `2030-1-2`).
+fn real_date(d: &str) -> bool {
+    d.len() == 10 && chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").is_ok()
+}
+
 /// Facts one fold pass derives from authorized events that the next pass applies independent of
 /// fold position, so an author-chosen lamport cannot place an event before the fact that kills it.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -154,6 +169,8 @@ pub struct CardSt {
     pub tag: String,
     pub by: String,
     pub snap: Option<String>,
+    pub assignee: Option<String>,
+    pub due: Option<String>,
     pub ts: i64,
 }
 
@@ -1115,6 +1132,8 @@ impl SpaceState {
                         tag: tag.clone(),
                         by: by.to_string(),
                         snap: snap.clone(),
+                        assignee: None,
+                        due: None,
                         ts,
                     });
                     self.counts.board += 1;
@@ -1126,7 +1145,17 @@ impl SpaceState {
                 title,
                 tag,
                 snap,
+                assignee,
+                due,
             } => {
+                // A peer can send anything: an assignee must be a current member, a due a real date.
+                let assignee_ok = assignee
+                    .as_deref()
+                    .is_none_or(|a| a.is_empty() || self.role_of(a).is_some());
+                let due_ok = due.as_deref().is_none_or(|d| d.is_empty() || real_date(d));
+                if !assignee_ok || !due_ok {
+                    return;
+                }
                 if let Some(c) = self
                     .boards
                     .iter_mut()
@@ -1142,6 +1171,13 @@ impl SpaceState {
                     }
                     if snap.is_some() {
                         c.snap = snap.clone();
+                    }
+                    // Empty string clears; absent leaves the field alone.
+                    if let Some(a) = assignee {
+                        c.assignee = Some(a.clone()).filter(|a| !a.is_empty());
+                    }
+                    if let Some(d) = due {
+                        c.due = Some(d.clone()).filter(|d| !d.is_empty());
                     }
                 }
             }
@@ -1242,6 +1278,9 @@ impl SpaceState {
                 note,
                 meeting,
             } => {
+                if !slot_ok(*day, *start, *end) {
+                    return;
+                }
                 if !self.cal.iter().any(|c| &c.id == ev_id) {
                     self.cal.push(CalSt {
                         id: ev_id.clone(),
@@ -1264,6 +1303,48 @@ impl SpaceState {
                             c.people.remove(i);
                         }
                         None => c.people.push(by.to_string()),
+                    }
+                }
+            }
+            EventBody::EventUpdate {
+                ev_id,
+                day,
+                start,
+                end,
+                title,
+                place,
+                note,
+                meeting,
+            } => {
+                let admin = my_role >= Some(Role::Admin);
+                if let Some(c) = self
+                    .cal
+                    .iter_mut()
+                    .find(|c| &c.id == ev_id && (c.by == by || admin))
+                {
+                    if !slot_ok(day.unwrap_or(c.d), start.unwrap_or(c.s), end.unwrap_or(c.e)) {
+                        return;
+                    }
+                    if let Some(v) = day {
+                        c.d = *v;
+                    }
+                    if let Some(v) = start {
+                        c.s = *v;
+                    }
+                    if let Some(v) = end {
+                        c.e = *v;
+                    }
+                    if let Some(v) = title {
+                        c.title = v.clone();
+                    }
+                    if let Some(v) = place {
+                        c.place = v.clone();
+                    }
+                    if let Some(v) = note {
+                        c.note = v.clone();
+                    }
+                    if let Some(v) = meeting {
+                        c.meeting = *v;
                     }
                 }
             }

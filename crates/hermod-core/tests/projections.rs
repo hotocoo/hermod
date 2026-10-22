@@ -260,6 +260,8 @@ fn studio() -> Studio {
             title: Some("Fireflies at low health".into()),
             tag: None,
             snap: None,
+            assignee: None,
+            due: None,
         },
     );
 

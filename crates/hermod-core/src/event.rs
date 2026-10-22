@@ -595,6 +595,12 @@ pub enum EventBody {
         tag: Option<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         snap: Option<String>,
+        /// User id of the assignee; empty string unassigns; absent leaves it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        assignee: Option<String>,
+        /// Due date label (`YYYY-MM-DD`); empty string clears it; absent leaves it.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        due: Option<String>,
     },
     #[serde(rename = "card.delete")]
     CardDelete { card_id: String },
@@ -651,6 +657,25 @@ pub enum EventBody {
     EventRsvp { ev_id: String },
     #[serde(rename = "event.cancel")]
     EventCancel { ev_id: String },
+    /// Edits an event; absent fields stay as they are.
+    #[serde(rename = "event.update")]
+    EventUpdate {
+        ev_id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        day: Option<u32>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        start: Option<f64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        end: Option<f64>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        title: Option<String>,
+        #[serde(rename = "where", default, skip_serializing_if = "Option::is_none")]
+        place: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        note: Option<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        meeting: Option<bool>,
+    },
     #[serde(rename = "line.create")]
     LineCreate {
         line_id: String,
@@ -1147,6 +1172,24 @@ mod tests {
                 place: "p".into(),
                 note: "".into(),
                 meeting: true,
+            },
+            EventBody::EventUpdate {
+                ev_id: "e".into(),
+                day: Some(2),
+                start: Some(9.5),
+                end: None,
+                title: Some("t".into()),
+                place: Some("p".into()),
+                note: None,
+                meeting: Some(false),
+            },
+            EventBody::CardUpdate {
+                card_id: "k".into(),
+                title: None,
+                tag: None,
+                snap: None,
+                assignee: Some("u".into()),
+                due: Some("2030-01-02".into()),
             },
             EventBody::StoryCreate {
                 story_id: "s".into(),

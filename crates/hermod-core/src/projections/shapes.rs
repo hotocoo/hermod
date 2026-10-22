@@ -206,6 +206,12 @@ pub struct Card {
     pub by: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snap: Option<String>,
+    /// User id the card is assigned to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assignee: Option<String>,
+    /// Due date label (`YYYY-MM-DD`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub due: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fresh: Option<bool>,
 }
@@ -467,6 +473,9 @@ pub struct CalEvent {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub going: Option<bool>,
     pub id: String,
+    /// User id of the author; only they or an admin can edit or cancel it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub by: Option<String>,
     pub d: u32,
     pub s: f64,
     pub e: f64,

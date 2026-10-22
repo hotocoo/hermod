@@ -32,7 +32,7 @@ export interface Room {
 export interface AgendaSeed { text: string; who: string }
 export interface AgendaItem extends AgendaSeed { done: boolean; cur: boolean }
 export interface Note { by: string; t: string; text: string }
-export interface Card { id: string; title: string; tag: string; by: string; snap?: string; fresh?: boolean }
+export interface Card { id: string; title: string; tag: string; by: string; snap?: string; assignee?: string; due?: string; fresh?: boolean }
 export interface Column { id: string; name: string; cards: Card[] }
 export interface WorkBoard { id?: string; name: string; due: string; cols: Column[] }
 export interface SkeinLine { id: string; name: string; note: string; ahead: number; by?: string }
@@ -49,6 +49,7 @@ export interface Skein { repo: string; blurb: string; lines: SkeinLine[]; snaps:
 export interface Post {
   id: string; by: string; space: string; title: string; kind: string; h: number; label: string; likes: number;
   text?: string; dur?: string; blob?: BlobRef; liked?: boolean; saved?: boolean;
+  comments?: { by: string; t: string; text: string }[];
   /** Space label (`home` or hex id) the post lives in; Home's feed mixes spaces. */
   spaceId?: string;
 }
@@ -71,7 +72,7 @@ export interface Doc {
   comments: { by: string; on: string; text: string }[]; versions: { t: string; seal: string }[];
 }
 export interface CalEvent {
-  spaceId?: string; going?: boolean; id: string; d: number; s: number; e: number; t: string; where: string; meeting?: boolean; note: string;
+  spaceId?: string; going?: boolean; id: string; /** Author user id; only they or an admin can edit it. */ by?: string; d: number; s: number; e: number; t: string; where: string; meeting?: boolean; note: string;
   people: string[]; fresh?: boolean;
 }
 export interface Letter { by: string; ch: string; text: string }

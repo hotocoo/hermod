@@ -6,7 +6,7 @@ import { appendEvent, uid } from '../act';
 import { coll } from '../dataTypes';
 import type { InputEvt } from '../types';
 import { effectiveProfile, profileStats } from '../profile';
-import { meId, personOf, todayIndex } from '../selectors';
+import { isAdminRole, meId, personOf, roleIn, todayIndex } from '../selectors';
 import type { AppStore } from '../types';
 import type { Ctx } from './context';
 import { ACCENT, DIVIDER, fgOf, mixAccent } from './css';
@@ -96,9 +96,9 @@ function calendarVm(x: Ctx) {
     evSel: !!sel, evNone: !sel,
     ev1: sel ? {
       t: sel.t, day: days[sel.d], time: `${fmtHalfHour(sel.s)}–${fmtHalfHour(sel.e)}`, note: sel.note, people: sel.people.map((p) => ({ i: personOf(seed, p).i, name: personOf(seed, p).name })),
-      going: sel.people.includes(me), meeting: !!sel.meeting,
+      going: sel.people.includes(me), meeting: !!sel.meeting, canEdit: sel.by === me || isAdminRole(roleIn(s, sel.spaceId ?? s.space)),
     } : null,
-    joinEvent: () => { void s.joinEvent(); }, newEvent: () => { void s.newEvent(); }, rsvp: () => { void s.rsvp(); }, cancelEvent: () => { void s.cancelEvent(); },
+    joinEvent: () => { void s.joinEvent(); }, newEvent: () => { void s.newEvent(); }, rsvp: () => { void s.rsvp(); }, cancelEvent: () => { void s.cancelEvent(); }, editEvent: () => { void s.editEvent(); },
   };
 }
 

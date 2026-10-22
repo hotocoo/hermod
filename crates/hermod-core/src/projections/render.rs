@@ -579,6 +579,8 @@ impl<'a> World<'a> {
                             tag: k.tag.clone(),
                             by: k.by.clone(),
                             snap: k.snap.clone(),
+                            assignee: k.assignee.clone(),
+                            due: k.due.clone(),
                             fresh: None,
                         })
                         .collect(),
@@ -1123,6 +1125,7 @@ impl<'a> World<'a> {
                 space_id: Some(self.label(s)),
                 going: c.people.contains(&self.me).then_some(true),
                 id: c.id.clone(),
+                by: Some(c.by.clone()),
                 d: c.d,
                 s: c.s,
                 e: c.e,
