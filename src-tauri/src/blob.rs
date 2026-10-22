@@ -5,7 +5,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use hermod_core::blobs::Manifest;
+use hermod_core::blobs::{BlobStore, CHUNK_SIZE, Manifest};
 use hermod_core::ids;
 
 use crate::ctx::{Ctx, Live};
@@ -136,12 +136,29 @@ pub fn mime_of(recorded: Option<&str>, head: &[u8]) -> String {
         .unwrap_or_else(|| "application/octet-stream".into())
 }
 
+/// Ask peers for chunks `first..=last` of `hash` (the whole blob when `span` is `None`).
+async fn fetch(ctx: &Ctx, hash: &str, span: Option<(u32, u32)>) -> Result<(), String> {
+    let id: [u8; 32] = ids::hex_decode_array(hash).map_err(|e| e.to_string())?;
+    let node = ctx
+        .node()
+        .await
+        .ok_or("this file is not on this device yet and the network is off")?;
+    let req = async {
+        match span {
+            Some((first, last)) => node.request_blob_chunks(id, first, last).await,
+            None => node.request_blob(id).await,
+        }
+    };
+    match tokio::time::timeout(FETCH_TIMEOUT, req).await {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(e)) => Err(format!("could not fetch this file from peers: {e}")),
+        Err(_) => Err("timed out fetching this file from peers".into()),
+    }
+}
+
 /// Make sure the blob is complete locally, asking peers for the rest when it is not.
 pub async fn ensure_local(ctx: &Ctx, hash: &str) -> Result<(), String> {
     let live = ctx.live().await?;
-    if live.blob_info(hash).is_some() {
-        return Ok(());
-    }
     let (core, h) = (live.core.clone(), hash.to_string());
     let complete =
         tokio::task::spawn_blocking(move || core.blobs().is_complete(&h).unwrap_or(false))
@@ -150,19 +167,25 @@ pub async fn ensure_local(ctx: &Ctx, hash: &str) -> Result<(), String> {
     if complete {
         return Ok(());
     }
-    let id: [u8; 32] = ids::hex_decode_array(hash).map_err(|e| e.to_string())?;
-    let node = ctx
-        .node()
-        .await
-        .ok_or("this file is not on this device yet and the network is off")?;
-    match tokio::time::timeout(FETCH_TIMEOUT, node.request_blob(id)).await {
-        Ok(Ok(())) => Ok(()),
-        Ok(Err(e)) => Err(format!("could not fetch this file from peers: {e}")),
-        Err(_) => Err("timed out fetching this file from peers".into()),
-    }
+    fetch(ctx, hash, None).await
 }
 
-/// What serving a complete blob needs, read once per blob.
+/// Chunk indices (inclusive) holding bytes `a..=b`.
+pub fn chunk_span(a: u64, b: u64) -> (u32, u32) {
+    let cs = CHUNK_SIZE as u64;
+    // A manifest holds at most `u32::MAX` chunks, so the quotient fits.
+    ((a / cs) as u32, (b / cs) as u32)
+}
+
+/// True when every chunk of `m` in `first..=last` is on disk.
+fn span_present(blobs: &BlobStore, m: &Manifest, first: u32, last: u32) -> bool {
+    (first..=last)
+        .filter_map(|i| m.chunks.get(i as usize))
+        .all(|h| blobs.has_chunk(h))
+}
+
+/// What serving a blob needs, read once per blob. The blob itself may be only partly local:
+/// the manifest and the first chunk (used to sniff the type) are enough to have an entry.
 #[derive(Debug)]
 pub struct BlobInfo {
     manifest: Manifest,
@@ -178,9 +201,6 @@ const SNIFF_LEN: u64 = 512;
 fn load_info(live: &Live, hash: &str) -> Option<Arc<BlobInfo>> {
     let blobs = live.core.blobs();
     let manifest = blobs.manifest(hash).ok().flatten()?;
-    if !blobs.has_all_chunks(&manifest) {
-        return None;
-    }
     let head = blobs.read_range_in(&manifest, hash, 0, SNIFF_LEN).ok()?;
     let mime = mime_of(live.blob_mime(hash).as_deref(), &head);
     let info = Arc::new(BlobInfo { manifest, mime });
@@ -188,26 +208,59 @@ fn load_info(live: &Live, hash: &str) -> Option<Arc<BlobInfo>> {
     Some(info)
 }
 
+/// Serving info for `hash`, fetching just the manifest and first chunk from peers if needed.
+async fn info_for(ctx: &Ctx, live: &Arc<Live>, hash: &str) -> Result<Arc<BlobInfo>, String> {
+    if let Some(i) = live.blob_info(hash) {
+        return Ok(i);
+    }
+    let load = || {
+        let (l, h) = (live.clone(), hash.to_string());
+        async move { tokio::task::spawn_blocking(move || load_info(&l, &h)).await }
+    };
+    if let Ok(Some(i)) = load().await {
+        return Ok(i);
+    }
+    fetch(ctx, hash, Some((0, 0))).await?;
+    match load().await {
+        Ok(Some(i)) => Ok(i),
+        _ => Err("this file could not be read after fetching it".into()),
+    }
+}
+
+/// Make sure the chunks under bytes `a..=b` are local; the rest of the blob keeps downloading
+/// in the node, so a seek waits only for the bytes it needs.
+async fn ensure_span(
+    ctx: &Ctx,
+    live: &Arc<Live>,
+    info: &Arc<BlobInfo>,
+    hash: &str,
+    (a, b): (u64, u64),
+) -> Result<(), String> {
+    let (first, last) = chunk_span(a, b);
+    let (l, i) = (live.clone(), info.clone());
+    let present =
+        tokio::task::spawn_blocking(move || span_present(l.core.blobs(), &i.manifest, first, last))
+            .await
+            .map_err(|e| e.to_string())?;
+    if present {
+        return Ok(());
+    }
+    fetch(ctx, hash, Some((first, last))).await
+}
+
 /// Serve `hash` for an optional `Range` header.
 pub async fn serve(ctx: &Ctx, hash: &str, range: Option<&str>) -> BlobResponse {
     if !is_hash(hash) {
         return BlobResponse::error(400);
     }
-    if let Err(e) = ensure_local(ctx, hash).await {
-        tracing::warn!("blob {hash}: {e}");
-        return BlobResponse::error(404);
-    }
     let Ok(live) = ctx.live().await else {
         return BlobResponse::error(503);
     };
-    let info = match live.blob_info(hash) {
-        Some(i) => i,
-        None => {
-            let (l, h) = (live.clone(), hash.to_string());
-            match tokio::task::spawn_blocking(move || load_info(&l, &h)).await {
-                Ok(Some(i)) => i,
-                _ => return BlobResponse::error(404),
-            }
+    let info = match info_for(ctx, &live, hash).await {
+        Ok(i) => i,
+        Err(e) => {
+            tracing::warn!("blob {hash}: {e}");
+            return BlobResponse::error(404);
         }
     };
     let total = info.manifest.size;
@@ -227,6 +280,10 @@ pub async fn serve(ctx: &Ctx, hash: &str, range: Option<&str>) -> BlobResponse {
         RangeReq::Full => (200, None),
     };
     let (a, b) = span.unwrap_or((0, total.saturating_sub(1)));
+    if let Err(e) = ensure_span(ctx, &live, &info, hash, (a, b)).await {
+        tracing::warn!("blob {hash}: {e}");
+        return BlobResponse::error(404);
+    }
     let (l, h, i) = (live.clone(), hash.to_string(), info.clone());
     let body = tokio::task::spawn_blocking(move || {
         l.core
@@ -279,6 +336,15 @@ mod tests {
         );
         assert_eq!(parse_range(Some("items=0-1"), 100), RangeReq::Full);
         assert_eq!(parse_range(Some("bytes=0-1"), 0), RangeReq::Unsatisfiable);
+    }
+
+    #[test]
+    fn chunk_span_covers_the_range() {
+        let cs = CHUNK_SIZE as u64;
+        assert_eq!(chunk_span(0, 9), (0, 0));
+        assert_eq!(chunk_span(cs - 1, cs), (0, 1));
+        assert_eq!(chunk_span(3 * cs, 5 * cs - 1), (3, 4));
+        assert_eq!(chunk_span(0, 0), (0, 0));
     }
 
     #[test]

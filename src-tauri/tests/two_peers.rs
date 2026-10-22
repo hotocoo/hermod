@@ -144,3 +144,87 @@ async fn invite_sync_blob_and_backup() {
         x.shutdown().await;
     }
 }
+
+/// Bytes in the remote blob of the seek test. Chunk-wise fetching must answer a tail Range
+/// long before this much has crossed the wire (serve rate is capped at 2 MiB/s).
+const SEEK_BLOB_BYTES: usize = 24 * 1024 * 1024;
+/// Tail bytes requested, as a seek to the end of a video does.
+const SEEK_TAIL_BYTES: usize = 64;
+
+/// A Range at the tail of a big blob that only A holds is answered from the tail chunks alone,
+/// then the rest of the blob completes in the background (G-005).
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn range_at_tail_of_remote_blob_does_not_wait_for_whole_blob() {
+    let (da, db) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let a = peer(da.path()).await;
+    let b = peer(db.path()).await;
+    let sp = call(
+        &a,
+        "space_create",
+        json!({"name": "Seek", "tagline": "t", "kind": "Team"}),
+    )
+    .await;
+    let space = sp["space_id"].as_str().unwrap().to_string();
+    let code = call(&a, "invite_create", json!({"spaceId": space})).await["code"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    call(&b, "invite_accept", json!({"code": code})).await;
+
+    let data: Vec<u8> = (0..SEEK_BLOB_BYTES).map(|i| (i % 251) as u8).collect();
+    let file = da.path().join("big.mp4");
+    std::fs::write(&file, &data).unwrap();
+    let r = call(&a, "blob_put", json!({"path": file})).await;
+    let hash = r["hash"].as_str().unwrap().to_string();
+    call(&a, "event_append", json!({"spaceId": space, "body": {
+        "t": "message.post", "channel_id": "general", "msg_id": "big", "text": "video", "attachments": [r]}})).await;
+    for _ in 0..100 {
+        if has_text(&b, &space, "\"big\"").await {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(150)).await;
+    }
+
+    let from = SEEK_BLOB_BYTES - SEEK_TAIL_BYTES;
+    let resp = blob::serve(&b, &hash, Some(&format!("bytes={from}-"))).await;
+    assert_eq!(resp.status, 206, "tail range");
+    assert_eq!(resp.body, data[from..]);
+    assert_eq!(resp.total, SEEK_BLOB_BYTES as u64);
+    let blobs = b.live().await.unwrap().core.blobs().clone();
+    assert!(
+        !blobs.is_complete(&hash).unwrap(),
+        "the tail came back before the whole blob did"
+    );
+
+    // A seek into the middle is answered from its own chunks while the rest still streams in.
+    let mid = SEEK_BLOB_BYTES / 2;
+    let resp = blob::serve(
+        &b,
+        &hash,
+        Some(&format!("bytes={mid}-{}", mid + SEEK_TAIL_BYTES - 1)),
+    )
+    .await;
+    assert_eq!(resp.status, 206, "mid range");
+    assert_eq!(resp.body, data[mid..mid + SEEK_TAIL_BYTES]);
+    assert!(
+        !blobs.is_complete(&hash).unwrap(),
+        "the mid-file range came back before the whole blob did"
+    );
+
+    let mut done = false;
+    for _ in 0..600 {
+        if blobs.is_complete(&hash).unwrap() {
+            done = true;
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(150)).await;
+    }
+    assert!(
+        done,
+        "the rest of the blob never finished in the background"
+    );
+    assert_eq!(blobs.read_all(&hash).unwrap(), data);
+    for x in [&a, &b] {
+        x.shutdown().await;
+    }
+}

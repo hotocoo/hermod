@@ -16,6 +16,9 @@ use tokio::sync::mpsc::UnboundedReceiver;
 
 const CHUNK: usize = 1024;
 const SPACE: SpaceId = [9u8; 32];
+/// Chunks in the blob of the tail-fetch test: at the default serve rate (2 MiB/s) the whole
+/// transfer takes seconds, the tail chunk one round trip.
+const TAIL_TEST_CHUNKS: usize = 4096;
 
 #[derive(Default)]
 struct Inner {
@@ -295,6 +298,43 @@ async fn gossip_backfill_and_blob() {
     })
     .await;
     for p in [&a, &b, &c] {
+        p.h.shutdown().await;
+    }
+}
+
+/// A seek asks for the tail chunk of a blob the requester knows nothing about: that chunk
+/// (and the manifest) arrives well before the rest, and the rest still completes after.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn chunk_span_resolves_before_whole_blob() {
+    let a = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    let data: Vec<u8> = (0..CHUNK * TAIL_TEST_CHUNKS)
+        .map(|i| (i % 251) as u8)
+        .collect();
+    let id = a.store.add_blob(&data, false);
+    c.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+
+    let last = TAIL_TEST_CHUNKS as u32 - 1;
+    // `u32::MAX` also proves an oversized span is clamped to the manifest.
+    within("tail chunk", c.h.request_blob_chunks(id, last, u32::MAX))
+        .await
+        .unwrap();
+    let missing = c.store.blob_missing(&id);
+    assert!(!missing.contains(&last), "the requested chunk is stored");
+    assert!(
+        missing.len() > TAIL_TEST_CHUNKS / 2,
+        "most of the blob is still on its way: {} missing",
+        missing.len()
+    );
+    assert!(!c.store.blob_has(&id));
+
+    until("background completion", || c.store.blob_has(&id)).await;
+    assert_eq!(c.store.read_blob(&id).unwrap(), data);
+    // Already complete: a later span request resolves at once.
+    within("complete", c.h.request_blob_chunks(id, 0, 0))
+        .await
+        .unwrap();
+    for p in [&a, &c] {
         p.h.shutdown().await;
     }
 }

@@ -31,7 +31,7 @@ pub enum Command {
     Join(SpaceId, Reply<()>),
     Leave(SpaceId, Reply<()>),
     Publish(SpaceId, Vec<u8>, Reply<()>),
-    RequestBlob(BlobId, Reply<()>),
+    RequestBlob(BlobId, Option<crate::blobjob::ChunkSpan>, Reply<()>),
     AnnounceBlob(SpaceId, BlobId, Reply<()>),
     Signal(SpaceId, Option<PeerId>, Vec<u8>, Reply<()>),
     Ephemeral(SpaceId, String, Vec<u8>, Reply<()>),
@@ -323,7 +323,7 @@ impl Driver {
             Command::Publish(s, bytes, r) => {
                 let _ = r.send(self.publish(s, bytes));
             }
-            Command::RequestBlob(b, r) => self.request_blob(b, r),
+            Command::RequestBlob(b, want, r) => self.request_blob(b, want, r),
             Command::AnnounceBlob(s, b, r) => {
                 let res = self.gossip(&s, &Gossip::Provide(b)).map(|_| ());
                 let _ = r.send(res);
