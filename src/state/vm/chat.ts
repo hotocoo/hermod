@@ -68,7 +68,7 @@ export function chatVm(x: Ctx) {
   const channels = chList.map((ch) => {
     const active = ch.id === chId && s.section === 'chat'; const u = channelUnread(s, ch);
     return {
-      id: ch.id, name: ch.name, isDm: !!ch.dm, notDm: !ch.dm, initials: ch.dm ? personOf(seed, ch.dm).i : '', topic: ch.topic, active, unread: u, hasUnread: u > 0,
+      id: ch.id, name: ch.name, dmId: ch.dm ?? '', isDm: !!ch.dm, notDm: !ch.dm, initials: ch.dm ? personOf(seed, ch.dm).i : '', topic: ch.topic, active, unread: u, hasUnread: u > 0,
       iconEl: I(ch.dm ? 'at' : 'hash', 14, 1.8), bg: active ? mixAccent(11) : 'transparent',
       color: active ? ACCENT_700 : (u ? TEXT : mixText(72)), weight: active || u ? '600' : '400', onClick: () => s.goChannel(s.space, ch.id),
     };

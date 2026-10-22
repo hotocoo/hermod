@@ -21,9 +21,9 @@ export function startBridgeSync(store: StoreLike): () => void {
     bridge.on('sync', (e) => get().setSync(e.pending)),
     bridge.on('ephemeral', (e) => {
       const sp = e.space_id ?? '';
-      const p = (e.payload ?? {}) as { channel?: string };
+      const p = (e.payload ?? {}) as { channel?: string; away?: boolean };
       if (e.kind === 'typing' && typeof p.channel === 'string') get().noteTyping(e.from, sp, p.channel);
-      else if (e.kind === 'presence') get().notePresence(e.from);
+      else if (e.kind === 'presence') get().notePresence(e.from, p.away === true);
     }),
     bridge.on('signal', (e) => signalHandlers.forEach((h) => h(e.from, e.payload, e.space_id))),
   ];

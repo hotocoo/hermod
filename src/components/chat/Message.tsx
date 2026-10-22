@@ -13,6 +13,7 @@ import { useCustomEmoji } from './useMsgView';
 import s from './chat.module.css';
 import x from './messaging.module.css';
 import { Face } from '@/components/ui/Face';
+import { PresenceDot } from '@/components/ui/PresenceDot';
 
 type Msg = Vm['messages'][number];
 interface Props { m: Msg; icons: Pick<Vm, 'ic' | 'icS'>; people: Vm['people'] }
@@ -72,7 +73,7 @@ export function Message({ m, icons, people }: Props) {
   }
   return (
     <article id={`msg-${m.id}`} className={cls} style={{ background: m.sel, animation: m.anim }} aria-label={`${m.name}, ${m.t}`}>
-      <div>{m.showHead && <div className={s.face} aria-hidden="true"><Face initials={m.initials} av={m.av} /></div>}</div>
+      <div>{m.showHead && <div className={s.face} aria-hidden="true"><Face initials={m.initials} av={m.av} />{!m.isMe && <PresenceDot id={m.by} />}</div>}</div>
       <div className={s.body}>
         {!m.removed && !m.editing && <Actions m={m} />}
         {m.showHead && (

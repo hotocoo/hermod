@@ -1,0 +1,6 @@
+.dot { width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; flex: none; border: 2px solid var(--color-accent); }
+.over { position: absolute; right: -2px; bottom: -2px; box-shadow: 0 0 0 2px var(--color-bg); }
+.inline { display: inline-block; margin-right: 8px; }
+.on { background: var(--color-accent); }
+.away { background: var(--color-bg); }
+.off { border-color: var(--color-neutral-400); background: var(--color-neutral-400); }

@@ -1,10 +1,11 @@
 import type { StateCreator } from 'zustand';
-import { UPLOAD } from '../../../config/app';
+import { PRESENCE, UPLOAD } from '../../../config/app';
 import { errorMessage, getBridge, type BlobRef, type EventBody, type MsgExt } from '../../../lib/bridge';
 import { copyText } from '../../../lib/clipboard';
 import { urlsIn } from '../../../lib/messaging/markdown';
 import { appendEvent, guarded, uid } from '../../act';
 import type { Message } from '../../dataTypes';
+import { notePresence, sweepPresence } from '../../presence';
 import { chatKey, curSpace, meId } from '../../selectors';
 import type { AppStore } from '../../types';
 import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey } from './helpers';
@@ -239,9 +240,10 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       const key = `${space}/${channel}`;
       set((x) => ({ typing: { ...x.typing, [key]: { ...(x.typing[key] ?? {}), [from]: Date.now() + TYPING_TTL_MS } } }));
     },
-    notePresence: (from) => {
+    notePresence: (from, away) => {
       if (!get().privacy.presence) return;
-      set((x) => ({ presence: { ...x.presence, [from]: Date.now() } }));
+      set((x) => ({ presence: notePresence(x.presence, from, away, Date.now()) }));
     },
+    sweepPresence: () => { const p = get().presence; const n = sweepPresence(p, Date.now(), PRESENCE.ttlMs); if (n !== p) set({ presence: n }); },
   };
 };

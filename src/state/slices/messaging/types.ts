@@ -1,5 +1,6 @@
 import type { ChannelSettingsIn, ChatPrefs, LinkPreviewOut, PrivacySettings, QuoteRef, Scheduled } from '../../../lib/bridge';
 import type { Message } from '../../dataTypes';
+import type { PresenceMap } from '../../presence';
 
 export interface ComposeExtras { quote: QuoteRef | null; viewOnce: boolean; ttl: number; preview: LinkPreviewOut | null; previewFor: string; previewOff: boolean }
 
@@ -7,8 +8,8 @@ export interface MessagingSlice {
   prefs: ChatPrefs; privacy: PrivacySettings; scheduled: Scheduled[];
   /** chatKey -> user -> expiry ms of the typing hint. */
   typing: Record<string, Record<string, number>>;
-  /** user -> last packet seen, ms. */
-  presence: Record<string, number>;
+  /** user -> last beacon (ms) and whether they are idle; entries expire after PRESENCE.ttlMs. */
+  presence: PresenceMap;
   compose: ComposeExtras;
   /** Older pages loaded on demand, keyed by chat. */
   older: Record<string, Message[]>; olderMore: Record<string, boolean>;
@@ -42,5 +43,5 @@ export interface MessagingSlice {
   localAi(task: 'translate' | 'summarize', text: string): Promise<string | undefined>;
   forumPost(title: string, tags: string[], text: string): Promise<void>;
   setProfileExt(patch: { banner?: File; status?: string; status_emoji?: string; pronouns?: string }): Promise<void>;
-  typingPing(): void; noteTyping(from: string, space: string, channel: string): void; notePresence(from: string): void;
+  typingPing(): void; noteTyping(from: string, space: string, channel: string): void; notePresence(from: string, away: boolean): void; sweepPresence(): void;
 }
