@@ -49,6 +49,9 @@ export const TIMING = {
   qualityPollMs: 1000,
 } as const;
 
+/** OS notification timing: reminder lead, how often due reminders are looked for, and how long after a notification a window focus counts as clicking it. */
+export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000 } as const;
+
 export const TOAST_MS = { standard: 3600, storyReply: 3000, profileSaved: 2600, postcard: 3200 } as const;
 
 export const WEATHER_SEQUENCE = ['clear', 'rain', 'clear', 'snow', 'fog', 'clear', 'storm'] as const;

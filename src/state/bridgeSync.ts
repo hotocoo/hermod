@@ -1,6 +1,7 @@
 /** Rust to UI: subscribes to the bridge events and keeps the store in step with the core. Returns cleanup. */
 import { getBridge } from '../lib/bridge';
-import { getNotifySettings, setNotifySettings } from './notify';
+import { getNotifySettings, openNotifyTarget, setNotifySettings } from './notify';
+import { totalUnread } from './selectors';
 import type { StoreLike } from './types';
 
 type SignalHandler = (from: string, payload: unknown, space?: string) => void;
@@ -26,6 +27,11 @@ export function startBridgeSync(store: StoreLike): () => void {
     }),
     bridge.on('signal', (e) => signalHandlers.forEach((h) => h(e.from, e.payload, e.space_id))),
   ];
+  const badge = (s: ReturnType<typeof get>) => (s.seed ? totalUnread(s, s.seed) : 0);
+  let shown = 0;
+  stops.push(store.subscribe((s) => { const n = badge(s); if (n !== shown) { shown = n; bridge.badgeSet(n).catch(() => { /* the badge is cosmetic */ }); } }));
+  const onFocus = () => openNotifyTarget(get());
+  if (typeof window !== 'undefined') { window.addEventListener('focus', onFocus); stops.push(() => window.removeEventListener('focus', onFocus)); }
   bridge.nodeStatus().then((n) => get().setNode(n)).catch(() => { /* the node starts after the Terms gate; its first event fills this in */ });
   bridge.outboxStatus().then((o) => get().setSync(o.pending)).catch(() => { /* indicator stays hidden until the first sync event */ });
   if (!getNotifySettings()) bridge.notifySettingsGet().then(setNotifySettings).catch(() => { /* notifications stay off without settings */ });

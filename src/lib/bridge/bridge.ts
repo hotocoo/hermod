@@ -55,6 +55,8 @@ export interface Bridge {
   retentionSet(spaceId: string, days: number | null): Promise<void>;
   /** Show an OS notification (the UI already applied mute and Do Not Disturb). */
   notifySend(title: string, body: string, spaceId: string, channelId: string): Promise<void>;
+  /** Unread total on the dock icon and tray tooltip; 0 clears it. */
+  badgeSet(count: number): Promise<void>;
 
   searchQuery(q: string, opts?: SearchOptions): Promise<SearchHit[]>;
   storageUsage(): Promise<StorageUsage>;
@@ -154,6 +156,7 @@ export function createBridge(t: Transport): Bridge {
     notifySettingsSet: (patch) => call('notify_settings_set', { ...patch }),
     retentionSet: (spaceId, days) => none('retention_set', { spaceId, days }),
     notifySend: (title, body, spaceId, channelId) => none('notify_send', { title, body, spaceId, channelId }),
+    badgeSet: (count) => none('badge_set', { count }),
     searchQuery: (q, opts = {}) => call('search_query', { q, space: opts.space ?? null, kinds: opts.kinds ?? null, limit: opts.limit ?? null }),
     storageUsage: () => call('storage_usage'),
     storageClearCache: () => call('storage_clear_cache'),

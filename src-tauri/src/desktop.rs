@@ -51,6 +51,16 @@ impl Shell for TauriShell {
         }
     }
 
+    fn badge(&self, count: u32) {
+        if let Some(w) = self.0.get_webview_window("main") {
+            // Unsupported on Windows; the tray tooltip below covers every platform.
+            let _ = w.set_badge_count((count > 0).then_some(count.into()));
+        }
+        if let Some(t) = self.0.tray_by_id(shell::TRAY_ID) {
+            let _ = t.set_tooltip(Some(shell::tray_tooltip(count)));
+        }
+    }
+
     fn pick_files(
         &self,
         multiple: bool,
