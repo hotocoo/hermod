@@ -25,6 +25,7 @@ export function sceneSignals(s: AppStore, seed: Seed): SceneSignals {
   const myTasks = bd ? bd.cols.filter((c) => c.id !== 'done').reduce((a, c) => a + c.cards.filter((x) => x.by === me).length, 0) : 0;
   return {
     unread,
+    // one perch slot per unread message, up to the slots the commons roof has (RAVEN.maxHere)
     perch: { here: s.inside && s.section === 'chat' ? 0 : Math.min(unread, RAVEN.maxHere), away: 0 },
     hints: { feed: s.feedSeen[s.space] ? 0 : Math.min(LIMITS.feedHintMax, feedLen), board: myTasks, skein: sk ? sk.lines.filter((l) => l.ahead).length : 0 },
     room: { n: hearthOn ? roomCount(room) : 0, me: inCall, speak },

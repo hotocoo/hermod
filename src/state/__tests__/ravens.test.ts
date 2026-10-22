@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { create } from 'zustand';
 import { RAVEN } from '../../config/scene';
+import { appendEvent } from '../act';
 import { diffArrivals } from '../arrivals';
 import { sceneSignals } from '../signals';
 import { createChatSlice } from '../slices/chat';
@@ -61,7 +62,8 @@ describe('perched raven count equals unread (R-002)', () => {
   const perch = (unread: number, over: Partial<AppStore> = {}) => sceneSignals(state(over), seedWith({}, { sp: [{ id: 'gen', unread }] })).perch.here;
 
   it('is one raven per unread message', () => { expect(perch(0)).toBe(0); expect(perch(1)).toBe(1); expect(perch(2)).toBe(2); });
-  it('counts raven letters from other people too', () => expect(perch(1, { incoming: { 'sp/gen': 1 } })).toBe(2));
+  it('counts a raven letter before the core unread lands', () => expect(perch(0, { incoming: { 'sp/gen': 1 } })).toBe(1));
+  it('counts one arrival once when the letter and the core unread both show it', () => expect(perch(1, { incoming: { 'sp/gen': 1 } })).toBe(1));
   it('is capped by RAVEN.maxHere', () => expect(perch(RAVEN.maxHere + 4)).toBe(RAVEN.maxHere));
   it('is zero while reading the chat', () => expect(perch(3, { inside: true, section: 'chat' })).toBe(0));
 });
@@ -77,6 +79,14 @@ describe('a sent message flies a raven off (R-006)', () => {
     const t = town(); setTown(t as unknown as TownPort);
     await storeWith().getState().send();
     expect(t.flyOut).toHaveBeenCalledWith('chat');
+  });
+  it('after any message.post, not only the composer (sticker, poll, forum, forward, icebreaker)', async () => {
+    const t = town(); setTown(t as unknown as TownPort);
+    const get = () => storeWith().getState();
+    await appendEvent(get, 'sp', { t: 'message.post', channel_id: 'gen', msg_id: 'm1', text: '', attachments: [], ext: { kind: 'sticker', sticker: 's' } });
+    expect(t.flyOut).toHaveBeenCalledTimes(1);
+    await appendEvent(get, 'sp', { t: 'reaction.toggle', target_id: 'm1', label: 'x' });
+    expect(t.flyOut).toHaveBeenCalledTimes(1);
   });
   it('not for an empty draft or with ravens off', async () => {
     const t = town(); setTown(t as unknown as TownPort);

@@ -50,9 +50,9 @@ export function channelUnread(s: AppStore, ch: Channel): number {
 }
 export const incomingFor = (s: AppStore, spaceId: string) => sumValues(s.incoming, (k) => k.startsWith(`${spaceId}/`));
 export const incomingAll = (s: AppStore) => sumValues(s.incoming);
-/** Chat unread for the current Space: raven letters plus unseen channel counts. */
+/** Chat unread for the current Space. A raven letter and the core's channel count are the same message, so the larger of the two stands (the letter leads until the refresh lands). */
 export const hereUnread = (s: AppStore, seed: Seed) =>
-  incomingFor(s, s.space) + channelsOf(seed, s.space).reduce((a, ch) => a + channelUnread(s, ch), 0);
+  Math.max(incomingFor(s, s.space), channelsOf(seed, s.space).reduce((a, ch) => a + channelUnread(s, ch), 0));
 
 export const inCallHere = (s: AppStore) => !!(s.call && s.call.space === s.space);
 /** Who is in this Space's Hearth right now (the core folds my own room.join in too). */

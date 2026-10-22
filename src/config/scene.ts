@@ -204,7 +204,9 @@ export const SPRINGS = {
 } as const;
 
 /** Ravens: perched on the commons (one per unread, up to its roof slots), flights alive at once (arrivals and sends beyond it skip the flight, never the message), spawn ring and heights, flight times (s), and the arc shape (control point share of the spawn offset, rise above the end points). */
-export const RAVEN = { scale: 3.4, fallbackScale: 2.1, burst: 3, maxHere: HERE_PERCH_Z.length, maxFlying: 4, spawn: { dist: 34, y: 20 }, landY: 4.2, launchY: 5.2, flyInSec: 2.4, flyOutSec: 2.6, arcFrac: 0.5, arcRise: 3 } as const;
+export const RAVEN = { scale: 3.4, fallbackScale: 2.1, burst: 3, maxHere: HERE_PERCH_Z.length, maxFlying: 4, spawn: { dist: 34, y: 20 }, landY: 4.2, launchY: 5.2, flyInSec: 2.4, flyOutSec: 2.6, arcFrac: 0.5, arcRise: 3,
+  /** Ring pulse where a raven lands or lifts off (`ringDrop` below the raven), and the building squash it causes. */
+  ring: { r0: 0.2, r1: 2.4, dur: 1.2, w: 0.025 }, ringDrop: 0.1, pop: 6 } as const;
 
 /** Procedural palettes used by the world kit. */
 export const PALETTE = {

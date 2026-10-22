@@ -336,7 +336,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   let archi = false, photo = false, idle = 0; let compassEl: HTMLElement | null = null, compassScan = 0;
   const intro = !reduced; if (intro) { const I = CAMERA.intro; const orbit = ['az', 'el', 'dist'] as const; rig.az.x = home.az + I.azOffset; rig.el.x = I.el; rig.dist.x = I.dist; orbit.forEach((k) => rig[k].tune(I.tune[0], I.tune[1])); setTimeout(() => orbit.forEach((k) => { const c = k === 'dist' ? I.settleDist : I.settle; rig[k].tune(c[0], c[1]); }), I.settleMs); }
   const islandY = spring(-5, SPRINGS.islandY); islandY.t = 0; if (reduced) { Object.values(rig).forEach((s) => s.snap(s.t)); islandY.snap(0); }
-  const ravens = createRavens({ WK, island, plots, islandY, reduced, ring, anchor: anchorOf });
+  const ravens = createRavens({ WK, island, plots, islandY, reduced, ring, anchor: anchorOf, running: () => !document.hidden && !(mode === 'inside' && insideId !== null && insideId !== 'hearth') });
   const { perched } = ravens;
   let focusId: string | null = null; let userAz = home.az; let userDist = home.dist; let userTx = 0, userTz = 0; const mouse = { x: 0, y: 0 };
   const clampT = () => { const r = Math.hypot(userTx, userTz); const hard = CAMERA.panLimit * camK * DIRECTOR.softEdge.overshoot; if (r > hard) { userTx *= hard / r; userTz *= hard / r; } };

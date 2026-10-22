@@ -18,12 +18,12 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => { await users.close(); });
 
-// R-001: a real message.post from another Space brings a raven letter (reduced motion lands it at once).
+// R-001: a real message.post from another Space brings a raven letter (the fixtures run reduced motion, so it lands at once; the flight itself is unit-tested in src/scene/__tests__/ravens.test.ts).
 test('a message posted by B in another Space brings A a raven letter', async () => {
   await enterSection(b, 'chat');
   await toIsland(a);
-  // The rail lists Home first: A leaves the shared Space so B's post is "from another space".
-  await a.getByRole('navigation', { name: 'Spaces' }).first().getByRole('button').first().click();
+  // A leaves the shared Space for Home, so B's post is "from another space".
+  await a.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: 'Home' }).click();
   await say(b, 'raven mail for Ada');
   const letter = a.locator('[data-obstacle]').filter({ hasText: 'A raven from' });
   await expect(letter).toContainText('Bo Tester', { timeout: 30_000 });
