@@ -456,17 +456,47 @@ impl Store {
             .collect()
     }
 
-    /// Applied events newer than `vector` (per author max seq seen by the requester).
+    /// Applied events newer than `vector` (per author max seq seen by the requester), in
+    /// `(author, seq)` order, at most `limit`. Filtered in SQL per author so a page never loads
+    /// the whole space.
     pub fn events_since(
         &self,
         space: &SpaceId,
         vector: &BTreeMap<UserId, u64>,
+        limit: usize,
     ) -> Result<Vec<SignedEvent>> {
-        Ok(self
-            .events(space)?
-            .into_iter()
-            .filter(|e| vector.get(&e.author).is_none_or(|&seen| e.seq > seen))
-            .collect())
+        let mut authors = self.conn.prepare(
+            "SELECT DISTINCT author FROM events WHERE space_id = ?1 AND pending = 0 ORDER BY author",
+        )?;
+        let authors: Vec<UserId> = authors
+            .query_map([&space.0[..]], |r| Ok(blob_arr::<32>(r, 0)))?
+            .map(|r| Ok(UserId(r??)))
+            .collect::<Result<_>>()?;
+        let mut st = self.conn.prepare(&format!(
+            "SELECT {EVENT_COLS} FROM events WHERE space_id = ?1 AND author = ?2 AND pending = 0 \
+             AND seq > ?3 ORDER BY seq LIMIT ?4"
+        ))?;
+        let mut out = Vec::new();
+        for a in authors {
+            let room = limit.saturating_sub(out.len());
+            if room == 0 {
+                break;
+            }
+            let seen = vector.get(&a).copied().unwrap_or(0) as i64;
+            let rows = st.query_map(
+                params![
+                    &space.0[..],
+                    &a.0[..],
+                    seen,
+                    room.min(i64::MAX as usize) as i64
+                ],
+                |r| Ok(event_from_row(r)),
+            )?;
+            for r in rows {
+                out.push(r??);
+            }
+        }
+        Ok(out)
     }
 
     /// Highest applied `seq` per author.

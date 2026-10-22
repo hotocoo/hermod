@@ -171,14 +171,11 @@ impl NodeStore for CoreStore {
             .iter()
             .filter_map(|(a, n)| a.parse::<UserId>().ok().map(|u| (u, *n)))
             .collect();
-        let mut evs = self
-            .core
-            .missing_since(&SpaceId(*space), &remote)
-            .unwrap_or_default();
-        // The receiver applies per author in seq order; keep that order across the cut.
-        evs.sort_by_key(|e| (e.author, e.seq));
-        evs.iter()
-            .take(limit)
+        // Paged in SQL, already in `(author, seq)` order: the receiver applies per author.
+        self.core
+            .missing_page(&SpaceId(*space), &remote, limit)
+            .unwrap_or_default()
+            .iter()
             .filter_map(|e| e.to_bytes().ok())
             .collect()
     }

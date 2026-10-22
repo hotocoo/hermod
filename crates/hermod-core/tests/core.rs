@@ -689,3 +689,23 @@ fn snapshot_value_has_seed_shape() {
     assert!(v["people"].is_object() && v["spaces"].is_array() && v["collections"].is_object());
     assert!(v.get("sections").is_none(), "UI copy lives in the frontend");
 }
+
+#[test]
+fn missing_page_is_bounded_ordered_and_respects_the_vector() {
+    let (_d, c) = core();
+    let made = c.space_create("Pages", "x", "Community").unwrap();
+    for i in 0..10 {
+        say(&c, &made.id, &format!("m{i}"), "hi");
+    }
+    let all = c.missing_since(&made.id, &BTreeMap::new()).unwrap();
+    let page = c.missing_page(&made.id, &BTreeMap::new(), 4).unwrap();
+    assert_eq!(page, all[..4], "a page is the head of the full answer");
+    let seen = BTreeMap::from([(c.user_id(), page[3].seq)]);
+    let rest = c.missing_page(&made.id, &seen, 1000).unwrap();
+    assert_eq!(rest, all[4..]);
+    assert!(
+        c.missing_page(&made.id, &BTreeMap::new(), 0)
+            .unwrap()
+            .is_empty()
+    );
+}

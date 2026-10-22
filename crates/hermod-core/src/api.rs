@@ -937,7 +937,17 @@ impl Core {
         space: &SpaceId,
         vector: &BTreeMap<UserId, u64>,
     ) -> Result<Vec<SignedEvent>> {
-        self.lock().store.events_since(space, vector)
+        self.missing_page(space, vector, usize::MAX)
+    }
+
+    /// At most `limit` events a peer with `vector` is missing, in `(author, seq)` order.
+    pub fn missing_page(
+        &self,
+        space: &SpaceId,
+        vector: &BTreeMap<UserId, u64>,
+        limit: usize,
+    ) -> Result<Vec<SignedEvent>> {
+        self.lock().store.events_since(space, vector, limit)
     }
 
     /// `(waiting for a gap, waiting for a key)` event counts.

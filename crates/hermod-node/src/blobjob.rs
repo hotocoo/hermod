@@ -55,9 +55,19 @@ impl Driver {
                     Message::Request {
                         request, channel, ..
                     },
+                peer,
                 ..
             } => {
-                if !self.spaces.contains(&request.space) {
+                if !self.spaces.contains(&request.space)
+                    || !self
+                        .space_peers
+                        .get(&request.space)
+                        .is_some_and(|p| p.contains(&peer))
+                    || !self.sync_in_rate.allow(&peer.to_string())
+                {
+                    if self.spaces.contains(&request.space) {
+                        self.strike(peer);
+                    }
                     let _ = self.swarm.behaviour_mut().sync.send_response(
                         channel,
                         SyncResp {
@@ -143,8 +153,17 @@ impl Driver {
                     Message::Request {
                         request, channel, ..
                     },
+                peer,
                 ..
             } => {
+                if !acquire_serve(&mut self.serving, peer) {
+                    let _ = self
+                        .swarm
+                        .behaviour_mut()
+                        .blob
+                        .send_response(channel, BlobResp { data: None });
+                    return;
+                }
                 let store = self.store.clone();
                 let tx = self.internal_tx.clone();
                 let bucket = self.bucket.clone();
@@ -161,6 +180,7 @@ impl Driver {
                         bucket.take(d.len() as u64).await;
                     }
                     let _ = tx.send(Internal::BlobServed {
+                        peer,
                         channel,
                         resp: BlobResp {
                             data: data.map(ByteBuf::from),
@@ -465,6 +485,7 @@ impl Driver {
     }
 
     fn finish_job(&mut self, blob: BlobId) {
+        self.providers.remove(&blob);
         if let Some(j) = self.jobs.remove(&blob) {
             for w in j.waiters {
                 let _ = w.send(Ok(()));
@@ -473,10 +494,54 @@ impl Driver {
     }
 
     fn fail_job(&mut self, blob: BlobId, why: String) {
+        self.providers.remove(&blob);
         if let Some(j) = self.jobs.remove(&blob) {
             for w in j.waiters {
                 let _ = w.send(Err(NodeError::Blob(why.clone())));
             }
         }
+    }
+}
+
+/// Takes one serve slot for `peer`; false when it already has `BLOB_SERVE_INFLIGHT_PER_PEER`.
+fn acquire_serve(serving: &mut HashMap<PeerId, u32>, peer: PeerId) -> bool {
+    let n = serving.entry(peer).or_default();
+    if *n >= BLOB_SERVE_INFLIGHT_PER_PEER {
+        return false;
+    }
+    *n += 1;
+    true
+}
+
+/// Gives a slot back; the entry is dropped at zero so the map does not grow with peers.
+pub(crate) fn release_serve(serving: &mut HashMap<PeerId, u32>, peer: PeerId) {
+    if let Some(n) = serving.get_mut(&peer) {
+        *n -= 1;
+        if *n == 0 {
+            serving.remove(&peer);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serve_slots_are_capped_per_peer_and_released() {
+        let (a, b) = (PeerId::random(), PeerId::random());
+        let mut m = HashMap::new();
+        for _ in 0..BLOB_SERVE_INFLIGHT_PER_PEER {
+            assert!(acquire_serve(&mut m, a));
+        }
+        assert!(!acquire_serve(&mut m, a), "over the cap");
+        assert!(acquire_serve(&mut m, b), "other peers unaffected");
+        release_serve(&mut m, a);
+        assert!(acquire_serve(&mut m, a));
+        for _ in 0..BLOB_SERVE_INFLIGHT_PER_PEER {
+            release_serve(&mut m, a);
+        }
+        release_serve(&mut m, b);
+        assert!(m.is_empty());
     }
 }

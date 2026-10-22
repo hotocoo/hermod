@@ -23,6 +23,16 @@ pub const MAX_SIGNAL_BYTES: usize = 64 * 1024;
 pub const MAX_GOSSIP_EVENT: usize = (1 << 20) + 4096;
 /// Largest ephemeral message (presence, typing, hearts).
 pub const MAX_EPHEMERAL_BYTES: usize = 2048;
+/// Longest accepted ephemeral `kind` label ("presence", "typing", ...).
+pub const MAX_EPHEMERAL_KIND: usize = 32;
+/// Inbound sync requests per peer: refill per second and burst.
+pub const SYNC_IN_RATE: (f64, f64) = (10.0, 20.0);
+/// Inbound signals (gossip and RPC) per peer: refill per second and burst.
+pub const SIGNAL_IN_RATE: (f64, f64) = (10.0, 30.0);
+/// Blob requests a single peer may have in flight with us; more are answered `data: None`.
+pub const BLOB_SERVE_INFLIGHT_PER_PEER: u32 = 16;
+/// Announced providers remembered per blob with an active fetch job.
+pub const MAX_PROVIDERS_PER_BLOB: usize = 32;
 /// Parallel chunk requests per blob.
 pub const BLOB_WINDOW: usize = 8;
 
@@ -82,6 +92,13 @@ pub struct Ephemeral {
     pub payload: ByteBuf,
 }
 
+impl Ephemeral {
+    /// Within the size caps on both `kind` and `payload`.
+    pub fn fits(&self) -> bool {
+        self.kind.len() <= MAX_EPHEMERAL_KIND && self.payload.len() <= MAX_EPHEMERAL_BYTES
+    }
+}
+
 pub fn eph_topic_name(space: &SpaceId) -> String {
     format!("hermod/eph/{}", hex::encode(space))
 }
@@ -125,6 +142,16 @@ mod tests {
             }
             other => panic!("{other:?}"),
         }
+    }
+
+    #[test]
+    fn ephemeral_kind_is_capped() {
+        let e = |kind: String| Ephemeral {
+            kind,
+            payload: ByteBuf::new(),
+        };
+        assert!(e("x".repeat(MAX_EPHEMERAL_KIND)).fits());
+        assert!(!e("x".repeat(MAX_EPHEMERAL_KIND + 1)).fits());
     }
 
     #[test]
