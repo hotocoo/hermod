@@ -5,6 +5,7 @@ import { errorMessage, getBridge, type BlobRef } from '../../lib/bridge';
 import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
 import { omitKey, withKey } from '../helpers';
+import { getTown } from '../townPort';
 import { chatKey, curSpace } from '../selectors';
 import type { AppStore, Attached, ChatSlice } from '../types';
 import { takeComposeExtras } from './messaging';
@@ -22,6 +23,12 @@ export function mentionsIn(text: string, people: Record<string, { name: string }
 /** Frees the blob: object URLs held by composer previews. */
 export function revokePreviews(list: readonly Attached[]): void {
   for (const a of list) if (a.local) URL.revokeObjectURL(a.local);
+}
+
+/** A raven carries a sent message off the commons (FEATURES R-006); only when ravens are on and the island is in view. */
+function flySent(get: () => AppStore): void {
+  const s = get();
+  if (s.ravens && !s.archi && !s.photo) getTown()?.flyOut('chat');
 }
 
 export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, get) => ({
@@ -42,7 +49,7 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
       mentions: mentionsIn(text, s.seed.people), ext: extras.ext, preview: extras.preview,
     });
     // Restore what the user typed so nothing is lost on failure (the toast already explained why).
-    if (ok) revokePreviews(files);
+    if (ok) { revokePreviews(files); flySent(get); }
     else set((x) => ({ drafts: withKey(x.drafts, key, text), attached: files.length ? withKey(x.attached, key, files) : x.attached, snapRef: snap ?? null }));
   },
 
@@ -51,7 +58,8 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
     const s = get(); const text = s.tdraft.trim(); const root = s.thread; const ch = s.ch[s.space];
     if (!text || !root || !ch) return;
     set({ tdraft: '' });
-    if (!(await appendEvent(get, s.space, { t: 'message.post', channel_id: ch, msg_id: uid('m'), text, reply_to: root, attachments: [] }))) set({ tdraft: text });
+    if (await appendEvent(get, s.space, { t: 'message.post', channel_id: ch, msg_id: uid('m'), text, reply_to: root, attachments: [] })) flySent(get);
+    else set({ tdraft: text });
   },
 
   react: async (key, mid, l) => { await appendEvent(get, key.slice(0, key.indexOf('/')), { t: 'reaction.toggle', target_id: mid, label: l }); },

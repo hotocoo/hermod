@@ -671,7 +671,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     setFire(on) { fx.fire = on ? 1.6 : 0.6; },
     setRoom(n, me, speak) { room = { n, me }; if (speak != null) hints.speak = speak; applyRoom(); },
     burst() { fx.burst = 2.4; },
-    sendRaven: ravens.sendRaven, setUnread(m) { unread = m || {}; }, setWeather: weather.setWeather,
+    sendRaven: ravens.sendRaven, flyIn: ravens.flyIn, flyOut: ravens.flyOut, setUnread(m) { unread = m || {}; }, setWeather: weather.setWeather,
     setPerched(here, away) { ravens.setWant(here, away); },
     setHints(h) { hints = Object.assign(hints, h || {}); applyVisitors(); },
     setTimeOfDay(v) { clockMode = 'manual'; setHour(v * 24); },

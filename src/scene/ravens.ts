@@ -25,15 +25,45 @@ export function createRavens({ WK, island, plots, islandY, reduced, ring, anchor
     if (kind === 'here') { const pl = plots.chat; if (!pl || !pl.built || pl.dying) return null; out.set(0, ((pl.g.userData.perchY as number | undefined) ?? 4.68) + pl.open.x * 0.85, HERE_PERCH_Z[slot]); pl.g.localToWorld(out); island.worldToLocal(out); return out; }
     const a = SIGN_ARMS[slot].angle; const sg = anchor('search') ?? { x: 0, z: 0 }; out.set(sg.x + Math.cos(a) * 0.88, 1.64 - slot * 0.24, sg.z - Math.sin(a) * 0.88); return out;
   }
-  function launchPerch(kind: RavenKind, cb?: (() => void) | null): boolean { if (kind !== 'here' || perched.length) return false; const to = slotPos('here', 1, new THREE.Vector3()); if (!to) return false; const g = makeRaven(); g.scale.setScalar(0.0001); island.add(g); const rv: RavenActor = { g, kind: 'here', slot: 1, phase: 'perched', since: 0, nextCaw: 1.2, nextHop: 3, nextPing: 0.2, t: 0, dur: 1, flap: 0, grow: spring(0, SPRINGS.raven), base: g.userData.baseScale || RAVEN.fallbackScale }; rv.grow!.t = 1; perched.push(rv); cb?.(); return true; }
+  function launchPerch(kind: RavenKind, cb?: (() => void) | null): boolean {
+    if (kind !== 'here') return false;
+    const slot = HERE_PERCH_Z.findIndex((_, i) => !perched.some((r) => r.slot === i)); if (slot < 0) return false;
+    const to = slotPos('here', slot, new THREE.Vector3()); if (!to) return false;
+    const g = makeRaven(); g.scale.setScalar(0.0001); island.add(g);
+    const rv: RavenActor = { g, kind: 'here', slot, phase: 'perched', since: 0, nextCaw: 1.2, nextHop: 3, nextPing: 0.2, t: 0, dur: 1, flap: 0, grow: spring(0, SPRINGS.raven), base: g.userData.baseScale || RAVEN.fallbackScale };
+    rv.grow!.t = 1; if (reduced) rv.grow!.snap(1); perched.push(rv); cb?.(); return true;
+  }
   function takeOff(r: RavenActor) { if (r.grow) { r.grow.t = 0; r.leaving = true; return; } const P = r.g.position.clone(); const Q = new THREE.Vector3(-P.x * 2.2 + (Math.random() - 0.5) * 20, 18, -P.z * 2.2 + 20); r.curve = new THREE.CubicBezierCurve3(P, new THREE.Vector3(P.x, P.y + 3, P.z), new THREE.Vector3(Q.x * 0.5, 15, Q.z * 0.5), Q); r.t = 0; r.dur = reduced ? 0.01 : 2.8; r.phase = 'out'; r.g.userData.letter.visible = false; ravens.push(r); }
+  /** True while another flight fits under RAVEN.maxFlying; past it a flight is skipped (its callback still runs) so a burst never floods the sky. */
+  const flightRoom = () => ravens.length < RAVEN.maxFlying;
+  /** A raven from beyond the island carries a letter to the `toId` anchor; `cb` fires on arrival. Without motion (or room, or anchor) there is no flight and `cb` fires at once. */
+  function flyIn(toId: string, cb?: () => void): boolean {
+    const q = anchor(toId);
+    if (reduced || !flightRoom() || !q) { cb?.(); return false; }
+    const a = Math.random() * Math.PI * 2; const S = RAVEN.spawn;
+    const P = new THREE.Vector3(Math.cos(a) * S.dist, S.y, Math.sin(a) * S.dist); const Q = new THREE.Vector3(q.x, RAVEN.landY, q.z);
+    const g = makeRaven(); island.add(g); g.userData.letter.visible = true;
+    const curve = new THREE.CubicBezierCurve3(P, new THREE.Vector3(P.x * RAVEN.arcFrac, S.y + RAVEN.arcRise, P.z * RAVEN.arcFrac), new THREE.Vector3(Q.x, Q.y + RAVEN.arcRise, Q.z), Q);
+    ravens.push({ g, kind: 'deliver', phase: 'in', since: 0, nextCaw: 0, nextHop: 0, nextPing: 0, base: RAVEN.scale, curve, t: 0, dur: RAVEN.flyInSec, flap: 0, toId, cb });
+    return true;
+  }
+  /** A raven lifts off the `fromId` building with the sent letter and flies away. No flight under reduced motion or without room. */
+  function flyOut(fromId: string): boolean {
+    const q = anchor(fromId);
+    if (reduced || !flightRoom() || !q) return false;
+    const g = makeRaven(); island.add(g); g.position.set(q.x, RAVEN.launchY, q.z);
+    const rv: RavenActor = { g, kind: 'deliver', phase: 'in', since: 0, nextCaw: 0, nextHop: 0, nextPing: 0, base: RAVEN.scale, t: 0, dur: 1, flap: 0 };
+    takeOff(rv); g.userData.letter.visible = true; rv.dur = RAVEN.flyOutSec;
+    ring(q.x, q.z, { y: RAVEN.launchY - 0.1, r0: 0.2, r1: 2.4, dur: 1.2, w: 0.025 }); const pl = plots[fromId]; if (pl) pl.pop.v = 6;
+    return true;
+  }
   /** Poke the perched commons raven (burst of pings) or launch it if absent. */
   function sendRaven(_toId?: string, cb?: () => void) {
     const pr = perched[0]; if (pr) { pr.nextCaw = -0.01; pr.nextPing = 0; pr.burst = RAVEN.burst; cb?.(); return; } if (launchPerch('here', cb)) return; cb?.();
   }
   function reconcile(dt: number) {
     perchCool -= dt; if (perchCool > 0) return;
-    (['here', 'away'] as const).forEach((kind) => { const cnt = ravens.concat(perched).filter((r) => r.kind === kind && r.phase !== 'out').length; const target = kind === 'here' ? Math.min(RAVEN.maxHere, want.here) : 0;
+    (['here', 'away'] as const).forEach((kind) => { const cnt = ravens.concat(perched).filter((r) => r.kind === kind && r.phase !== 'out' && !r.leaving).length; const target = kind === 'here' ? Math.min(RAVEN.maxHere, want.here) : 0;
       if (cnt < target && islandY.x > -0.5 && (kind === 'away' || (plots.chat && plots.chat.scale.x > 0.95))) { if (launchPerch(kind, null)) perchCool = TIMING.perchCooldown; }
       else if (cnt > target) { const r = perched.find((x) => x.kind === kind && !x.leaving); if (r) { takeOff(r); perchCool = TIMING.perchCooldownTakeoff; } } });
   }
@@ -56,7 +86,7 @@ export function createRavens({ WK, island, plots, islandY, reduced, ring, anchor
       if (ud.neck) ud.neck.rotation.x = 0.55 + pitch; if (ud.setSpread) ud.setSpread(reduced ? 0 : Math.max(0, flapA - 0.06) * 0.35); if (ud.tail && !reduced) ud.tail.rotation.x = -0.2 + Math.sin(rv.since * 1.3) * 0.04; ud.legs.visible = true; ud.letter.visible = true; });
   }
   return {
-    ravens, perched, update, sendRaven, scatterPerched,
+    ravens, perched, update, sendRaven, flyIn, flyOut, scatterPerched,
     setWant(here?: number, away?: number) { want = { here: here || 0, away: away || 0 }; },
     /** Hold off new perches for `s` seconds (used while the island is switching). */
     holdPerch(s: number) { perchCool = s; },
