@@ -1,4 +1,0 @@
-import { NodeIO } from '@gltf-transform/core';import { ALL_EXTENSIONS } from '@gltf-transform/extensions';import { MeshoptDecoder } from 'meshoptimizer';
-await MeshoptDecoder.ready;
-const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.decoder':MeshoptDecoder});
-for(const id of process.argv.slice(2)){const d=await io.read('public/assets/high/models/'+id+'.glb');const r=d.getRoot();console.log(id,'nodes',r.listNodes().map(n=>n.getName()),'mats',r.listMaterials().map(m=>m.getName()+':'+['BaseColor','Normal','MetallicRoughness','Occlusion'].map(k=>{const t=m['get'+k+'Texture']?.();return t?(t.getSize()||[]).join('x'):'-'}).join('/')),'prims',r.listMeshes().map(m=>m.getName()+m.listPrimitives().length), 'uv1', r.listMeshes()[0].listPrimitives()[0].listSemantics().join(','))}

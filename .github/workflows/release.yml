@@ -8,7 +8,28 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches every manifest version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          want="${TAG#v}"
+          got=$(node -p "require('./package.json').version + ' ' + require('./src-tauri/tauri.conf.json').version")
+          for f in crates/hermod-core/Cargo.toml crates/hermod-node/Cargo.toml src-tauri/Cargo.toml; do
+            [ -f "$f" ] && got="$got $(awk -F'"' '/^version *=/ {print $2; exit}' "$f")"
+          done
+          for v in $got; do
+            [ "$v" = "$want" ] || { echo "tag $TAG does not match manifest versions: $got"; exit 1; }
+          done
+
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: [verify, ci]
     strategy:
       fail-fast: false
       matrix:
@@ -36,11 +57,14 @@ jobs:
           node-version: 22
           cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
+          toolchain: 1.98.1
           targets: ${{ matrix.target }}
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          key: ${{ matrix.target }}
 
       - run: npm ci
 
@@ -60,7 +84,7 @@ jobs:
             if [ -n "${!v}" ]; then printf '%s<<__EOF__\n%s\n__EOF__\n' "$v" "${!v}" >> "$GITHUB_ENV"; fi
           done
 
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -69,7 +93,18 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: Hermod ${{ github.ref_name }}
           releaseBody: See the assets below. Builds are not code-signed unless stated; see the README for first-run steps.
-          releaseDraft: false
+          releaseDraft: true
           prerelease: ${{ contains(github.ref_name, '-') }}
           uploadUpdaterJson: true
           args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Un-draft release after every build leg succeeded
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --draft=false

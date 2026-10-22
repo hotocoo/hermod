@@ -80,3 +80,10 @@ perf-results/
 # frontend asset folders moved out of out/ at release build (scripts/split-web-assets.mjs)
 /src-tauri/web/*
 !/src-tauri/web/.gitkeep
+
+# python bytecode
+__pycache__/
+
+# local agent worktrees and parallel build dirs
+/.claude/worktrees/
+/target-wf/
