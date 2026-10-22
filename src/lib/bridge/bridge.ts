@@ -64,7 +64,8 @@ export interface Bridge {
   auditList(spaceId: string): Promise<AuditRow[]>;
   logTail(lines: number): Promise<string[]>;
   outboxStatus(): Promise<OutboxStatus>;
-  backupExport(path: string, passphrase: string, includeBlobs: boolean): Promise<void>;
+  /** The desktop app opens its own save dialog; `path` is for the devhost only. Resolves to the saved path, or null when cancelled. */
+  backupExport(suggestedName: string, passphrase: string, includeBlobs: boolean, path?: string): Promise<string | null>;
   backupImport(path: string, passphrase: string): Promise<void>;
   appReset(): Promise<void>;
   updateCheck(): Promise<UpdateInfo>;
@@ -106,6 +107,8 @@ export interface Bridge {
 export interface Transport {
   readonly kind: Bridge['kind'];
   call<T>(command: string, args?: Record<string, unknown>): Promise<T>;
+  /** Binary upload as the raw IPC body (`args` ride in a header). Absent on the devhost, which sends a JSON number array. */
+  callRaw?<T>(command: string, args: Record<string, unknown>, bytes: Uint8Array): Promise<T>;
   listen(event: string, handler: (payload: unknown) => void): () => void;
   blobUrl(hash: string): string;
 }
@@ -117,6 +120,8 @@ export class BridgeError extends Error {
 
 export function createBridge(t: Transport): Bridge {
   const call = <T,>(cmd: string, args?: Record<string, unknown>) => t.call<T>(cmd, args);
+  const bytesCall = <T,>(cmd: string, args: Record<string, unknown>, bytes: Uint8Array) =>
+    t.callRaw ? t.callRaw<T>(cmd, args, bytes) : t.call<T>(cmd, { ...args, bytes: Array.from(bytes) });
   const none = (cmd: string, args?: Record<string, unknown>) => call<unknown>(cmd, args).then(() => undefined);
   return {
     kind: t.kind,
@@ -137,10 +142,10 @@ export function createBridge(t: Transport): Bridge {
     memberRemove: (spaceId, user) => none('member_remove', { spaceId, user }),
     eventAppend: (spaceId, body) => none('event_append', { spaceId, body }),
     blobPut: (path) => call('blob_put', { path }),
-    blobPutBytes: (name, bytes) => call('blob_put_bytes', { name, bytes: Array.from(bytes) }),
+    blobPutBytes: (name, bytes) => bytesCall('blob_put_bytes', { name }, bytes),
     pickFiles: (opts = {}) => call('pick_files', { multiple: !!opts.multiple, accept: opts.accept ?? [] }),
     blobSaveAs: (hash, suggestedName) => call('blob_save_as', { hash, suggestedName }),
-    saveFile: (suggestedName, bytes) => call('save_file', { suggestedName, bytes: Array.from(bytes) }),
+    saveFile: (suggestedName, bytes) => bytesCall('save_file', { suggestedName }, bytes),
     nodeStatus: () => call('node_status'),
     nodeSettingsGet: () => call('node_settings_get'),
     nodeSettingsSet: (patch) => call('node_settings_set', { ...patch }),
@@ -163,7 +168,7 @@ export function createBridge(t: Transport): Bridge {
     auditList: (spaceId) => call('audit_list', { spaceId }),
     logTail: (lines) => call('log_tail', { lines }),
     outboxStatus: () => call('outbox_status'),
-    backupExport: (path, passphrase, includeBlobs) => none('backup_export', { path, passphrase, includeBlobs }),
+    backupExport: (suggestedName, passphrase, includeBlobs, path) => call('backup_export', { suggestedName, passphrase, includeBlobs, path: path ?? null }),
     backupImport: (path, passphrase) => none('backup_import', { path, passphrase }),
     appReset: () => none('app_reset'),
     updateCheck: () => call('update_check'),

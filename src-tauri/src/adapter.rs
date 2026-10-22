@@ -5,13 +5,13 @@
 //! decrypted once more and handed to the runtime through [`Notice`].
 
 use crate::ctx::{Touched, collections_for};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use hermod_core::api::DB_FILE;
 use hermod_core::blobs::Manifest;
-use hermod_core::crypto::SpaceKey;
+use hermod_core::event::Decoded;
 use hermod_core::ids::{self, SpaceId, UserId};
 use hermod_core::store::{IngestStatus, Store};
 use hermod_core::{Core, EventBody, SignedEvent};
@@ -34,8 +34,14 @@ pub struct CoreStore {
     notices: UnboundedSender<Notice>,
     /// Read-only second connection, used only to look up space keys for decryption.
     reader: Mutex<Option<Store>>,
-    keys: Mutex<HashMap<SpaceId, SpaceKey>>,
     touched: Touched,
+}
+
+/// Decrypt a remote event with the keys held for ITS epoch (a rekey changes them, so nothing
+/// is cached per space).
+fn open_notice(store: &Store, ev: &SignedEvent) -> Option<Decoded> {
+    let keys = store.keys_for(&ev.space_id, ev.epoch).ok()?;
+    ev.open_any(&keys).ok()
 }
 
 fn serr(e: impl std::fmt::Display) -> StoreError {
@@ -55,37 +61,18 @@ impl CoreStore {
             core,
             notices,
             reader: Mutex::new(reader),
-            keys: Mutex::new(HashMap::new()),
             touched,
         }
-    }
-
-    fn key_of(&self, space: &SpaceId) -> Option<SpaceKey> {
-        if let Some(k) = self
-            .keys
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .get(space)
-        {
-            return Some(k.clone());
-        }
-        let guard = self.reader.lock().unwrap_or_else(|e| e.into_inner());
-        let key = guard.as_ref()?.space(space).ok().flatten()?.key;
-        self.keys
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .insert(*space, key.clone());
-        Some(key)
     }
 
     fn announce(&self, ev: &SignedEvent) {
         if ev.author == self.core.user_id() {
             return;
         }
-        let Some(key) = self.key_of(&ev.space_id) else {
-            return;
-        };
-        if let Ok(d) = ev.open(&key) {
+        let guard = self.reader.lock().unwrap_or_else(|e| e.into_inner());
+        let opened = guard.as_ref().and_then(|store| open_notice(store, ev));
+        drop(guard);
+        if let Some(d) = opened {
             let tag = serde_json::to_value(&d.body)
                 .ok()
                 .and_then(|v| v.get("t").and_then(|t| t.as_str().map(str::to_string)))
@@ -285,5 +272,33 @@ mod tests {
         let peer = libp2p::identity::PublicKey::from(kp.public()).to_peer_id();
         let user = user_of_peer(&peer).expect("ed25519 peer id");
         assert_eq!(peer_of_user(&user), Some(peer));
+    }
+
+    #[test]
+    fn notices_open_events_sealed_under_a_later_epoch() {
+        use hermod_core::crypto::SpaceKey;
+        use hermod_core::identity::Identity;
+        use hermod_core::store::SpaceRow;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("t.db")).unwrap();
+        let space = SpaceId([7; 32]);
+        let (old, new) = (SpaceKey::random(), SpaceKey::random());
+        store
+            .add_space(&SpaceRow {
+                id: space,
+                key: old,
+                epoch: 0,
+                name: "t".into(),
+                kind: "Team".into(),
+                is_home: false,
+                joined_at: 0,
+                left: false,
+            })
+            .unwrap();
+        store.add_key(&space, 1, &new).unwrap();
+        let author = Identity::generate();
+        let body = EventBody::Unknown;
+        let ev = SignedEvent::create(&author, &new, 1, space, 1, 1, 0, &body).unwrap();
+        assert!(open_notice(&store, &ev).is_some());
     }
 }

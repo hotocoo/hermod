@@ -207,7 +207,11 @@ impl BlobStore {
 
     /// Reads one chunk, re-verifying its hash.
     pub fn read_chunk(&self, id: &str, idx: u32) -> Result<Vec<u8>> {
-        let m = self.require(id)?;
+        self.read_chunk_in(&self.require(id)?, id, idx)
+    }
+
+    /// [`Self::read_chunk`] for a manifest the caller already holds (no manifest re-read).
+    pub fn read_chunk_in(&self, m: &Manifest, id: &str, idx: u32) -> Result<Vec<u8>> {
         let hash = m
             .chunks
             .get(idx as usize)
@@ -224,7 +228,11 @@ impl BlobStore {
 
     /// Reads `[start, start + len)`, clamped to the blob size. Only the needed chunks are touched.
     pub fn read_range(&self, id: &str, start: u64, len: u64) -> Result<Vec<u8>> {
-        let m = self.require(id)?;
+        self.read_range_in(&self.require(id)?, id, start, len)
+    }
+
+    /// [`Self::read_range`] for a manifest the caller already holds.
+    pub fn read_range_in(&self, m: &Manifest, id: &str, start: u64, len: u64) -> Result<Vec<u8>> {
         let end = start.saturating_add(len).min(m.size);
         if start >= end {
             return Ok(Vec::new());
@@ -232,13 +240,18 @@ impl BlobStore {
         let cs = CHUNK_SIZE as u64;
         let mut out = Vec::with_capacity((end - start) as usize);
         for idx in (start / cs)..=((end - 1) / cs) {
-            let chunk = self.read_chunk(id, idx as u32)?;
+            let chunk = self.read_chunk_in(m, id, idx as u32)?;
             let base = idx * cs;
             let from = start.saturating_sub(base) as usize;
             let to = (end - base).min(chunk.len() as u64) as usize;
             out.extend_from_slice(&chunk[from..to]);
         }
         Ok(out)
+    }
+
+    /// True when every chunk of `m` is on disk.
+    pub fn has_all_chunks(&self, m: &Manifest) -> bool {
+        m.chunks.iter().all(|h| self.has_chunk(h))
     }
 
     pub fn read_all(&self, id: &str) -> Result<Vec<u8>> {
@@ -305,6 +318,46 @@ impl BlobStore {
             }
         }
         Ok(freed)
+    }
+
+    /// Oldest-first blobs outside `keep` (and at least `min_age` old) whose sizes add up to at
+    /// least `need` bytes, or all of them when they total less.
+    pub fn oldest_unreferenced(
+        &self,
+        keep: &HashSet<String>,
+        min_age: Duration,
+        need: u64,
+    ) -> Result<Vec<String>> {
+        let now = SystemTime::now();
+        let mut found = Vec::new();
+        for entry in fs::read_dir(&self.manifests)? {
+            let entry = entry?;
+            let name = entry.file_name().to_string_lossy().into_owned();
+            let Some(age) = entry
+                .metadata()?
+                .modified()
+                .ok()
+                .and_then(|m| now.duration_since(m).ok())
+            else {
+                continue;
+            };
+            if keep.contains(&name) || age < min_age {
+                continue;
+            }
+            let size = Manifest::from_bytes(&fs::read(entry.path())?).map_or(0, |m| m.size);
+            found.push((age, name, size));
+        }
+        found.sort_by_key(|f| std::cmp::Reverse(f.0));
+        let mut sum = 0;
+        let mut out = Vec::new();
+        for (_, name, size) in found {
+            if sum >= need {
+                break;
+            }
+            sum += size;
+            out.push(name);
+        }
+        Ok(out)
     }
 
     /// Every stored blob id.

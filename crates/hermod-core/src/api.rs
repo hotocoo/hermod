@@ -1310,21 +1310,46 @@ impl Core {
 
     /// Like [`Core::storage_clear_cache`] with an explicit age floor for unreferenced blobs.
     pub fn storage_clear_cache_with(&self, grace: Duration) -> Result<u64> {
-        let keep = {
-            let inner = self.lock();
-            let mut keep = HashSet::new();
-            for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
-                for ev in inner.store.load_opened(&row)? {
-                    keep.extend(ev.body.blob_refs().into_iter().map(|b| b.hash.clone()));
-                }
-            }
-            keep
-        };
+        self.blobs.gc(&self.referenced_blobs()?, grace)
+    }
+
+    /// Evicts the oldest unreferenced blobs until the cache held for others fits `limit` bytes.
+    /// Blobs a local event references (our own uploads included) are never touched. Returns bytes freed.
+    pub fn storage_trim_cache(&self, limit: u64) -> Result<u64> {
+        self.storage_trim_cache_with(limit, CACHE_GRACE)
+    }
+
+    /// Like [`Core::storage_trim_cache`] with an explicit age floor for evictable blobs.
+    pub fn storage_trim_cache_with(&self, limit: u64, grace: Duration) -> Result<u64> {
+        let excess = self.storage_usage()?.cache_bytes.saturating_sub(limit);
+        if excess == 0 {
+            return Ok(0);
+        }
+        let victims = self
+            .blobs
+            .oldest_unreferenced(&self.referenced_blobs()?, grace, excess)?;
+        let mut keep: HashSet<String> = self.blobs.list()?.into_iter().collect();
+        for v in &victims {
+            keep.remove(v);
+        }
         self.blobs.gc(&keep, grace)
+    }
+
+    /// Hashes of blobs any event of a space we are still in refers to.
+    fn referenced_blobs(&self) -> Result<HashSet<String>> {
+        let inner = self.lock();
+        let mut keep = HashSet::new();
+        for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
+            for ev in inner.store.load_opened(&row)? {
+                keep.extend(ev.body.blob_refs().into_iter().map(|b| b.hash.clone()));
+            }
+        }
+        Ok(keep)
     }
 
     /// Writes an encrypted backup (identity, spaces, keys, log, local state, optionally blobs).
     pub fn backup_export(&self, path: &Path, passphrase: &str, include_blobs: bool) -> Result<()> {
+        // The core lock covers only the log and keys; blob chunks are read after it is released.
         let inner = self.lock();
         let mut spaces = Vec::new();
         let mut blob_ids = BTreeSet::new();
@@ -1353,6 +1378,22 @@ impl Core {
                     .collect::<Result<_>>()?,
             });
         }
+        let mut payload = Payload {
+            v: 1,
+            identity_seed: inner.identity.seed(),
+            spaces,
+            kv: inner.store.kv_prefix("")?,
+            read_markers: inner
+                .store
+                .read_markers()?
+                .into_iter()
+                .map(|((s, c), l)| (s, c, l))
+                .collect(),
+            blocks: inner.store.blocked()?.into_iter().collect(),
+            follows: inner.store.follows()?.into_iter().collect(),
+            blobs: Vec::new(),
+        };
+        drop(inner);
         let mut blobs = Vec::new();
         for id in blob_ids {
             let Some(m) = self.blobs.manifest(&id)? else {
@@ -1373,21 +1414,7 @@ impl Core {
                 chunks,
             });
         }
-        let payload = Payload {
-            v: 1,
-            identity_seed: inner.identity.seed(),
-            spaces,
-            kv: inner.store.kv_prefix("")?,
-            read_markers: inner
-                .store
-                .read_markers()?
-                .into_iter()
-                .map(|((s, c), l)| (s, c, l))
-                .collect(),
-            blocks: inner.store.blocked()?.into_iter().collect(),
-            follows: inner.store.follows()?.into_iter().collect(),
-            blobs,
-        };
+        payload.blobs = blobs;
         backup::write_file(
             path,
             &backup::seal(&payload, passphrase, self.config.backup_kdf)?,

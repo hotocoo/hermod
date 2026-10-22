@@ -9,6 +9,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use axum::Extension;
 use axum::Router;
 use axum::body::Body;
 use axum::extract::{Path, State};
@@ -43,11 +44,31 @@ struct Args {
 
 type Shared = Arc<Ctx>;
 
+/// A JSON body (a cross-site form cannot send one without a CORS preflight) addressed to
+/// `127.0.0.1:<port>` (a DNS-rebound hostname fails this).
+fn invoke_allowed(headers: &HeaderMap, port: u16) -> bool {
+    let json = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| {
+            v.split(';')
+                .next()
+                .is_some_and(|m| m.trim().eq_ignore_ascii_case("application/json"))
+        });
+    let host = headers.get(header::HOST).and_then(|v| v.to_str().ok());
+    json && host == Some(format!("127.0.0.1:{port}").as_str())
+}
+
 async fn invoke(
     State(ctx): State<Shared>,
+    Extension(port): Extension<u16>,
+    headers: HeaderMap,
     Path(cmd): Path<String>,
     body: axum::body::Bytes,
 ) -> Response {
+    if !invoke_allowed(&headers, port) {
+        return (StatusCode::FORBIDDEN, "request not allowed").into_response();
+    }
     let args: serde_json::Value = if body.is_empty() {
         serde_json::json!({})
     } else {
@@ -132,6 +153,7 @@ async fn main() -> anyhow_free::Result<()> {
         .route("/invoke/{command}", post(invoke))
         .route("/events", get(events))
         .route("/blob/{hash}", get(blob_route))
+        .layer(Extension(a.port))
         .layer(cors)
         .with_state(ctx.clone());
     let addr = SocketAddr::from(([127, 0, 0, 1], a.port));
@@ -144,6 +166,45 @@ async fn main() -> anyhow_free::Result<()> {
         .await?;
     ctx.shutdown().await;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn headers(ct: Option<&str>, host: &str) -> HeaderMap {
+        let mut h = HeaderMap::new();
+        h.insert(header::HOST, host.parse().unwrap());
+        if let Some(ct) = ct {
+            h.insert(header::CONTENT_TYPE, ct.parse().unwrap());
+        }
+        h
+    }
+
+    #[test]
+    fn invoke_needs_json_and_the_loopback_host() {
+        assert!(invoke_allowed(
+            &headers(Some("application/json"), "127.0.0.1:7000"),
+            7000
+        ));
+        assert!(invoke_allowed(
+            &headers(Some("Application/JSON; charset=utf-8"), "127.0.0.1:7000"),
+            7000
+        ));
+        assert!(!invoke_allowed(
+            &headers(Some("text/plain"), "127.0.0.1:7000"),
+            7000
+        ));
+        assert!(!invoke_allowed(&headers(None, "127.0.0.1:7000"), 7000));
+        assert!(!invoke_allowed(
+            &headers(Some("application/json"), "evil.example:7000"),
+            7000
+        ));
+        assert!(!invoke_allowed(
+            &headers(Some("application/json"), "127.0.0.1:7001"),
+            7000
+        ));
+    }
 }
 
 mod anyhow_free {

@@ -224,11 +224,11 @@ function Backup() {
   const run = async (fn: () => Promise<string | undefined>) => { setBusy(true); try { const done = await fn(); if (done) toast(done); } catch (e) { fail(toast, e); } setBusy(false); };
 
   const exportBackup = () => run(async () => {
-    let path: string;
     const name = `hermod-backup-${new Date().toISOString().slice(0, 10)}.hermodbak`;
-    if (isTauri()) { const { documentDir, join } = await import('@tauri-apps/api/path'); path = await join(await documentDir(), name); }
-    else { const v = await ask({ title: 'Save backup to', submit: 'Export', fields: [{ key: 'p', label: 'File path', initial: name, required: true }] }); if (!v) return; path = v.p.trim(); }
-    await getBridge().backupExport(path, pass, blobs);
+    let typed: string | undefined;
+    if (!isTauri()) { const v = await ask({ title: 'Save backup to', submit: 'Export', fields: [{ key: 'p', label: 'File path', initial: name, required: true }] }); if (!v) return; typed = v.p.trim(); }
+    const path = await getBridge().backupExport(name, pass, blobs, typed);
+    if (!path) return;
     return `Saved to ${path}`;
   });
 

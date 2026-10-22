@@ -183,18 +183,25 @@ pub fn run() {
             if cmd.starts_with("plugin:") {
                 return false;
             }
-            let args = match invoke.message.payload() {
-                InvokeBody::Json(v) => v.clone(),
-                InvokeBody::Raw(_) => Value::Null,
-            };
+            let payload = invoke.message.payload().clone();
+            let meta = invoke
+                .message
+                .headers()
+                .get(api::RAW_ARGS_HEADER)
+                .and_then(|v| v.to_str().ok())
+                .map(str::to_string);
             let app = invoke.message.webview().app_handle().clone();
             invoke.resolver.respond_async(async move {
                 let Some(ctx) = app.try_state::<Arc<Ctx>>().map(|s| s.inner().clone()) else {
                     return Err(InvokeError::from("Hermod is still starting".to_string()));
                 };
-                api::handle(&ctx, &cmd, args)
-                    .await
-                    .map_err(InvokeError::from)
+                let out = match payload {
+                    InvokeBody::Json(args) => api::handle(&ctx, &cmd, args).await,
+                    InvokeBody::Raw(bytes) => {
+                        api::handle_raw(&ctx, &cmd, meta.as_deref(), bytes).await
+                    }
+                };
+                out.map_err(InvokeError::from)
             });
             true
         })

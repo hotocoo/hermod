@@ -836,12 +836,30 @@ fn storage_usage_counts_events_and_referenced_blobs() {
         },
     )
     .unwrap();
+    let older = c.blob_put_bytes("old.bin", &vec![3u8; 3000]).unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(20));
     let orphan = c.blob_put_bytes("o.bin", &vec![2u8; 4000]).unwrap();
     let u = c.storage_usage().unwrap();
     let sp = u.spaces.iter().find(|x| x.name == "Disk").unwrap();
     assert_eq!((sp.blobs, sp.blob_bytes), (1, 5000));
     assert!(sp.events >= 4 && sp.event_bytes > 0);
     assert!(u.cache_bytes >= 4000);
+    // A cache limit evicts the oldest unreferenced blob first and never a referenced one.
+    let none = std::time::Duration::ZERO;
+    assert_eq!(c.storage_trim_cache_with(u64::MAX, none).unwrap(), 0);
+    assert!(c.storage_trim_cache_with(u.cache_bytes - 1, none).unwrap() >= 3000);
+    assert!(c.blobs().manifest(&older.hash).unwrap().is_none());
+    assert!(c.blobs().manifest(&orphan.hash).unwrap().is_some());
+    assert_eq!(
+        c.storage_usage()
+            .unwrap()
+            .spaces
+            .iter()
+            .find(|x| x.name == "Disk")
+            .unwrap()
+            .blob_bytes,
+        5000
+    );
     assert_eq!(
         c.storage_clear_cache().unwrap(),
         0,
