@@ -129,6 +129,25 @@ test('attachments: A sends an image, B fetches it from /blob with a persisted im
   await expect.poll(() => img(b).evaluate((el: HTMLImageElement) => el.naturalWidth), { timeout: 30_000 }).toBeGreaterThan(0);
 });
 
+test('blob range: B seeks into a file only A holds and gets a 206 with the matching Content-Range (G-005)', async () => {
+  const name = `${Date.now().toString(36)}-range.png`;
+  const png = pngBuffer(20, 160, 90);
+  const chooser = a.waitForEvent('filechooser');
+  await a.getByRole('button', { name: 'Attach files' }).click();
+  await (await chooser).setFiles({ name, mimeType: 'image/png', buffer: png });
+  await expect(a.getByRole('list', { name: 'Attached' }).getByText(name)).toBeVisible();
+  await a.getByLabel('Message', { exact: true }).fill(`seek ${name}`);
+  await a.keyboard.press('Enter');
+  const img = b.getByRole('article').getByRole('img', { name });
+  await expect(img).toBeVisible({ timeout: 60_000 });
+  const src = (await img.getAttribute('src'))!;
+  const tail = 8;
+  await expect.poll(async () => (await b.request.get(src, { headers: { Range: `bytes=-${tail}` } })).status(), { timeout: 60_000 }).toBe(206);
+  const res = await b.request.get(src, { headers: { Range: `bytes=-${tail}` } });
+  expect(res.headers()['content-range']).toBe(`bytes ${png.length - tail}-${png.length - 1}/${png.length}`);
+  expect(await res.body()).toEqual(png.subarray(png.length - tail));
+});
+
 test('search finds message text in the palette and renders hostile text as plain text (A-013, S-001, U-005)', async () => {
   const word = `kiln${Date.now().toString(36)}`;
   const hostile = `<img src=x onerror="window.__xss=1"> <b>bold</b> ${word}`;

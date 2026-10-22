@@ -17,8 +17,17 @@ pub type BlobPlan = Option<(Option<ManifestInfo>, Vec<u32>)>;
 
 type Reply = tokio::sync::oneshot::Sender<Result<(), NodeError>>;
 
+/// Inclusive chunk indices a caller needs; clamped to the manifest once it is known.
+pub type ChunkSpan = (u32, u32);
+
+/// A caller awaiting a blob: the whole thing (`want: None`) or just some chunks of it.
+struct Waiter {
+    reply: Reply,
+    want: Option<ChunkSpan>,
+}
+
 pub struct BlobJob {
-    waiters: Vec<Reply>,
+    waiters: Vec<Waiter>,
     info: Option<ManifestInfo>,
     planned: bool,
     manifest_pending: bool,
@@ -27,6 +36,31 @@ pub struct BlobJob {
     inflight: HashMap<OutboundRequestId, (Option<u32>, PeerId)>,
     tried: HashMap<Option<u32>, HashSet<PeerId>>,
     deadline: Instant,
+}
+
+impl BlobJob {
+    /// Chunks callers asked for by span go first, so a seek is not queued behind the rest.
+    fn prioritize(&mut self) {
+        let spans: Vec<ChunkSpan> = self.waiters.iter().filter_map(|w| w.want).collect();
+        if spans.is_empty() {
+            return;
+        }
+        let (mut hot, cold): (VecDeque<u32>, VecDeque<u32>) = self
+            .todo
+            .drain(..)
+            .partition(|i| spans.iter().any(|(a, b)| (*a..=*b).contains(i)));
+        hot.extend(cold);
+        self.todo = hot;
+    }
+
+    /// True once every chunk of `span` (clamped to the manifest) is stored.
+    fn has_span(&self, (first, last): ChunkSpan) -> bool {
+        let Some(info) = &self.info else { return false };
+        let Some(end) = (info.chunks.len() as u32).checked_sub(1) else {
+            return true;
+        };
+        (first.min(end)..=last.min(end)).all(|i| !self.remaining.contains(&i))
+    }
 }
 
 impl Driver {
@@ -276,15 +310,22 @@ impl Driver {
         self.pump_job(&blob);
     }
 
-    pub fn request_blob(&mut self, blob: BlobId, reply: Reply) {
+    /// Start or join a fetch of `blob`. `want` limits what this caller waits for; the job
+    /// still completes the whole blob in the background.
+    pub fn request_blob(&mut self, blob: BlobId, want: Option<ChunkSpan>, reply: Reply) {
+        let waiter = Waiter { reply, want };
         if let Some(j) = self.jobs.get_mut(&blob) {
-            j.waiters.push(reply);
+            j.waiters.push(waiter);
+            j.deadline = Instant::now() + self.cfg.blob_timeout;
+            j.prioritize();
+            self.notify_spans(&blob);
+            self.pump_job(&blob);
             return;
         }
         self.jobs.insert(
             blob,
             BlobJob {
-                waiters: vec![reply],
+                waiters: vec![waiter],
                 info: None,
                 planned: false,
                 manifest_pending: false,
@@ -330,7 +371,9 @@ impl Driver {
                     if job.remaining.is_empty() {
                         return self.finish_job(blob);
                     }
+                    job.prioritize();
                 }
+                self.notify_spans(&blob);
                 self.pump_job(&blob);
             }
         }
@@ -359,6 +402,7 @@ impl Driver {
                 if n == 0 {
                     return self.finish_job(blob);
                 }
+                job.prioritize();
                 self.pump_job(&blob);
             }
         }
@@ -378,6 +422,7 @@ impl Driver {
                 if job.remaining.is_empty() && job.info.is_some() {
                     self.finish_job(blob);
                 } else {
+                    self.notify_spans(&blob);
                     self.pump_job(&blob);
                 }
             }
@@ -484,11 +529,26 @@ impl Driver {
         }
     }
 
+    /// Answer the callers whose chunk span is now stored; the job keeps going for the rest.
+    fn notify_spans(&mut self, blob: &BlobId) {
+        let Some(job) = self.jobs.get_mut(blob) else {
+            return;
+        };
+        let waiters = std::mem::take(&mut job.waiters);
+        let (done, pending): (Vec<_>, Vec<_>) = waiters
+            .into_iter()
+            .partition(|w| w.want.is_some_and(|span| job.has_span(span)));
+        job.waiters = pending;
+        for w in done {
+            let _ = w.reply.send(Ok(()));
+        }
+    }
+
     fn finish_job(&mut self, blob: BlobId) {
         self.providers.remove(&blob);
         if let Some(j) = self.jobs.remove(&blob) {
             for w in j.waiters {
-                let _ = w.send(Ok(()));
+                let _ = w.reply.send(Ok(()));
             }
         }
     }
@@ -497,7 +557,7 @@ impl Driver {
         self.providers.remove(&blob);
         if let Some(j) = self.jobs.remove(&blob) {
             for w in j.waiters {
-                let _ = w.send(Err(NodeError::Blob(why.clone())));
+                let _ = w.reply.send(Err(NodeError::Blob(why.clone())));
             }
         }
     }

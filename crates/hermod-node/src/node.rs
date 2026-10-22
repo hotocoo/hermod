@@ -99,7 +99,20 @@ impl NodeHandle {
 
     /// Fetch a whole blob from peers into the store; resolves once every chunk is verified.
     pub async fn request_blob(&self, hash: BlobId) -> Result<(), NodeError> {
-        self.ask(|r| Command::RequestBlob(hash, r)).await?
+        self.ask(|r| Command::RequestBlob(hash, None, r)).await?
+    }
+
+    /// Fetch chunks `first..=last` of a blob (clamped to its size, manifest included) and
+    /// resolve once they are verified and stored; the rest keeps downloading in the background.
+    /// This is what a seek needs: the bytes under the playhead, not the whole file.
+    pub async fn request_blob_chunks(
+        &self,
+        hash: BlobId,
+        first: u32,
+        last: u32,
+    ) -> Result<(), NodeError> {
+        self.ask(|r| Command::RequestBlob(hash, Some((first, last)), r))
+            .await?
     }
 
     pub async fn announce_blob(&self, space: SpaceId, hash: BlobId) -> Result<(), NodeError> {
