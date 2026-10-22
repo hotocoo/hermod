@@ -32,7 +32,7 @@ export interface Room {
 export interface AgendaSeed { text: string; who: string }
 export interface AgendaItem extends AgendaSeed { done: boolean; cur: boolean }
 export interface Note { by: string; t: string; text: string }
-export interface Card { id: string; title: string; tag: string; by: string; snap?: string; fresh?: boolean }
+export interface Card { id: string; title: string; tag: string; by: string; snap?: string; assignee?: string; due?: string; fresh?: boolean }
 export interface Column { id: string; name: string; cards: Card[] }
 export interface WorkBoard { id?: string; name: string; due: string; cols: Column[] }
 export interface SkeinLine { id: string; name: string; note: string; ahead: number; by?: string }
@@ -49,6 +49,7 @@ export interface Skein { repo: string; blurb: string; lines: SkeinLine[]; snaps:
 export interface Post {
   id: string; by: string; space: string; title: string; kind: string; h: number; label: string; likes: number;
   text?: string; dur?: string; blob?: BlobRef; liked?: boolean; saved?: boolean;
+  comments?: { by: string; t: string; text: string }[];
   /** Space label (`home` or hex id) the post lives in; Home's feed mixes spaces. */
   spaceId?: string;
 }

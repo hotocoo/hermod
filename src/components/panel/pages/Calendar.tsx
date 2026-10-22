@@ -41,6 +41,7 @@ export function Calendar({ vm }: VmProps) {
             <div className={s.actions}>
               <button onClick={vm.rsvp} aria-pressed={vm.ev1.going} className={c.btn}>{vm.ev1.going ? 'Going, tap to undo' : 'I’m going'}</button>
               {vm.ev1.meeting && <button onClick={vm.joinEvent} className={c.btnAccent}>{vm.icS.flame} Join in the Hearth</button>}
+              <button onClick={vm.editEvent} className={c.btn}>Edit meeting</button>
               <button onClick={vm.cancelEvent} className={c.btn}>Cancel meeting</button>
             </div>
           </div>

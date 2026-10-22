@@ -202,6 +202,12 @@ pub struct Card {
     pub by: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub snap: Option<String>,
+    /// User id the card is assigned to.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub assignee: Option<String>,
+    /// Due date label (`YYYY-MM-DD`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub due: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fresh: Option<bool>,
 }

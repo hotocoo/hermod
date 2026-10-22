@@ -25,6 +25,13 @@
 .img{display:block;width:100%;height:auto;max-height:420px;object-fit:cover}
 .follow{border:1px solid var(--color-divider);border-radius:20px;background:transparent;padding:1px 9px;font-size:11px}
 .follow[aria-pressed="true"]{border-color:var(--color-accent);color:var(--color-accent-700)}
+.commentToggle{margin-top:6px;border:0;background:transparent;padding:2px 0;font-size:12px;color:color-mix(in srgb,var(--color-text) 62%,transparent)}
+.commentToggle:hover,.commentToggle[aria-expanded="true"]{color:var(--color-accent-700)}
+.thread{margin-top:6px;display:flex;flex-direction:column;gap:8px}
+.comments{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:13px}
+.commentT{margin-left:6px;font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent)}
+.commentForm{display:flex;gap:8px;align-items:center}
+.commentInput{flex:1;min-width:0;padding:5px 8px;border:1px solid var(--color-divider);border-radius:4px;background:transparent;font-size:13px;color:inherit}
 .newPost{display:inline-flex;align-items:center;gap:6px}
 .empty{padding:48px 16px;text-align:center}
 .emptyTitle{margin:0 0 6px;font-family:var(--font-heading);font-weight:400;font-size:26px}

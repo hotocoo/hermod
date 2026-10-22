@@ -98,7 +98,7 @@ function calendarVm(x: Ctx) {
       t: sel.t, day: days[sel.d], time: `${fmtHalfHour(sel.s)}–${fmtHalfHour(sel.e)}`, note: sel.note, people: sel.people.map((p) => ({ i: personOf(seed, p).i, name: personOf(seed, p).name })),
       going: sel.people.includes(me), meeting: !!sel.meeting,
     } : null,
-    joinEvent: () => { void s.joinEvent(); }, newEvent: () => { void s.newEvent(); }, rsvp: () => { void s.rsvp(); }, cancelEvent: () => { void s.cancelEvent(); },
+    joinEvent: () => { void s.joinEvent(); }, newEvent: () => { void s.newEvent(); }, rsvp: () => { void s.rsvp(); }, cancelEvent: () => { void s.cancelEvent(); }, editEvent: () => { void s.editEvent(); },
   };
 }
 

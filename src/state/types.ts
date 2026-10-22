@@ -135,6 +135,8 @@ export interface MediaSlice {
   story: StoryCursor | null; storySeen: Record<number, boolean>; storyDraft: string;
   toggleLike(id: string, space: string): Promise<void>; toggleSave(id: string, space: string): Promise<void>;
   deletePost(id: string, space: string): Promise<void>;
+  /** Comments on a post (`message.post` with `target`); resolves true once appended. */
+  commentPost(id: string, space: string, text: string): Promise<boolean>;
   markFeedSeen(space: string): void;
   openVideo(id: string): void; closeVid(): void; setWatched(id: string, pct: number): void;
   toggleCc(): void; cycleSpeed(): void; toggleTheater(): void; likeVid(): Promise<void>;
@@ -155,7 +157,7 @@ export interface WorkSlice {
   selectDoc(id: string): void; toggleDocBlock(docId: string, blockId: string): Promise<void>; addDocBlock(docId: string, kind: DocBlock['k']): Promise<void>;
   updateDocBlock(docId: string, blockId: string, text: string): Promise<void>; deleteDocBlock(docId: string, blockId: string): Promise<void>;
   newDoc(): Promise<void>;
-  selectEvent(id: string): void; newEvent(): Promise<void>; rsvp(): Promise<void>; cancelEvent(): Promise<void>; joinEvent(): Promise<void>;
+  selectEvent(id: string): void; newEvent(): Promise<void>; rsvp(): Promise<void>; cancelEvent(): Promise<void>; editEvent(): Promise<void>; joinEvent(): Promise<void>;
   selectBoard(id: string): void; newBoard(): Promise<void>; addPin(): Promise<void>;
 }
 

@@ -41,3 +41,5 @@
 .emptyTitle{font-family:var(--font-heading);font-weight:400;font-size:30px;margin:0 0 8px}
 .emptyLine{max-width:420px;margin:0 auto 18px;font-size:14px;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
 .cols{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+
+.assign{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:color-mix(in srgb,var(--color-text) 62%,transparent)}

@@ -13,6 +13,7 @@ export function boardVm(x: Ctx) {
       onNewCard: () => { void s.newCard(col.id); },
       cards: col.cards.map((cd) => ({
         id: cd.id, title: cd.title, tag: cd.tag, initials: personOf(seed, cd.by).i, name: personOf(seed, cd.by).name,
+        assignee: cd.assignee ? personOf(seed, cd.assignee).name : '', due: cd.due ?? '',
         hasSnap: !!cd.snap, snapTitle: cd.snap ? (findSnap(s, cd.snap)?.title ?? 'Snapshot not here yet') : '',
         moveTargets: bd.cols.filter((c) => c.id !== col.id).map((c) => ({ id: c.id, name: c.name })),
         onMoveTo: (colId: string) => { void s.moveCard(s.space, cd.id, colId); },

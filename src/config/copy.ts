@@ -1,5 +1,12 @@
 /** User-facing strings the state layer writes (toasts, labels). */
 export const COPY = {
+  card: { unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.' },
+  comments: {
+    toggle: (n: number) => (n ? `${n} ${n === 1 ? 'comment' : 'comments'}` : 'Comment'),
+    list: 'Comments',
+    field: 'Add a comment',
+    send: 'Post',
+  },
   syncPending: (n: string, offline: boolean, alone: boolean) => (offline ? `${n} to sync, offline` : alone ? `${n} saved here, no peer online` : `${n} to sync`),
   syncPendingTitle: 'Changes made here that other peers have not received yet',
   qualityFixed: 'Fixed on this device.',

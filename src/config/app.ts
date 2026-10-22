@@ -17,6 +17,9 @@ export const SYSTEM_ID = 'system';
 export const HOME_KIND = 'Personal';
 export const HOME_ID = 'home';
 
+/** `channel_id` a post comment carries. The core files comments under the post, not in a channel, and ignores it. */
+export const POST_COMMENT_CHANNEL = '';
+
 export const TIMING = {
   introMs: 3400,
   onboardingDelayMs: 3900,
@@ -117,6 +120,9 @@ export const MEDIA = {
 } as const;
 
 export const PROFILE_GRID = { max: 12 } as const;
+
+/** Card due dates are typed as `YYYY-MM-DD` and stored as that label. */
+export const CARD = { dueFormat: /^\d{4}-\d{2}-\d{2}$/ } as const;
 
 export const CALENDAR = {
   days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],

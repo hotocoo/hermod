@@ -530,6 +530,8 @@ impl<'a> World<'a> {
                             tag: k.tag.clone(),
                             by: k.by.clone(),
                             snap: k.snap.clone(),
+                            assignee: k.assignee.clone(),
+                            due: k.due.clone(),
                             fresh: None,
                         })
                         .collect(),

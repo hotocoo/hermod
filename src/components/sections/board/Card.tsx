@@ -4,7 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import s from './board.module.css';
 
 export interface BoardCard {
-  id: string; title: string; tag: string; initials: string; name: string; hasSnap: boolean; snapTitle: string;
+  id: string; title: string; tag: string; initials: string; name: string; assignee: string; due: string; hasSnap: boolean; snapTitle: string;
   moveTargets: { id: string; name: string }[]; onMoveTo: (colId: string) => void;
   onSnap: MouseEventHandler; onEdit: () => void; onDelete: () => void; anim: string; arrow: ReactNode;
 }
@@ -26,6 +26,7 @@ export function Card({ cd, line }: { cd: BoardCard; line: ReactNode }) {
       onDragEnd={() => setDrag(false)}>
       <span className={s.tag}>{cd.tag}</span>
       <div className={s.cardTitle}>{cd.title}</div>
+      {(cd.assignee || cd.due) && <div className={s.assign}>{cd.assignee && <span>{cd.assignee}</span>}{cd.due && <span>Due {cd.due}</span>}</div>}
       {cd.hasSnap && <button type="button" className={s.snap} onClick={cd.onSnap}>{line}<span className={s.snapTitle}>{cd.snapTitle}</span></button>}
       <div className={s.foot}>
         <span className={s.who} title={cd.name}>{cd.initials}</span>

@@ -154,6 +154,8 @@ pub struct CardSt {
     pub tag: String,
     pub by: String,
     pub snap: Option<String>,
+    pub assignee: Option<String>,
+    pub due: Option<String>,
     pub ts: i64,
 }
 
@@ -1115,6 +1117,8 @@ impl SpaceState {
                         tag: tag.clone(),
                         by: by.to_string(),
                         snap: snap.clone(),
+                        assignee: None,
+                        due: None,
                         ts,
                     });
                     self.counts.board += 1;
@@ -1126,6 +1130,8 @@ impl SpaceState {
                 title,
                 tag,
                 snap,
+                assignee,
+                due,
             } => {
                 if let Some(c) = self
                     .boards
@@ -1142,6 +1148,13 @@ impl SpaceState {
                     }
                     if snap.is_some() {
                         c.snap = snap.clone();
+                    }
+                    // Empty string clears; absent leaves the field alone.
+                    if let Some(a) = assignee {
+                        c.assignee = Some(a.clone()).filter(|a| !a.is_empty());
+                    }
+                    if let Some(d) = due {
+                        c.due = Some(d.clone()).filter(|d| !d.is_empty());
                     }
                 }
             }
@@ -1264,6 +1277,45 @@ impl SpaceState {
                             c.people.remove(i);
                         }
                         None => c.people.push(by.to_string()),
+                    }
+                }
+            }
+            EventBody::EventUpdate {
+                ev_id,
+                day,
+                start,
+                end,
+                title,
+                place,
+                note,
+                meeting,
+            } => {
+                let admin = my_role >= Some(Role::Admin);
+                if let Some(c) = self
+                    .cal
+                    .iter_mut()
+                    .find(|c| &c.id == ev_id && (c.by == by || admin))
+                {
+                    if let Some(v) = day {
+                        c.d = *v;
+                    }
+                    if let Some(v) = start {
+                        c.s = *v;
+                    }
+                    if let Some(v) = end {
+                        c.e = *v;
+                    }
+                    if let Some(v) = title {
+                        c.title = v.clone();
+                    }
+                    if let Some(v) = place {
+                        c.place = v.clone();
+                    }
+                    if let Some(v) = note {
+                        c.note = v.clone();
+                    }
+                    if let Some(v) = meeting {
+                        c.meeting = *v;
                     }
                 }
             }

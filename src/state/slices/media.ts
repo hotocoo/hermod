@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { MEDIA, TIMING, TOAST_MS } from '../../config/app';
+import { MEDIA, POST_COMMENT_CHANNEL, TIMING, TOAST_MS } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { firstName } from '../../lib/format';
 import { appendEvent, uid } from '../act';
@@ -30,7 +30,12 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
     },
     deletePost: async (id, space) => {
       const ok = await get().confirmAction({ title: 'Delete this post?', body: 'It disappears for everyone in this Space.', confirm: 'Delete', danger: true });
-      if (ok) await appendEvent(get, spaceFor(space), { t: 'post.delete', target_id: id });
+      if (ok) await appendEvent(get, spaceFor(space), { t: 'post.delete', post_id: id });
+    },
+    commentPost: (id, space, text) => {
+      const body = text.trim();
+      if (!body) return Promise.resolve(false);
+      return appendEvent(get, spaceFor(space), { t: 'message.post', channel_id: POST_COMMENT_CHANNEL, msg_id: uid('m'), text: body, attachments: [], target: id });
     },
     markFeedSeen: (space) => set((s) => ({ feedSeen: withKey(s.feedSeen, space, true) })),
 
