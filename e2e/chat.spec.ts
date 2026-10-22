@@ -1,5 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
-import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, pngBuffer, openSpaceSettings, DEVHOST_B } from './fixtures';
+import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, pngBuffer, multiChunkPng, BLOB_CHUNK_BYTES, openSpaceSettings, DEVHOST_B } from './fixtures';
 import { freshDevhosts } from './devhosts';
 
 /** Every spec file starts on three empty devhosts, so no spec depends on state a former one left. */
@@ -15,6 +15,8 @@ test.describe.configure({ mode: 'serial' });
 let users: Awaited<ReturnType<typeof twoUsers>>;
 let a: Page;
 let b: Page;
+/** Whole chunks in the multi-chunk range test blob: enough that a mid-file seek lands in a chunk neither first nor last. */
+const MULTI_CHUNK_COUNT = 4;
 const space = unique('Chatters');
 
 const article = (p: Page, text: string): Locator => p.getByRole('article').filter({ hasText: text });
@@ -142,6 +144,31 @@ test('blob range: B seeks into a file only A holds and gets a 206 with the match
   await expect(img).toBeVisible({ timeout: 60_000 });
   const src = (await img.getAttribute('src'))!;
   const tail = 8;
+  await expect.poll(async () => (await b.request.get(src, { headers: { Range: `bytes=-${tail}` } })).status(), { timeout: 60_000 }).toBe(206);
+  const res = await b.request.get(src, { headers: { Range: `bytes=-${tail}` } });
+  expect(res.headers()['content-range']).toBe(`bytes ${png.length - tail}-${png.length - 1}/${png.length}`);
+  expect(await res.body()).toEqual(png.subarray(png.length - tail));
+});
+
+test('blob range: B seeks mid-file in a multi-chunk file only A holds and gets a 206 with the matching Content-Range (G-005)', async () => {
+  const name = `${Date.now().toString(36)}-range-multi.png`;
+  const png = multiChunkPng(20, 160, 90, MULTI_CHUNK_COUNT);
+  const chooser = a.waitForEvent('filechooser');
+  await a.getByRole('button', { name: 'Attach files' }).click();
+  await (await chooser).setFiles({ name, mimeType: 'image/png', buffer: png });
+  await expect(a.getByRole('list', { name: 'Attached' }).getByText(name)).toBeVisible();
+  await a.getByLabel('Message', { exact: true }).fill(`seek ${name}`);
+  await a.keyboard.press('Enter');
+  const img = b.getByRole('article').getByRole('img', { name });
+  await expect(img).toBeVisible({ timeout: 60_000 });
+  const src = (await img.getAttribute('src'))!;
+  const tail = 8;
+  // A window straddling a chunk boundary deep inside the file, not at either end.
+  const mid = BLOB_CHUNK_BYTES * 2 - tail / 2;
+  await expect.poll(async () => (await b.request.get(src, { headers: { Range: `bytes=${mid}-${mid + tail - 1}` } })).status(), { timeout: 60_000 }).toBe(206);
+  const midRes = await b.request.get(src, { headers: { Range: `bytes=${mid}-${mid + tail - 1}` } });
+  expect(midRes.headers()['content-range']).toBe(`bytes ${mid}-${mid + tail - 1}/${png.length}`);
+  expect(await midRes.body()).toEqual(png.subarray(mid, mid + tail));
   await expect.poll(async () => (await b.request.get(src, { headers: { Range: `bytes=-${tail}` } })).status(), { timeout: 60_000 }).toBe(206);
   const res = await b.request.get(src, { headers: { Range: `bytes=-${tail}` } });
   expect(res.headers()['content-range']).toBe(`bytes ${png.length - tail}-${png.length - 1}/${png.length}`);

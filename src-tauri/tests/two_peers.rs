@@ -196,6 +196,21 @@ async fn range_at_tail_of_remote_blob_does_not_wait_for_whole_blob() {
         "the tail came back before the whole blob did"
     );
 
+    // A seek into the middle is answered from its own chunks while the rest still streams in.
+    let mid = SEEK_BLOB_BYTES / 2;
+    let resp = blob::serve(
+        &b,
+        &hash,
+        Some(&format!("bytes={mid}-{}", mid + SEEK_TAIL_BYTES - 1)),
+    )
+    .await;
+    assert_eq!(resp.status, 206, "mid range");
+    assert_eq!(resp.body, data[mid..mid + SEEK_TAIL_BYTES]);
+    assert!(
+        !blobs.is_complete(&hash).unwrap(),
+        "the mid-file range came back before the whole blob did"
+    );
+
     let mut done = false;
     for _ in 0..600 {
         if blobs.is_complete(&hash).unwrap() {

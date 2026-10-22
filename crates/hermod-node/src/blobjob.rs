@@ -53,6 +53,11 @@ impl BlobJob {
         self.todo = hot;
     }
 
+    /// Drops callers that gave up (their receiver is gone) so retries cannot pile up.
+    fn prune_waiters(&mut self) {
+        self.waiters.retain(|w| !w.reply.is_closed());
+    }
+
     /// True once every chunk of `span` (clamped to the manifest) is stored.
     fn has_span(&self, (first, last): ChunkSpan) -> bool {
         let Some(info) = &self.info else { return false };
@@ -315,8 +320,8 @@ impl Driver {
     pub fn request_blob(&mut self, blob: BlobId, want: Option<ChunkSpan>, reply: Reply) {
         let waiter = Waiter { reply, want };
         if let Some(j) = self.jobs.get_mut(&blob) {
+            j.prune_waiters();
             j.waiters.push(waiter);
-            j.deadline = Instant::now() + self.cfg.blob_timeout;
             j.prioritize();
             self.notify_spans(&blob);
             self.pump_job(&blob);
@@ -395,6 +400,7 @@ impl Driver {
                     return;
                 };
                 job.manifest_pending = false;
+                job.deadline = Instant::now() + self.cfg.blob_timeout;
                 let n = info.chunks.len() as u32;
                 job.todo = (0..n).collect();
                 job.remaining = (0..n).collect();
@@ -419,6 +425,7 @@ impl Driver {
                     return;
                 };
                 job.remaining.remove(&idx);
+                job.deadline = Instant::now() + self.cfg.blob_timeout;
                 if job.remaining.is_empty() && job.info.is_some() {
                     self.finish_job(blob);
                 } else {
@@ -516,8 +523,12 @@ impl Driver {
         }
     }
 
+    /// Fails jobs idle past `blob_timeout` (the deadline moves on each manifest or chunk).
     pub fn expire_jobs(&mut self) {
         let now = Instant::now();
+        for j in self.jobs.values_mut() {
+            j.prune_waiters();
+        }
         let dead: Vec<BlobId> = self
             .jobs
             .iter()
@@ -534,6 +545,7 @@ impl Driver {
         let Some(job) = self.jobs.get_mut(blob) else {
             return;
         };
+        job.prune_waiters();
         let waiters = std::mem::take(&mut job.waiters);
         let (done, pending): (Vec<_>, Vec<_>) = waiters
             .into_iter()
@@ -603,5 +615,34 @@ mod tests {
         }
         release_serve(&mut m, b);
         assert!(m.is_empty());
+    }
+
+    #[test]
+    fn closed_waiters_are_pruned() {
+        let (live_tx, _live_rx) = tokio::sync::oneshot::channel();
+        let (dead_tx, dead_rx) = tokio::sync::oneshot::channel();
+        drop(dead_rx);
+        let mut job = BlobJob {
+            waiters: vec![
+                Waiter {
+                    reply: live_tx,
+                    want: None,
+                },
+                Waiter {
+                    reply: dead_tx,
+                    want: Some((0, 1)),
+                },
+            ],
+            info: None,
+            planned: false,
+            manifest_pending: false,
+            todo: VecDeque::new(),
+            remaining: HashSet::new(),
+            inflight: HashMap::new(),
+            tried: HashMap::new(),
+            deadline: Instant::now(),
+        };
+        job.prune_waiters();
+        assert_eq!(job.waiters.len(), 1);
     }
 }

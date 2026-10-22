@@ -164,6 +164,16 @@ export function pngBuffer(r: number, g: number, b: number): Buffer {
   return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
+/** Blob chunk size in bytes (hermod-core `CHUNK_SIZE`): a blob is fetched and stored per chunk of this size. */
+export const BLOB_CHUNK_BYTES = 256 * 1024;
+
+/** A valid PNG followed by `chunks` whole chunks of non-repeating trailer bytes (decoders ignore data after IEND), so the blob spans several chunks. */
+export function multiChunkPng(r: number, g: number, b: number, chunks: number): Buffer {
+  const trailer = Buffer.alloc(chunks * BLOB_CHUNK_BYTES);
+  for (let i = 0; i < trailer.length; i += 1) trailer[i] = (i * 31 + (i >>> 8)) & 0xff;
+  return Buffer.concat([pngBuffer(r, g, b), trailer]);
+}
+
 /** Returns to the island from inside a building (no-op when already outside). */
 export async function toIsland(page: Page): Promise<void> {
   const back = page.getByRole('button', { name: /Island/ });
