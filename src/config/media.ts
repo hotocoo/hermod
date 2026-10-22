@@ -37,6 +37,8 @@ export const MEDIA = {
     /** Poor quality thresholds for the UI banner. */
     poorRttMs: 400,
     poorLossPct: 8,
+    /** Raise hand and quick reactions: ephemeral room signals (droppable, never stored). A reaction fades after reactionMs. */
+    signal: { kind: 'hearth.signal', reactions: ['👍', '👏', '😂', '❤️', '🎉'], reactionMs: 4_000 },
   },
   speaking: {
     pollMs: 100,

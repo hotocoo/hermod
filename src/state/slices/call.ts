@@ -1,5 +1,7 @@
 import type { StateCreator } from 'zustand';
 import { TIMING } from '../../config/app';
+import { MEDIA } from '../../config/media';
+import { useMediaRt } from '../mediaRt';
 import { getBridge } from '../../lib/bridge';
 import { activeCall, mediaBridgeFrom, saveRecording, toMediaError } from '../../lib/media';
 import { COPY } from '../../config/copy';
@@ -32,6 +34,19 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
       return false;
     }
     return true;
+  };
+
+  const SIG = MEDIA.call.signal; const REACTIONS: readonly string[] = SIG.reactions;
+  /** Ephemeral room signal to everyone in the space; peers filter by room. Droppable by design. */
+  const signal = (p: { hand?: boolean; react?: string }) => {
+    const c = get().call; if (!c) return;
+    void getBridge().sendEphemeral(c.space, SIG.kind, { room: c.room, ...p }).catch(() => { /* a dropped signal is harmless */ });
+  };
+  const drop = <T,>(m: Record<string, T>, id: string) => Object.fromEntries(Object.entries(m).filter(([k]) => k !== id));
+  const setHand = (who: string, on: boolean) => useMediaRt.setState((x) => ({ hands: on ? { ...x.hands, [who]: true } : drop(x.hands, who) }));
+  const showReaction = (who: string, r: string) => {
+    useMediaRt.setState((x) => ({ reactions: { ...x.reactions, [who]: r } }));
+    timer.after(`react:${who}`, SIG.reactionMs, () => useMediaRt.setState((x) => ({ reactions: drop(x.reactions, who) })));
   };
 
   return {
@@ -67,7 +82,9 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
       if (activeCall()?.isRecording) await storeRecording();
       const meeting = !!s.seed && !!roomMeeting(s.seed, call.space);
       if (meeting) await room({ t: 'meeting.end' });
+      if (useMediaRt.getState().hands[meId(s) ?? '']) signal({ hand: false });
       await room({ t: 'room.leave', room: get().call?.room ?? '' });
+      useMediaRt.setState({ hands: {}, reactions: {} });
       set({ call: null, speaking: null });
       s.showToast(meeting ? COPY.meetingSaved : COPY.leftHearth);
     },
@@ -92,6 +109,20 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
       const session = activeCall(); if (!session) return;
       if (session.isRecording) { await storeRecording(); return; }
       try { await session.startRecording(); } catch (e) { get().showToast(toMediaError(e).message, undefined, 'error'); }
+    },
+    toggleHand: async () => {
+      const me = meId(get()); if (!me || !get().call) return;
+      const on = !useMediaRt.getState().hands[me];
+      setHand(me, on); signal({ hand: on });
+    },
+    react: async (r) => {
+      const me = meId(get()); if (!me || !get().call || !REACTIONS.includes(r)) return;
+      showReaction(me, r); signal({ react: r });
+    },
+    noteHearthSignal: (from, space, p) => {
+      const c = get().call; if (!c || c.space !== space || from === meId(get()) || (p.room ?? '') !== c.room) return;
+      if (typeof p.hand === 'boolean') setHand(from, p.hand);
+      if (typeof p.react === 'string' && REACTIONS.includes(p.react)) showReaction(from, p.react);
     },
     toggleStage: () => set((s) => ({ stageBig: !s.stageBig })),
 

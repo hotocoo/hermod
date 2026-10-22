@@ -29,3 +29,13 @@ export function FreshBuilt({ vm }: VmProps) {
     </div>
   );
 }
+
+/** Inline empty state for a list inside a panel or card. */
+export function EmptyNote({ title, line }: { title: string; line: string }) {
+  return (
+    <div className={s.emptyNote}>
+      <div className={s.emptyNoteTitle}>{title}</div>
+      <p className={s.emptyNoteLine}>{line}</p>
+    </div>
+  );
+}

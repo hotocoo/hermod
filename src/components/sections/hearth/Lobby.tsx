@@ -23,7 +23,8 @@ export function Lobby() {
           ))}
           {hearth.hasExtra && <div className={s.extra}>{hearth.extra}</div>}
         </div>
-        <button type="button" className={s.join} onClick={vm.joinRoom}>{vm.ic.flame} Pull up a chair</button>
+        <button type="button" className={s.join} onClick={vm.joinRoom} disabled={hearth.full} aria-describedby={hearth.full ? 'hearth-full' : undefined}>{vm.ic.flame} Pull up a chair</button>
+        {hearth.full && <p id="hearth-full" className={s.full} role="status">{hearth.fullLine}</p>}
         <p className={s.blurb}>Anyone in {vm.space.name} can drop in. When it turns into real work, make it a meeting: agenda, shared notes and a recording, without hanging up.</p>
       </div>
     </div>

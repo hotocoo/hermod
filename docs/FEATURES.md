@@ -74,17 +74,17 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 | H-001 | Drop-in room lobby: who is inside, join/leave | DONE (UI wired; needs core/node to verify) | Presence matches on peers via `room.join/leave` | state, components | wire | M1 |
 | H-002 | Real WebRTC audio/video between peers (getUserMedia, signalling over libp2p) | MISSING | Two devhost peers hear/see each other; mute actually stops track | node, bridge, components | cmd `media_signal`; event `hermod://signal` | M1 |
 | H-003 | Mic mute, camera toggle (live state to others) | DONE (UI wired; needs core/node to verify) | Peer tile shows muted/cam off from `room.state` | state | wire; `room.state` | M1 |
-| H-004 | Screen share | MISSING | `getDisplayMedia` stream shown on peers; stop button; macOS permission prompt handled | components, bridge | `room.state.share` | M1 |
+| H-004 | Screen share | DONE-UI | Shared screen shows on both sides even with the camera off and leads the grid; covered by e2e/media.spec.ts | components, bridge | `room.state.share` | M1 |
 | H-005 | Recording (local file, consent banner to all) | PARTIAL | UI flag exists; must record to disk (MediaRecorder), show "recording" to all, save to user folder | components, bridge | `room.state.rec`; cmd `recording_save` | M2 |
 | H-006 | Meeting mode: start with topic and agenda, end | DONE (UI wired; needs core/node to verify) | `meeting.start` visible to all; `meeting.end` posts wrap-up | state | wire | M1 |
 | H-007 | Agenda items toggle | DONE (UI wired; needs core/node to verify) | Toggle syncs | state | wire; `agenda.toggle` | M1 |
 | H-008 | Shared meeting notes (add note, recorded) | DONE (UI wired; needs core/node to verify) | Note appears for all with author | state | wire; `note.add` | M1 |
 | H-009 | Spotlight speaker, speaking ring (audio level) | PARTIAL | Ring follows real audio level via AnalyserNode, not timers | components | H-002 | M1 |
 | H-010 | Stage big/small toggle, back-to-call pill | DONE (UI wired; needs core/node to verify) | Local view state only (no sync needed) | state, components | none | M1 |
-| H-011 | Raise hand, call reactions | MISSING | Hand icon shows on peers | components | `room.state.hand` | M3 |
+| H-011 | Raise hand, call reactions | DONE-UI | Hand and quick reactions show on peer tiles as ephemeral room signals (not stored); covered by e2e/media.spec.ts | components | ephemeral kind `hearth.signal` | M3 |
 | H-012 | Device pickers (mic, camera, speaker), echo cancel | DONE (UI wired; needs core/node to verify) | Settings lists devices, choice persists | components | local setting | M1 |
-| H-013 | Call quality and TURN-less fallback message | MISSING | Shows "cannot connect directly" with reason when ICE fails | components | none | M2 |
-| H-014 | Call participant cap with clear message (mesh limit) | MISSING | At cap, join disabled with explanation | state | config | M2 |
+| H-013 | Call quality and TURN-less fallback message | PARTIAL | Per-peer "Poor connection" banner from call stats done; "cannot connect directly" message on ICE failure still open | components | none | M2 |
+| H-014 | Call participant cap with clear message (mesh limit) | DONE-UI | At the mesh cap, "Pull up a chair" is disabled with an explanation | state | config | M2 |
 
 ## F. Feed
 
@@ -219,7 +219,7 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 | U-013 | Space settings (rename, tagline, sections on/off, leave) | DONE (UI wired; needs core/node to verify) | `space.update` writes; leave confirms | components | `space.update`, `member.leave` | M1 |
 | U-014 | Member list per space with presence and roles | DONE (UI wired; needs core/node to verify) | Shows all members, role badge, online dot | components | E-001, P-001 | M1 |
 | U-015 | Confirm dialogs for destructive actions | DONE (UI wired; needs core/node to verify) | Leave/delete/remove need explicit confirm | components | none | M1 |
-| U-016 | Empty states for every list | PARTIAL | EmptyStates.tsx exists; every collection has one | components | none | M1 |
+| U-016 | Empty states for every list | PARTIAL | EmptyStates.tsx exists; meeting Agenda, Shared notes and Standups now use it; other collections still open | components | none | M1 |
 
 ## E. Roles, membership, security (enterprise)
 

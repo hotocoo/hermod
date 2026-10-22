@@ -45,3 +45,6 @@
 }
 .subTab:hover { color: var(--color-accent-700); }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: hm-breathe 1.6s ease-in-out infinite; }
+.emptyNote{padding:14px 4px;text-align:center}
+.emptyNoteTitle{font-family:var(--font-heading);font-weight:600;font-size:14px}
+.emptyNoteLine{margin:4px 0 0;font-size:13px;line-height:1.5;color:color-mix(in srgb,var(--color-text) 66%,transparent)}

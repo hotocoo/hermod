@@ -1,4 +1,6 @@
 import type { ChangeEventHandler, KeyboardEventHandler } from 'react';
+import { COPY } from '@/config/copy';
+import { EmptyNote } from '@/components/panel/EmptyStates';
 import s from './hearth.module.css';
 
 export interface NoteItem { name: string; t: string; text: string; anim: string }
@@ -13,6 +15,7 @@ export function Notes({ notes, elapsed, draft, onDraft, onKey }: Props) {
     <>
       <div className={s.notesHead}><span className={s.sideTitle}>Shared notes</span><span className={s.rec}>{elapsed}</span></div>
       <div className={s.notes}>
+        {notes.length === 0 && <EmptyNote {...COPY.notesEmpty} />}
         {notes.map((n, i) => (
           <div key={`${n.t}-${i}`} className={s.note} style={{ animation: n.anim }}>
             <div className={s.noteBy}>{n.name} · {n.t}</div>
