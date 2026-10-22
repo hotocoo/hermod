@@ -75,7 +75,15 @@ export const TREE_KINDS = ['oak', 'birch', 'poplar', 'pine'] as const;
 export const TREES = { perUnit2: 0.085, corridor: 1.35, margin: 0.9, max: 220, cottageClear: 1.6, plotClear: 3.0, /* keep the door camera's line of sight clear: a disc this far out in front of each plot door */ doorAhead: 2.6, doorClear: 2.8 } as const;
 /** Props along lanes: spacing (units) per kind. */
 /** Grass tufts: kept this far (half-extent) off plot pads; blade material as a plain cutout (sub-pixel blades caught sun glints, and 2x MSAA alpha-to-coverage read as stipple). */
-export const GRASS = { plotClear: 2.2, alphaTest: 0.5, roughness: 1, metalness: 0, envMapIntensity: 0.4 } as const;
+export const GRASS = {
+  plotClear: 2.2, roughness: 1, metalness: 0,
+  /** Cutout threshold: lower than 0.5 so mip-averaged blade alpha stays above it at a distance (blades flickered in and out). */
+  alphaTest: 0.36,
+  /** Linear multiplier on the authored blade albedo (it is very dark; above 1 on purpose) and env light on the tufts, for a soft light lawn. */
+  tint: [1.3, 1.45, 1.05] as const, /** Authored clump x/z scale: smaller clumps read as fine grass, not leafy patches. */ width: 0.42, envMapIntensity: 0.9,
+  /** Per tuft brightness spread: base 1 - jitter/2 plus random * jitter, so the lawn varies tuft to tuft instead of one flat green. */
+  jitter: 0.3,
+} as const;
 export const LANE_PROPS = { lamp: 4.4, bench: 11, barrel: 17, fence: 0 } as const;
 export const CAMERAS = {
   home: { az: Math.PI / 4, el: 0.66, dist: 46, target: [0, 0, 0] as const },

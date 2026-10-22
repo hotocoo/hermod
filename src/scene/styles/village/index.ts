@@ -4,7 +4,7 @@
  * with the procedural builders as fallback while loading.
  */
 import * as THREE from 'three';
-import { CAMERA, CONTACT, GROWTH, LIGHTS, NIGHT, SIGN, type QualitySpec, type QualityTier } from '@/config/scene';
+import { CAMERA, CONTACT, GROWTH, LIGHTS, LOT, NIGHT, SIGN, type QualitySpec, type QualityTier } from '@/config/scene';
 import { GRASS } from './config';
 import { finish } from '../../finish';
 import { createHousing } from '../../world/housing';
@@ -21,6 +21,7 @@ import { buildVillagePaths } from './paths';
 import { buildVillageTerrain } from './terrain';
 import { buildVillageWater } from './water';
 import { applyAuthoredTerrain, fallbackTextureSet } from './tex';
+import type { SectionId } from '@/lib/data/types';
 import { LIGHT_UNIT_METERS, type AnchorId, type CameraPresets, type HousePlace, type LightSpec, type MapStyle, type PlotAnchor, type SiteFrame, type StyleCtx, type StyleSite } from '../types';
 
 const CT = CONTACT as unknown as Record<string, readonly [number, number]>;
@@ -53,7 +54,7 @@ function buildSite(ctx: StyleCtx): StyleSite {
   const paths = buildVillagePaths(plan, terrain.heightAt, tex); if (paths.mesh) group.add(paths.mesh);
   const water = buildVillageWater(plan, terrain.heightAt, tex); group.add(water.group);
   const heightAt = terrain.heightAt;
-  pending.push(loadGlb('/assets/nature/grass_0.glb').then((sc) => { let m: THREE.Mesh | null = null; sc.traverse((o) => { const x = o as THREE.Mesh; if (x.isMesh && !m && /LOD0/.test(x.name)) m = x; }); if (!m) return; const mm = m as THREE.Mesh; const mat = (mm.material as THREE.MeshStandardMaterial).clone(); mat.side = THREE.DoubleSide; mat.alphaTest = GRASS.alphaTest; mat.alphaToCoverage = false; mat.userData.noA2C = true; /* kept out of the tier sweep, see GRASS */ mat.roughness = GRASS.roughness; mat.roughnessMap = null; mat.metalness = GRASS.metalness; mat.metalnessMap = null; mat.normalMap = null; mat.envMapIntensity = GRASS.envMapIntensity; mat.vertexColors = false; windify(mat, 'grass'); const geo = mm.geometry.clone().applyMatrix4(mm.matrixWorld); terrain.useGrass(geo, mat); geo.dispose(); }).catch(() => undefined));
+  pending.push(loadGlb('/assets/nature/grass_0.glb').then((sc) => { let m: THREE.Mesh | null = null; sc.traverse((o) => { const x = o as THREE.Mesh; if (x.isMesh && !m && /LOD0/.test(x.name)) m = x; }); if (!m) return; const mm = m as THREE.Mesh; const mat = (mm.material as THREE.MeshStandardMaterial).clone(); mat.side = THREE.DoubleSide; mat.alphaTest = GRASS.alphaTest; mat.alphaToCoverage = false; mat.userData.noA2C = true; /* kept out of the tier sweep, see GRASS */ mat.roughness = GRASS.roughness; mat.roughnessMap = null; mat.metalness = GRASS.metalness; mat.metalnessMap = null; mat.normalMap = null; mat.envMapIntensity = GRASS.envMapIntensity; mat.color.setRGB(...GRASS.tint); mat.vertexColors = false; windify(mat, 'grass'); const geo = mm.geometry.clone().applyMatrix4(mm.matrixWorld); terrain.useGrass(geo, mat); geo.dispose(); }).catch(() => undefined));
   const monument = WK.signpost(); monument.userData.pickId = 'search'; const orb = monument.userData.orb as THREE.Object3D, orbRing = monument.userData.ring as THREE.Object3D;
   monument.position.set(SIGN.x, heightAt(SIGN.x, SIGN.z), SIGN.z); group.add(monument);
 
@@ -89,14 +90,18 @@ function buildSite(ctx: StyleCtx): StyleSite {
   function releaseLiveHouse(h: THREE.Object3D) { const e = holderOf.get(h); if (!e) return; const i = e.list.indexOf(e.p); if (i >= 0) e.list.splice(i, 1); holderOf.delete(h); }
   const applyLampLights = () => lampLights.forEach((l, i) => { l.visible = i < q.lampLights; }); applyLampLights();
 
-  const buildEmpty = () => {
-    const g = new THREE.Group();
-    g.add(box(3.0, 0.03, 3.0, M.path, 0, 0.081, 0));
-    const corner = (x: number, z: number) => g.add(box(0.12, 0.3, 0.12, M.stone, x, 0.15, z));
-    corner(-1.4, -1.4); corner(1.4, -1.4); corner(-1.4, 1.4); corner(1.4, 1.4);
-    for (let i = -1.2; i <= 1.21; i += 0.4) { g.add(box(0.2, 0.02, 0.03, M.gold, i, 0.05, 1.5)); g.add(box(0.2, 0.02, 0.03, M.gold, i, 0.05, -1.5)); g.add(box(0.03, 0.02, 0.2, M.gold, 1.5, 0.05, i)); g.add(box(0.03, 0.02, 0.2, M.gold, -1.5, 0.05, i)); }
-    g.add(cyl(0.04, 0.04, 1.0, M.trunk, 0.9, 0.5, 1.2), box(0.7, 0.4, 0.05, M.paper, 0.9, 1.0, 1.2));
-    return mergeStatic(finish(g, [], 1.6)); // 35 static boxes: one draw call per material
+  const earthMat = new THREE.MeshStandardMaterial({ color: LOT.earth.color, roughness: LOT.earth.roughness }); const troddenMat = new THREE.MeshStandardMaterial({ color: LOT.earth.trodden, roughness: LOT.earth.roughness }); const ropeMat = new THREE.MeshStandardMaterial({ color: LOT.rope.color, roughness: LOT.rope.roughness }); owned.push(earthMat, troddenMat, ropeMat);
+  const buildEmpty = (id: SectionId) => {
+    const g = new THREE.Group(); const [hw, hd] = CT[id].map((v) => v * LOT.fit); const E = LOT.earth;
+    const mound = (m: THREE.Material, k: number, h: number) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(k * 0.94, k, h, E.segs, 1), m); o.scale.set(hw, 1, hd); o.position.y = h / 2; o.castShadow = o.receiveShadow = true; return o; };
+    g.add(mound(earthMat, 1, E.h), mound(troddenMat, E.trodHalf, E.h + 0.005));
+    const S = LOT.stake; const sx = hw - S.inset, sz = hd - S.inset; const corners = [[-sx, -sz], [sx, -sz], [sx, sz], [-sx, sz]] as const;
+    corners.forEach(([x, z]) => g.add(cyl(S.r, S.r, S.h, M.trunk, x, S.h / 2, z)));
+    corners.forEach(([x, z], i) => { const [x2, z2] = corners[(i + 1) % 4]; const L = Math.hypot(x2 - x, z2 - z); const r = box(L, LOT.rope.t, LOT.rope.t, ropeMat, (x + x2) / 2, S.h * LOT.rope.y + LOT.rope.t, (z + z2) / 2); r.rotation.y = Math.atan2(z - z2, x2 - x); g.add(r); });
+    const P = LOT.planks; for (let l = 0; l < P.layers; l++) for (let k = 0; k < P.perLayer; k++) { const off = (k - (P.perLayer - 1) / 2) * (P.w + P.gap), alt = l % 2 === 1; g.add(box(alt ? P.w : P.len, P.t, alt ? P.len : P.w, M.timber, P.x + (alt ? off : 0), E.h + P.t / 2 + l * P.t, P.z + (alt ? 0 : off))); }
+    LOT.stones.forEach((s) => g.add(box(s.s, s.s * 0.7, s.s, M.rock, s.x, E.h + s.s * 0.3, s.z)));
+    const B = LOT.board; g.add(cyl(B.r, B.r, B.h, M.trunk, B.x, B.h / 2, B.z), box(B.w, B.bh, B.d, M.paper, B.x, B.h, B.z));
+    return mergeStatic(finish(g, [], LOT.anchorY)); // static meshes: one draw call per material
   };
 
   let houses: HousePlace[] = plan.cottages.map((c) => ({ userId: c.userId, plotIndex: c.plotIndex, x: c.x, z: c.z, yaw: c.yaw }));
@@ -104,7 +109,7 @@ function buildSite(ctx: StyleCtx): StyleSite {
   const site: StyleSite = {
     group, plotAnchors: anchors, cameraPresets, radius: plan.R, tier: plan.tier, heightAt: (x, z) => heightAt(x, z),
     makeBuilding(id, level, built) {
-      const g = built ? WK.builders[id]({ level }) : buildEmpty();
+      const g = built ? WK.builders[id]({ level }) : buildEmpty(id);
       if (built) {
         const [hw, hd] = CT[id]; const grow = 1 + (level - 1) * 0.28; g.add(contactDecal(hw * grow, hd * grow));
         // swap the procedural stand-in for the authored glb once loaded (kept on failure)

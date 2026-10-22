@@ -144,12 +144,12 @@ export function buildVillageTerrain(plan: VillagePlan, tex: TerrainTextureSet, o
   while (k < N && guard++ < N * 8) { const a = Rr() * TAU, r = Math.sqrt(Rr()) * (Rm - 0.4); const x = Math.cos(a) * r, z = Math.sin(a) * r; if (r > edgeTheta(a) - 0.5) continue; if (plan.plotList.some((pl) => Math.abs(x - pl.x) < GRASS.plotClear && Math.abs(z - pl.z) < GRASS.plotClear)) continue; /* plot pads (3x3 slab, any yaw) stay bare */ const wg = wAt(x, z); if (wg < 0.6 || Rr() > wg) continue; const y = heightAt(x, z); if (y < SEA_Y + 0.02) continue; tCell[k] = Math.round((z + Rm) / step) * (segs + 1) + Math.round((x + Rm) / step);
     dm.position.set(x, y, z); const gs = 0.45 + Rr() * 0.55; dm.scale.set(gs * 1.6, gs * (0.6 + Rr() * 0.5), gs * 1.6); dm.rotation.set((Rr() - 0.5) * 0.25, Rr() * 6, (Rr() - 0.5) * 0.25); dm.updateMatrix(); tufts.setMatrixAt(k, dm.matrix); k++; }
   tufts.count = k; tufts.receiveShadow = true; tufts.userData.noAO = true; const grassMax = k; const grassBase = o.grass; root.add(tufts);
-  const setSeason = (s: number) => { const t = SEASON_GRASS[((s % 4) + 4) % 4]; const R2 = rng('vtint' + plan.seed); for (let i = 0; i < grassMax; i++) { const j = 0.94 + R2() * 0.12; const c3 = tCell[i] * 3; tufts.setColorAt(i, col.setRGB(t[0] * j * (1 + (colr[c3] - 1) * 0.5), t[1] * j * (1 + (colr[c3 + 1] - 1) * 0.5), t[2] * j * (1 + (colr[c3 + 2] - 1) * 0.5))); } if (tufts.instanceColor) tufts.instanceColor.needsUpdate = true; };
+  const setSeason = (s: number) => { const t = SEASON_GRASS[((s % 4) + 4) % 4]; const R2 = rng('vtint' + plan.seed); for (let i = 0; i < grassMax; i++) { const j = 1 - GRASS.jitter / 2 + R2() * GRASS.jitter; const c3 = tCell[i] * 3; tufts.setColorAt(i, col.setRGB(t[0] * j * (1 + (colr[c3] - 1) * 0.5), t[1] * j * (1 + (colr[c3 + 1] - 1) * 0.5), t[2] * j * (1 + (colr[c3 + 2] - 1) * 0.5))); } if (tufts.instanceColor) tufts.instanceColor.needsUpdate = true; };
   setSeason(season0);
   const mats = [topMat, cliffMat]; const extra: THREE.BufferGeometry[] = [];
   return {
     group: root, top, heightAt,
-    useGrass(geo, mat) { const g = geo.clone().scale(0.62, 1, 0.62); tufts.geometry = g; tufts.material = mat; extra.push(g); },
+    useGrass(geo, mat) { const g = geo.clone().scale(GRASS.width, 1, GRASS.width); tufts.geometry = g; tufts.material = mat; extra.push(g); },
     setGrass(base) { tufts.count = Math.min(grassMax, Math.round(grassMax * (base / Math.max(1, grassBase)))); }, setSeason, update() { /* static ground */ },
     dispose() { root.removeFromParent(); root.traverse((nd) => { const m = nd as THREE.Mesh; if (m.geometry && nd !== tufts) m.geometry.dispose(); }); tufts.dispose(); extra.forEach((g) => g.dispose()); mats.forEach((m) => m.dispose()); if (!o.grassGeometry) blade.dispose(); if (!o.grassMaterial) (grassMat as THREE.Material).dispose(); },
   };

@@ -44,14 +44,14 @@ export interface SkyKeyframe {
   readonly h: number; readonly name: string; readonly top: string; readonly bot: string; readonly glow: string;
   readonly hemi: Rgb; readonly hi: number; readonly sun: Rgb; readonly si: number; readonly night: number; readonly exp: number;
 }
-/** Time-of-day keyframes (hour 0..24, first and last identical so the day wraps). */
+/** Time-of-day keyframes (hour 0..24, first and last identical so the day wraps). Day keyframes (8, 12.5, 15.5): cool sky fill against a warm strong sun, so lit faces and shade differ in value and hue instead of one flat wash. */
 export const SKY_KEYFRAMES: readonly SkyKeyframe[] = [
   { h: 0, name: 'Midnight', top: '#0d111d', bot: '#1d1b25', glow: 'rgba(140,150,210,.10)', hemi: [0.3, 0.4, 0.68], hi: 0.3, sun: [0.5, 0.64, 1], si: 0.6, night: 1, exp: 1.18 },
   { h: 4.8, name: 'Before dawn', top: '#181c2e', bot: '#3d3443', glow: 'rgba(170,140,170,.14)', hemi: [0.36, 0.42, 0.66], hi: 0.34, sun: [0.56, 0.66, 1], si: 0.55, night: 0.9, exp: 1.14 },
   { h: 6.3, name: 'Dawn', top: '#6a7aa0', bot: '#f0b48a', glow: 'rgba(255,170,120,.35)', hemi: [0.96, 0.78, 0.74], hi: 0.78, sun: [1, 0.64, 0.46], si: 1.25, night: 0.32, exp: 1.04 },
-  { h: 8, name: 'Morning', top: '#b8cfe2', bot: '#f6eee2', glow: 'rgba(255,230,190,.30)', hemi: [1, 0.96, 0.92], hi: 1.15, sun: [1, 0.93, 0.82], si: 2.1, night: 0, exp: 1 },
-  { h: 12.5, name: 'Noon', top: '#d6e3ec', bot: '#f5f3ef', glow: 'rgba(255,250,235,.25)', hemi: [1, 0.98, 0.95], hi: 1.3, sun: [1, 0.98, 0.94], si: 2.55, night: 0, exp: 1 },
-  { h: 15.5, name: 'Afternoon', top: '#d2dce2', bot: '#f6ebda', glow: 'rgba(255,225,180,.30)', hemi: [1, 0.95, 0.88], hi: 1.2, sun: [1, 0.9, 0.76], si: 2.3, night: 0, exp: 1 },
+  { h: 8, name: 'Morning', top: '#b8cfe2', bot: '#f6eee2', glow: 'rgba(255,230,190,.30)', hemi: [0.9, 0.95, 1], hi: 1.0, sun: [1, 0.91, 0.78], si: 2.4, night: 0, exp: 1 },
+  { h: 12.5, name: 'Noon', top: '#d6e3ec', bot: '#f5f3ef', glow: 'rgba(255,250,235,.25)', hemi: [0.86, 0.93, 1], hi: 1.05, sun: [1, 0.95, 0.86], si: 3.0, night: 0, exp: 1 },
+  { h: 15.5, name: 'Afternoon', top: '#d2dce2', bot: '#f6ebda', glow: 'rgba(255,225,180,.30)', hemi: [0.92, 0.94, 1], hi: 1.05, sun: [1, 0.88, 0.72], si: 2.6, night: 0, exp: 1 },
   { h: 18, name: 'Golden hour', top: '#c6a687', bot: '#f4c58a', glow: 'rgba(255,170,90,.42)', hemi: [1, 0.82, 0.62], hi: 0.96, sun: [1, 0.68, 0.38], si: 2.05, night: 0.08, exp: 1.02 },
   { h: 19.2, name: 'Dusk', top: '#59557a', bot: '#e0957a', glow: 'rgba(230,120,100,.40)', hemi: [0.82, 0.6, 0.64], hi: 0.64, sun: [1, 0.5, 0.38], si: 0.95, night: 0.48, exp: 1.06 },
   { h: 20.6, name: 'Evening', top: '#232741', bot: '#54424f', glow: 'rgba(190,130,150,.18)', hemi: [0.42, 0.44, 0.66], hi: 0.38, sun: [0.6, 0.68, 1], si: 0.6, night: 0.85, exp: 1.14 },
@@ -127,6 +127,19 @@ export const NIGHT = {
 export const WATER = { color: 0x35565c, deep: 0x1c2f36, normalScale: 0.55, flow: [0.012, 0.007] as const, repeat: 3, roughness: 0.04, envIntensity: 1.1, opacity: 0.9 } as const;
 /** Cheap contact shadow decal under each building (half extents) plus the baked darkening strength. */
 export const CONTACT = { chat: [2.9, 2.3], hearth: [3.3, 3.3], feed: [3.1, 2.5], board: [3.4, 2.3], skein: [2.2, 2.2], desk: [2.0, 1.7], arcade: [2.1, 1.8], opacity: 0.38, y: 0.038, cottage: [1.35, 1.1] } as const;
+/** Unbuilt plot (village style): trodden earth pad inside the building's CONTACT footprint (x fit), survey stakes with rope, a timber and stone pile and a notice board. All sizes in world units. */
+export const LOT = {
+  /** Pad half extents as a fraction of CONTACT: keeps the pad inside the grass clearing (GRASS.plotClear) of the biggest plot. */
+  fit: 0.65, anchorY: 1.6,
+  earth: { color: 0x8b7556, trodden: 0x75613f, roughness: 1, h: 0.09, trodHalf: 0.62, segs: 28 },
+  stake: { r: 0.045, h: 0.62, inset: 0.12 },
+  rope: { color: 0xc4ab78, t: 0.02, y: 0.5, roughness: 0.9 },
+  /** Notice board: post and paper board offset from the pad centre toward the front-right corner. */
+  board: { r: 0.04, h: 1.0, w: 0.7, bh: 0.4, d: 0.05, x: 0.45, z: 0.8 },
+  /** Planks (length, thickness, width, gap) stacked in layers, then a few rough stones beside them. */
+  planks: { len: 0.9, t: 0.07, w: 0.2, gap: 0.02, layers: 3, perLayer: 3, x: -0.45, z: -0.3 },
+  stones: [{ s: 0.3, x: 0.35, z: -0.55 }, { s: 0.22, x: 0.62, z: -0.4 }, { s: 0.18, x: 0.5, z: -0.72 }],
+} as const;
 export const LIGHTS = {
   hemi: { sky: 0xfff6ea, ground: 0xcfc4b6, intensity: 1.25 },
   sun: { color: 0xfff0d8, intensity: 2.4, pos: [14, 24, 6] as const, bias: -0.0004, normalBias: 0.03, radius: 4 },
