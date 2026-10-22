@@ -26,12 +26,15 @@ impl Default for RateConfig {
     }
 }
 
-const PRUNE_ABOVE: usize = 10_000;
+/// How often idle buckets are swept; a sweep is O(buckets), so it must not run per call.
+const PRUNE_EVERY: Duration = Duration::from_secs(60);
+/// A bucket idle this long is full again, so dropping it loses nothing.
 const PRUNE_AFTER: Duration = Duration::from_secs(600);
 
 pub struct Limiter {
     cfg: RateConfig,
     buckets: HashMap<(SpaceId, UserId), (f64, Instant)>,
+    last_prune: Option<Instant>,
 }
 
 impl Limiter {
@@ -39,6 +42,7 @@ impl Limiter {
         Limiter {
             cfg,
             buckets: HashMap::new(),
+            last_prune: None,
         }
     }
 
@@ -48,7 +52,9 @@ impl Limiter {
 
     /// Takes one token for `(space, author)`. False means the event must be dropped.
     pub fn allow(&mut self, space: SpaceId, author: UserId, now: Instant) -> bool {
-        if self.buckets.len() > PRUNE_ABOVE {
+        let last = *self.last_prune.get_or_insert(now);
+        if now.saturating_duration_since(last) >= PRUNE_EVERY {
+            self.last_prune = Some(now);
             self.buckets
                 .retain(|_, (_, at)| now.duration_since(*at) < PRUNE_AFTER);
         }
@@ -95,6 +101,23 @@ mod tests {
             (0..8).filter(|_| l.allow(s, a, later)).count(),
             5,
             "refill is capped at the burst"
+        );
+    }
+
+    #[test]
+    fn idle_buckets_are_pruned_on_an_interval() {
+        let mut l = Limiter::new(RateConfig::default());
+        let s = SpaceId([1; 32]);
+        let t0 = Instant::now();
+        for i in 0..100u8 {
+            l.allow(s, UserId([i; 32]), t0);
+        }
+        assert_eq!(l.buckets.len(), 100);
+        l.allow(s, UserId([200; 32]), t0 + PRUNE_AFTER + PRUNE_EVERY);
+        assert_eq!(
+            l.buckets.len(),
+            1,
+            "idle buckets are swept once the interval passes"
         );
     }
 }

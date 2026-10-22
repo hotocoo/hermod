@@ -23,6 +23,23 @@ use crate::search::{self, SearchHit, SearchItem};
 /// Upper bound of buffered out-of-order or key-less events per author and space.
 pub const MAX_PENDING_PER_AUTHOR: i64 = 4096;
 
+/// Largest `seq`/`lamport` accepted from anyone (2^53 - 1: exact in JS numbers). A peer-chosen
+/// `i64::MAX` would otherwise make every later local append overflow.
+pub const MAX_CLOCK: u64 = (1 << 53) - 1;
+
+/// Largest key epoch accepted in an event or invite. Epochs rise one per rekey.
+pub const MAX_EPOCH: u32 = 1 << 20;
+
+/// A key-less event may name at most this many epochs above the highest one held, so a
+/// forged far-future epoch cannot park rows that no real key will ever unlock.
+pub const MAX_EPOCH_AHEAD: u32 = 16;
+
+/// Key-less (`WAIT_KEY`) rows kept per space; the oldest are evicted past it.
+pub const MAX_LOCKED_PER_SPACE: i64 = 4096;
+
+/// Body bytes of key-less rows kept per space; the oldest are evicted past it.
+pub const MAX_LOCKED_BYTES_PER_SPACE: i64 = 32 << 20;
+
 const APPLIED: i64 = 0;
 const WAIT_SEQ: i64 = 1;
 const WAIT_KEY: i64 = 2;
@@ -172,12 +189,14 @@ impl Store {
 
     /// Inserts a space and its first key. Returns false if the space already existed.
     pub fn add_space(&self, row: &SpaceRow) -> Result<bool> {
+        let tx = self.conn.unchecked_transaction()?;
         let n = self.conn.execute(
             "INSERT OR IGNORE INTO spaces(space_id, space_key, name, kind, is_home, joined_at, left)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, 0)",
             params![&row.id.0[..], &row.key.0[..], row.name, row.kind, row.is_home as i64, row.joined_at],
         )?;
         self.add_key(&row.id, row.epoch, &row.key)?;
+        tx.commit()?;
         Ok(n > 0)
     }
 
@@ -222,6 +241,20 @@ impl Store {
             "UPDATE spaces SET left = 1 WHERE space_id = ?1 AND is_home = 0",
             [&id.0[..]],
         )?;
+        Ok(())
+    }
+
+    /// Removes a space and everything stored for it. Only for rolling back a join that failed.
+    pub fn forget_space(&self, id: &SpaceId) -> Result<()> {
+        let tx = self.conn.unchecked_transaction()?;
+        for table in ["events", "space_keys", "spaces"] {
+            self.conn.execute(
+                &format!("DELETE FROM {table} WHERE space_id = ?1"),
+                [&id.0[..]],
+            )?;
+        }
+        self.kv_delete(&format!("lamport_floor.{id}"))?;
+        tx.commit()?;
         Ok(())
     }
 
@@ -295,13 +328,14 @@ impl Store {
     /// Validates and stores an event. See the module docs for the rules.
     pub fn ingest_from(&mut self, ev: &SignedEvent, source: Source) -> Result<Ingested> {
         if ev.seq == 0
-            || ev.seq > i64::MAX as u64
+            || ev.seq > MAX_CLOCK
             || ev.lamport == 0
-            || ev.lamport > i64::MAX as u64
+            || ev.lamport > MAX_CLOCK
+            || ev.epoch > MAX_EPOCH
         {
             return Err(Error::invalid(
                 "event",
-                "seq and lamport must be in 1..=i64::MAX",
+                "seq and lamport must be in 1..=2^53-1 and epoch within bounds",
             ));
         }
         if ev.body.len() > MAX_BODY_BYTES.min(self.limiter.config().max_event_bytes) {
@@ -330,7 +364,11 @@ impl Store {
         }
         let keys = self.keys_for(&space.id, ev.epoch)?;
         let locked = keys.is_empty();
-        if !locked {
+        if locked {
+            if ev.epoch > space.epoch.saturating_add(MAX_EPOCH_AHEAD) {
+                return Err(Error::invalid("event", "epoch too far ahead"));
+            }
+        } else {
             ev.open_any(&keys)?;
         }
 
@@ -359,6 +397,9 @@ impl Store {
                     "too many buffered events from this author",
                 ));
             }
+        }
+        if locked {
+            evict_locked(&tx, space_id, ev.body.len() as i64)?;
         }
         let pending = if locked {
             WAIT_KEY
@@ -509,11 +550,12 @@ impl Store {
         )? as u64)
     }
 
-    /// Highest lamport seen in the space, applied or pending.
+    /// Highest lamport among applied events. Buffered events do not count, nor does any row
+    /// above [`MAX_CLOCK`] that an older version accepted.
     pub fn max_lamport(&self, space: &SpaceId) -> Result<u64> {
         Ok(self.conn.query_row(
-            "SELECT COALESCE(MAX(lamport), 0) FROM events WHERE space_id = ?1",
-            [&space.0[..]],
+            "SELECT COALESCE(MAX(lamport), 0) FROM events WHERE space_id = ?1 AND pending = 0 AND lamport <= ?2",
+            params![&space.0[..], MAX_CLOCK as i64],
             |r| r.get::<_, i64>(0),
         )? as u64)
     }
@@ -784,6 +826,28 @@ fn applied_max(tx: &rusqlite::Transaction, space: &[u8], author: &[u8]) -> Resul
         params![space, author],
         |r| r.get(0),
     )?)
+}
+
+/// Makes room for one more key-less row of `incoming` body bytes by evicting the oldest
+/// ones past [`MAX_LOCKED_PER_SPACE`] rows or [`MAX_LOCKED_BYTES_PER_SPACE`] bytes.
+fn evict_locked(tx: &rusqlite::Transaction, space: &[u8], incoming: i64) -> Result<()> {
+    tx.execute(
+        &format!(
+            "DELETE FROM events WHERE id IN (
+               SELECT id FROM (
+                 SELECT id,
+                        ROW_NUMBER() OVER (ORDER BY rowid DESC) AS n,
+                        SUM(LENGTH(body)) OVER (ORDER BY rowid DESC) AS bytes
+                 FROM events WHERE space_id = ?1 AND pending = {WAIT_KEY})
+               WHERE n > ?2 OR bytes > ?3)"
+        ),
+        params![
+            space,
+            MAX_LOCKED_PER_SPACE - 1,
+            MAX_LOCKED_BYTES_PER_SPACE - incoming
+        ],
+    )?;
+    Ok(())
 }
 
 /// Applies buffered events that are now next in line for `author`. Returns their ids.
