@@ -20,7 +20,7 @@ function hitItem(s: AppStore, seed: Seed, h: SearchHit): PaletteItem {
     go: () => {
       if (h.kind === 'snap') s.openSnap(sp.id, h.id);
       else if (h.kind === 'ticket') s.deskOpen(sp.id, h.id);
-      else if (h.channel_id) s.goChannel(sp.id, h.channel_id);
+      else if (h.channel_id) { if (h.kind === 'message') s.jumpToMessage(sp.id, h.channel_id, h.id); else s.goChannel(sp.id, h.channel_id); }
       else s.goSpace(sp.id);
     },
   };

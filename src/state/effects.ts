@@ -24,8 +24,8 @@ export function startEffects(store: StoreLike): () => void {
     const len = (s.msgs[key] ?? []).length; const k = key + len;
     if (k !== scrolledKey) {
       scrolledKey = k;
-      const smooth = len > 0 && lastKey === key;
-      TIMING.scrollStepsMs.forEach((ms, i, a) => setTimeout(() => { scrollMessages(smooth); if (i === a.length - 1) lastKey = key; }, ms));
+      const smooth = len > 0 && lastKey === key; const jumping = s.jump?.key === key; // a pending jump to a message owns the scroll position
+      TIMING.scrollStepsMs.forEach((ms, i, a) => setTimeout(() => { if (!jumping) scrollMessages(smooth); if (i === a.length - 1) lastKey = key; }, ms));
     }
   };
   run();

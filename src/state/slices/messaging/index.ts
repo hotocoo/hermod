@@ -182,11 +182,13 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       const [space, channel] = splitKey(key);
       const have = [...(get().older[key] ?? []), ...(get().msgs[key] ?? [])];
       const first = have[0]?.ext?.lp;
-      if (!first) return;
+      if (!first) return false;
       const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, first, PAGE));
-      if (!page) return;
-      set((s) => ({ older: { ...s.older, [key]: [...page.messages, ...(s.older[key] ?? [])] }, olderMore: { ...s.olderMore, [key]: page.has_more } }));
+      if (!page) return false;
+      set((s) => ({ older: { ...s.older, [key]: [...page.messages, ...(s.older[key] ?? [])] }, olderMore: { ...s.olderMore, [key]: page.has_more && page.messages.length > 0 } }));
+      return page.messages.length > 0;
     },
+    jumpToMessage: (space, channel, id) => { set({ jump: { key: `${space}/${channel}`, id } }); get().goChannel(space, channel); }, // jump first: the arrival scroll-to-bottom sees it and stays out of the way,
 
     copyMessageLink: (id) => {
       const s = get();
@@ -196,8 +198,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       const l = parseMessageLink(href); if (!l) return false;
       const s = get();
       if (!s.spaces.some((x) => x.id === l.space)) { s.showToast('You are not in that Space', undefined, 'error'); return true; }
-      s.goChannel(l.space, l.channel);
-      set({ jump: { key: `${l.space}/${l.channel}`, id: l.msg } });
+      s.jumpToMessage(l.space, l.channel, l.msg);
       return true;
     },
     pinMessage: async (id) => { await post({ t: 'message.pin', msg_id: id }); },

@@ -78,7 +78,8 @@ export function chatVm(x: Ctx) {
     name: chanRaw?.name ?? '', topic: chanRaw?.topic ?? '', isDm: !!chanRaw?.dm, notDm: !chanRaw?.dm, initials: chanRaw?.dm ? personOf(seed, chanRaw.dm).i : '',
   };
   const key = chatKey(s);
-  const raw = s.msgs[key] ?? [];
+  const have = s.msgs[key] ?? []; const seen = new Set(have.map((m) => m.id));
+  const raw = [...(s.older[key] ?? []).filter((m) => !seen.has(m.id)), ...have]; // pages loaded by loadOlder precede the snapshot's messages
   const messages = raw.map((m, i, arr) => messageVm(x, m, i, arr, key));
   const threadMsg = messages.find((m) => m.id === s.thread) ?? null;
   const draft = s.drafts[key] ?? '';

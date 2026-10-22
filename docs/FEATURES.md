@@ -64,7 +64,7 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 | A-014 | @mentions with autocomplete, highlight, notify | DONE (UI wired; needs core/node to verify) | Typing `@Ma` suggests members; mentioned user gets notification | components, state | `message.post` gets `mentions[]` | M1 |
 | A-015 | Typing indicator | MISSING | See P-002 | node, components | ephemeral gossip | M2 |
 | A-016 | Pin message / saved messages | DONE-CORE (core only; bridge/UI pending) | Pin appears in channel header list on all peers | components, core | new `message.pin` | M3 |
-| A-017 | Jump to unread, scroll anchoring, load older (paging) | PARTIAL | 10k messages scroll smoothly (virtualized list); jump-to-unread works | components | cmd `messages_page` | M2 |
+| A-017 | Jump to unread, scroll anchoring, load older (paging) | DONE | Scrolling to the top (or Show earlier messages) widens the window, then pages older history with `messages_page`; the viewport stays anchored when messages are prepended; jump-to-unread works. e2e/chat.spec.ts | components | cmd `messages_page` | M2 |
 | A-018 | Emoji picker for reactions and composer | MISSING | Picker inserts emoji; keyboard accessible | components | none | M2 |
 
 ## H. Hearth (voice, video, meetings)
@@ -259,7 +259,7 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 | ID | Feature | Status | Acceptance | Owner | Needs | M |
 |---|---|---|---|---|---|---|
 | S-001 | Full-text search over decrypted content (messages, posts, notes, docs, cards, snapshots, events) via local SQLite FTS5 index, rebuilt from projections | DONE-CORE (core only; bridge/UI pending) | Query "kiln" returns hits across types in under 100 ms on 50k items; snippet highlight; honours deleted/removed; respects blocked users | core, state | cmd `search_query {q, space?, kinds?}`; FTS tables | M2 |
-| S-002 | Search results UI (palette section + full page), filters, jump to context | MISSING | Click hit opens channel scrolled to message | components | S-001 | M2 |
+| S-002 | Search results UI (palette section + full page), filters, jump to context | PARTIAL | Palette hits open the channel scrolled to the message and highlight it, widening the window or loading older pages when it is not loaded (e2e/chat.spec.ts); no full results page yet | components | S-001 | M2 |
 
 ## N. Notifications and presence
 

@@ -13,6 +13,7 @@ export const msgRef = (el: HTMLElement | null) => {
   refs.msgs = el;
   if (el) setTimeout(() => el.scrollTo({ top: el.scrollHeight }), TIMING.msgInitialScrollMs);
 };
+export const getMsgs = () => refs.msgs;
 export const liveRef = (el: HTMLElement | null) => { refs.live = el; if (el) el.scrollTop = el.scrollHeight; };
 export const palRef = (el: HTMLElement | null) => { if (el) setTimeout(() => el.focus(), TIMING.paletteFocusMs); };
 

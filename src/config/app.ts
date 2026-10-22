@@ -45,6 +45,9 @@ export const TIMING = {
   scrollStepsMs: [20, 260, 700],
   paletteFocusMs: 10,
   msgInitialScrollMs: 60,
+  /** Wait for a jumped-to message to mount before scrolling to it, and how long its highlight fades. */
+  jumpSettleMs: 120,
+  jumpFlashMs: 1600,
   /** Graphics quality label re-reads the adaptive tier this often while the drawer is open. */
   qualityPollMs: 1000,
 } as const;
@@ -76,6 +79,8 @@ export const LAYOUT = {
   panelInsetPx: 16,
   /** Building labels fade out above this screen y (px) instead of sliding under the top bar pills. */
   labelTopClearPx: 72,
+  /** Scrolling within this many px of the top of a chat loads the next older page. */
+  olderTriggerPx: 120,
 } as const;
 
 export const CAMERA = { zoomStep: 5, rotateStep: 0.45 } as const;
@@ -87,6 +92,10 @@ export const LIMITS = {
   overviewSnaps: 3,
   overviewFeed: 3,
   paintMessages: 9,
+  /** Messages rendered at once in a chat; older ones load on demand. */
+  messageWindow: 150,
+  /** Animation frames a jump to a message keeps re-centring it while lazily laid-out rows settle. */
+  jumpSettleFrames: 30,
   paintBoardCards: 4,
   paintSkein: 6,
   paletteResults: 9,
