@@ -50,7 +50,7 @@ function parts(scene: THREE.Group, foliage: boolean): Part[] {
   scene.updateMatrixWorld(true); const lods: THREE.Mesh[][] = [[], [], []]; let any0 = false;
   scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; const k = /_LOD([0-2])/.exec(m.name); const lod = k ? Number(k[1]) : 0; lods[lod].push(m); if (lod === 0) any0 = true; });
   void any0; const out: Part[] = []; const res = lods.map((l) => (l.length ? mergeByLod(l) : null));
-  const prep = (mt: THREE.Material) => { const m = mt as THREE.MeshStandardMaterial; if (GLOW.test(m.name)) windowMats.add(m); if (foliage) { m.side = THREE.DoubleSide; m.alphaToCoverage = false; windify(m, 'leaf'); } };
+  const prep = (mt: THREE.Material) => { const m = mt as THREE.MeshStandardMaterial; if (GLOW.test(m.name)) windowMats.add(m); if (foliage) { m.side = THREE.DoubleSide; m.alphaToCoverage = false; m.userData.noA2C = true; windify(m, 'leaf'); } };
   const solid: Part = { geo: [res[0]?.solid ?? null, res[1]?.solid ?? res[0]?.solid ?? null, res[2]?.solid ?? res[1]?.solid ?? res[0]?.solid ?? null], mat: (res[0]?.solidMat ?? res[1]?.solidMat ?? res[2]?.solidMat)! };
   if (solid.mat) { prep(solid.mat); out.push(solid); }
   // glow parts exist at LOD0 only (no LOD1/2 in the glb): shown at every distance

@@ -150,7 +150,7 @@ export const CAMERA = {
   intro: { azOffset: 2.5, el: 1.32, dist: 140, tune: [6, 1] as const, settleMs: 3400, settleDist: [36, 0.95] as const, settle: [40, 0.95] as const },
   zoom: { min: 26, max: 62, wheel: 0.02, archiAt: 61.5, archiAccum: 260, dblDist: 10 },
   tilt: { min: 0.32, max: 1.15 },
-  panLimit: 9, orbitSpeed: 0.006, tiltSpeed: 0.003, idleAfter: 22, idleSpin: 0.05, photoSpin: 0.09, keyStep: 70, keyOrbit: 0.35,
+  panLimit: 9, orbitSpeed: 0.0038, tiltSpeed: 0.0022, idleAfter: 22, idleSpin: 0.05, photoSpin: 0.09, keyStep: 70, keyOrbit: 0.35,
   doorHearth: { azOffset: 0.42, el: 0.32, dist: 8.5, fov: 34, ty: 1.0, labelY: 1.4 },
   doorOther: { azOffset: 0.85, el: 0.2, dist: 4.4, fov: 40, ty: 1.05, labelY: 1.1 },
   focus: { ty: 1.2, dist: 24, el: 0.52, azOffset: 0.55, off: 0.3, fov: 23 },
@@ -362,7 +362,7 @@ export const DIRECTOR = {
   /** Idle drift outside after CAMERA.idleAfter: slow breathing of distance and elevation. */
   drift: { dist: 0.014, el: 0.012, speed: 0.11 },
   /** Orbit and pan inertia after release (per second decay), soft edge: overshoot allowed before the hard stop, spring-back rate. */
-  inertia: { orbitDecay: 3.4, panDecay: 4.2, minSpeed: 0.0004 }, softEdge: { overshoot: 1.18, relax: 7 },
+  inertia: { orbitDecay: 5, panDecay: 5, minSpeed: 0.0004, maxOrbit: 1.4, maxPan: 1100, minDtMs: 16 }, softEdge: { overshoot: 1.18, relax: 7 },
   /** Depth of field (high and ultra): aperture scales the circle of confusion, maxBlur in uv, taps per pixel, focus pull spring. */
   dof: { aperture: 0.55, maxBlur: 0.012, taps: 14, strengthDoor: 1, strengthInside: 0.3, strengthFocus: 0.7, /* inside a room the near field keeps this share of its blur, so foreground figures and furniture stay crisp */ nearInside: 0.12, spring: [30, 1] as const, minTier: 'high' as QualityTier },
   /** Lens: chromatic aberration at the edges (uv), film grain amount, edge softness is the vignette in POST. */

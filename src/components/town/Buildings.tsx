@@ -6,9 +6,9 @@ export function Buildings({ vm }: { vm: ViewModel }) {
   return (
     <>
       {buildings.map((b) => (
-        <div className={s.root} data-bld={b.id} key={b.id}>
+        <div className={s.root} data-bld={b.id} data-empty={'empty' in b && b.empty ? '' : undefined} key={b.id}>
           <button className={s.button} onClick={b.onClick} onMouseEnter={b.onEnter} onMouseLeave={b.onLeave} aria-label={b.aria}>
-            <span className={s.card} style={{ border: `1px ${b.bdStyle} ${b.bd}`, boxShadow: b.shadow, translate: `0 ${b.lift}` }} data-card="1">
+            <span className={'empty' in b && b.empty ? `${s.card} ${s.empty}` : s.card} style={{ border: `1px ${b.bdStyle} ${b.bd}`, boxShadow: b.shadow, translate: `0 ${b.lift}` }} data-card="1">
               <span className={s.kicker} data-detail="1">{b.kicker}</span>
               <span className={s.name}>
                 {b.name}

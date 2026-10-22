@@ -42,7 +42,7 @@ test.beforeAll(async ({ browser }) => {
     await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
     await expect(p.getByRole('heading', { level: 1 })).toHaveText(space, { timeout: 60_000 });
     // The guest's heading comes from the invite; wait until the raised building has synced too.
-    await expect(p.locator('[data-bld="desk"]')).toContainText('Counting House', { timeout: 60_000 });
+    await expect(p.locator('[data-bld="desk"]')).not.toHaveAttribute('data-empty', { timeout: 60_000 });
     await enterSection(p, 'desk', false);
     await expect(p.getByTestId('desk-root')).toBeVisible();
   }

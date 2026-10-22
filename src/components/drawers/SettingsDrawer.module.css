@@ -25,6 +25,21 @@
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
+.quality {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--color-divider);
+}
+
+.quality legend {
+  float: left;
+  padding: 0;
+}
+
 .switchTrack {
   position: relative;
   flex: none;
@@ -46,6 +61,7 @@
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
 }
@@ -70,6 +86,7 @@
   border-radius: 6px;
   background: transparent;
   font-size: 13px;
+  white-space: nowrap;
 }
 .flyoverBtn:hover {
   border-color: var(--color-accent) !important;

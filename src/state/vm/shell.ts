@@ -45,9 +45,9 @@ export function shellVm(x: Ctx, p: Parts) {
   const buildings = buildingIds(seed).map((id) => {
     const b = built(id); const hot = s.hot === id; const badge = b ? badgeOf(id) : '';
     return {
-      id, badge: String(badge), hasBadge: !!badge, name: b ? names[id] : EMPTY_PLOT.name, kicker: seed.sections[id as keyof typeof seed.sections].kicker,
+      id, badge: String(badge), hasBadge: !!badge, name: names[id], empty: !b, kicker: b ? seed.sections[id as keyof typeof seed.sections].kicker : EMPTY_PLOT.name,
       sub: b ? subs[id] : `${EMPTY_PLOT.raise}${names[id]}`, live: b && ((id === 'hearth' && hearthCount > 0) || (id === 'chat' && unread > 0)),
-      aria: `${b ? names[id] : EMPTY_PLOT.name}, ${b ? subs[id] : 'nothing built yet'}`,
+      aria: `${names[id]}, ${b ? subs[id] : `${EMPTY_PLOT.name.toLowerCase()}, nothing built yet`}`,
       bd: b ? ACCENT : DIVIDER, bdStyle: b ? 'solid' : 'dashed', shadow: hot ? 'var(--shadow-lg)' : 'var(--shadow-md)', lift: hot ? '-4px' : '0px',
       onClick: () => s.clickBuilding(id), onOpen: () => s.openBuilding(id), onEnter: () => s.hoverBuilding(id), onLeave: () => s.hoverBuilding(null),
     };

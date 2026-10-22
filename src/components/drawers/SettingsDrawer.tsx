@@ -1,6 +1,7 @@
 import { useAppStore } from '@/state/store';
 import type { ViewModel } from '@/state/viewModel';
 import { DrawerFrame } from './DrawerFrame';
+import { GraphicsQuality } from './GraphicsQuality';
 import s from './SettingsDrawer.module.css';
 
 export function SettingsDrawer({ vm }: { vm: ViewModel }) {
@@ -19,6 +20,7 @@ export function SettingsDrawer({ vm }: { vm: ViewModel }) {
           </span>
         </button>
       ))}
+      <GraphicsQuality />
       <div className={s.actions}>
         <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'appSettings' })}>App settings</button>
         <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'shortcuts' })}>Keyboard shortcuts</button>

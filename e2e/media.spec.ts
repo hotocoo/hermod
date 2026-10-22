@@ -90,8 +90,8 @@ test.beforeAll(async ({ browser }) => {
   const snap = await post(DEVHOST_A, 'snapshot', {});
   const sp = (snap.spaces as { id: string; name: string }[]).find((x) => x.name === space)!;
   for (const section of ['hearth', 'feed']) await post(DEVHOST_A, 'event_append', { spaceId: sp.id, body: { t: 'section.raise', section } });
-  await expect(b.locator('[data-bld="hearth"]')).toContainText('Hearth', { timeout: 60_000 });
-  await expect(b.locator('[data-bld="feed"]')).toContainText('Gallery', { timeout: 60_000 });
+  await expect(b.locator('[data-bld="hearth"]')).not.toHaveAttribute('data-empty', { timeout: 60_000 });
+  await expect(b.locator('[data-bld="feed"]')).not.toHaveAttribute('data-empty', { timeout: 60_000 });
   aId = (await (await fetch(`${DEVHOST_A}/invoke/identity_get`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).json() as { user_id: string }).user_id;
 });
 test.afterAll(async () => { await Promise.all(ctxs.map((c) => c.close())); });

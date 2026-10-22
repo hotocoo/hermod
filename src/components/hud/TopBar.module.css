@@ -21,6 +21,13 @@
   box-shadow: var(--shadow-sm);
 }
 
+.syncPill {
+  display: inline-flex;
+  font-size: 12px;
+  white-space: nowrap;
+  color: color-mix(in srgb,var(--color-text) 72%,transparent);
+}
+
 .pillIcon {
   color: var(--color-accent);
 }

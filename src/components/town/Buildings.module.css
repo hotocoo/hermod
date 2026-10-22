@@ -27,6 +27,22 @@
   transition: translate 420ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1),border-color 240ms ease,box-shadow 320ms ease;
 }
 
+.empty {
+  background: color-mix(in srgb,var(--color-bg) 72%,transparent);
+}
+
+.empty .name {
+  font-weight: 500;
+  font-style: italic;
+  color: color-mix(in srgb,var(--color-text) 80%,transparent);
+}
+
+.empty .name::before {
+  content: '+';
+  font-style: normal;
+  color: var(--color-accent-700);
+}
+
 .kicker {
   font-size: 9px;
   letter-spacing: .16em;
