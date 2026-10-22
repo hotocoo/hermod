@@ -16,6 +16,7 @@ mod state;
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::event::EventBody;
 use crate::growth::GrowthConfig;
 use crate::ids::{SpaceId, UserId};
 use crate::store::Opened;
@@ -109,7 +110,27 @@ pub struct SpaceInput {
     pub name: String,
     pub kind: String,
     pub is_home: bool,
+    /// Creator pinned locally for spaces whose id is not bound to one; see [`genesis_author`].
+    pub creator: Option<UserId>,
     pub events: Vec<Opened>,
+}
+
+/// Creator to pin for `id`: the author whose nonce derives the id, else the first `space.create` in fold order.
+pub fn genesis_author(id: &SpaceId, events: &[Opened]) -> Option<UserId> {
+    let first = events
+        .iter()
+        .filter(|e| matches!(e.body, EventBody::SpaceCreate { .. }))
+        .min_by_key(|e| (e.lamport, e.author.0, e.seq));
+    let derived = state::derived_author(id, events);
+    first
+        .filter(|_| derived.is_none())
+        .map(|e| e.author)
+        .or_else(|| {
+            events
+                .iter()
+                .find(|e| Some(e.author.to_string()) == derived)
+                .map(|e| e.author)
+        })
 }
 
 /// Two uppercase letters from the first letters of the first two words, else the first two chars.
@@ -129,23 +150,7 @@ pub fn initials_of(name: &str) -> String {
 
 /// Folds every input and renders the full snapshot.
 pub fn project(ctx: &ProjectionCtx, inputs: &[SpaceInput]) -> Snapshot {
-    let states: Vec<state::SpaceState> = inputs
-        .iter()
-        .map(|inp| {
-            let mut evs: Vec<&Opened> = inp.events.iter().collect();
-            evs.sort_by_key(|e| (e.lamport, e.author.0, e.seq));
-            let mut st =
-                state::SpaceState::new(inp.id, inp.is_home, &inp.name, &inp.kind).fold(&evs);
-            let hidden: BTreeSet<String> = ctx
-                .hidden
-                .iter()
-                .filter(|(sp, _)| *sp == inp.id)
-                .map(|(_, m)| m.clone())
-                .collect();
-            st.prune(ctx.now_ms, &hidden);
-            st
-        })
-        .collect();
+    let states: Vec<state::SpaceState> = inputs.iter().map(|i| fold_pruned(ctx, i)).collect();
     render::World::new(ctx, &states).snapshot()
 }
 
@@ -159,11 +164,33 @@ fn known_users(ctx: &ProjectionCtx, states: &[state::SpaceState]) -> BTreeSet<St
     users
 }
 
-/// Folds one input like [`project`] does (sorted, authorized, pruned).
-fn fold_pruned(ctx: &ProjectionCtx, inp: &SpaceInput) -> state::SpaceState {
+/// Sorts and folds one input. Passes repeat until the position-independent facts they derive
+/// (removal seq caps, revoked-invite joiner lists) stop changing, so authorization never depends on
+/// an author-chosen lamport.
+pub(crate) fn fold_input(inp: &SpaceInput) -> state::SpaceState {
     let mut evs: Vec<&Opened> = inp.events.iter().collect();
     evs.sort_by_key(|e| (e.lamport, e.author.0, e.seq));
-    let mut st = state::SpaceState::new(inp.id, inp.is_home, &inp.name, &inp.kind).fold(&evs);
+    let run = |prior: state::Prior| {
+        state::SpaceState::new(inp.id, inp.is_home, &inp.name, &inp.kind)
+            .with_creator(inp.creator.map(|c| c.to_string()))
+            .with_prior(prior)
+            .fold(&evs)
+    };
+    let mut st = run(state::Prior::default());
+    for _ in 1..state::MAX_FOLD_PASSES {
+        let next = run(st.found.clone());
+        let settled = next.found == st.found;
+        st = next;
+        if settled {
+            break;
+        }
+    }
+    st
+}
+
+/// Folds one input like [`project`] does (sorted, authorized, pruned).
+fn fold_pruned(ctx: &ProjectionCtx, inp: &SpaceInput) -> state::SpaceState {
+    let mut st = fold_input(inp);
     let hidden: BTreeSet<String> = ctx
         .hidden
         .iter()

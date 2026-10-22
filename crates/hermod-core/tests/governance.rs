@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use common::*;
 use hermod_core::api::InviteOptions;
 use hermod_core::event::{EventBody, Role};
-use hermod_core::ids::SpaceId;
+use hermod_core::ids::{SpaceId, hex_encode};
 use hermod_core::projections::shapes::Snapshot;
 use hermod_core::projections::{min_role, project, report};
 use hermod_core::store::IngestStatus;
@@ -111,7 +111,13 @@ fn role_table_every_event_type_is_gated() {
             },
             Role::Member,
         ),
-        (MemberRemove { user: "u".into() }, Role::Admin),
+        (
+            MemberRemove {
+                user: "u".into(),
+                last_seq: None,
+            },
+            Role::Admin,
+        ),
         (
             SpaceRekey {
                 epoch: 1,
@@ -233,6 +239,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberRemove {
             user: owner.to_string(),
+            last_seq: None,
         },
     );
     l.push(
@@ -331,7 +338,14 @@ fn invites_expire_cap_uses_and_revoke() {
             role: Role::Member,
         },
     );
-    l.push(&owner, NOW, EventBody::InviteRevoke { id: "rev".into() });
+    l.push(
+        &owner,
+        NOW,
+        EventBody::InviteRevoke {
+            id: "rev".into(),
+            joined: None,
+        },
+    );
     let j = |i: &str| EventBody::MemberJoin {
         via_invite_from: None,
         invite: Some(i.into()),
@@ -963,4 +977,126 @@ fn map_style_folds_validates_and_clears() {
         &[l.input(SpaceId::random(), "Maps", "Team", false)],
     );
     assert_eq!(snapshot.spaces[0].map_style, None);
+}
+
+fn create_with_nonce(nonce: Option<&[u8; 32]>) -> EventBody {
+    let mut body = space_create("S", &["chat"]);
+    if let EventBody::SpaceCreate { nonce: n, .. } = &mut body {
+        *n = nonce.map(|b| hex_encode(b));
+    }
+    body
+}
+
+fn owners(rep: &hermod_core::projections::SpaceReport) -> Vec<String> {
+    rep.members
+        .iter()
+        .filter(|m| m.role == Role::Owner)
+        .map(|m| m.user.clone())
+        .collect()
+}
+
+#[test]
+fn forged_space_create_cannot_take_over_a_creator_bound_id() {
+    let (_, owner) = user();
+    let (_, thief) = user();
+    let nonce = [7u8; 32];
+    let sid = SpaceId::derive(&owner, &nonce);
+    let mut l = Log::new();
+    l.push_at(&thief, 1, NOW, create_with_nonce(None));
+    l.push_at(&thief, 2, NOW, create_with_nonce(Some(&[9u8; 32])));
+    l.push_at(&owner, 5, NOW, create_with_nonce(Some(&nonce)));
+    let rep = report(&ctx(owner), &l.input(sid, "S", "Team", false));
+    assert_eq!(owners(&rep), vec![owner.to_string()]);
+}
+
+#[test]
+fn pinned_creator_beats_a_forged_earlier_create_on_a_legacy_id() {
+    let (_, owner) = user();
+    let (_, thief) = user();
+    let sid = SpaceId::random();
+    let mut l = Log::new();
+    l.push_at(&owner, 5, NOW, create_with_nonce(None));
+    let honest = l.events.clone();
+    l.push_at(&thief, 1, NOW, create_with_nonce(None));
+    let mut input = l.input(sid, "S", "Team", false);
+    assert_eq!(
+        owners(&report(&ctx(owner), &input)),
+        vec![thief.to_string()],
+        "unpinned: first in fold order wins"
+    );
+    input.creator = hermod_core::projections::genesis_author(&sid, &honest);
+    assert_eq!(input.creator, Some(owner));
+    assert_eq!(
+        owners(&report(&ctx(owner), &input)),
+        vec![owner.to_string()]
+    );
+}
+
+#[test]
+fn revoke_listing_joiners_rejects_backdated_joins() {
+    let (_, owner) = user();
+    let (_, early) = user();
+    let (_, late) = user();
+    let sid = SpaceId::random();
+    let mut l = Log::new();
+    l.push(&owner, NOW, space_create("S", &["chat"]));
+    l.push(
+        &owner,
+        NOW,
+        EventBody::InviteCreate {
+            id: "i".into(),
+            exp: None,
+            max_uses: None,
+            role: Role::Member,
+        },
+    );
+    let join = || EventBody::MemberJoin {
+        via_invite_from: None,
+        invite: Some("i".into()),
+    };
+    l.push(&early, NOW, join());
+    let revoke = EventBody::InviteRevoke {
+        id: "i".into(),
+        joined: Some(vec![early.to_string()]),
+    };
+    l.push_at(&owner, 10, NOW, revoke);
+    // Signed just after invite.create, long before the revoke in fold order.
+    l.push_at(&late, 3, NOW, join());
+    let rep = report(&ctx(owner), &l.input(sid, "S", "Team", false));
+    let users: Vec<_> = rep.members.iter().map(|m| m.user.clone()).collect();
+    assert!(
+        users.contains(&early.to_string()),
+        "honest earlier join stays"
+    );
+    assert!(!users.contains(&late.to_string()));
+}
+
+#[test]
+fn removed_admin_cannot_backdate_events_past_the_removal() {
+    let (_, owner) = user();
+    let (_, admin) = user();
+    let sid = SpaceId::random();
+    let invite = |id: &str, role| EventBody::InviteCreate {
+        id: id.into(),
+        exp: None,
+        max_uses: None,
+        role,
+    };
+    let mut l = Log::new();
+    l.push(&owner, NOW, space_create("S", &["chat"]));
+    l.push(&owner, NOW, invite("i", Role::Admin));
+    let join = EventBody::MemberJoin {
+        via_invite_from: None,
+        invite: Some("i".into()),
+    };
+    l.push(&admin, NOW, join);
+    let remove = EventBody::MemberRemove {
+        user: admin.to_string(),
+        last_seq: Some(1),
+    };
+    l.push_at(&owner, 10, NOW, remove);
+    // The admin's second event claims a lamport before the removal.
+    l.push_at(&admin, 4, NOW, invite("backdoor", Role::Member));
+    let rep = report(&ctx(owner), &l.input(sid, "S", "Team", false));
+    assert!(rep.invites.iter().all(|i| i.id != "backdoor"));
 }

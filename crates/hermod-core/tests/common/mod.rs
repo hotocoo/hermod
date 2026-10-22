@@ -63,6 +63,7 @@ impl Log {
             name: name.into(),
             kind: kind.into(),
             is_home: home,
+            creator: None,
             events: self.events.clone(),
         }
     }
@@ -85,6 +86,7 @@ pub fn space_create(name: &str, sections: &[&str]) -> EventBody {
         tagline: "t".into(),
         mono: name[..1].to_uppercase(),
         sections: sections.iter().map(|s| s.to_string()).collect(),
+        nonce: None,
     }
 }
 

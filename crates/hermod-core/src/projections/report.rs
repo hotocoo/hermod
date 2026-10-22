@@ -8,7 +8,6 @@ use super::{ProjectionCtx, SpaceInput};
 use crate::event::Role;
 use crate::ids::SpaceId;
 use crate::search::SearchItem;
-use crate::store::Opened;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MemberInfo {
@@ -54,9 +53,7 @@ pub struct SpaceReport {
 }
 
 fn fold(input: &SpaceInput) -> SpaceState {
-    let mut evs: Vec<&Opened> = input.events.iter().collect();
-    evs.sort_by_key(|e| (e.lamport, e.author.0, e.seq));
-    SpaceState::new(input.id, input.is_home, &input.name, &input.kind).fold(&evs)
+    super::fold_input(input)
 }
 
 /// Members, invites, audit log and reports. Admin-only parts are returned as folded; callers

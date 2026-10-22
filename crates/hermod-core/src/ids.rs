@@ -183,6 +183,14 @@ impl SpaceId {
     pub fn random() -> Self {
         SpaceId(crate::crypto::random_bytes())
     }
+
+    /// Id bound to its creator: `blake3(creator || nonce)`. `space.create` carries the nonce, so any
+    /// peer can check that only the creator's own `space.create` fits the id.
+    pub fn derive(creator: &UserId, nonce: &[u8; 32]) -> Self {
+        let mut buf = creator.0.to_vec();
+        buf.extend_from_slice(nonce);
+        SpaceId(crate::crypto::blake3_hash(&buf))
+    }
 }
 
 impl fmt::Display for SpaceId {

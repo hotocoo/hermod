@@ -462,6 +462,7 @@ fn shuffled_ingest_converges_in_the_store() {
             name: "Merge".into(),
             kind: "Team".into(),
             is_home: false,
+            creator: None,
             events: store.load_opened(&row).unwrap(),
         };
         let snap = project(&ProjectionCtx::new(ia.user_id(), common::NOW), &[input]);

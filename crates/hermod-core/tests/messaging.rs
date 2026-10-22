@@ -870,6 +870,7 @@ fn dm_requests_show_only_to_the_addressee_until_joined_and_skip_blocked() {
         name: "dm".into(),
         kind: "dm".into(),
         is_home: false,
+        creator: None,
         events: vec![],
     };
     let s = project(&c, &[w.input(), joined]);
