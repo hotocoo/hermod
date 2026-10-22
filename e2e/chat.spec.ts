@@ -217,3 +217,36 @@ test('block: B blocks A, A messages collapse for B, survives reload, since is re
   expect(await invoke(DEVHOST_B, 'block_list')).toHaveLength(0);
   users.errors.forEach((e) => e.expectClean());
 });
+
+test('long history: a palette hit jumps to a message folded out of the window, and Show earlier keeps the viewport anchored (S-002, A-017)', async () => {
+  test.setTimeout(420_000);
+  const total = 170; // the window is 150 messages; own-device appends skip the slow peer sync
+  const word = `quarry${Date.now().toString(36)}`;
+  const snap = await invoke<{ spaces: { id: string; name: string }[]; collections: { channels: Record<string, { id: string; name: string }[]> } }>(DEVHOST_B, 'snapshot');
+  const sp = snap.spaces.find((s) => s.name === space)!.id;
+  const channel_id = snap.collections.channels[sp].find((c) => c.name === chanName)!.id;
+  for (let i = 0; i < total; i++) {
+    await invoke(DEVHOST_B, 'event_append', { spaceId: sp, body: { t: 'message.post', channel_id, msg_id: `bulk-${Date.now().toString(36)}-${i}`, text: i === 0 ? `${word} first of the long history` : `long history ${i}`, attachments: [] } });
+  }
+  await enterSection(b, 'chat');
+  await expect(b.locator(`article:has-text("long history ${total - 1}")`)).toBeVisible({ timeout: 60_000 });
+  await expect(article(b, word)).toHaveCount(0);
+
+  await b.keyboard.press('Control+k');
+  await b.getByPlaceholder(/Search people, channels/).fill(word);
+  await b.getByRole('listbox', { name: 'Results' }).getByRole('option').filter({ hasText: word }).first().click({ timeout: 45_000 });
+  await expect(article(b, word)).toBeInViewport({ timeout: 15_000 });
+
+  // Reopen the channel so the window folds again, then widen it from the top.
+  const nav = b.getByRole('navigation', { name: 'Channels' });
+  await nav.getByRole('button', { name: 'general' }).click();
+  await nav.getByRole('button', { name: chanName }).click();
+  const log = b.getByRole('log', { name: 'Messages' });
+  await expect(article(b, word)).toHaveCount(0); // folded again once the jump has finished
+  await expect(b.getByRole('button', { name: /Show earlier messages \(\d+\)/ })).toBeVisible();
+  await b.waitForTimeout(1000); // the arrival scroll-to-bottom steps (20, 260, 700 ms) must be over before scrolling to the top
+  const edgeId = await b.getByRole('article').first().getAttribute('id');
+  await log.evaluate((el) => { el.scrollTop = 0; }); // reaching the top widens the window
+  await expect(article(b, word)).toHaveCount(1);
+  await expect(b.locator(`[id="${edgeId}"]`)).toBeInViewport();
+});
