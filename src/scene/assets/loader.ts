@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { acquireKtx2, releaseKtx2 } from './ktx2';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
+import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import type { AssetTier, HdriEntry, Manifest, MaterialEntry, MaterialOverride, ModelEntry } from './types';
@@ -106,7 +106,7 @@ export class AssetLibrary {
 
   async hdri(id: string, signal?: AbortSignal): Promise<THREE.DataTexture> {
     const e: HdriEntry | undefined = (await this.manifest()).hdris[id]; if (!e) throw new Error(`unknown hdri ${id}`);
-    const tier = this.pick(e); const t = await raceAbort(new RGBELoader().loadAsync(this.url(e.tiers[tier]!.file, tier)), signal);
+    const tier = this.pick(e); const t = await raceAbort(new HDRLoader().loadAsync(this.url(e.tiers[tier]!.file, tier)), signal);
     t.mapping = THREE.EquirectangularReflectionMapping; t.colorSpace = THREE.NoColorSpace; return t;
   }
 

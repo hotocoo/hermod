@@ -1,5 +1,5 @@
 import { LIMITS } from '../../config/app';
-import { aniDoor } from '../../lib/format';
+import { aniDoor, count, num } from '../../lib/format';
 import { hereUnread } from '../selectors';
 import { counts, deskOf } from './desk';
 import { arcadeOf, arcadeSub } from './arcade';
@@ -28,7 +28,7 @@ export function doorVm(x: Ctx, p: DoorParts) {
   if (id === 'chat') {
     const un = hereUnread(s, seed); const { chan } = p.chat;
     return withItems(`${sec.place} · ${chan.isDm ? 'Direct message' : 'Channel'}`, `${chan.isDm ? '' : '#'}${chan.name}`,
-      `${un ? `${un} unread · ` : ''}${p.chat.channels.length} conversations inside`,
+      `${un ? `${un} unread · ` : ''}${count(p.chat.channels.length, 'conversation')} inside`,
       p.chat.messages.slice(-LIMITS.doorItems).map((m, i) => item(m.name, m.t, m.text, i)));
   }
   if (id === 'hearth') {
@@ -38,22 +38,22 @@ export function doorVm(x: Ctx, p: DoorParts) {
       faces.map((f, i) => item(f.first, f.speaking ? 'speaking' : '', f.speaking ? `Talking about ${h.topic || 'the day'}` : 'Sitting by the fire', i)));
   }
   if (id === 'feed') {
-    return withItems(sec.place, 'Made this week', `${p.feed.feed.length} posts, clips and notes hang inside`,
-      p.feed.feed.slice(0, LIMITS.doorItems).map((f, i) => item(f.by, `${f.likes} likes`, f.title, i)));
+    return withItems(sec.place, 'Made this week', p.feed.feed.length === 1 ? 'One post hangs inside' : `${num(p.feed.feed.length)} posts, clips and notes hang inside`,
+      p.feed.feed.slice(0, LIMITS.doorItems).map((f, i) => item(f.by, count(f.likeCount, 'like'), f.title, i)));
   }
   const board = p.board.board; const skein = p.skein.skein;
   if (id === 'board' && board) {
-    return withItems(`${sec.place} · ${board.due}`, board.name, `${board.total} cards on the wall`,
-      board.cols.slice(0, LIMITS.doorItems).map((c, i) => item(c.name, `${c.count} cards`, c.cards[0] ? c.cards[0].title : 'Nothing here yet', i)));
+    return withItems(`${sec.place} · ${board.due}`, board.name, `${count(board.total, 'card')} on the wall`,
+      board.cols.slice(0, LIMITS.doorItems).map((c, i) => item(c.name, count(c.count, 'card'), c.cards[0] ? c.cards[0].title : 'Nothing here yet', i)));
   }
   if (id === 'skein' && skein) {
-    return withItems(`${sec.place} · ${skein.repo}`, skein.hasWeavable ? `${skein.weavable.length} lines ready to weave` : 'All woven', skein.blurb,
+    return withItems(`${sec.place} · ${skein.repo}`, skein.hasWeavable ? `${count(skein.weavable.length, 'line')} ready to weave` : 'All woven', skein.blurb,
       skein.snaps.slice(0, LIMITS.doorItems).map((q, i) => item(`${q.by} · ${q.line}`, q.when, q.title, i)));
   }
   const deskView = id === 'desk' ? deskOf(seed, s.space) : null;
   if (id === 'desk' && deskView) {
     const c = counts(deskView, s.me?.user_id ?? '');
-    return withItems(`${sec.place} · Help Desk`, c.all ? `${c.all} open tickets` : 'All clear', c.overdue ? `${c.overdue} overdue` : 'Nothing is late',
+    return withItems(`${sec.place} · Help Desk`, c.all ? `${count(c.all, 'open ticket')}` : 'All clear', c.overdue ? `${num(c.overdue)} overdue` : 'Nothing is late',
       deskView.tickets.filter((t) => !t.merged_into).sort((a, b) => b.updated - a.updated).slice(0, LIMITS.doorItems).map((t, i) => item(`#${t.number}`, t.status, t.subject, i)));
   }
   const arcade = id === 'arcade' ? arcadeOf(seed, s.space) : null;

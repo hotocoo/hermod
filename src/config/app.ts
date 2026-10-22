@@ -45,6 +45,8 @@ export const TIMING = {
   scrollStepsMs: [20, 260, 700],
   paletteFocusMs: 10,
   msgInitialScrollMs: 60,
+  /** Graphics quality label re-reads the adaptive tier this often while the drawer is open. */
+  qualityPollMs: 1000,
 } as const;
 
 export const TOAST_MS = { standard: 3600, storyReply: 3000, profileSaved: 2600, postcard: 3200 } as const;
@@ -69,6 +71,8 @@ export const LAYOUT = {
   clipOriginXFrac: 0.3,
   clipOriginYFrac: 0.45,
   panelInsetPx: 16,
+  /** Building labels fade out above this screen y (px) instead of sliding under the top bar pills. */
+  labelTopClearPx: 72,
 } as const;
 
 export const CAMERA = { zoomStep: 5, rotateStep: 0.45 } as const;

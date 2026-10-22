@@ -1,5 +1,11 @@
 /** User-facing strings the state layer writes (toasts, labels). */
 export const COPY = {
+  syncPending: (n: string, offline: boolean, alone: boolean) => (offline ? `${n} to sync, offline` : alone ? `${n} saved here, no peer online` : `${n} to sync`),
+  syncPendingTitle: 'Changes made here that other peers have not received yet',
+  qualityFixed: 'Fixed on this device.',
+  qualityLowerHint: ' Lower it if the island stutters.',
+  qualityAutoPicked: (tier: string) => `Auto picked ${tier} for this computer`,
+  qualityAutoIdle: 'Auto follows your graphics card',
   meetingStarted: 'It’s a meeting now. Agenda and shared notes are open for everyone in the room.',
   meetingSaved: 'Meeting wrapped up. The summary is in the channel.',
   recordingSaved: 'Recording saved.',

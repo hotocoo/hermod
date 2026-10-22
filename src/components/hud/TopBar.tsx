@@ -42,7 +42,7 @@ export function TopBar({ vm }: { vm: ViewModel }) {
       <button className={s.settingsBtn} onClick={vm.openSpaceSettings} aria-label="Space settings" title="Space settings: members, roles, invites, safety">{icS.users}</button>
       <button className={s.settingsBtn} onClick={openSettings} aria-label="Settings" title="Settings">{icS.sliders}</button>
       <button className={s.settingsBtn} onClick={vm.toggleListView} aria-pressed={vm.listView} aria-label="List view" title="List view: the town as a list, for keyboard and screen readers">{icS.list}</button>
-      <SyncPill pending={vm.syncPending} offline={vm.netState === 'off' && vm.syncPending > 0} />
+      <SyncPill pending={vm.syncPending} offline={vm.netState === 'off' && vm.syncPending > 0} alone={vm.netState === 'alone'} />
       <div className={s.avatar} onClick={openProfile} role="button" tabIndex={0} title="Your profile">
         <Face initials={meInitials} av={vm.meAvatar} />
         <span className={s.avatarDot} />

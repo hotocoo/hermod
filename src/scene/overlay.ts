@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GROWTH } from '@/config/scene';
+import { LAYOUT } from '@/config/app';
 import type { HouseActor, MiniIsle, Plots, SpaceInfo, TownMode } from './types';
 import type { RavenActor } from './ravens';
 
@@ -64,7 +65,7 @@ export function createOverlay(overlay: HTMLElement, { plots, houses, perched, st
       le.style.transform = 'translate3d(' + o.ax.toFixed(1) + 'px,' + o.ay.toFixed(1) + 'px,0) translate(-50%,-100%)';
       const stem = le.__stemEl || (le.__stemEl = le.querySelector<HTMLElement>('[data-stem]')); if (stem) { stem.style.height = Math.max(0, le.__st).toFixed(1) + 'px'; stem.style.opacity = le.__st > 2 ? '1' : '0'; stem.style.transformOrigin = 'bottom'; stem.style.transform = 'skewX(' + (-Math.atan2(le.__dx, Math.max(8, le.__st)) * 57.3).toFixed(1) + 'deg)'; }
       if (o.card) o.card.style.transform = 'translate(' + le.__dx.toFixed(1) + 'px,' + Math.max(0, -le.__st).toFixed(1) + 'px)';
-      le.__op = (le.__op == null ? 0 : le.__op) + (((b && b.r.y > 72 ? o.op : 0)) - (le.__op || 0)) * 0.25; /* no room below the top bar: fade out rather than slide under the HUD pills */ le.style.opacity = le.__op.toFixed(3); le.style.pointerEvents = le.__op > 0.5 ? 'auto' : 'none'; le.style.zIndex = String(Math.max(1, Math.min(20, Math.round((1 - o.az) * 400)))); });
+      le.__op = (le.__op == null ? 0 : le.__op) + (((b && b.r.y > LAYOUT.labelTopClearPx ? o.op : 0)) - (le.__op || 0)) * 0.25; /* no room below the top bar: fade out rather than slide under the HUD pills */ le.style.opacity = le.__op.toFixed(3); le.style.pointerEvents = le.__op > 0.5 ? 'auto' : 'none'; le.style.zIndex = String(Math.max(1, Math.min(20, Math.round((1 - o.az) * 400)))); });
   }
   return { update };
 }

@@ -27,7 +27,7 @@ export function Panel() {
   const vm = useViewModel();
   if (!vm.ready) return null;
   return (
-    <section aria-label={vm.panelTitle} className={s.panel}
+    <section aria-label={vm.panelTitle} className={s.panel} inert={!vm.inside}
       style={{ width: vm.panelW, clipPath: vm.panelClip, pointerEvents: vm.panelEvents as 'auto' | 'none' }}>
       <PanelHeader vm={vm} />
       <div className={s.body}>

@@ -66,7 +66,7 @@ export const RENDER = { exposure: 1.0, shadowMap: 2048, shadowExtent: 18, shadow
 export type QualityTier = 'low' | 'medium' | 'high' | 'ultra';
 export const QUALITY_ORDER: readonly QualityTier[] = ['low', 'medium', 'high', 'ultra'];
 export interface QualitySpec {
-  /** Render scale: always exactly 1x on every tier (no supersampling above 1x, no reduction below 1x). */
+  /** Render scale cap in device pixels per CSS pixel, never above the display's own devicePixelRatio (1x on a Retina screen rendered the island at half resolution). */
   readonly pixelRatio: number;
   readonly shadowMap: number; readonly shadowRadius: number;
   /** Post pipeline (EffectComposer) on/off; off renders straight to the canvas. */
@@ -81,9 +81,9 @@ export interface QualitySpec {
 /** Quality tiers. Auto-detected from the GPU string, device pixel ratio and core count, then downgraded when fps stays low. */
 export const QUALITY: Readonly<Record<QualityTier, QualitySpec>> = {
   low: { pixelRatio: 1, shadowMap: 1024, shadowRadius: 2, post: false, msaa: 0, ao: false, aoScale: 1, bloom: false, bloomScale: 1, taa: false, godRays: false, grass: 2200, anisotropy: 2, texSize: 512, lampLights: 0, dof: false, motionBlur: false, smallShadows: false, env: true, interiorShadow: false, treeDensity: 0.7, gi: null },
-  medium: { pixelRatio: 1, shadowMap: 2048, shadowRadius: 3, post: true, msaa: 2, ao: false, aoScale: 1, bloom: true, bloomScale: 1, taa: false, godRays: false, grass: 4500, anisotropy: 4, texSize: 1024, lampLights: 2, dof: false, motionBlur: false, smallShadows: true, env: true, interiorShadow: false, treeDensity: 0.85, gi: null },
-  high: { pixelRatio: 1, shadowMap: 2048, shadowRadius: 3.5, post: true, msaa: 2, ao: false, aoScale: 1, bloom: true, bloomScale: 1, taa: true, godRays: false, grass: 7000, anisotropy: 8, texSize: 1024, lampLights: 5, dof: true, motionBlur: false, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 3, cube: 16, perFrame: 2, bounces: 0 } },
-  ultra: { pixelRatio: 1, shadowMap: 4096, shadowRadius: 4, post: true, msaa: 4, ao: true, aoScale: 1, bloom: true, bloomScale: 1, taa: true, godRays: true, grass: 9500, anisotropy: 16, texSize: 2048, lampLights: 5, dof: true, motionBlur: true, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 2, cube: 16, perFrame: 6, bounces: 1 } },
+  medium: { pixelRatio: 1.25, shadowMap: 2048, shadowRadius: 3, post: true, msaa: 2, ao: false, aoScale: 1, bloom: true, bloomScale: 1, taa: false, godRays: false, grass: 4500, anisotropy: 4, texSize: 1024, lampLights: 2, dof: false, motionBlur: false, smallShadows: true, env: true, interiorShadow: false, treeDensity: 0.85, gi: null },
+  high: { pixelRatio: 1.5, shadowMap: 2048, shadowRadius: 3.5, post: true, msaa: 2, ao: false, aoScale: 1, bloom: true, bloomScale: 1, taa: true, godRays: false, grass: 7000, anisotropy: 8, texSize: 1024, lampLights: 5, dof: true, motionBlur: false, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 3, cube: 16, perFrame: 2, bounces: 0 } },
+  ultra: { pixelRatio: 2, shadowMap: 4096, shadowRadius: 4, post: true, msaa: 4, ao: true, aoScale: 1, bloom: true, bloomScale: 1, taa: true, godRays: true, grass: 9500, anisotropy: 16, texSize: 2048, lampLights: 5, dof: true, motionBlur: true, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 2, cube: 16, perFrame: 6, bounces: 1 } },
 };
 /** Probe GI volume: world-space padding around the island, vertical extent, hours of sky change that trigger a rebake, indirect strength. */
 export const GI = { minRoomMs: 2, probeSmallR: 1, fitStableFrames: 24, pad: 3, floor: -0.5, height: 10, rebakeHours: 0.6, rebakeEmissiveDelta: 0.35, interactBudgetMs: 1, frameBudgetMs: 8, busySpeed: 0.1, busyTurn: 0.1, maxFrameMs: 20, hemiScale: 0.62, envScale: 0.7, near: 0.2, far: 60 } as const;
@@ -364,7 +364,7 @@ export const DIRECTOR = {
   /** Orbit and pan inertia after release (per second decay), soft edge: overshoot allowed before the hard stop, spring-back rate. */
   inertia: { orbitDecay: 5, panDecay: 5, minSpeed: 0.0004, maxOrbit: 1.4, maxPan: 1100, minDtMs: 16 }, softEdge: { overshoot: 1.18, relax: 7 },
   /** Depth of field (high and ultra): aperture scales the circle of confusion, maxBlur in uv, taps per pixel, focus pull spring. */
-  dof: { aperture: 0.55, maxBlur: 0.012, taps: 14, strengthDoor: 1, strengthInside: 0.3, strengthFocus: 0.7, /* inside a room the near field keeps this share of its blur, so foreground figures and furniture stay crisp */ nearInside: 0.12, spring: [30, 1] as const, minTier: 'high' as QualityTier },
+  dof: { aperture: 0.55, maxBlur: 0.012, taps: 14, strengthDoor: 1, /* off: the panel glass already softens the room, and the 14-tap disc smeared streaks across lamp and window edges */ strengthInside: 0, strengthFocus: 0.7, /* inside a room the near field keeps this share of its blur, so foreground figures and furniture stay crisp */ nearInside: 0.12, spring: [30, 1] as const, minTier: 'high' as QualityTier },
   /** Lens: chromatic aberration at the edges (uv), film grain amount, edge softness is the vignette in POST. */
   lens: { aberration: 0.0011, grain: 0.018 },
   /** Over-the-shoulder framing used for a focused building while a side panel is open: wider azimuth, lower and closer, subject pushed off the panel side. */
@@ -398,3 +398,6 @@ export const LIGHT_FX = {
   /** Froxel fog grid (ultra): cells (the depth slices tile an 8 column atlas), depth range in world units, extinction (1/unit) base / night mist / fog weather / rain, HG anisotropy, temporal history weight, ambient scale, height scale of the layer, lamps injected, lamp and sun gains. */
   froxel: { grid: [160, 90, 64] as const, near: 0.5, far: 110, base: 0.0035, night: 0.006, fog: 0.05, rain: 0.012, anisotropy: 0.45, history: 0.9, ambient: 0.5, scaleH: 5, maxLights: 12, lampGain: 30, sunGain: 1 },
 } as const;
+
+/** A cloud within `halfAngle` (rad) of the camera azimuth sits between it and the island: it shrinks away at `rate` (1/s), never below `minScale`. */
+export const CLOUDS = { cameraSide: { halfAngle: 1.15, rate: 2.5, minScale: 0.001 } } as const;

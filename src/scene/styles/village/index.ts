@@ -5,6 +5,7 @@
  */
 import * as THREE from 'three';
 import { CAMERA, CONTACT, GROWTH, LIGHTS, NIGHT, SIGN, type QualitySpec, type QualityTier } from '@/config/scene';
+import { GRASS } from './config';
 import { finish } from '../../finish';
 import { createHousing } from '../../world/housing';
 import { mergeStatic } from '../../world/staticMerge';
@@ -52,7 +53,7 @@ function buildSite(ctx: StyleCtx): StyleSite {
   const paths = buildVillagePaths(plan, terrain.heightAt, tex); if (paths.mesh) group.add(paths.mesh);
   const water = buildVillageWater(plan, terrain.heightAt, tex); group.add(water.group);
   const heightAt = terrain.heightAt;
-  pending.push(loadGlb('/assets/nature/grass_0.glb').then((sc) => { let m: THREE.Mesh | null = null; sc.traverse((o) => { const x = o as THREE.Mesh; if (x.isMesh && !m && /LOD0/.test(x.name)) m = x; }); if (!m) return; const mm = m as THREE.Mesh; const mat = (mm.material as THREE.MeshStandardMaterial).clone(); mat.side = THREE.DoubleSide; mat.alphaTest = 0.5; mat.alphaToCoverage = false; mat.userData.noA2C = true; mat.roughness = 1; mat.roughnessMap = null; mat.metalness = 0; mat.metalnessMap = null; mat.normalMap = null; mat.envMapIntensity = 0.4; /* sub-pixel blades caught sun glints and sparkled */ /* 2x MSAA alpha-to-coverage on sub-pixel blades reads as stipple noise: plain cutout, kept out of the tier sweep */ mat.vertexColors = false; windify(mat, 'grass'); const geo = mm.geometry.clone().applyMatrix4(mm.matrixWorld); terrain.useGrass(geo, mat); geo.dispose(); }).catch(() => undefined));
+  pending.push(loadGlb('/assets/nature/grass_0.glb').then((sc) => { let m: THREE.Mesh | null = null; sc.traverse((o) => { const x = o as THREE.Mesh; if (x.isMesh && !m && /LOD0/.test(x.name)) m = x; }); if (!m) return; const mm = m as THREE.Mesh; const mat = (mm.material as THREE.MeshStandardMaterial).clone(); mat.side = THREE.DoubleSide; mat.alphaTest = GRASS.alphaTest; mat.alphaToCoverage = false; mat.userData.noA2C = true; /* kept out of the tier sweep, see GRASS */ mat.roughness = GRASS.roughness; mat.roughnessMap = null; mat.metalness = GRASS.metalness; mat.metalnessMap = null; mat.normalMap = null; mat.envMapIntensity = GRASS.envMapIntensity; mat.vertexColors = false; windify(mat, 'grass'); const geo = mm.geometry.clone().applyMatrix4(mm.matrixWorld); terrain.useGrass(geo, mat); geo.dispose(); }).catch(() => undefined));
   const monument = WK.signpost(); monument.userData.pickId = 'search'; const orb = monument.userData.orb as THREE.Object3D, orbRing = monument.userData.ring as THREE.Object3D;
   monument.position.set(SIGN.x, heightAt(SIGN.x, SIGN.z), SIGN.z); group.add(monument);
 

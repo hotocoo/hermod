@@ -185,7 +185,7 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     /** Weather amounts (0..1) for the froxel fog density, from the weather sampler. */
     setFogWeather(fog: number, rain: number) { wFog = fog; wRain = rain; },
     configure(q: QualitySpec) { const tn = (Object.keys(QUALITY) as QualityTier[]).find((k) => QUALITY[k] === q) ?? 'low'; const fo = LIGHT_TIERS[tn].froxel && lfxOn('froxel') && !!fogIn; const rebuild = fo !== fogOn || !spec || spec.dof !== q.dof || spec.motionBlur !== q.motionBlur || spec.post !== q.post || spec.msaa !== q.msaa || spec.ao !== q.ao || spec.bloom !== q.bloom || spec.taa !== q.taa || spec.aoScale !== q.aoScale || spec.bloomScale !== q.bloomScale; fogOn = fo; spec = q; if (rebuild) build(); },
-    setSize(w: number, h: number) { W = w; H = h; pr = 1; // render scale is exactly 1x
+    setSize(w: number, h: number) { W = w; H = h; pr = renderer.getPixelRatio(); // the tier cap, set on the renderer by town.applyQuality
       U.uAspect.value = w / h; if (composer) applySize(); },
     /** Per frame sky/grade state. */
     update(f: SkyFrame) {

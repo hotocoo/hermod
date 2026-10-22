@@ -72,8 +72,10 @@ export const BEACHES: readonly { id: string; a0: number; a1: number; tier: numbe
 export const SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 /** Tree species ids (authored by the nature asset set); fruit trees only in orchards. */
 export const TREE_KINDS = ['oak', 'birch', 'poplar', 'pine'] as const;
-export const TREES = { perUnit2: 0.085, corridor: 1.35, margin: 0.9, max: 220, cottageClear: 1.6, plotClear: 3.0 } as const;
+export const TREES = { perUnit2: 0.085, corridor: 1.35, margin: 0.9, max: 220, cottageClear: 1.6, plotClear: 3.0, /* keep the door camera's line of sight clear: a disc this far out in front of each plot door */ doorAhead: 2.6, doorClear: 2.8 } as const;
 /** Props along lanes: spacing (units) per kind. */
+/** Grass tufts: kept this far (half-extent) off plot pads; blade material as a plain cutout (sub-pixel blades caught sun glints, and 2x MSAA alpha-to-coverage read as stipple). */
+export const GRASS = { plotClear: 2.2, alphaTest: 0.5, roughness: 1, metalness: 0, envMapIntensity: 0.4 } as const;
 export const LANE_PROPS = { lamp: 4.4, bench: 11, barrel: 17, fence: 0 } as const;
 export const CAMERAS = {
   home: { az: Math.PI / 4, el: 0.66, dist: 46, target: [0, 0, 0] as const },

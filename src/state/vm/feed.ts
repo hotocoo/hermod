@@ -16,7 +16,7 @@ export function feedVm(x: Ctx) {
     const liked = !!p.liked; const saved = !!p.saved; const by = personOf(seed, p.by); const sp = p.spaceId ?? s.space;
     return {
       id: p.id, title: p.title, by: by.name, byId: p.by, initials: by.i, space: p.space, isNote: p.kind === 'note', isMedia: p.kind !== 'note', isVideo: p.kind === 'video',
-      label: p.label, text: p.text, dur: p.dur, h: `${p.h}px`, likes: num(p.likes), liked, saved,
+      label: p.label, text: p.text, dur: p.dur, h: `${p.h}px`, likes: num(p.likes), likeCount: p.likes, liked, saved,
       media: p.blob ? { url: blobUrl(p.blob.hash), mime: p.blob.mime, open: () => s.openModal({ kind: 'lightbox', blob: p.blob! }) } : null,
       likeFg: liked ? ACCENT : 'currentColor', saveFg: saved ? ACCENT : 'currentColor',
       heart: I('heart', 15, liked ? 2.2 : 1.6), mark: I('bookmark', 15, saved ? 2.2 : 1.6), saveLabel: saved ? 'Saved' : 'Save',

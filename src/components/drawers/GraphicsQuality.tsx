@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { QUALITY_ORDER, type QualityTier } from '@/config/scene';
+import { TIMING } from '@/config/app';
+import { COPY } from '@/config/copy';
 import { getTown } from '@/state/townPort';
 import s from './SettingsDrawer.module.css';
 
@@ -12,11 +14,11 @@ export function GraphicsQuality() {
   const [cur, setCur] = useState(read);
   const choose = (c: Choice) => { getTown()?.setQuality(c); setCur(read()); };
   // Auto can step the tier down while the drawer is open: keep the label honest.
-  useEffect(() => { const t = window.setInterval(() => setCur((p) => { const n = read(); return n.pick === p.pick && n.tier === p.tier ? p : n; }), 1000); return () => window.clearInterval(t); }, []);
+  useEffect(() => { const t = window.setInterval(() => setCur((p) => { const n = read(); return n.pick === p.pick && n.tier === p.tier ? p : n; }), TIMING.qualityPollMs); return () => window.clearInterval(t); }, []);
   return (
     <fieldset className={s.quality}>
       <legend className={s.rowLabel}>Graphics quality</legend>
-      <span className={s.rowSub}>{cur.pick !== 'auto' ? `Fixed on this device.${cur.pick !== 'low' ? ' Lower it if the island stutters.' : ''}` : cur.tier ? `Auto picked ${LABEL[cur.tier]} for this computer` : 'Auto follows your graphics card'}</span>
+      <span className={s.rowSub}>{cur.pick !== 'auto' ? `${COPY.qualityFixed}${cur.pick !== 'low' ? COPY.qualityLowerHint : ''}` : cur.tier ? COPY.qualityAutoPicked(LABEL[cur.tier]) : COPY.qualityAutoIdle}</span>
       <div className="seg" role="radiogroup" aria-label="Graphics quality">
         {(['auto', ...QUALITY_ORDER] as Choice[]).map((c) => (
           <label className="seg-opt" key={c}>

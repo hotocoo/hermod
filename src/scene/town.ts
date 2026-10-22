@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_ORDER, RENDER, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
+import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
 import type { SectionId } from '@/lib/data/types';
 import { createInteriors, type InteriorRoom } from './interiors';
 import { createOverlay } from './overlay';
@@ -420,6 +420,8 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   let archiAcc = 0;
   function onKeyNav(e: KeyboardEvent) { idle = 0; if ((opts.blocked?.()) || focusId || /INPUT|TEXTAREA/.test((e.target && (e.target as HTMLElement).tagName) || '') || e.metaKey || e.ctrlKey || e.altKey) return; const st = CAMERA.keyStep; if (e.key === 'ArrowLeft') panBy(st, 0); else if (e.key === 'ArrowRight') panBy(-st, 0); else if (e.key === 'ArrowUp') panBy(0, st); else if (e.key === 'ArrowDown') panBy(0, -st); else if (e.key === '=' || e.key === '+') zoomAt(-5); else if (e.key === '-') zoomAt(5); else if (e.key === '0') recenter(); else if (e.key === 'q') { userAz += CAMERA.keyOrbit; rig.az.t = userAz; } else if (e.key === 'e') { userAz -= CAMERA.keyOrbit; rig.az.t = userAz; } else return; e.preventDefault(); }
   window.addEventListener('keydown', onKeyNav);
+  /** Any pointer activity, over the HUD and labels too, holds the idle orbit: a label must not slide away under the cursor. */
+  const onAnyMove = () => { idle = 0; }; window.addEventListener('pointermove', onAnyMove, { passive: true });
   let lastInputAt = performance.now(); const markInput = () => { lastInputAt = performance.now(); };
   for (const ev of ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart']) window.addEventListener(ev, markInput, { passive: true });
   function recenter() { userTx = userTz = 0; userDist = styleHome.dist * camK; home.el = styleHome.el; userAz = Math.round((userAz - Math.PI / 4) / (Math.PI * 2)) * Math.PI * 2 + Math.PI / 4; rig.tx.t = 0; rig.tz.t = 0; rig.dist.t = userDist; rig.el.t = home.el; rig.az.t = userAz;  }
@@ -435,7 +437,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (want) void import('./rooms/hifi/register').then((m) => { if (alive && hifiTier === want) hifiOff = m.installHifiRooms({ renderer, tier: want }); });
   }
   function applyQuality(t: QualityTier) {
-    applyHifi(t); tier = t; Q = QUALITY[t]; const pr = 1; applyShadowTier(renderer, scene, t); winLights.setTier(t);
+    applyHifi(t); tier = t; Q = QUALITY[t]; const pr = Math.min(window.devicePixelRatio || 1, Q.pixelRatio); applyShadowTier(renderer, scene, t); winLights.setTier(t);
     renderer.setPixelRatio(pr); renderer.setSize(W, H, false); pipeline.setSize(W, H); pipeline.configure(Q);
     sun.shadow.mapSize.set(Q.shadowMap, Q.shadowMap); sun.shadow.map?.dispose(); sun.shadow.map = null; sun.shadow.radius = Q.shadowRadius; renderer.shadowMap.needsUpdate = true;
     site?.setQuality(tier, Q); env.setEnabled(Q.env); skyBodies.setVisible(!pipeline.active); gi.configure(Q.gi); gi.invalidate(); still.invalidate(); if (Q.gi || tier === STILL.idleTier) still.warm(); IN.setShadows(Q.interiorShadow); resetCompiled(); void prep(scene, { gate: true, post: true, maxMs: 5000, label: 'tier:' + t });
@@ -480,7 +482,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (mode === 'inside' && insideAt) { rig.az.t = insideAt.az; rig.el.t = insideAt.el; } else if (!focusId) rig.az.t = userAz;
     if (!focusId && !(down && down.moved)) rig.el.t = home.el;
     if (!down && !reduced) { look.x.t = mouse.x; look.y.t = mouse.y; } else if (!down) { look.x.t = 0; look.y.t = 0; } look.x.step(dt); look.y.step(dt);
-    idle += dt; if (idle > CAMERA.idleAfter && !focusId && !reduced && !still.engaged) { userAz += dt * CAMERA.idleSpin; }
+    idle += dt; if (idle > CAMERA.idleAfter && !focusId && !hovered && !reduced && !still.engaged) { userAz += dt * CAMERA.idleSpin; }
     if (photo && !reduced && !still.engaged && photoK.x < 0.99) userAz += dt * CAMERA.photoSpin;
     if (!focusId) { rig.tx.t = userTx * (1 - archiK.t); rig.tz.t = userTz * (1 - archiK.t); }
     if (!down && !focusId && mode === 'island') {
@@ -540,7 +542,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (houses.some((h) => h.dying && h.s.x < 0.02)) houses = houses.filter((h) => { if (h.dying && h.s.x < 0.02) { site?.releaseHouse(h.g); return false; } return true; });
 
     if (!reduced) {
-      clouds.forEach((c) => { const u = c.userData; u.a += u.s * dt; c.position.set(Math.cos(u.a) * u.r * radK, u.y + Math.sin(t * 0.3 + u.r) * 0.2, Math.sin(u.a) * u.r * radK); /* a cloud between the camera and the island sat on the grass in screen space: shrink it away while it is on the camera's side */ let d = Math.atan2(c.position.x, c.position.z) - rig.az.x; d = Math.atan2(Math.sin(d), Math.cos(d)); const want = Math.abs(d) < 1.15 ? 0 : 1; u.k = (u.k ?? want) + (want - (u.k ?? want)) * Math.min(1, dt * 2.5); c.scale.setScalar(u.base * Math.max(0.001, u.k)); });
+      clouds.forEach((c) => { const u = c.userData; u.a += u.s * dt; c.position.set(Math.cos(u.a) * u.r * radK, u.y + Math.sin(t * 0.3 + u.r) * 0.2, Math.sin(u.a) * u.r * radK); /* a cloud between the camera and the island sat on the grass in screen space: shrink it away while it is on the camera's side */ let d = Math.atan2(c.position.x, c.position.z) - rig.az.x; d = Math.atan2(Math.sin(d), Math.cos(d)); const CS = CLOUDS.cameraSide; const want = Math.abs(d) < CS.halfAngle ? 0 : 1; u.k = (u.k ?? want) + (want - (u.k ?? want)) * Math.min(1, dt * CS.rate); c.scale.setScalar(u.base * Math.max(CS.minScale, u.k)); });
     }
     unreadT += dt; if (unreadT > 2.6) { unreadT = 0; Object.keys(unread).forEach((id) => { if (id !== 'chat' && unread[id]! > 0 && plots[id] && plots[id].built && !reduced) { const q = anchorOf(id); if (q) ring(q.x, q.z, { r0: 2.0, r1: 3.6, dur: 2.2, op: 0.6, w: 0.025 }); } }); }
     for (let i = rings.length - 1; i >= 0; i--) { const r = rings[i]; r.life += dt / r.dur; if (r.life >= 1) { island.remove(r.m); r.m.geometry.dispose(); (r.m.material as THREE.Material).dispose(); rings.splice(i, 1); continue; } const e = 1 - Math.pow(1 - r.life, 3); r.m.scale.setScalar(r.r0 + (r.r1 - r.r0) * e); (r.m.material as THREE.Material).opacity = (1 - r.life) * r.op; }
@@ -668,7 +670,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     getMapStyle: () => ({ style: styleId, local: getLocalMapStyle() !== null }),
     renderInfo: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, site: site ? site.stats() : null, meshesInScene: (() => { const c: Record<string, number> = {}; scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; let v = true, q: THREE.Object3D | null = m; while (q) { if (!q.visible) v = false; q = q.parent; } if (!v) return; const k = (m.name || (m.material as THREE.Material).name || m.geometry.type).replace(/[0-9._]+/g, '#').slice(0, 28); c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 12); })() }),
     getQuality: () => ({ tier, auto: autoQ, giProgress: gi.progress, stillSamples: still.samples, stillEngaged: still.engaged }),
-    dispose() { puffs.dispose(); waterPlanar.dispose(); winLights.dispose(); hifiOff?.(); hifiOff = null; site?.dispose(); site = null; gi.dispose(); still.dispose(); document.removeEventListener('visibilitychange', onVis); pipeline.dispose(); env.dispose(); clearInterval(watchdog); window.removeEventListener('keydown', onKeyNav); alive = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); },
+    dispose() { puffs.dispose(); waterPlanar.dispose(); winLights.dispose(); hifiOff?.(); hifiOff = null; site?.dispose(); site = null; gi.dispose(); still.dispose(); document.removeEventListener('visibilitychange', onVis); pipeline.dispose(); env.dispose(); clearInterval(watchdog); window.removeEventListener('keydown', onKeyNav); window.removeEventListener('pointermove', onAnyMove); alive = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); },
   };
   return api;
 }

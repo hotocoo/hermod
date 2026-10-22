@@ -14,6 +14,8 @@ export const fmtSec = (sec: number) => `${Math.floor(sec / 60)}:${pad(Math.floor
 /** hh:mm with half-hour precision for calendar events (30 or 00). */
 export const fmtHalfHour = (h: number) => `${pad(Math.floor(h))}:${h % 1 ? '30' : '00'}`;
 export const num = (n: number) => n.toLocaleString('en');
+/** "1 card", "3 cards"; pass `many` for irregular plurals. */
+export const count = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 export const firstName = (name: string) => name.split(' ')[0];
 export const reduced = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

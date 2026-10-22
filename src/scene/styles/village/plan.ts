@@ -296,7 +296,7 @@ export function generateVillagePlan(input: VillageInput): VillagePlan {
     for (let i = 0; i < 2; i++) put('flower-patch', season, c.x + f.x * 1.1 + sd.x * (i ? 0.6 : -0.6), c.z + f.z * 1.1 + sd.z * (i ? 0.6 : -0.6), Rc() * 6, 0.8, c.tier);
   }
   // trees: one fixed candidate stream, a candidate lives from the first tier whose coast encloses it
-  const treeOk = (x: number, z: number): boolean => !(plotList.some((q) => Math.hypot(x - q.x, z - q.z) < TREES.plotClear + 0.2) || Math.hypot(x - SIGNPOST.x, z - SIGNPOST.z) < 2.0 || Math.hypot(x, z) < PLAZA.r + 0.9
+  const treeOk = (x: number, z: number): boolean => !(plotList.some((q) => Math.hypot(x - q.x, z - q.z) < TREES.plotClear + 0.2 || Math.hypot(x - q.door.x - front(q.yaw).x * TREES.doorAhead, z - q.door.z - front(q.yaw).z * TREES.doorAhead) < TREES.doorClear) || Math.hypot(x - SIGNPOST.x, z - SIGNPOST.z) < 2.0 || Math.hypot(x, z) < PLAZA.r + 0.9
     || Math.hypot(x - POND.x, z - POND.z) < POND.r + 0.9 || areas.some((a) => Math.hypot(x - a.x, z - a.z) < a.r + 0.6) || hamlets.some((h) => Math.hypot(x - h.x, z - h.z) < 1.7) || cottages.some((c) => Math.hypot(x - c.x, z - c.z) < TREES.cottageClear)
     || inEllipse({ x, z }, BASIN.quayGap + BASIN.quayW + 0.9) || nearInlet({ x, z }, 0.9) || polyDist({ x, z }, stream) < 1.4 || edges.some((e) => e.kind !== 'plaza' && polyDist({ x, z }, e.pts) < TREES.corridor));
   const Rt = rng(seed + 'trees'); const Rmax = TIER_R[MAX_TIER - 1] + 3.5; const cand = Math.round(Math.PI * Rmax * Rmax * TREES.perUnit2 * 3.2); let nt = 0;
