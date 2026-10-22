@@ -2,6 +2,7 @@ import { LAYOUT, TIMING } from '../../config/app';
 import { CLOCK_MODES, HOUR_SLIDER_STEP, ONBOARDING, SETTINGS_ROWS, SKY_PRESETS, WEATHERS, WEATHER_TINT } from '../../config/ui';
 import { aniOnce, pad } from '../../lib/format';
 import { personOf } from '../selectors';
+import { unmutedRook } from '../slices/messaging/helpers';
 import { sceneSignals } from '../signals';
 import type { Ctx } from './context';
 import { ACCENT, DIVIDER, ringOf, fgOf, mixAccent, switchStyle } from './css';
@@ -13,7 +14,8 @@ export function hudVm(x: Ctx, door: ReturnType<typeof doorVm>) {
   const hr = s.hour; const hh = Math.floor(hr); const mm = Math.floor((hr - hh) * 60);
   const cur = WEATHERS.find((w) => w.id === s.wx) ?? WEATHERS[0];
   const ob = s.onb ? ONBOARDING[s.onb - 1] : null;
-  const rookUnread = s.rook.filter((r) => !r.read).length;
+  const rook = unmutedRook(s.rook, s.prefs.muted);
+  const rookUnread = rook.filter((r) => !r.read).length;
   const sig = sceneSignals(s, seed);
   const hudBlocked = s.inside || s.photo || !!s.door;
   const spaceName = (id: string) => s.spaces.find((q) => q.id === id)?.name;
@@ -59,11 +61,11 @@ export function hudVm(x: Ctx, door: ReturnType<typeof doorVm>) {
     openNewSpace: () => s.openModal({ kind: 'newSpace' }), openJoin: () => s.openModal({ kind: 'join' }), openShortcuts: () => s.openModal({ kind: 'shortcuts' }),
     canInvite: sp.kind !== 'Personal',
     listView: s.listView, toggleListView: () => s.setListView(!s.listView),
-    rook: s.rook.map((r) => ({
+    rook: rook.map((r) => ({
       initials: P(r.by).i, from: P(r.by).name, where: spaceName(r.sp), text: r.text, t: r.t, ring: ringOf(!r.read),
       anim: r.fresh ? aniOnce('hm-letter', 520) : 'none', onClick: () => s.openRook(r),
     })),
-    rookEmpty: s.rook.length === 0, rookUnread, hasRookUnread: rookUnread > 0, markRookRead: () => { void s.markRookRead(); },
+    rookEmpty: rook.length === 0, rookUnread, hasRookUnread: rookUnread > 0, markRookRead: () => { void s.markRookRead(); },
     hasLetter: !!s.letter && !s.inside && !s.photo && !s.door && !s.drawer,
     letter: s.letter ? { from: s.letter.from, text: s.letter.text, where: spaceName(s.letter.sp) } : null,
     readLetter: s.readLetter, dismissLetter: s.dismissLetter,

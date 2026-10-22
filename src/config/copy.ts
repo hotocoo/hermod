@@ -40,4 +40,6 @@ export const COPY = {
   meetingNoticeTitle: (topic: string) => `Meeting started: ${topic}`,
   meetingNoticeBody: (space: string) => `In the Hearth of ${space}`,
   reminderTitle: (t: string) => t,
+  folderAddChat: (folder: string) => `Add to ${folder}`,
+  folderRemoveChat: (folder: string) => `Remove from ${folder}`,
 } as const;

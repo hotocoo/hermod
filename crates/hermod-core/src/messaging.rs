@@ -34,6 +34,8 @@ pub const MAX_SCHEDULED: usize = 200;
 pub const MAX_SCHEDULE_AHEAD_MS: i64 = 365 * 24 * 3600 * 1000;
 const MAX_SCHEDULED_BYTES: usize = 64 * 1024;
 const MAX_DM_MEMBERS: usize = 15;
+/// Title of a one-to-one dm space made without a name; the projection shows the other person's name instead.
+pub(crate) const DM_DEFAULT_TITLE: &str = "Direct message";
 /// Channel id of the personal notes chat in the home space.
 pub const SAVED_CHANNEL: &str = "saved";
 const PREF_LISTS: [&str; 5] = ["archived", "pinned", "gifs", "contacts", "declined"];
@@ -531,7 +533,7 @@ impl Core {
         let title = name
             .map(str::trim)
             .filter(|n| !n.is_empty())
-            .unwrap_or(if group { "Group" } else { "Direct message" });
+            .unwrap_or(if group { "Group" } else { DM_DEFAULT_TITLE });
         let made = self.lock().new_space(title, "", "dm", &["chat"], false)?;
         let mut all: Vec<SpaceEvents> = Vec::new();
         for (user, carrier) in who.iter().zip(&carriers) {

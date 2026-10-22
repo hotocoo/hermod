@@ -45,6 +45,10 @@ pub struct Space {
     /// True when the local user was removed from this space by an admin.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub removed: Option<bool>,
+    /// For a dm space: whether it was started as a group, fixed at creation by its `dm.invite`
+    /// (absent while no invite for it is known).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

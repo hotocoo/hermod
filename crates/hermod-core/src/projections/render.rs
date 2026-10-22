@@ -11,6 +11,7 @@ use super::{ProjectionCtx, initials_of, known_users};
 use crate::crypto::blake3_hash;
 use crate::growth::{self, GrowthInput};
 use crate::ids::SpaceId;
+use crate::messaging::DM_DEFAULT_TITLE;
 
 const ROOM_NAME: &str = "The Hearth";
 const SHORT_MAX_SECS: u32 = 60;
@@ -209,6 +210,33 @@ impl<'a> World<'a> {
             .collect()
     }
 
+    /// Name a space shows: an unnamed one-to-one dm shows the other person (joined, or the one I invited),
+    /// so dms with different people are told apart; every other space keeps its own title.
+    fn space_name(&self, s: &SpaceState) -> String {
+        if s.kind != "dm" || s.name != DM_DEFAULT_TITLE {
+            return s.name.clone();
+        }
+        let sid = s.id.to_string();
+        let mut others: BTreeSet<&str> = s
+            .members
+            .iter()
+            .filter(|(u, m)| m.joined && **u != self.me)
+            .map(|(u, _)| u.as_str())
+            .collect();
+        for inv in self.states.iter().flat_map(|c| &c.msgx.dm_invites) {
+            if inv.space_id == sid && inv.by == self.me {
+                others.insert(inv.to.as_str());
+            }
+        }
+        match others.iter().collect::<Vec<_>>().as_slice() {
+            [one] => self
+                .people
+                .get(**one)
+                .map_or_else(|| s.name.clone(), |p| p.name.clone()),
+            _ => s.name.clone(),
+        }
+    }
+
     fn space(&self, s: &SpaceState) -> Space {
         let c = self.ctx;
         let mut joined: Vec<(String, u32)> = s
@@ -248,10 +276,20 @@ impl<'a> World<'a> {
         );
         growth.waiting_games = s.arcade.waiting();
         let default = s.default_channel().map(str::to_string);
+        let name = self.space_name(s);
+        let mono = if name == s.name {
+            s.mono.clone()
+        } else {
+            // The derived name changes the badge letter the same way creation derives it.
+            name.chars()
+                .next()
+                .map(|c| c.to_uppercase().to_string())
+                .unwrap_or_default()
+        };
         Space {
             id: self.label(s),
-            name: s.name.clone(),
-            mono: s.mono.clone(),
+            name,
+            mono,
             kind: s.kind.clone(),
             tagline: s.tagline.clone(),
             members: (!s.is_home).then_some(joined.len() as u32),
@@ -263,7 +301,18 @@ impl<'a> World<'a> {
             growth,
             role: s.role_of(&self.me).map(|r| r.as_str().to_string()),
             removed: s.banned.contains(&self.me).then_some(true),
+            group: (s.kind == "dm").then(|| self.dm_group(s)).flatten(),
         }
+    }
+
+    /// The `group` flag of the `dm.invite` that created this dm space, if any copy reached this device.
+    fn dm_group(&self, s: &SpaceState) -> Option<bool> {
+        let sid = s.id.to_string();
+        self.states
+            .iter()
+            .flat_map(|c| &c.msgx.dm_invites)
+            .find(|inv| inv.space_id == sid)
+            .map(|inv| inv.group)
     }
 
     /// Counts toward unread and the inbox: not removed, not mine, not blocked, not the system voice.

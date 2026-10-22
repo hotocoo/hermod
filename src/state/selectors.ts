@@ -28,14 +28,6 @@ export const todayIndex = (d = new Date()) => Math.max(0, Math.min(4, (d.getDay(
 export function summaryChannel(seed: Seed, sp: Space): string {
   return sp.meetingChannel ?? sp.defaultChannel ?? channelsOf(seed, sp.id)[0]?.id ?? '';
 }
-/** The Home Space (kind Personal), where direct-message channels live. */
-export const homeSpace = (spaces: Space[]): Space | undefined => spaces.find(isHomeSpace);
-/** Existing direct-message channel id with a person in Home, or null when none has been opened yet. */
-export function dmChannelFor(seed: Seed, spaces: Space[], personId: string): string | null {
-  const home = homeSpace(spaces);
-  return home ? (channelsOf(seed, home.id).find((c) => c.dm === personId)?.id ?? null) : null;
-}
-
 /** Rail badge: unseen channel unread in a Space (does not discount the open channel). */
 export const spaceUnread = (s: AppStore, seed: Seed, spaceId: string) =>
   channelsOf(seed, spaceId).reduce((a, ch) => a + (s.seen[`${spaceId}/${ch.id}`] ? 0 : (ch.unread ?? 0)), 0);

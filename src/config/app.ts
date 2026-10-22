@@ -16,6 +16,8 @@ export const SYSTEM_ID = 'system';
 /** Kind of the personal Space and the id the core gives it. */
 export const HOME_KIND = 'Personal';
 export const HOME_ID = 'home';
+/** Kind of a direct or group message Space (made by `dm_start`, shared only by its members). */
+export const DM_KIND = 'dm';
 
 export const TIMING = {
   introMs: 3400,

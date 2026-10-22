@@ -1,7 +1,7 @@
 /** Pure builders for messaging events (unit tested). */
 import type { BlobRef, EventBody, MsgExt, QuoteRef } from '../../../lib/bridge';
 import { plainText } from '../../../lib/messaging/markdown';
-import type { Message } from '../../dataTypes';
+import type { Message, RookEntry } from '../../dataTypes';
 import { uid } from '../../act';
 
 export const QUOTE_CHARS = 240;
@@ -57,6 +57,8 @@ export function isMuted(muted: Record<string, number> | undefined, key: string, 
   const until = muted?.[key];
   return until !== undefined && (until === MUTE_FOREVER || until > now);
 }
+/** Rookery entries minus muted chats: a muted chat raises no inbox entry and counts in no badge (MESSAGING 3.16). */
+export const unmutedRook = (rook: RookEntry[], muted: Record<string, number> | undefined, now = Date.now()): RookEntry[] => rook.filter((r) => !isMuted(muted, `${r.sp}/${r.ch}`, now));
 export const MUTE_CHOICES: { label: string; ms: number }[] = [
   { label: '1 hour', ms: 3_600_000 }, { label: '8 hours', ms: 8 * 3_600_000 }, { label: '1 week', ms: 7 * 86_400_000 }, { label: 'Until I turn it on', ms: -1 },
 ];
@@ -66,6 +68,20 @@ export const TTL_CHOICES: { label: string; secs: number }[] = [
 
 /** Messages still alive at `now` (the core already drops expired ones at render time; this keeps an open chat in step between snapshots). */
 export const alive = (list: Message[], now: number): Message[] => list.filter((m) => !m.ext?.expires || m.ext.expires > now);
+
+/** Archived chats stay out of the list; a new message brings one back unless the chat is muted (MESSAGING 3.16). */
+export const hiddenAsArchived = (archived: boolean, showArchived: boolean, unread: boolean, muted: boolean): boolean => archived && !showArchived && !(unread && !muted);
+
+/** Pinned chats first; stable, so equal rows keep their order. */
+export function pinnedFirst<T>(list: T[], keyOf: (t: T) => string, pinned: string[]): T[] {
+  const rank = (t: T) => (pinned.includes(keyOf(t)) ? 0 : 1);
+  return [...list].sort((a, b) => rank(a) - rank(b));
+}
+
+/** Put a chat into a folder, or take it out when it is already listed there. Unknown folder ids change nothing. */
+export function toggleInFolder<F extends { id: string; include: string[] }>(folders: F[], folderId: string, key: string): F[] {
+  return folders.map((f) => (f.id !== folderId ? f : { ...f, include: f.include.includes(key) ? f.include.filter((k) => k !== key) : [...f.include, key] }));
+}
 
 /** Folder membership: explicit chats or a type match. */
 export function inFolder(f: { include: string[]; types: string[] }, key: string, kind: { dm: boolean; group: boolean; unread: boolean }): boolean {

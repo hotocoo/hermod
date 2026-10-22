@@ -19,6 +19,8 @@ export interface MessagingSlice {
   savePrefs(patch: Partial<ChatPrefs>): Promise<void>;
   setPrivacy(patch: Partial<PrivacySettings>): Promise<void>;
   togglePinChat(key: string): Promise<void>; toggleArchiveChat(key: string): Promise<void>; muteChat(key: string, ms: number | null): Promise<void>;
+  /** Add the chat to a folder, or remove it when it is already there. */
+  toggleChatInFolder(folderId: string, key: string): Promise<void>;
   setQuote(m: Message | null): void; toggleViewOnce(): void; setTtl(secs: number): void; dismissPreview(): void; probePreview(text: string): Promise<void>;
   forwardMessage(m: Message, targets: { space: string; channel: string; origin: string }[]): Promise<void>;
   hideForMe(id: string): Promise<void>;

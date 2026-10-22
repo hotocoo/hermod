@@ -8,7 +8,7 @@ import type { Message } from '../../dataTypes';
 import { notePresence, sweepPresence } from '../../presence';
 import { channelsOf, chatKey, curSpace, meId } from '../../selectors';
 import type { AppStore } from '../../types';
-import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey } from './helpers';
+import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey, toggleInFolder } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
 
 const EMPTY_COMPOSE: ComposeExtras = { quote: null, viewOnce: false, ttl: 0, preview: null, previewFor: '', previewOff: false };
@@ -65,6 +65,9 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     toggleArchiveChat: async (key) => {
       const cur = get().prefs.archived ?? [];
       await get().savePrefs({ archived: cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key] });
+    },
+    toggleChatInFolder: async (folderId, key) => {
+      await get().savePrefs({ folders: toggleInFolder(get().prefs.folders ?? [], folderId, key) });
     },
     muteChat: async (key, ms) => {
       const muted = { ...(get().prefs.muted ?? {}) };
