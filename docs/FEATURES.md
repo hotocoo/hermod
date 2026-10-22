@@ -135,7 +135,7 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 | V-029 | Calendar: create event | DONE (UI wired; needs core/node to verify) | `event.create` syncs | state | wire | M1 |
 | V-030 | Calendar: join event (RSVP), attendee list | DONE (UI wired; needs core/node to verify) | `event.rsvp` | state | wire | M1 |
 | V-031 | Calendar: "join meeting" button opens Hearth with agenda | PARTIAL | Starts `meeting.start` from event | state | wire | M2 |
-| V-032 | Calendar reminders (notification N minutes before) | MISSING | OS notification fires at start-5m | bridge | see N-001 | M2 |
+| V-032 | Calendar reminders (notification N minutes before) | DONE (UI wired; needs core/node to verify) | OS notification fires at start-5m (`NOTIFY.reminderLeadMin`), once per occurrence | bridge | see N-001 | M2 |
 | V-033 | Calendar: edit/cancel event | DONE-CORE (core only; bridge/UI pending) |  | core, components | new `event.cancel` | M2 |
 | V-034 | Boards list: select board, new board | DONE (UI wired; needs core/node to verify) | `board.create` | state | wire | M1 |
 
@@ -265,9 +265,9 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 
 | ID | Feature | Status | Acceptance | Owner | Needs | M |
 |---|---|---|---|---|---|---|
-| N-001 | OS notifications via tauri-plugin-notification: DM, @mention, meeting start, event reminder | MISSING | Notification when window unfocused; click focuses target | bridge, state | cmd `notify_settings_get/set` | M1 |
+| N-001 | OS notifications via tauri-plugin-notification: DM, @mention, meeting start, event reminder | DONE (UI wired; needs core/node to verify) | Notification when window unfocused; focusing the window right after one opens its target (desktop notifications have no click callback) | bridge, state | cmd `notify_settings_get/set` | M1 |
 | N-002 | Per-space and per-channel mute, Do Not Disturb (manual and scheduled) | DONE (UI wired; needs core/node to verify) | Muted space no notification, still badges quietly | state, components | local | M1 |
-| N-003 | Dock/tray badge count | MISSING | Matches unread | bridge | G-008 | M2 |
+| N-003 | Dock/tray badge count | DONE (UI wired; needs core/node to verify) | Matches unread (dock badge; tray tooltip everywhere) | bridge | G-008 | M2 |
 | N-004 | Notification settings page (per kind) | DONE (UI wired; needs core/node to verify) | | components | N-001 | M1 |
 | P-001 | Presence (online, away, offline) | MISSING | Dot reflects peers seen in last 60 s over gossip; ephemeral, not logged | node, components | ephemeral topic `presence` | M1 |
 | P-002 | Typing indicators | MISSING | "Mara is typing" within 1 s, cleared after 5 s | node, components | ephemeral | M2 |

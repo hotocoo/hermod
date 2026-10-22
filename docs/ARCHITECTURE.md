@@ -178,7 +178,8 @@ Argument and result shapes the UI codes against (all in `types.ts`):
 | `read_mark` | `spaceId, channelId` | marks a channel read (`Core::mark_read`); unread counts in the snapshot come from it |
 | `block_user` / `unblock_user` / `block_list` (new) | `userId` | `[{ user_id, name, since }]`, device-local |
 | `notify_settings_get` / `_set` | - / partial | `{ enabled, dm, mention, meeting, reminder, muted_spaces[], muted_channels[], dnd_until, dnd_schedule }` |
-| `notify_send` (new) | `title, body, spaceId, channelId` | OS notification (UI already applied mute and DND); click focuses the channel |
+| `notify_send` (new) | `title, body, spaceId, channelId` | OS notification (UI already applied mute and DND); the UI opens the target when the window is focused right after |
+| `badge_set` (new) | `count` | Unread total on the dock badge and tray tooltip; 0 clears |
 | `search_query` | `q, space?, kinds?, limit?` | `[{ kind, space_id, channel_id?, id, title, snippet, by, ts }]` |
 | `storage_usage` / `storage_clear_cache` | - | `{ total_bytes, cache_for_others_bytes, per_space[] }` / `{ freed_bytes }` |
 | `backup_export` / `backup_import` | `path, passphrase, includeBlobs` / `path, passphrase` | - |

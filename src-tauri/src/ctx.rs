@@ -57,6 +57,8 @@ pub struct Emitted {
 /// updater). Tauri implements it; the devhost passes none and those commands say so.
 pub trait Shell: Send + Sync {
     fn notify(&self, title: &str, body: &str);
+    /// Unread total on the dock icon (and tray tooltip where badges are unsupported); 0 clears it.
+    fn badge(&self, count: u32);
     /// Blocking native file picker.
     fn pick_files(&self, multiple: bool, accept: &[String])
     -> Result<Option<Vec<PathBuf>>, String>;

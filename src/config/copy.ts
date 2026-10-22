@@ -30,4 +30,8 @@ export const COPY = {
   paletteEmptyRoom: 'empty, pull up a chair',
   paletteNewSpace: 'Create a Space',
   paletteShortcuts: 'Keyboard shortcuts',
+  reminderBody: (min: number, where: string) => `Starts in ${min} min${where ? ` · ${where}` : ''}`,
+  meetingNoticeTitle: (topic: string) => `Meeting started: ${topic}`,
+  meetingNoticeBody: (space: string) => `In the Hearth of ${space}`,
+  reminderTitle: (t: string) => t,
 } as const;

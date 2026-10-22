@@ -7,6 +7,7 @@ import { coll } from '../dataTypes';
 import { diffArrivals } from '../arrivals';
 import { runArcadeAuto } from '../arcadeAuto';
 import { deliverArcadeNotices, diffArcadeNotices } from '../arcadeNotify';
+import { deliverCalNotices, diffMeetingNotices } from '../calendarNotify';
 import { deliverDeskNotices, diffDeskNotices } from '../deskNotify';
 import { channelsOf, isHomeSpace } from '../selectors';
 import { timer } from '../timers';
@@ -61,6 +62,7 @@ export const createCoreSlice: StateCreator<AppStore, [], [], CoreSlice> = (set, 
       get().receive(diffArrivals(prev, seed, get().me?.user_id ?? '', get().blocked));
       deliverDeskNotices(get(), diffDeskNotices(prev, seed, get().me?.user_id ?? ''));
       deliverArcadeNotices(get(), diffArcadeNotices(prev, seed, get().me?.user_id ?? ''));
+      deliverCalNotices(get(), diffMeetingNotices(prev, seed, get().me?.user_id ?? ''));
     }
     runArcadeAuto(get());
   },

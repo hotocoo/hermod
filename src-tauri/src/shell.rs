@@ -14,6 +14,18 @@ fn invite_code(url: &str) -> Option<&str> {
     (!code.is_empty() && code.chars().all(|c| c.is_ascii_alphanumeric())).then_some(code)
 }
 
+pub const TRAY_ID: &str = "main";
+const APP_NAME: &str = "Hermod";
+
+/// Tray tooltip: the app name, plus the unread total when there is one.
+pub fn tray_tooltip(unread: u32) -> String {
+    if unread == 0 {
+        APP_NAME.into()
+    } else {
+        format!("{APP_NAME} ({unread} unread)")
+    }
+}
+
 fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -61,8 +73,8 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
     let show = MenuItem::with_id(app, "show", "Show Hermod", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show, &quit])?;
-    let mut tray = TrayIconBuilder::new()
-        .tooltip("Hermod")
+    let mut tray = TrayIconBuilder::with_id(TRAY_ID)
+        .tooltip(APP_NAME)
         .menu(&menu)
         .on_menu_event(|app, ev| match ev.id.as_ref() {
             "show" => show_main(app),
@@ -78,7 +90,13 @@ pub fn setup(app: &tauri::App) -> tauri::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::invite_code;
+    use super::{invite_code, tray_tooltip};
+
+    #[test]
+    fn tooltip_shows_unread() {
+        assert_eq!(tray_tooltip(0), "Hermod");
+        assert_eq!(tray_tooltip(3), "Hermod (3 unread)");
+    }
 
     #[test]
     fn parses_codes() {

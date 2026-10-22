@@ -435,6 +435,12 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             }
             Ok(Value::Null)
         }
+        "badge_set" => {
+            if let Some(shell) = ctx.shell.clone() {
+                shell.badge(u32::try_from(opt_u64(a, "count").unwrap_or(0)).unwrap_or(u32::MAX));
+            }
+            Ok(Value::Null)
+        }
         "arcade_tool" => {
             let op = str_arg(a, "op")?;
             hermod_core::games::tool(&op, a.get("args").unwrap_or(&Value::Null))

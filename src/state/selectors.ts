@@ -40,6 +40,9 @@ export function dmChannelFor(seed: Seed, spaces: Space[], personId: string): str
 export const spaceUnread = (s: AppStore, seed: Seed, spaceId: string) =>
   channelsOf(seed, spaceId).reduce((a, ch) => a + (s.seen[`${spaceId}/${ch.id}`] ? 0 : (ch.unread ?? 0)), 0);
 
+/** Unread across every Space (rail badges summed): the dock and tray badge. */
+export const totalUnread = (s: AppStore, seed: Seed) => seed.spaces.reduce((a, sp) => a + spaceUnread(s, seed, sp.id), 0);
+
 /** Unread for a channel of the current Space (zero when open in chat or already seen). */
 export function channelUnread(s: AppStore, ch: Channel): number {
   const active = ch.id === s.ch[s.space] && s.section === 'chat';
