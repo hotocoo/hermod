@@ -1,5 +1,6 @@
 /** Values the 3D scene is told about (unread badge, perched ravens, building hints, hearth occupancy). */
 import { LIMITS } from '../config/app';
+import { RAVEN } from '../config/scene';
 import type { Seed } from '../lib/data/types';
 import { coll } from './dataTypes';
 import { curSpace, hasSection, hereUnread, inCallHere, meId, roomCount, roomOf, speakingId } from './selectors';
@@ -24,7 +25,8 @@ export function sceneSignals(s: AppStore, seed: Seed): SceneSignals {
   const myTasks = bd ? bd.cols.filter((c) => c.id !== 'done').reduce((a, c) => a + c.cards.filter((x) => x.by === me).length, 0) : 0;
   return {
     unread,
-    perch: { here: s.inside && s.section === 'chat' ? 0 : (unread > 0 ? 1 : 0), away: 0 },
+    // one perch slot per unread message, up to the slots the commons roof has (RAVEN.maxHere)
+    perch: { here: s.inside && s.section === 'chat' ? 0 : Math.min(unread, RAVEN.maxHere), away: 0 },
     hints: { feed: s.feedSeen[s.space] ? 0 : Math.min(LIMITS.feedHintMax, feedLen), board: myTasks, skein: sk ? sk.lines.filter((l) => l.ahead).length : 0 },
     room: { n: hearthOn ? roomCount(room) : 0, me: inCall, speak },
   };

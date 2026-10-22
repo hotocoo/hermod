@@ -129,6 +129,10 @@ export interface TownApi {
   burst(): void;
   /** Pulse the commons raven (or launch it); cb fires immediately. */
   sendRaven(toId?: string, cb?: () => void): void;
+  /** A raven flies in from beyond the island to the `toId` anchor carrying a letter; cb fires on arrival (at once when no flight plays). */
+  flyIn(toId: string, cb?: () => void): boolean;
+  /** A raven lifts off the `fromId` building with a sent letter. False when no flight plays (reduced motion, no room). */
+  flyOut(fromId: string): boolean;
   setUnread(m?: Partial<Record<SectionId, number>> | null): void;
   setWeather(kind: WeatherKind): void;
   setPerched(here?: number, away?: number): void;

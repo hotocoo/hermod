@@ -35,8 +35,9 @@ export const createRavenSlice: StateCreator<AppStore, [], [], RavenSlice> = (set
       timer.after('letter', TIMING.letterMs, () => set({ letter: null }));
     };
     const town = getTown();
-    if (last.sp === s.space && town && !s.archi) town.sendRaven(s.inside && s.section !== 'chat' ? 'search' : 'chat', deliver);
-    else deliver();
+    if (!town || s.archi) deliver();
+    else if (last.sp === s.space) town.sendRaven(s.inside && s.section !== 'chat' ? 'search' : 'chat', deliver);
+    else town.flyIn('search', deliver); // another Space: the raven comes in to the signpost, the letter opens when it lands
   },
 
   openRook: (r) => {
