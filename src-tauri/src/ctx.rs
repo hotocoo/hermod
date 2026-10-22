@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::pin::Pin;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
@@ -44,6 +44,9 @@ pub const ALL_COLLECTIONS: &[&str] = &[
     "messaging",
 ];
 const STATUS_EVERY: Duration = Duration::from_secs(1);
+/// Core setting that remembers events authored while the node could not send them (G-010), so
+/// the "waiting to sync" count survives a restart.
+const UNSENT_KEY: &str = "unsent_events";
 const STOP_GRACE: Duration = Duration::from_secs(3);
 
 /// One UI event (`hermod://changed`, `hermod://node`, ...).
@@ -132,6 +135,9 @@ pub struct Live {
     touched: Touched,
     /// (taken at, own bytes, bytes held for others): storage walks every event, so it is cached.
     storage: Mutex<Option<(std::time::Instant, u64, u64)>>,
+    /// Events authored while the node was off or refused them: only in the store until a sync
+    /// with a peer completes. Counted into the sync pill alongside the node's own queue.
+    unsent: AtomicU32,
 }
 
 /// Collections the UI must re-read per space, filled as remote events apply.
@@ -166,6 +172,15 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 }
 
 impl Live {
+    /// Sets the unsent count and remembers it across restarts. Returns the new value.
+    fn set_unsent(&self, n: u32) -> u32 {
+        self.unsent.store(n, Ordering::Relaxed);
+        if let Err(e) = self.core.setting_set(UNSENT_KEY, &n.to_string()) {
+            tracing::warn!("cannot remember unsent count: {e}");
+        }
+        n
+    }
+
     /// Content type recorded for a blob: memory first, then the persisted table.
     pub fn blob_info(&self, hash: &str) -> Option<Arc<blob::BlobInfo>> {
         lock(&self.blob_info).get(hash).cloned()
@@ -249,6 +264,12 @@ pub struct Ctx {
 
 fn open_live(dir: &Path) -> Result<Arc<Live>, String> {
     let core = Core::open(dir).map_err(|e| format!("cannot open your data: {e}"))?;
+    let unsent = core
+        .setting_get(UNSENT_KEY)
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(0);
     Ok(Arc::new(Live {
         core: Arc::new(core),
         node: tokio::sync::Mutex::new(None),
@@ -257,6 +278,7 @@ fn open_live(dir: &Path) -> Result<Arc<Live>, String> {
         online: Arc::new(Mutex::new(HashMap::new())),
         touched: Arc::new(Mutex::new(HashMap::new())),
         storage: Mutex::new(None),
+        unsent: AtomicU32::new(unsent),
     }))
 }
 
@@ -474,17 +496,52 @@ impl Ctx {
     /// Push freshly authored events to the network and tell the UI.
     pub async fn publish(&self, space: &SpaceId, events: &[SignedEvent]) {
         let node = self.node().await;
+        let mut unsent = 0u32;
         for ev in events {
-            let Some(node) = &node else { break };
+            let Some(node) = &node else {
+                unsent += 1;
+                continue;
+            };
             match ev.to_bytes() {
                 Ok(bytes) => {
                     if let Err(e) = node.publish_event(space.0, bytes).await {
                         tracing::warn!("event stored but not gossiped yet: {e}");
+                        unsent += 1;
                     }
                 }
                 Err(e) => tracing::error!("cannot encode event: {e}"),
             }
         }
+        if unsent == 0 {
+            return;
+        }
+        let Ok(live) = self.live().await else { return };
+        let total = live.set_unsent(live.unsent.load(Ordering::Relaxed).saturating_add(unsent));
+        let queued = match &node {
+            Some(n) => n.status().await.map_or(0, |s| s.outbox + s.sync_pending),
+            None => 0,
+        };
+        self.emit("sync", json!({ "pending": total.saturating_add(queued) }));
+    }
+
+    /// Events waiting for a first sync (see `Live::unsent`).
+    pub async fn unsent(&self) -> u32 {
+        self.live()
+            .await
+            .map_or(0, |l| l.unsent.load(Ordering::Relaxed))
+    }
+
+    /// The node reported `count` items still owed to the network. Zero means a sync finished
+    /// or the queue drained, which also settles what was authored while offline.
+    async fn sync_pending(&self, count: u32) {
+        if count == 0
+            && let Ok(live) = self.live().await
+            && live.unsent.load(Ordering::Relaxed) != 0
+        {
+            live.set_unsent(0);
+        }
+        let pending = count.saturating_add(self.unsent().await);
+        self.emit("sync", json!({ "pending": pending }));
     }
 
     /// Node status in the shape the UI expects.
@@ -637,7 +694,7 @@ async fn pump(
                         let label = space_label(&ctx, &SpaceId(space)).await;
                         ctx.changed(&label, &["people", "spaces"]);
                     }
-                    NodeEvent::SyncPending { count } => ctx.emit("sync", json!({ "pending": count })),
+                    NodeEvent::SyncPending { count } => ctx.sync_pending(count).await,
                 }
             }
         }

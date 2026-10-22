@@ -562,8 +562,10 @@ async fn flooding_peer_is_banned_and_stays_banned() {
     until("honest peer unaffected", || a.store.count() == 1).await;
 
     // Redial: the ban is enforced before the connection is established.
+    // The dial either fails outright or is closed by A at once: B ends with no peers (it had
+    // one while the dial was in flight) and A never counts the connection.
     let _ = b.h.dial(vec![a_addr]).await;
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    status_until("B refused by A", &b.h, |s| s.peers == 0).await;
     let s = a.h.status().await.unwrap();
     assert_eq!((s.peers, s.banned), (1, 1));
 
@@ -574,7 +576,7 @@ async fn flooding_peer_is_banned_and_stays_banned() {
     let a2 = spawn_keyed(cfg_a(), a_key).await;
     assert_eq!(a2.h.status().await.unwrap().banned, 1);
     let _ = b.h.dial(vec![first_addr(&a2.h).await]).await;
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    status_until("B refused by restarted A", &b.h, |s| s.peers == 0).await;
     let s = a2.h.status().await.unwrap();
     assert_eq!((s.peers, s.banned), (0, 1));
     for p in [&a2, &b] {

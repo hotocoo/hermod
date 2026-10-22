@@ -194,6 +194,14 @@ test.describe('a shared Space between two users', () => {
       expect(max).toBeGreaterThan(0);
       await slider.evaluate((el: HTMLInputElement) => { el.value = '999999'; });
       expect(Number(await slider.inputValue())).toBeLessThanOrEqual(max);
+      // The per-author gossip caps (E-010) are reachable from the UI and bounded by their ceilings.
+      for (const name of [/^Events per second from one person/, /^Burst of events from one person/, /^Largest live event accepted/]) {
+        const cap = drawer.getByLabel(name);
+        const capMax = Number(await cap.getAttribute('max'));
+        expect(capMax).toBeGreaterThan(0);
+        await cap.evaluate((el: HTMLInputElement) => { el.value = '999999999'; });
+        expect(Number(await cap.inputValue())).toBeLessThanOrEqual(capMax);
+      }
       await p.keyboard.press('Escape');
       await expect(drawer.getByText('Your place in the mesh')).toBeHidden();
     }

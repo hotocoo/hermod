@@ -211,9 +211,9 @@ impl Driver {
             book_dirty: HashSet::new(),
             banned: HashMap::new(),
             strikes: HashMap::new(),
-            event_rate: RateMap::new(100.0, 400.0),
-            eph_in_rate: RateMap::new(20.0, 60.0),
-            eph_out_rate: RateMap::new(20.0, 60.0),
+            event_rate: RateMap::new(EVENT_IN_RATE.0, EVENT_IN_RATE.1),
+            eph_in_rate: RateMap::new(EPHEMERAL_RATE.0, EPHEMERAL_RATE.1),
+            eph_out_rate: RateMap::new(EPHEMERAL_RATE.0, EPHEMERAL_RATE.1),
             sync_in_rate: RateMap::new(SYNC_IN_RATE.0, SYNC_IN_RATE.1),
             signal_in_rate: RateMap::new(SIGNAL_IN_RATE.0, SIGNAL_IN_RATE.1),
             serving: HashMap::new(),
@@ -974,7 +974,7 @@ impl Driver {
     pub fn strike(&mut self, peer: PeerId) {
         let n = self.strikes.entry(peer).or_default();
         *n += 1;
-        if *n >= STRIKE_LIMIT {
+        if *n >= STRIKE_LIMIT && !self.banned.contains_key(&peer) {
             tracing::warn!("peer {peer} flooded, banning for 10 minutes");
             self.ban(peer, Duration::from_secs(BAN_SECS));
         }
@@ -1055,6 +1055,10 @@ impl Driver {
             } => {
                 self.bytes_in += message.data.len() as u64;
                 let src = message.source.unwrap_or(propagation_source);
+                // A banned origin may still reach us through honest forwarders; drop it before any work.
+                if self.banned.contains_key(&src) {
+                    return;
+                }
                 if let Some(space) = self.topics.get(&message.topic).copied() {
                     self.on_space_gossip(space, src, &message.data);
                 } else if let Some(space) = self.eph_topics.get(&message.topic).copied() {

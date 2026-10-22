@@ -15,8 +15,9 @@ pub const CEIL_BYTES_PER_CIRCUIT: u64 = 512 * MIB;
 pub const CEIL_BLOB_CACHE: u64 = 4 * GIB;
 const MIN_CONNECTIONS: u32 = 8;
 /// Ceilings for the per-author gossip caps (E-010): sustained events per second and burst.
-pub const CEIL_EVENT_RATE: u32 = 1000;
-pub const CEIL_EVENT_BURST: u32 = 2000;
+/// Kept below the node's inbound backstop (`EVENT_IN_RATE`) so a user cap is never pre-empted.
+pub const CEIL_EVENT_RATE: u32 = 50;
+pub const CEIL_EVENT_BURST: u32 = 200;
 /// Smallest event body the size cap may be set to.
 const MIN_EVENT_BYTES: u64 = 1024;
 
@@ -344,6 +345,13 @@ mod tests {
         assert_eq!(s.event_rate_per_sec, 1);
         assert_eq!(s.event_burst, CEIL_EVENT_BURST);
         assert_eq!(s.max_event_bytes, MAX_BODY_BYTES as u64);
+    }
+
+    #[test]
+    fn event_ceilings_stay_below_the_node_backstop() {
+        use hermod_node::proto::EVENT_IN_RATE;
+        assert!(f64::from(CEIL_EVENT_RATE) < EVENT_IN_RATE.0);
+        assert!(f64::from(CEIL_EVENT_BURST) < EVENT_IN_RATE.1);
     }
 
     #[test]

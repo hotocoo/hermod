@@ -422,8 +422,9 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                 Some(n) => n.status().await.ok(),
                 None => None,
             };
+            let queued = st.as_ref().map_or(0, |s| s.outbox + s.sync_pending);
             Ok(
-                json!({ "pending": st.as_ref().map_or(0, |s| s.outbox + s.sync_pending), "peers": st.map_or(0, |s| s.peers) }),
+                json!({ "pending": queued.saturating_add(ctx.unsent().await), "peers": st.map_or(0, |s| s.peers) }),
             )
         }
 
