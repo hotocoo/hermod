@@ -364,6 +364,9 @@ pub enum EventBody {
         tagline: String,
         mono: String,
         sections: Vec<String>,
+        /// Hex nonce the space id was derived from (`SpaceId::derive`). Absent on spaces created before ids were bound to their creator.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        nonce: Option<String>,
     },
     #[serde(rename = "space.update")]
     SpaceUpdate {
@@ -392,7 +395,12 @@ pub enum EventBody {
     #[serde(rename = "member.role")]
     MemberRole { user: String, role: Role },
     #[serde(rename = "member.remove")]
-    MemberRemove { user: String },
+    MemberRemove {
+        user: String,
+        /// Highest `seq` the remover saw from the target. Later seqs from the target are rejected whatever lamport they claim. Absent on older events.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "space.rekey")]
     SpaceRekey { epoch: u32, wraps: Vec<KeyWrap> },
     #[serde(rename = "invite.create")]
@@ -407,7 +415,12 @@ pub enum EventBody {
         role: Role,
     },
     #[serde(rename = "invite.revoke")]
-    InviteRevoke { id: String },
+    InviteRevoke {
+        id: String,
+        /// Users the revoker saw joined through this invite. When present, no one else can join through it, whatever lamport they claim. Absent on older events (revocation then applies by fold order).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        joined: Option<Vec<String>>,
+    },
     #[serde(rename = "profile.set")]
     ProfileSet {
         name: String,
@@ -1119,6 +1132,7 @@ mod tests {
                 tagline: "t".into(),
                 mono: "S".into(),
                 sections: vec!["chat".into()],
+                nonce: Some("ab".repeat(32)),
             },
             EventBody::MemberLeave {},
             EventBody::RoomJoin {

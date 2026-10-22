@@ -25,7 +25,7 @@ use crate::invite::InviteV1;
 use crate::keywrap;
 use crate::projections::{
     InviteInfo, MemberInfo, ProjectionConfig, ProjectionCtx, ReportInfo, SpaceInput, SpaceReport,
-    initials_of, project, report, search_items,
+    genesis_author, initials_of, project, report, search_items,
 };
 use crate::ratelimit::RateConfig;
 use crate::search::SearchHit;
@@ -44,6 +44,8 @@ const HOME_NAME: &str = "Home";
 const HOME_TAGLINE: &str = "Your people, and the best of every Space you\u{2019}re in";
 const DEFAULT_CHANNEL: &str = "general";
 const PROFILE_KEY: &str = "profile";
+/// Local record `creator:<space id>` of the only author whose `space.create` counts for a space.
+const CREATOR_PIN_PREFIX: &str = "creator:";
 const SETTING_PREFIX: &str = "setting.";
 const TZ_SETTING: &str = "tz_offset_secs";
 const RECEIPTS_SETTING: &str = "read_receipts";
@@ -298,12 +300,25 @@ impl Inner {
     }
 
     pub(crate) fn input(&self, row: &SpaceRow) -> Result<SpaceInput> {
+        let events = self.store.load_opened(row)?;
+        let pin_key = format!("{CREATOR_PIN_PREFIX}{}", row.id);
+        let creator = match self.store.kv_get(&pin_key)? {
+            Some(c) => c.parse().ok(),
+            None => {
+                let first = genesis_author(&row.id, &events);
+                if let Some(c) = first {
+                    self.store.kv_set(&pin_key, &c.to_string())?;
+                }
+                first
+            }
+        };
         Ok(SpaceInput {
             id: row.id,
             name: row.name.clone(),
             kind: row.kind.clone(),
             is_home: row.is_home,
-            events: self.store.load_opened(row)?,
+            creator,
+            events,
         })
     }
 
@@ -451,7 +466,8 @@ impl Inner {
         if name.is_empty() || name.chars().count() > 80 {
             return Err(Error::invalid("space name", "must be 1 to 80 characters"));
         }
-        let id = SpaceId::random();
+        let nonce: [u8; 32] = crate::crypto::random_bytes();
+        let id = SpaceId::derive(&self.identity.user_id(), &nonce);
         let row = SpaceRow {
             id,
             key: SpaceKey::random(),
@@ -470,6 +486,7 @@ impl Inner {
                 tagline: tagline.to_string(),
                 mono: mono_of(name),
                 sections: sections.iter().map(|s| s.to_string()).collect(),
+                nonce: Some(hex_encode(&nonce)),
             },
             EventBody::ChannelCreate {
                 channel_id: DEFAULT_CHANNEL.into(),
@@ -723,10 +740,18 @@ impl Core {
                 "you can only remove members below your own role".into(),
             ));
         }
+        let last_seq = inner
+            .store
+            .load_opened(&inner.row(space)?)?
+            .iter()
+            .filter(|e| e.author == *user)
+            .map(|e| e.seq)
+            .max();
         let removal = inner.append(
             space,
             &EventBody::MemberRemove {
                 user: user.to_string(),
+                last_seq,
             },
         )?;
         let rekey = inner.rekey(&self.config, space)?;
@@ -858,7 +883,20 @@ impl Core {
         if !rep.invites.iter().any(|i| i.id == id) {
             return Err(Error::NotFound(format!("invite {id}")));
         }
-        let revoke = inner.append(space, &EventBody::InviteRevoke { id: id.to_string() })?;
+        let joined = inner
+            .store
+            .load_opened(&inner.row(space)?)?
+            .iter()
+            .filter(|e| matches!(&e.body, EventBody::MemberJoin { invite: Some(i), .. } if i == id))
+            .map(|e| e.author.to_string())
+            .collect();
+        let revoke = inner.append(
+            space,
+            &EventBody::InviteRevoke {
+                id: id.to_string(),
+                joined: Some(joined),
+            },
+        )?;
         let rekey = inner.rekey(&self.config, space)?;
         Ok(vec![revoke, rekey])
     }

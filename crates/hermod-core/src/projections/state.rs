@@ -12,11 +12,39 @@ use super::messaging::MsgState;
 use super::shapes::MeetSummary;
 use crate::crypto::blake3_hash;
 use crate::event::{BlobRef, DocBlockIn, DocOp, EventBody, Role, valid_map_style};
-use crate::ids::{SpaceId, hex_encode};
+use crate::ids::{SpaceId, hex_decode_array, hex_encode};
 use crate::store::Opened;
 
 /// Fold order key: `(lamport, author bytes, seq)`.
 pub type Ord3 = (u64, [u8; 32], u64);
+
+/// Upper bound on fold passes while [`Prior`] settles; it normally does after one or two.
+pub const MAX_FOLD_PASSES: usize = 4;
+
+/// Facts one fold pass derives from authorized events that the next pass applies independent of
+/// fold position, so an author-chosen lamport cannot place an event before the fact that kills it.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Prior {
+    /// Removed user to the highest `seq` they may have authored.
+    pub caps: BTreeMap<String, u64>,
+    /// Revoked invite id to the users that may have joined through it.
+    pub revoked: BTreeMap<String, BTreeSet<String>>,
+}
+
+/// Author of the `space.create` whose nonce derives `id`, if any.
+pub fn derived_author<'a>(
+    id: &SpaceId,
+    events: impl IntoIterator<Item = &'a Opened>,
+) -> Option<String> {
+    events.into_iter().find_map(|e| match &e.body {
+        EventBody::SpaceCreate { nonce: Some(n), .. }
+            if hex_decode_array::<32>(n).is_ok_and(|n| SpaceId::derive(&e.author, &n) == *id) =>
+        {
+            Some(e.author.to_string())
+        }
+        _ => None,
+    })
+}
 
 pub struct Chan {
     pub id: String,
@@ -280,6 +308,11 @@ pub struct SpaceState {
     pub sections: Vec<String>,
     pub map_style: Option<String>,
     created: bool,
+    /// The only author whose `space.create` counts; `None` means the first in fold order.
+    creator: Option<String>,
+    prior: Prior,
+    /// What this pass derived; the next pass takes it as `prior`.
+    pub found: Prior,
     pub owner: Option<String>,
     pub roles: BTreeMap<String, Role>,
     pub banned: BTreeSet<String>,
@@ -400,6 +433,9 @@ impl SpaceState {
             sections: vec!["chat".into()],
             map_style: None,
             created: false,
+            creator: None,
+            prior: Prior::default(),
+            found: Prior::default(),
             owner: None,
             roles: BTreeMap::new(),
             banned: BTreeSet::new(),
@@ -457,11 +493,24 @@ impl SpaceState {
         self.roles.get(user).copied()
     }
 
+    /// Pins the creator learned out of band (local record), for spaces whose id is not bound to one.
+    pub fn with_creator(mut self, creator: Option<String>) -> Self {
+        self.creator = creator;
+        self
+    }
+
+    pub fn with_prior(mut self, prior: Prior) -> Self {
+        self.prior = prior;
+        self
+    }
+
     pub fn fold(mut self, events: &[&Opened]) -> Self {
+        // An id bound to its creator beats any pin or fold order.
+        self.creator = derived_author(&self.id, events.iter().copied()).or(self.creator.take());
         for ev in events {
             let by = ev.author.to_string();
             let ord: Ord3 = (ev.lamport, ev.author.0, ev.seq);
-            if !self.authorize(&by, &ev.body, ev.ts) {
+            if !self.authorize(ev, &by) {
                 continue;
             }
             self.authors.insert(by.clone());
@@ -481,16 +530,28 @@ impl SpaceState {
         let Some(inv) = invite.and_then(|id| self.invites.iter().find(|i| &i.id == id)) else {
             return false;
         };
-        let live = !inv.revoked && inv.exp.is_none_or(|e| (ts.max(0) as u64) / 1000 < e);
+        // A revoke that names who had joined is position-independent; an older one applies by fold order.
+        let open = self
+            .prior
+            .revoked
+            .get(&inv.id)
+            .map_or(!inv.revoked, |joined| joined.contains(by));
+        let live = open && inv.exp.is_none_or(|e| (ts.max(0) as u64) / 1000 < e);
         let room =
             inv.uses.contains(by) || inv.max_uses.is_none_or(|m| (inv.uses.len() as u32) < m);
         live && room
     }
 
-    fn authorize(&self, by: &str, body: &EventBody, ts: i64) -> bool {
-        match body {
+    fn authorize(&self, ev: &Opened, by: &str) -> bool {
+        let ts = ev.ts;
+        if self.prior.caps.get(by).is_some_and(|cap| ev.seq > *cap) {
+            return false;
+        }
+        match &ev.body {
             EventBody::Unknown => false,
-            EventBody::SpaceCreate { .. } => !self.created,
+            EventBody::SpaceCreate { .. } => {
+                !self.created && self.creator.as_deref().is_none_or(|c| c == by)
+            }
             _ if !self.created => false,
             EventBody::MemberJoin { invite, .. } => self.can_join(by, invite.as_ref(), ts),
             other => self
@@ -543,6 +604,7 @@ impl SpaceState {
                 tagline,
                 mono,
                 sections,
+                ..
             } => {
                 self.created = true;
                 self.name = name.clone();
@@ -615,7 +677,7 @@ impl SpaceState {
                 self.roles.insert(user.clone(), *role);
                 self.audit(ev, by, "member.role", Some(user), role.as_str().to_string());
             }
-            EventBody::MemberRemove { user } => {
+            EventBody::MemberRemove { user, last_seq } => {
                 let (Some(mine), Some(target)) = (my_role, self.role_of(user)) else {
                     return;
                 };
@@ -624,6 +686,10 @@ impl SpaceState {
                 }
                 self.drop_member(user);
                 self.banned.insert(user.clone());
+                if let Some(seq) = last_seq {
+                    let cap = self.found.caps.entry(user.clone()).or_insert(*seq);
+                    *cap = (*cap).min(*seq);
+                }
                 self.audit(ev, by, "member.remove", Some(user), String::new());
             }
             EventBody::SpaceRekey { epoch, .. } => {
@@ -653,9 +719,16 @@ impl SpaceState {
                 });
                 self.audit(ev, by, "invite.create", Some(id), role.as_str().to_string());
             }
-            EventBody::InviteRevoke { id } => {
+            EventBody::InviteRevoke { id, joined } => {
                 if let Some(i) = self.invites.iter_mut().find(|i| &i.id == id) {
                     i.revoked = true;
+                    if let Some(joined) = joined {
+                        self.found
+                            .revoked
+                            .entry(id.clone())
+                            .or_default()
+                            .extend(joined.iter().cloned());
+                    }
                     self.audit(ev, by, "invite.revoke", Some(id), String::new());
                 }
             }

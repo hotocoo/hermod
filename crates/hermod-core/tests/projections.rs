@@ -554,6 +554,7 @@ fn studio() -> Studio {
             tagline: "mine".into(),
             mono: "H".into(),
             sections: vec!["chat".into(), "feed".into()],
+            nonce: None,
         },
     );
 
