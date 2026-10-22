@@ -11,31 +11,32 @@ import { MeshoptEncoder } from 'meshoptimizer';
 import { dropDegenerate, io, ktx2Cli, ktx2Passes, triCount } from './gltf.mjs';
 import { ROOT } from './lib.mjs';
 const DIR = join(ROOT, 'public/assets/village'); const only = process.argv.slice(2); const nio = await io(); await MeshoptEncoder.ready; const rep = [];
-const isKtx2 = (doc) => doc.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'KHR_texture_basisu');
+const isKtx2 = (doc) => doc.getRoot().listTextures().every((t) => t.getMimeType() === 'image/ktx2'); // LOD0 stays webp when only the LODs were packed
 const idOf = (f) => f.replace(/(\.ultra)?\.glb$/, '');
 const maxPx = (doc) => Math.max(0, ...doc.getRoot().listTextures().map((t) => Math.max(...(t.getSize() ?? [0]))));
 
 // ---- gate: stage geometry-only copies of the files to pack, check them, abort before touching anything on failure
 const todo = [];
-for (const f of readdirSync(DIR).filter((n) => n.endsWith('.glb')).sort()) { if (only.length && !only.includes(idOf(f))) continue; const doc = await nio.read(join(DIR, f)); if (!isKtx2(doc)) todo.push({ f, px: maxPx(doc) }); }
-if (todo.length) {
+for (const f of readdirSync(DIR).filter((n) => n.endsWith('.glb')).sort()) { if (only.length && !only.includes(idOf(f))) continue; const doc = await nio.read(join(DIR, f)); if (!isKtx2(doc)) todo.push({ f, px: maxPx(doc), packed: doc.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'EXT_meshopt_compression') }); }
+const gate = todo.filter((t) => !t.packed); // geometry already meshopt-quantised (texture-only repack): check.py needs float data, so it is not re-run
+if (gate.length) {
   const GEO = join(ROOT, '.cache/village-check'); rmSync(GEO, { recursive: true, force: true }); mkdirSync(GEO, { recursive: true });
-  for (const { f } of todo) { const doc = await nio.read(join(DIR, f)); for (const t of doc.getRoot().listTextures()) t.dispose(); for (const e of doc.getRoot().listExtensionsUsed()) e.dispose(); await nio.write(join(GEO, f), doc); }
-  writeFileSync(join(GEO, 'px.json'), JSON.stringify(Object.fromEntries(todo.map((t) => [t.f, t.px || 1024]))));
-  const r = spawnSync(process.env.BLENDER || 'blender', ['-b', '--factory-startup', '-P', join(ROOT, 'scripts/assets/blender/village/check.py'), '--', ...todo.map((t) => t.f.slice(0, -4))], { encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, VILLAGE_ASSET_OUT: GEO } });
+  for (const { f } of gate) { const doc = await nio.read(join(DIR, f)); for (const t of doc.getRoot().listTextures()) t.dispose(); for (const e of doc.getRoot().listExtensionsUsed()) e.dispose(); await nio.write(join(GEO, f), doc); }
+  writeFileSync(join(GEO, 'px.json'), JSON.stringify(Object.fromEntries(gate.map((t) => [t.f, t.px || 1024]))));
+  const r = spawnSync(process.env.BLENDER || 'blender', ['-b', '--factory-startup', '-P', join(ROOT, 'scripts/assets/blender/village/check.py'), '--', ...gate.map((t) => t.f.slice(0, -4))], { encoding: 'utf8', maxBuffer: 1 << 28, env: { ...process.env, VILLAGE_ASSET_OUT: GEO } });
   const lines = (r.stdout ?? '').split('\n').filter((l) => /^(PASS|FAIL) /.test(l)); const bad = lines.filter((l) => l.startsWith('FAIL'));
-  if (r.error || lines.length !== todo.length) { console.error(`check.py did not complete (${lines.length}/${todo.length}): ${r.error?.message ?? (r.stdout + r.stderr).split('\n').filter((l) => /Error|Traceback/.test(l)).slice(0, 6).join('\n')}`); process.exit(1); }
+  if (r.error || lines.length !== gate.length) { console.error(`check.py did not complete (${lines.length}/${gate.length}): ${r.error?.message ?? (r.stdout + r.stderr).split('\n').filter((l) => /Error|Traceback/.test(l)).slice(0, 6).join('\n')}`); process.exit(1); }
   if (existsSync(join(GEO, 'check-report.json'))) copyFileSync(join(GEO, 'check-report.json'), join(DIR, 'check-report.json'));
   console.log(`check.py: ${lines.length - bad.length}/${lines.length} pass`);
   if (bad.length) { for (const l of bad) console.log(l.replace(/ \| \{.*?\} \|/, ' |')); console.error('village-pack: check failed, nothing packed'); process.exit(1); }
 }
 
-for (const { f, px } of todo) {
+for (const { f, px, packed } of todo) {
   const doc = await nio.read(join(DIR, f)); const ultra = f.includes('.ultra.');
-  dropDegenerate(doc, 1e-9);
+  if (!packed) dropDegenerate(doc, 1e-9);
   const cap = Math.min(ultra ? 4096 : 2048, px || 1024); await doc.transform(prune());
   if (cap > 3072) await ktx2Cli(doc, cap); else await doc.transform(...ktx2Passes(cap, ultra ? 'ultra' : 'high')); // the wasm encoder fails above ~12 Mpix (4096 heroes): native basisu there
-  await doc.transform(meshopt({ encoder: MeshoptEncoder, level: 'high' }));
+  if (!packed) await doc.transform(meshopt({ encoder: MeshoptEncoder, level: 'high' }));
   await nio.write(join(DIR, f), doc); rep.push({ id: f.slice(0, -4), tris: doc.getRoot().listMeshes().map((m) => Math.round(triCount(m))), kb: Math.round(statSync(join(DIR, f)).size / 1024), px }); process.stdout.write('.');
 }
 console.log(`\npacked ${rep.length} glb`); if (rep.length) writeFileSync(join(DIR, 'pack-report.json'), JSON.stringify(rep, null, 1));
