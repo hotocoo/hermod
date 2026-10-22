@@ -1,7 +1,9 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import f from '@/components/ui/form.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
 import { ARCADE_LIMITS } from '@/config/arcade';
+import { COPY } from '@/config/copy';
 import { seatName } from '@/state/vm/arcade';
 import { postStandup } from '../actions';
 import type { ActivityProps } from './props';
@@ -24,6 +26,7 @@ export function Standups({ view, space, me, seed }: ActivityProps) {
         {field('su-y', 'Yesterday', y, setY)}{field('su-t', 'Today', t, setT)}{field('su-b', 'Blockers', b, setB)}
         <div><button type="submit" className="btn btn-primary" disabled={busy || !(y.trim() || t.trim())}>{mineToday ? 'Update' : 'Post'}</button></div>
       </form>
+      {view && view.standups.length === 0 && <EmptyNote {...COPY.standupsEmpty} />}
       {view?.standups.map((d) => (
         <section key={d.day} aria-label={d.day}>
           <h3 className={s.sectionHead}>{d.day}</h3>

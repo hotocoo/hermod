@@ -137,8 +137,23 @@ test.describe('hearth call', () => {
     await a.getByRole('button', { name: 'Share screen' }).click();
     // A cancelled or unavailable picker leaves the button as it was; a granted one flips it.
     await expect(a.getByRole('button', { name: /Stop sharing|Share screen/ })).toBeVisible();
-    if (await a.getByRole('button', { name: 'Stop sharing' }).isVisible()) await a.getByRole('button', { name: 'Stop sharing' }).click();
+    if (await a.getByRole('button', { name: 'Stop sharing' }).isVisible()) {
+      // Camera is off here: the screen alone must show on the peer.
+      const tile = `[data-testid="tile"][data-user="${aId}"]`;
+      await expect(b.locator(`${tile}[data-share="true"][data-cam="false"]`)).toBeVisible({ timeout: 30_000 });
+      await expect.poll(() => b.locator(`${tile} video`).evaluate((v: HTMLVideoElement) => v.videoWidth), { timeout: 30_000 }).toBeGreaterThan(0);
+      await a.getByRole('button', { name: 'Stop sharing' }).click();
+      await expect(b.locator(`${tile}[data-share="false"]`)).toBeVisible({ timeout: 30_000 });
+    }
     await expect(a.getByRole('button', { name: 'Share screen' })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('raise hand shows on the peer and lowers again', async () => {
+    const tile = b.locator(`[data-testid="tile"][data-user="${aId}"]`);
+    await a.getByRole('button', { name: 'Raise hand' }).click();
+    await expect(tile).toHaveAttribute('data-hand', 'true', { timeout: 30_000 });
+    await a.getByRole('button', { name: 'Lower hand' }).click();
+    await expect(tile).toHaveAttribute('data-hand', 'false', { timeout: 30_000 });
   });
 
   test('recording shows REC to both sides and is saved on stop', async () => {

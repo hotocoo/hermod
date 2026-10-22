@@ -66,3 +66,10 @@
 .videoHidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .camTag{position:absolute;top:0;right:0;padding:12px}
 .rec{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border:1px solid var(--color-accent);border-radius:20px;font-size:11px;letter-spacing:.1em;color:var(--color-accent)}
+.tileShare{grid-column:1/-1}
+.screen{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--h-stage)}
+.poor{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:20px;background:var(--color-accent-700);color:var(--color-bg);font-size:12px}
+.hand{position:absolute;top:10px;right:10px;font-size:22px;line-height:1}
+.reaction{position:absolute;inset:0;display:grid;place-items:center;font-size:56px;pointer-events:none;animation:hm-rise 600ms ease both}
+.full{margin:12px 0 0;font-size:13px;color:var(--color-accent-700)}
+.join:disabled{opacity:.5;cursor:not-allowed}

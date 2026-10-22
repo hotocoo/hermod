@@ -123,6 +123,7 @@ export interface CallSlice {
   join(sp: string, room?: string): Promise<void>; joinRoom(): Promise<void>; leave(): Promise<void>; makeMeeting(): Promise<void>;
   setCall(patch: Partial<CallState>): void;
   toggleMute(): Promise<void>; toggleCam(): Promise<void>; toggleShare(): Promise<void>; toggleRecord(): Promise<void>; toggleStage(): void;
+ toggleHand(): Promise<void>; react(r: string): Promise<void>; noteHearthSignal(from: string, space: string, p: { room?: unknown; hand?: unknown; react?: unknown }): void;
   toggleAgendaItem(i: number): Promise<void>; setNoteDraft(v: string): void; addNote(): Promise<void>;
   tickNow(): void; returnToCall(): void; backToCall(): void; setSpeaking(id: string | null): void;
 }
