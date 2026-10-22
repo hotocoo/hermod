@@ -3,8 +3,8 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import sharp from 'sharp';
 import { CACHE, ROOT, b3 } from '../lib.mjs';
+import { encodeMap } from '../ktx2-terrain.mjs';
 
 const BLENDER = process.env.BLENDER || 'blender'; const work = join(CACHE, 'rooms'); mkdirSync(work, { recursive: true });
 const args = process.argv.slice(2); const only = args.includes('--only') ? new Set(args[args.indexOf('--only') + 1].split(',')) : null; const force = args.includes('--force');
@@ -22,11 +22,13 @@ for (const f of readdirSync(work).filter((n) => /^[a-z]+\.json$/.test(n) && n !=
   }
   const out = {};
   for (const [tier, size, dir] of [['high', 2048, join(ROOT, 'public/assets/high/rooms')], ['ultra', 4096, join(ROOT, 'dist-assets/ultra/rooms')]]) {
-    mkdirSync(dir, { recursive: true }); const g = readFileSync(glb); const l = await sharp(lm).resize(size, size, { kernel: 'lanczos3' }).png({ compressionLevel: 9 }).toBuffer();
-    writeFileSync(join(dir, `${section}.glb`), g); writeFileSync(join(dir, `${section}_lm.png`), l);
+    mkdirSync(dir, { recursive: true }); const g = readFileSync(glb);
+    // KTX2 UASTC (linear, mipmapped): lightmap and furniture atlas stay on the GPU block-compressed (BC7/ASTC, 1 byte per texel) instead of RGBA8 PNG; UASTC keeps the baked values precise
+    await encodeMap(lm, join(dir, `${section}_lm.ktx2`), size, 'n'); const l = readFileSync(join(dir, `${section}_lm.ktx2`));
+    writeFileSync(join(dir, `${section}.glb`), g);
     const fmSrc = join(work, `${section}_fm4k.png`); const fmJson = join(work, `${section}_fm.json`); let fm = null; let fb = Buffer.alloc(0);
-    if (existsSync(fmSrc) && existsSync(fmJson)) { fb = await sharp(fmSrc).resize(size, size, { kernel: 'lanczos3' }).png({ compressionLevel: 9 }).toBuffer(); writeFileSync(join(dir, `${section}_fm.png`), fb); fm = { image: `rooms/${section}_fm.png`, ...JSON.parse(readFileSync(fmJson, 'utf8')) }; }
-    out[tier] = { glb: `rooms/${section}.glb`, lightmap: `rooms/${section}_lm.png`, furniture: fm, bytes: g.length + l.length + fb.length, blake3: b3(Buffer.concat([g, l, fb])) };
+    if (existsSync(fmSrc) && existsSync(fmJson)) { await encodeMap(fmSrc, join(dir, `${section}_fm.ktx2`), size, 'n'); fb = readFileSync(join(dir, `${section}_fm.ktx2`)); fm = { image: `rooms/${section}_fm.ktx2`, ...JSON.parse(readFileSync(fmJson, 'utf8')) }; }
+    out[tier] = { glb: `rooms/${section}.glb`, lightmap: `rooms/${section}_lm.ktx2`, furniture: fm, bytes: g.length + l.length + fb.length, blake3: b3(Buffer.concat([g, l, fb])) };
   }
   man[section] = out;
 }

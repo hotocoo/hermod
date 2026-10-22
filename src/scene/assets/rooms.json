@@ -2,9 +2,9 @@
  "chat": {
   "high": {
    "glb": "rooms/chat.glb",
-   "lightmap": "rooms/chat_lm.png",
+   "lightmap": "rooms/chat_lm.ktx2",
    "furniture": {
-    "image": "rooms/chat_fm.png",
+    "image": "rooms/chat_fm.ktx2",
     "grid": 3,
     "tiles": [
      {
@@ -73,8 +73,8 @@
      }
     ]
    },
-   "bytes": 2815597,
-   "blake3": "40841c34af8f5dbd6e392df8729758b552d0e6ed0fd0adae6b0d6e23f8cead5e"
+   "bytes": 1526105,
+   "blake3": "072054c2042415bb266ec652e2e17a13f43a7db1710ed0324be55b6a97273951"
   },
   "ultra": {
    "glb": "rooms/chat.glb",
@@ -156,9 +156,9 @@
  "arcade": {
   "high": {
    "glb": "rooms/arcade.glb",
-   "lightmap": "rooms/arcade_lm.png",
+   "lightmap": "rooms/arcade_lm.ktx2",
    "furniture": {
-    "image": "rooms/arcade_fm.png",
+    "image": "rooms/arcade_fm.ktx2",
     "grid": 3,
     "tiles": [
      {
@@ -219,8 +219,8 @@
      }
     ]
    },
-   "bytes": 2291311,
-   "blake3": "1b60152a9c245d47d8c383aa145139868b6750fed10e3e4af7e6f5e594bf6dc3"
+   "bytes": 1174941,
+   "blake3": "8af7ac171999d36f4bb026a439e1a02213571f5a46ddddd5c3d162ca20dcf29c"
   },
   "ultra": {
    "glb": "rooms/arcade.glb",
@@ -294,9 +294,9 @@
  "board": {
   "high": {
    "glb": "rooms/board.glb",
-   "lightmap": "rooms/board_lm.png",
+   "lightmap": "rooms/board_lm.ktx2",
    "furniture": {
-    "image": "rooms/board_fm.png",
+    "image": "rooms/board_fm.ktx2",
     "grid": 3,
     "tiles": [
      {
@@ -341,8 +341,8 @@
      }
     ]
    },
-   "bytes": 2496418,
-   "blake3": "2105182cbe83b2b668db083d3aeddc3e2488684fc353436ff20a0fa2092c9348"
+   "bytes": 1269212,
+   "blake3": "83cebd46085f88f98e92ca0dc3027fc8380520223fbed53860080113768a00b3"
   },
   "ultra": {
    "glb": "rooms/board.glb",
@@ -400,9 +400,9 @@
  "desk": {
   "high": {
    "glb": "rooms/desk.glb",
-   "lightmap": "rooms/desk_lm.png",
+   "lightmap": "rooms/desk_lm.ktx2",
    "furniture": {
-    "image": "rooms/desk_fm.png",
+    "image": "rooms/desk_fm.ktx2",
     "grid": 3,
     "tiles": [
      {
@@ -455,8 +455,8 @@
      }
     ]
    },
-   "bytes": 2333460,
-   "blake3": "abb06c05b27c9dcfee1a2578a463343e4a568847aeef4463f08612a13069450c"
+   "bytes": 1214946,
+   "blake3": "03b2d826f33d8b2cce3f1c943480e292efef69c770bb7b327cfaa8273ca3d624"
   },
   "ultra": {
    "glb": "rooms/desk.glb",
@@ -522,9 +522,9 @@
  "feed": {
   "high": {
    "glb": "rooms/feed.glb",
-   "lightmap": "rooms/feed_lm.png",
+   "lightmap": "rooms/feed_lm.ktx2",
    "furniture": {
-    "image": "rooms/feed_fm.png",
+    "image": "rooms/feed_fm.ktx2",
     "grid": 2,
     "tiles": [
      {
@@ -561,8 +561,8 @@
      }
     ]
    },
-   "bytes": 2176546,
-   "blake3": "dc55ac9566fda7c150910b37f7307dc2f462ffb1d205b35eda2cb0766a0fb940"
+   "bytes": 1046968,
+   "blake3": "61370fd14a0251319ae817243f878d65eadac3f5179373bf5383c33529b4363d"
   },
   "ultra": {
    "glb": "rooms/feed.glb",
@@ -612,9 +612,9 @@
  "hearth": {
   "high": {
    "glb": "rooms/hearth.glb",
-   "lightmap": "rooms/hearth_lm.png",
+   "lightmap": "rooms/hearth_lm.ktx2",
    "furniture": {
-    "image": "rooms/hearth_fm.png",
+    "image": "rooms/hearth_fm.ktx2",
     "grid": 2,
     "tiles": [
      {
@@ -635,8 +635,8 @@
      }
     ]
    },
-   "bytes": 2925365,
-   "blake3": "26be58f0acbf66ca56e65120371433a7b07a5d9588d504d16b06d081d460c654"
+   "bytes": 1381135,
+   "blake3": "d88db5d8b307712b84da4ce9ba5b80d4d788784182c524b5d4d4380e0fb37d5e"
   },
   "ultra": {
    "glb": "rooms/hearth.glb",
@@ -670,9 +670,9 @@
  "skein": {
   "high": {
    "glb": "rooms/skein.glb",
-   "lightmap": "rooms/skein_lm.png",
+   "lightmap": "rooms/skein_lm.ktx2",
    "furniture": {
-    "image": "rooms/skein_fm.png",
+    "image": "rooms/skein_fm.ktx2",
     "grid": 3,
     "tiles": [
      {
@@ -717,8 +717,8 @@
      }
     ]
    },
-   "bytes": 3218511,
-   "blake3": "65896acb0b0e118b0669b6b180263e81e21dfe7100f2bf9d3878ec6e524e332d"
+   "bytes": 1577390,
+   "blake3": "bc2be943a6755bc2ca3e6bc61773bacfede535fbbe419a4d11838c15ff8a67ee"
   },
   "ultra": {
    "glb": "rooms/skein.glb",

@@ -114,9 +114,11 @@ export class AssetLibrary {
   async bakedRoom(section: string, signal?: AbortSignal): Promise<RoomBake | null> {
     if (!this.roomsMan) this.roomsMan = import('./rooms.json').then((m) => (m.default ?? m) as unknown as Record<string, Partial<Record<AssetTier, RoomBakeEntry>>>).catch(() => ({}));
     const e = (await this.roomsMan)[section]; const tier: AssetTier = e?.[this.tier] ? this.tier : 'high'; const f = e?.[tier]; if (!f) return null;
-    const tl = new THREE.TextureLoader(); const [g, lm, fmT] = await raceAbort(Promise.all([this.gltf.loadAsync(this.url(f.glb, tier)), tl.loadAsync(this.url(f.lightmap, tier)), f.furniture ? tl.loadAsync(this.url(f.furniture.image, tier)) : Promise.resolve(null)]), signal);
+    // KTX2 (UASTC, mipmapped, stays block-compressed on the GPU); a PNG still loads for an ultra pack baked before the KTX2 switch
+    const tl = new THREE.TextureLoader(); const bake = (u: string) => (u.endsWith('.ktx2') ? this.ktx2 : tl).loadAsync(u) as Promise<THREE.Texture>;
+    const [g, lm, fmT] = await raceAbort(Promise.all([this.gltf.loadAsync(this.url(f.glb, tier)), bake(this.url(f.lightmap, tier)), f.furniture ? bake(this.url(f.furniture.image, tier)) : Promise.resolve(null)]), signal);
     if (fmT) { fmT.flipY = false; fmT.colorSpace = THREE.NoColorSpace; fmT.channel = 1; fmT.anisotropy = this.aniso; fmT.needsUpdate = true; }
-    lm.flipY = false; lm.colorSpace = THREE.NoColorSpace; lm.channel = 1; lm.anisotropy = this.aniso; lm.generateMipmaps = true; lm.minFilter = THREE.LinearMipmapLinearFilter; lm.needsUpdate = true;
+    lm.flipY = false; lm.colorSpace = THREE.NoColorSpace; lm.channel = 1; lm.anisotropy = this.aniso; lm.needsUpdate = true;
     const parts: ShellPartLike[] = []; g.scene.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) parts.push({ name: (m.material as THREE.Material).name.split('@')[1] ? (m.material as THREE.Material).name.split('@')[0] : m.name, material: (m.material as THREE.Material).name.split('@')[1] ?? (m.material as THREE.Material).name, geometry: m.geometry }); });
     const tiles = new Map<number, [number, number, number]>(); f.furniture?.tiles.forEach((t, i) => { if (t) tiles.set(i, t.tile); });
     return { parts, lightMap: lm, furnitureMap: fmT, tiles, grid: f.furniture?.grid ?? 1 };

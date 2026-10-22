@@ -203,9 +203,9 @@ export async function ktx2Cli(doc, px) {
     set(m.getBaseColorTexture(), 'color'); set(m.getEmissiveTexture(), 'color'); set(m.getNormalTexture(), 'normal');
     set(m.getMetallicRoughnessTexture(), 'data'); set(m.getOcclusionTexture(), 'data');
   }
-  doc.createExtension(KHRTextureBasisu).setRequired(true);
+  if (!doc.getRoot().listExtensionsUsed().some((e) => e.extensionName === 'KHR_texture_basisu')) doc.createExtension(KHRTextureBasisu).setRequired(true);
   for (const [tex, kind] of slots) {
-    const img = tex.getImage(); if (!img) continue; const meta = await sharp(img).metadata(); const sc = Math.min(1, px / Math.max(meta.width, meta.height));
+    const img = tex.getImage(); if (!img || tex.getMimeType() === 'image/ktx2') continue; const meta = await sharp(img).metadata(); const sc = Math.min(1, px / Math.max(meta.width, meta.height));
     const t = mkdtempSync(join(tmpdir(), 'basisu-'));
     const w = Math.max(4, Math.round((meta.width * sc) / 4) * 4), h = Math.max(4, Math.round((meta.height * sc) / 4) * 4);
     await sharp(img).resize(w, h, { fit: 'fill', kernel: 'lanczos3' }).png().toFile(join(t, 'in.png'));
