@@ -24,7 +24,7 @@ describe('ravens fly for real arrivals (R-001)', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => { setTown(null); vi.useRealTimers(); });
   const storeWith = (seed: Seed, extra: Partial<AppStore> = {}) => create<AppStore>()((set, get, api) => ({
-    ...createRavenSlice(set, get, api), seed, space: 'home', ch: {}, inside: false, section: 'chat', incoming: {}, ravens: true, photo: false, onb: 0, archi: false, ...extra,
+    ...createRavenSlice(set, get, api), seed, space: 'home', ch: {}, inside: false, section: 'chat', incoming: {}, ravens: true, photo: false, onb: 0, archi: false, prefs: { muted: {} }, ...extra,
   }) as unknown as AppStore);
 
   it('a message.post from someone in another Space flies a raven to the signpost, then opens the letter', () => {
