@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
+import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_DETECT, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
 import type { SectionId } from '@/lib/data/types';
 import { createInteriors, type InteriorRoom } from './interiors';
 import { createOverlay } from './overlay';
@@ -49,12 +49,12 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   const probe = document.createElement('canvas');
   const probeGl = (probe.getContext('webgl2') || probe.getContext('webgl')) as WebGLRenderingContext | null;
   if (!probeGl) throw new Error('WebGL unavailable');
-  const gpu = gpuName(probeGl);
+  const gpu = gpuName(probeGl); const soft = QUALITY_DETECT.softwareGpu.test(gpu);
   const autoTier = () => detectTier(gpu, navigator.hardwareConcurrency || 0, window.devicePixelRatio || 1, Math.min(window.innerWidth, window.innerHeight), 'ontouchstart' in window);
   const saved = savedQuality(); let autoQ = !saved; let tier: QualityTier = saved ?? autoTier(); let Q: QualitySpec = QUALITY[tier];
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' }); renderer.info.autoReset = false; // one reset per frame: calls cover every pass
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
+  const renderer = new THREE.WebGLRenderer({ antialias: !soft, alpha: true, powerPreference: 'high-performance' }); renderer.info.autoReset = false; // one reset per frame: calls cover every pass
+  renderer.shadowMap.enabled = !soft; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true;
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = RENDER.exposure;
   renderer.setClearColor(0x000000, 0);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;outline:none';
@@ -206,7 +206,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     const ids = SECTION_ORDER;
     ids.forEach((id, i) => { plots[id] = makePlot(id, gs.levels[id] > 0, (first ? TIMING.plotDelayFirst : TIMING.plotDelayNext) + i * TIMING.plotStagger, Math.max(1, gs.levels[id]) as BuildingLevel); });
     houses = site!.houses.map((h, i) => makeHouse(h, info, i, first));
-    if (first) { setTimeout(prewarmRooms, 0); setTimeout(warmGpu, 2500); }
+    if (first && !soft) { setTimeout(prewarmRooms, 0); setTimeout(warmGpu, 2500); }
     const n = Math.min(ISLAND.peopleMax, Math.max(ISLAND.peopleMin, Math.round((info.online || 4) / ((info.online || 0) > 50 ? 20 : 1))));
     for (let i = 0; i < n; i++) people.push(makePerson(rng(info.id + i), i));
     applyRoom(); if (!loomLight.parent) island.add(loomLight);
@@ -437,7 +437,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (want) void import('./rooms/hifi/register').then((m) => { if (alive && hifiTier === want) hifiOff = m.installHifiRooms({ renderer, tier: want }); });
   }
   function applyQuality(t: QualityTier) {
-    applyHifi(t); tier = t; Q = QUALITY[t]; const pr = Math.min(window.devicePixelRatio || 1, Q.pixelRatio); applyShadowTier(renderer, scene, t); winLights.setTier(t);
+    applyHifi(t); tier = t; Q = QUALITY[t]; const pr = Math.min(window.devicePixelRatio || 1, Q.pixelRatio) * (soft ? QUALITY_DETECT.softwareScale : 1); applyShadowTier(renderer, scene, t); winLights.setTier(t);
     renderer.setPixelRatio(pr); renderer.setSize(W, H, false); pipeline.setSize(W, H); pipeline.configure(Q);
     sun.shadow.mapSize.set(Q.shadowMap, Q.shadowMap); sun.shadow.map?.dispose(); sun.shadow.map = null; sun.shadow.radius = Q.shadowRadius; renderer.shadowMap.needsUpdate = true;
     site?.setQuality(tier, Q); env.setEnabled(Q.env); skyBodies.setVisible(!pipeline.active); gi.configure(Q.gi); gi.invalidate(); still.invalidate(); if (Q.gi || tier === STILL.idleTier) still.warm(); IN.setShadows(Q.interiorShadow); resetCompiled(); void prep(scene, { gate: true, post: true, maxMs: 5000, label: 'tier:' + t });
