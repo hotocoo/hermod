@@ -33,6 +33,8 @@ export const MEDIA = {
     iceRestartBackoffMs: [1_500, 4_000, 8_000],
     /** Peer without a connected state this long after hello is reported unreachable. */
     connectTimeoutMs: 25_000,
+    /** A hello-ack is honoured this long after the join hello (or at any time from a peer we retried). */
+    helloAckWindowMs: 10_000,
     statsEveryMs: 2_000,
     /** Poor quality thresholds for the UI banner. */
     poorRttMs: 400,
@@ -64,6 +66,10 @@ export const MEDIA = {
     maxDirect: 4,
     maxForward: 2,
     maxViewers: 200,
+    /** Signals that arrive before the host assigned their sender as parent are parked: messages per sender, senders, and payload bytes over all of them. */
+    earlyMaxPerSender: 64,
+    earlyMaxSenders: 8,
+    earlyMaxBytes: 256 * 1024,
     videoBps: 1_800_000,
     audioBps: 64_000,
     /** Ephemeral kinds (2 KiB, rate limited by the node, droppable by design). */

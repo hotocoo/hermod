@@ -104,7 +104,7 @@ export interface SkySlice {
 }
 
 export interface ChatSlice {
-  msgs: Record<string, Message[]>; drafts: Record<string, string>; tdraft: string; attached: Attached[];
+  msgs: Record<string, Message[]>; drafts: Record<string, string>; tdraft: string; attached: Record<string, Attached[]>;
   editing: string | null; editDraft: string; snapRef: string | null;
   setSnapRef(id: string | null): void;
   seen: Record<string, boolean>; incoming: Record<string, number>;

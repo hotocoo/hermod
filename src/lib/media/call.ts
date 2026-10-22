@@ -5,7 +5,7 @@ import { MediaError, toMediaError } from './errors';
 import { LocalMedia, applySink } from './local';
 import { PeerLink, capSender } from './peer';
 import { CallRecorder } from './recorder';
-import { gateSession, isPolite, newSid, type SignalMsg } from './sessions';
+import { HelloLedger, gateSession, isPolite, newSid, type SignalMsg } from './sessions';
 import { Signaling } from './signaling';
 import { LevelMonitor } from './speaking';
 import { classify, diffSamples, sampleFromReport, type StatSample } from './stats';
@@ -60,6 +60,7 @@ export class CallSession extends Emitter<CallEvents> {
   private readonly ownsSig: boolean;
   private readonly links = new Map<string, Link>();
   private readonly recording = new Set<string>();
+  private readonly hellos = new HelloLedger();
   private monitor: LevelMonitor | null = null;
   private ctx: AudioContext | null = null;
   private recorder: CallRecorder | null = null;
@@ -102,6 +103,7 @@ export class CallSession extends Emitter<CallEvents> {
       this.offSig = this.sig.subscribe(this.scope, (from, m) => this.onSignal(from, m));
       this.statsTimer = setInterval(() => { void this.pollStats(); }, MEDIA.call.statsEveryMs);
       window.addEventListener('pagehide', this.onHide);
+      this.hellos.broadcast(Date.now(), MEDIA.call.helloAckWindowMs);
       await this.sig.send(this.scope, this.sid, 'hello', {});
     } catch (e) {
       await this.leave();
@@ -158,6 +160,7 @@ export class CallSession extends Emitter<CallEvents> {
   /** Tears down one failed link and starts it over (hello is sent to that peer only). */
   async retry(peer: string): Promise<void> {
     this.drop(peer);
+    this.hellos.to(peer);
     await this.sig.send(this.scope, this.sid, 'hello', {}, peer);
   }
 
@@ -237,8 +240,10 @@ export class CallSession extends Emitter<CallEvents> {
   }
 
   private onAck(from: string, m: SignalMsg): void {
+    if (!this.hellos.accepts(from, Date.now())) return;
     const d = m.data as { full?: boolean; rec?: boolean } | undefined;
     if (d?.full) {
+      if (this.links.size > 0) return; // a room we are already in cannot be full for us
       this.emit('error', new MediaError('room-full', undefined, from));
       void this.leave();
       return;

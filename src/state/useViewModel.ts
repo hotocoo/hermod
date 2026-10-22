@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import { useAppStore } from './store';
+import { AMBIENT_MS, classifyChange } from './viewChange';
 import { loadingViewModel, selectViewModel, type VmProps } from './viewModel';
 
 const SSR_VIEWPORT = { w: 1440, h: 900 };
@@ -17,10 +18,6 @@ export function useViewport(): VmProps['viewport'] {
   return vp;
 }
 
-/** Keys the scene updates continuously (sky clock); a change touching only these is coalesced instead of re-rendering immediately. */
-const AMBIENT = new Set(['hour', 'period', 'night']);
-const AMBIENT_MS = 250;
-
 /** The template's view model for the current store state (ambient sky ticks are rate limited, everything else updates at once). */
 export function useViewModel() {
   const [state, setState] = useState(() => useAppStore.getState());
@@ -28,9 +25,8 @@ export function useViewModel() {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const flush = () => { timer = null; setState(useAppStore.getState()); };
     const unsub = useAppStore.subscribe((s, p) => {
-      let onlyAmbient = true;
-      for (const k in s) if ((s as unknown as Record<string, unknown>)[k] !== (p as unknown as Record<string, unknown>)[k] && !AMBIENT.has(k)) { onlyAmbient = false; break; }
-      if (!onlyAmbient) { if (timer) { clearTimeout(timer); timer = null; } setState(s); } else if (!timer) timer = setTimeout(flush, AMBIENT_MS);
+      const kind = classifyChange(s, p);
+      if (kind === 'now') { if (timer) { clearTimeout(timer); timer = null; } setState(s); } else if (kind === 'ambient' && !timer) timer = setTimeout(flush, AMBIENT_MS);
     });
     flush();
     return () => { unsub(); if (timer) clearTimeout(timer); };

@@ -103,6 +103,9 @@ export const LIMITS = {
   doorItems: 3,
   feedHintMax: 4,
   animStagger: 10,
+  /** Peer-supplied link preview text is cut to these lengths before it is drawn. */
+  previewTitle: 120,
+  previewDesc: 300,
 } as const;
 
 export const MEDIA = {

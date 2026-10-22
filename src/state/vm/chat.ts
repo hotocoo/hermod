@@ -82,8 +82,6 @@ export function chatVm(x: Ctx) {
   const raw = [...(s.older[key] ?? []).filter((m) => !seen.has(m.id)), ...have]; // pages loaded by loadOlder precede the snapshot's messages
   const messages = raw.map((m, i, arr) => messageVm(x, m, i, arr, key));
   const threadMsg = messages.find((m) => m.id === s.thread) ?? null;
-  const draft = s.drafts[key] ?? '';
-  const canSend = !!draft.trim() || s.attached.length > 0 || !!s.snapRef;
   const snapChoices = (s.skein[s.space]?.snaps ?? []).map((q) => ({ id: q.id, title: q.title, line: q.line }));
 
   return {
@@ -97,10 +95,10 @@ export function chatVm(x: Ctx) {
     sectionLabel: seed.sections[s.section].label,
     channels, chan, messages, hasMessages: messages.length > 0, noMessages: messages.length === 0, 
     emptyTitle: chan.name ? `It’s quiet in ${chan.isDm ? chan.name : `#${chan.name}`}` : 'No channel yet', emptyLine: 'Every good channel starts with one message. Say hi, share a link, or drop a file here.',
-    draft, onDraft: (e: InputEvt) => s.setDraft(e.target.value), onSend: () => { void s.send(); }, onDraftKey: enterToSend(() => { void s.send(); }), canSend,
-    attached: s.attached, detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: seed.people, meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,
+    onSend: () => { void s.send(); }, onDraftKey: enterToSend(() => { void s.send(); }),
+    attached: s.attached[key] ?? [], detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: seed.people, meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,
     snapRefTitle: snapChoices.find((q) => q.id === s.snapRef)?.title ?? '', isHome: spaceHome,
-    sendFg: canSend ? ACCENT : mixText(35),
+    sendFgOn: ACCENT, sendFgOff: mixText(35),
     placeholder: chan.isDm ? `Message ${chan.name.split(' ')[0]}` : `Write to #${chan.name}`,
     threadOpen: !!threadMsg, thread: threadMsg, closeThread: s.closeThread, tdraft: s.tdraft, onTDraft: (e: InputEvt) => s.setTDraft(e.target.value),
     onTSend: () => { void s.tsend(); }, onTKey: enterToSend(() => { void s.tsend(); }),

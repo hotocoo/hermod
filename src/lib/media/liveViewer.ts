@@ -1,7 +1,7 @@
 import { MEDIA } from '../../config/media';
 import { Emitter } from './emitter';
 import { MediaError, toMediaError } from './errors';
-import { HeartBatcher, listenLive, type LiveState } from './liveShared';
+import { HeartBatcher, listenLive, parkEarly, type LiveState } from './liveShared';
 import { PeerLink, capSender } from './peer';
 import { gateSession, newSid, type SignalMsg } from './sessions';
 import { Signaling } from './signaling';
@@ -34,7 +34,6 @@ export interface LiveViewerEvents {
 interface Child { pl: PeerLink; senders: Map<string, RTCRtpSender> }
 
 const JOIN_TRIES = 3;
-const EARLY_MAX = 64;
 
 /** Live viewer: receives from the host or a forwarding viewer, re-forwards to up to `maxForward` children, rejoins elsewhere when its parent fails. */
 export class LiveViewer extends Emitter<LiveViewerEvents> {
@@ -49,7 +48,7 @@ export class LiveViewer extends Emitter<LiveViewerEvents> {
   private parent: string | undefined;
   private readonly children = new Map<string, Child>();
   private readonly sids = new Map<string, string>();
-  private readonly early = new Map<string, SignalMsg[]>();
+  private early = new Map<string, SignalMsg[]>();
   private readonly excluded = new Set<string>();
   private readonly hearts: HeartBatcher;
   private offSig: (() => void) | null = null;
@@ -168,7 +167,9 @@ export class LiveViewer extends Emitter<LiveViewerEvents> {
     this.parent = parent;
     this.joinTimer = setTimeout(() => this.onJoinTimeout(), MEDIA.live.joinTimeoutMs / JOIN_TRIES);
     if (parent === this.o.host) this.sids.set(parent, hostSid);
-    for (const m of this.early.get(parent)?.splice(0) ?? []) this.onRtc(parent, m);
+    const parked = this.early.get(parent) ?? [];
+    this.early.delete(parent);
+    for (const m of parked) this.onRtc(parent, m);
   }
 
   private onRtc(from: string, m: SignalMsg): void {
@@ -180,8 +181,7 @@ export class LiveViewer extends Emitter<LiveViewerEvents> {
     const child = this.children.get(from);
     if (child) { void child.pl.handle(m.type, m.data); return; }
     // An offer can overtake the host's `assign`: keep a few messages and replay them if this peer becomes the parent.
-    const q = this.early.get(from) ?? [];
-    if (q.length < EARLY_MAX) this.early.set(from, [...q, m]);
+    this.early = parkEarly(this.early, from, m);
   }
 
   private dropPeer(id: string): void {
@@ -295,6 +295,6 @@ export class LiveViewer extends Emitter<LiveViewerEvents> {
     this.hearts.dispose();
     for (const id of [...this.children.keys()]) this.closeChild(id);
     this.closeUp();
-    this.early.clear();
+    this.early = new Map();
   }
 }

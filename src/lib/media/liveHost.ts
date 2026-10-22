@@ -98,7 +98,8 @@ export class LiveBroadcast extends Emitter<LiveHostEvents> {
   async stop(): Promise<void> {
     if (!this.running) return;
     this.running = false;
-    await this.sig.send(this.scope, this.sid, 'live-leave').catch(() => undefined);
+    // Sent first, awaited last: everything below runs synchronously so a quick `start()` is not torn down by this stop.
+    const bye = this.sig.send(this.scope, this.sid, 'live-leave').catch(() => undefined);
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.offSig?.();
@@ -110,6 +111,7 @@ export class LiveBroadcast extends Emitter<LiveHostEvents> {
     if (this.ownsSig) this.sig.dispose();
     this.emit('closed', undefined);
     this.clearListeners();
+    await bye;
   }
 
   // ---- protocol -------------------------------------------------------------------------------
