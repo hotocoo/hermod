@@ -2,6 +2,10 @@
 export const COPY = {
   syncPending: (n: string, offline: boolean, alone: boolean) => (offline ? `${n} to sync, offline` : alone ? `${n} saved here, no peer online` : `${n} to sync`),
   syncPendingTitle: 'Changes made here that other peers have not received yet',
+  netBanned: 'Banned for flooding',
+  netEventRate: 'Events per second from one person',
+  netEventBurst: 'Burst of events from one person',
+  netEventBytes: 'Largest live event accepted',
   qualityFixed: 'Fixed on this device.',
   qualityLowerHint: ' Lower it if the island stutters.',
   qualityAutoPicked: (tier: string) => `Auto picked ${tier} for this computer`,

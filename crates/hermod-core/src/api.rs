@@ -572,6 +572,11 @@ impl Core {
         })
     }
 
+    /// Applies new live-gossip caps (per author rate, burst, event size) without reopening.
+    pub fn set_rate(&self, rate: RateConfig) {
+        self.lock().store.set_rate(rate);
+    }
+
     pub(crate) fn lock(&self) -> MutexGuard<'_, Inner> {
         self.inner.lock().unwrap_or_else(|p| p.into_inner())
     }

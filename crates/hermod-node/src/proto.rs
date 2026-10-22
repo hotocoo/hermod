@@ -25,6 +25,11 @@ pub const MAX_GOSSIP_EVENT: usize = (1 << 20) + 4096;
 pub const MAX_EPHEMERAL_BYTES: usize = 2048;
 /// Longest accepted ephemeral `kind` label ("presence", "typing", ...).
 pub const MAX_EPHEMERAL_KIND: usize = 32;
+/// Inbound events per author, refill per second and burst. A backstop above every user-set
+/// per-author cap (settings ceilings stay below it) so the store's own limit trips first.
+pub const EVENT_IN_RATE: (f64, f64) = (100.0, 400.0);
+/// Ephemeral messages (presence, typing) per peer, in and out: refill per second and burst.
+pub const EPHEMERAL_RATE: (f64, f64) = (20.0, 60.0);
 /// Inbound sync requests per peer: refill per second and burst.
 pub const SYNC_IN_RATE: (f64, f64) = (10.0, 20.0);
 /// Inbound signals (gossip and RPC) per peer: refill per second and burst.
@@ -33,6 +38,10 @@ pub const SIGNAL_IN_RATE: (f64, f64) = (10.0, 30.0);
 pub const BLOB_SERVE_INFLIGHT_PER_PEER: u32 = 16;
 /// Announced providers remembered per blob with an active fetch job.
 pub const MAX_PROVIDERS_PER_BLOB: usize = 32;
+/// Strikes (rate floods, rejected or undecodable gossip) within a maintenance interval that earn a ban.
+pub const STRIKE_LIMIT: u32 = 50;
+/// How long a peer that hit `STRIKE_LIMIT` stays banned.
+pub const BAN_SECS: u64 = 600;
 /// Parallel chunk requests per blob.
 pub const BLOB_WINDOW: usize = 8;
 

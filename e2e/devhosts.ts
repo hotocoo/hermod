@@ -45,6 +45,10 @@ function listening(proc: ChildProcess, port: number): Promise<void> {
   });
 }
 
+function launch(port: number, dir: string): ChildProcess {
+  return spawn('target/debug/hermod-devhost', ['--data-dir', dir, '--port', String(port), '--listen', '/ip4/127.0.0.1/tcp/0'], { stdio: ['ignore', 'pipe', 'ignore'] });
+}
+
 /**
  * Replaces all three devhosts with new ones: empty data dir, new identity, new database and blobs.
  * Every spec file starts from this, so no spec sees Spaces, profiles, peers or invites a former spec left,
@@ -54,10 +58,24 @@ export async function freshDevhosts(): Promise<void> {
   await stopAll();
   running = PORTS.map((port) => {
     const dir = mkdtempSync(join(tmpdir(), `hermod-e2e-${port}.`));
-    const proc = spawn('target/debug/hermod-devhost', ['--data-dir', dir, '--port', String(port), '--listen', '/ip4/127.0.0.1/tcp/0'], { stdio: ['ignore', 'pipe', 'ignore'] });
-    return { proc, dir };
+    return { proc: launch(port, dir), dir };
   });
   await Promise.all(running.map(({ proc }, i) => listening(proc, PORTS[i])));
+}
+
+/** Takes one devhost (index into A, B, FRESH) offline, keeping its data dir so `startDevhost` brings back the same identity. */
+export async function stopDevhost(i: number): Promise<void> {
+  const { proc } = running[i];
+  if (proc.exitCode !== null) return;
+  const exited = new Promise<void>((done) => { proc.once('exit', () => { done(); }); });
+  proc.kill('SIGKILL');
+  await exited;
+}
+
+/** Restarts a devhost stopped by `stopDevhost` on its old port and data dir. */
+export async function startDevhost(i: number): Promise<void> {
+  running[i].proc = launch(PORTS[i], running[i].dir);
+  await listening(running[i].proc, PORTS[i]);
 }
 
 /** Last resort for a worker that exits normally; a killed worker is covered by `killPorts` on the next start. */

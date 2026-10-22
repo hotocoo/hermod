@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { errorMessage, getBridge, type NodeSettings, type NodeSettingsView, type NodeStatus } from '@/lib/bridge';
+import { COPY } from '@/config/copy';
 import { humanSize } from '@/lib/upload';
 import { useAppStore } from '@/state/store';
 import type { ViewModel } from '@/state/viewModel';
@@ -15,12 +16,16 @@ const REACH: Record<NodeStatus['reachability'], string> = {
 };
 const rate = (n: number) => `${humanSize(n)}/s`;
 
-type Slider = { key: 'relay_circuits' | 'relay_bandwidth_bps' | 'blob_cache_bytes' | 'max_connections'; label: string; min: number; step: number; fmt: (n: number) => string };
+type SliderKey = 'relay_circuits' | 'relay_bandwidth_bps' | 'blob_cache_bytes' | 'max_connections' | 'event_rate_per_sec' | 'event_burst' | 'max_event_bytes';
+type Slider = { key: SliderKey; label: string; min: number; step: number; fmt: (n: number) => string };
 const SLIDERS: Slider[] = [
   { key: 'relay_circuits', label: 'Relay circuits for others', min: 0, step: 1, fmt: String },
   { key: 'relay_bandwidth_bps', label: 'Relay bandwidth', min: 16 * 1024, step: 16 * 1024, fmt: rate },
   { key: 'blob_cache_bytes', label: 'Encrypted cache kept for others', min: 0, step: 64 * 1024 * 1024, fmt: humanSize },
   { key: 'max_connections', label: 'Connections', min: 8, step: 8, fmt: String },
+  { key: 'event_rate_per_sec', label: COPY.netEventRate, min: 1, step: 1, fmt: String },
+  { key: 'event_burst', label: COPY.netEventBurst, min: 1, step: 1, fmt: String },
+  { key: 'max_event_bytes', label: COPY.netEventBytes, min: 16 * 1024, step: 16 * 1024, fmt: humanSize },
 ];
 
 function Caps() {
@@ -66,6 +71,7 @@ export function NetworkDrawer({ vm }: { vm: ViewModel }) {
       ) : (
         <dl className={s.stats}>
           <div className={s.stat}><dt>Peers</dt><dd>{node.peers}</dd></div>
+          {node.banned > 0 && <div className={s.stat}><dt>{COPY.netBanned}</dt><dd>{node.banned}</dd></div>}
           <div className={s.stat}><dt>Relaying now</dt><dd>{node.relaying}{node.relay_paused ? ' (paused)' : ''}</dd></div>
           <div className={`${s.stat} ${s.wide}`}><dt>Reachability</dt><dd>{REACH[node.reachability]}{node.nat ? ` NAT: ${node.nat}.` : ''}</dd></div>
           <div className={s.stat}><dt>Bandwidth in / out</dt><dd>{rate(node.bandwidth.in_bps)} / {rate(node.bandwidth.out_bps)}</dd></div>

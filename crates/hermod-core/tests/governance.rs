@@ -541,6 +541,64 @@ fn ingest_rate_cap_applies_to_gossip_but_not_to_backfill() {
 }
 
 #[test]
+fn set_rate_tightens_the_gossip_cap_on_an_open_core() {
+    let (_d, b) = core();
+    let (_d2, a) = core();
+    let s = a.space_create("Flood", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap();
+    b.set_rate(hermod_core::ratelimit::RateConfig {
+        events_per_sec: 1.0,
+        burst: 2,
+        max_event_bytes: 1 << 20,
+    });
+    for i in 0..10 {
+        a.append(&s, post_msg("general", &format!("m{i}"), "x"))
+            .unwrap();
+    }
+    let evs = a.missing_since(&s, &b.vector(&s).unwrap()).unwrap();
+    let limited = evs
+        .iter()
+        .take(10)
+        .filter(|e| matches!(b.ingest((*e).clone()), Err(Error::RateLimited(_))))
+        .count();
+    assert!(limited > 0, "the new cap applies without reopening");
+}
+
+#[test]
+fn size_cap_applies_to_gossip_but_not_to_local_or_sync() {
+    let d = tempfile::tempdir().unwrap();
+    let cfg = hermod_core::CoreConfig {
+        rate: hermod_core::ratelimit::RateConfig {
+            events_per_sec: 1000.0,
+            burst: 1000,
+            max_event_bytes: 1024,
+        },
+        ..Default::default()
+    };
+    let b = Core::open_with(d.path(), cfg).unwrap();
+    let (_d2, a) = core();
+    let s = a.space_create("Big", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap();
+    let big = "x".repeat(4096);
+    a.append(&s, post_msg("general", "big", &big)).unwrap();
+    let evs = a.missing_since(&s, &b.vector(&s).unwrap()).unwrap();
+    let (ev, rest) = evs.split_last().unwrap();
+    for e in rest {
+        b.ingest_sync(e.clone()).unwrap();
+    }
+    let ev = ev.clone();
+    assert!(
+        matches!(b.ingest(ev.clone()), Err(Error::Invalid { .. })),
+        "gossip over the cap is refused"
+    );
+    b.ingest_sync(ev).unwrap();
+    b.append(&s, post_msg("general", "mine", &big)).unwrap();
+    assert!(texts(&b, &s).iter().any(|t| t.len() == big.len()));
+}
+
+#[test]
 fn moderation_tombstones_posts_comments_and_cheap_arms() {
     let (a, b, _c, s, _d) = trio();
     b.append(&s, post_msg("general", "bad", "spam")).unwrap();

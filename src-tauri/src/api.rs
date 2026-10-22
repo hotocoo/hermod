@@ -375,7 +375,12 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         "node_settings_set" => {
             let patch: NodePatch =
                 serde_json::from_value(a.clone()).map_err(|x| format!("invalid settings: {x}"))?;
-            let s = blk(&live, move |c| settings::node_settings_set(c, &patch)).await?;
+            let s = blk(&live, move |c| {
+                let s = settings::node_settings_set(c, &patch)?;
+                c.set_rate(s.rate());
+                Ok(s)
+            })
+            .await?;
             if let Some(node) = ctx.node().await {
                 node.set_limits(s.limits()).await.map_err(e)?;
             }
@@ -417,8 +422,9 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                 Some(n) => n.status().await.ok(),
                 None => None,
             };
+            let queued = st.as_ref().map_or(0, |s| s.outbox + s.sync_pending);
             Ok(
-                json!({ "pending": st.as_ref().map_or(0, |s| s.outbox + s.sync_pending), "peers": st.map_or(0, |s| s.peers) }),
+                json!({ "pending": queued.saturating_add(ctx.unsent().await), "peers": st.map_or(0, |s| s.peers) }),
             )
         }
 

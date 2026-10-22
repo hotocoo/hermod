@@ -155,6 +155,11 @@ impl Store {
         Self::init(Connection::open(path).map_err(migrations::classify)?, rate)
     }
 
+    /// Swaps the live-gossip rate and size caps; existing buckets start over.
+    pub fn set_rate(&mut self, rate: RateConfig) {
+        self.limiter = Limiter::new(rate);
+    }
+
     pub fn open_in_memory() -> Result<Self> {
         Self::init(Connection::open_in_memory()?, RateConfig::default())
     }
@@ -338,7 +343,11 @@ impl Store {
                 "seq and lamport must be in 1..=2^53-1 and epoch within bounds",
             ));
         }
-        if ev.body.len() > MAX_BODY_BYTES.min(self.limiter.config().max_event_bytes) {
+        if ev.body.len() > MAX_BODY_BYTES {
+            return Err(Error::invalid("event", "body too large"));
+        }
+        // The user's size cap guards live gossip only; local appends and backfill stay bounded by the protocol limit.
+        if source == Source::Gossip && ev.body.len() > self.limiter.config().max_event_bytes {
             return Err(Error::invalid("event", "body too large"));
         }
         let id = ev.id();

@@ -301,4 +301,69 @@ mod tests {
         let ev = SignedEvent::create(&author, &new, 1, space, 1, 1, 0, &body).unwrap();
         assert!(open_notice(&store, &ev).is_some());
     }
+
+    fn post(text: &str, id: &str) -> EventBody {
+        EventBody::MessagePost {
+            channel_id: "general".into(),
+            msg_id: id.into(),
+            text: text.into(),
+            reply_to: None,
+            attachments: vec![],
+            snap: None,
+            mentions: vec![],
+            preview: None,
+            target: None,
+            ext: None,
+        }
+    }
+
+    /// E-010: Core's rate and size caps reach the node as `Rejected` (which earns a strike) for
+    /// live gossip only; the same events pass via backfill.
+    #[test]
+    fn gossip_over_the_caps_is_rejected_but_backfill_is_not() {
+        use hermod_core::CoreConfig;
+        use hermod_core::ratelimit::RateConfig;
+        let (da, db) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+        let cfg = CoreConfig {
+            rate: RateConfig {
+                events_per_sec: 0.001,
+                burst: 1,
+                max_event_bytes: 1024,
+            },
+            ..Default::default()
+        };
+        let a = Core::open(da.path()).unwrap();
+        let b = Arc::new(Core::open_with(db.path(), cfg).unwrap());
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let store = CoreStore::new(b.clone(), tx, Touched::default());
+        let sp = a.space_create("Caps", "", "Team").unwrap().id;
+        b.invite_accept(&a.invite_create(&sp, None, vec![]).unwrap().code)
+            .unwrap();
+        a.append(&sp, post("one", "m1")).unwrap();
+        a.append(&sp, post("two", "m2")).unwrap();
+        a.append(&sp, post(&"x".repeat(4096), "big")).unwrap();
+        let evs = a.missing_since(&sp, &b.vector(&sp).unwrap()).unwrap();
+        let bytes: Vec<Vec<u8>> = evs.iter().map(|e| e.to_bytes().unwrap()).collect();
+        let (big, rest) = bytes.split_last().unwrap();
+        // The size cap trips before any token is taken.
+        let out = store.ingest_gossip(&sp.0, big).unwrap();
+        assert!(matches!(out, IngestOutcome::Rejected(ref m) if m.contains("too large")));
+        // Burst of 1: the first applies, a second in the same instant is rate limited.
+        let outs: Vec<_> = rest
+            .iter()
+            .map(|e| store.ingest_gossip(&sp.0, e).unwrap())
+            .collect();
+        assert!(
+            outs.iter()
+                .any(|o| matches!(o, IngestOutcome::Rejected(m) if m.contains("rate"))),
+            "rate limit surfaces as Rejected: {outs:?}"
+        );
+        // Backfill bypasses both caps.
+        for e in rest.iter().chain(std::iter::once(big)) {
+            assert!(!matches!(
+                store.ingest(&sp.0, e).unwrap(),
+                IngestOutcome::Rejected(_)
+            ));
+        }
+    }
 }

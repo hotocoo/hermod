@@ -55,6 +55,8 @@ pub struct NodeStatus {
     pub sync_pending: u32,
     /// Events queued because no peer was reachable yet.
     pub outbox: u32,
+    /// Peers currently banned for flooding.
+    pub banned: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -84,7 +86,7 @@ pub enum NodeEvent {
         space: SpaceId,
         peer: PeerId,
     },
-    /// Number of syncs in flight, for the `hermod://sync` indicator.
+    /// Events queued for peers plus syncs in flight, for the `hermod://sync` indicator.
     SyncPending {
         count: u32,
     },

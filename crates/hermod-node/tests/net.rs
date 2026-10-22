@@ -8,9 +8,10 @@ use std::time::Duration;
 
 use hermod_node::config::{Limits, NodeConfig, RelayMode};
 use hermod_node::store::{
-    Author, BlobId, IngestOutcome, ManifestInfo, NodeStore, SpaceId, StoreError, StoreResult,
+    Author, BlobId, FilePeerBook, IngestOutcome, ManifestInfo, NodeStore, SpaceId, StoreError,
+    StoreResult,
 };
-use hermod_node::{Multiaddr, Node, NodeEvent, NodeHandle};
+use hermod_node::{Multiaddr, Node, NodeEvent, NodeHandle, NodeStatus};
 use libp2p::identity::ed25519;
 use tokio::sync::mpsc::UnboundedReceiver;
 
@@ -19,6 +20,8 @@ const SPACE: SpaceId = [9u8; 32];
 /// Chunks in the blob of the tail-fetch test: at the default serve rate (2 MiB/s) the whole
 /// transfer takes seconds, the tail chunk one round trip.
 const TAIL_TEST_CHUNKS: usize = 4096;
+/// Author whose live gossip the test store rejects, standing in for a flooder over the core cap.
+const FLOODER: &str = "mallory";
 
 #[derive(Default)]
 struct Inner {
@@ -126,6 +129,12 @@ impl NodeStore for MemStore {
         out.truncate(limit);
         out
     }
+    fn ingest_gossip(&self, space: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome> {
+        if parse(bytes).is_some_and(|(a, _)| a == FLOODER) {
+            return Ok(IngestOutcome::Rejected("rate limit exceeded".into()));
+        }
+        self.ingest(space, bytes)
+    }
     fn ingest(&self, _: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome> {
         let Some((a, seq)) = parse(bytes) else {
             return Ok(IngestOutcome::Rejected("malformed".into()));
@@ -202,13 +211,20 @@ struct Peer {
     events: UnboundedReceiver<NodeEvent>,
 }
 
-async fn spawn(cfg: NodeConfig) -> Peer {
-    let store = Arc::new(MemStore::default());
-    let key: [u8; 32] = ed25519::Keypair::generate()
+fn new_key() -> [u8; 32] {
+    ed25519::Keypair::generate()
         .secret()
         .as_ref()
         .try_into()
-        .unwrap();
+        .unwrap()
+}
+
+async fn spawn(cfg: NodeConfig) -> Peer {
+    spawn_keyed(cfg, new_key()).await
+}
+
+async fn spawn_keyed(cfg: NodeConfig, key: [u8; 32]) -> Peer {
+    let store = Arc::new(MemStore::default());
     let (h, events) = Node::start(cfg, key, store.clone()).await.unwrap();
     Peer { h, store, events }
 }
@@ -508,4 +524,103 @@ async fn signal_flood_is_rate_limited() {
     for p in [&a, &b] {
         p.h.shutdown().await;
     }
+}
+
+async fn status_until(what: &str, h: &NodeHandle, cond: impl Fn(&NodeStatus) -> bool) {
+    within(what, async {
+        while !cond(&h.status().await.unwrap()) {
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+}
+
+/// G-010: an event queued while offline raises the sync indicator and clears once it is delivered.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn offline_outbox_counts_as_sync_pending() {
+    let mut a = spawn(test_cfg()).await;
+    let b = spawn(test_cfg()).await;
+    a.h.join_space(SPACE).await.unwrap();
+    b.h.join_space(SPACE).await.unwrap();
+    let e1 = a.store.add_event("alice", 1);
+    a.h.publish_event(SPACE, e1).await.unwrap();
+    within("pending raised while offline", async {
+        while let Some(e) = a.events.recv().await {
+            if matches!(e, NodeEvent::SyncPending { count: 1 }) {
+                return;
+            }
+        }
+    })
+    .await;
+    b.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+    until("B receives the queued event", || b.store.count() == 1).await;
+    within("pending cleared after delivery", async {
+        while let Some(e) = a.events.recv().await {
+            if matches!(e, NodeEvent::SyncPending { count: 0 }) {
+                return;
+            }
+        }
+    })
+    .await;
+    assert_eq!(a.h.status().await.unwrap().outbox, 0);
+    for p in [&a, &b] {
+        p.h.shutdown().await;
+    }
+}
+
+/// E-010 + E-012: a peer whose gossip keeps being rejected is struck, disconnected, refused on
+/// redial, and stays refused after the node restarts with the same peer book. Honest peers stay.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn flooding_peer_is_banned_and_stays_banned() {
+    let dir = std::env::temp_dir().join(format!("hermod-ban-{}", std::process::id()));
+    let book = dir.join("peers.json");
+    let cfg_a = || NodeConfig {
+        peer_book: Arc::new(FilePeerBook::open(&book).unwrap()),
+        ..test_cfg()
+    };
+    let a_key = new_key();
+    let a = spawn_keyed(cfg_a(), a_key).await;
+    let b = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    for p in [&a, &b, &c] {
+        p.h.join_space(SPACE).await.unwrap();
+    }
+    let a_addr = first_addr(&a.h).await;
+    b.h.dial(vec![a_addr.clone()]).await.unwrap();
+    c.h.dial(vec![a_addr.clone()]).await.unwrap();
+    status_until("A sees both peers", &a.h, |s| s.peers == 2).await;
+
+    let honest = c.store.add_event("carol", 1);
+    c.h.publish_event(SPACE, honest).await.unwrap();
+    for seq in 1..=hermod_node::proto::STRIKE_LIMIT as u64 + 10 {
+        b.h.publish_event(SPACE, ev(FLOODER, seq)).await.unwrap();
+    }
+    status_until("flooder banned and dropped", &a.h, |s| {
+        s.banned == 1 && s.peers == 1
+    })
+    .await;
+    until("honest peer unaffected", || a.store.count() == 1).await;
+
+    // Redial: the ban is enforced before the connection is established.
+    // The dial either fails outright or is closed by A at once: B ends with no peers (it had
+    // one while the dial was in flight) and A never counts the connection.
+    let _ = b.h.dial(vec![a_addr]).await;
+    status_until("B refused by A", &b.h, |s| s.peers == 0).await;
+    let s = a.h.status().await.unwrap();
+    assert_eq!((s.peers, s.banned), (1, 1));
+
+    // Restart A with the same identity and peer book: the ban survives.
+    // C goes away too, so any connection A2 ends up with could only be the banned B.
+    a.h.shutdown().await;
+    c.h.shutdown().await;
+    let a2 = spawn_keyed(cfg_a(), a_key).await;
+    assert_eq!(a2.h.status().await.unwrap().banned, 1);
+    let _ = b.h.dial(vec![first_addr(&a2.h).await]).await;
+    status_until("B refused by restarted A", &b.h, |s| s.peers == 0).await;
+    let s = a2.h.status().await.unwrap();
+    assert_eq!((s.peers, s.banned), (0, 1));
+    for p in [&a2, &b] {
+        p.h.shutdown().await;
+    }
+    let _ = std::fs::remove_dir_all(dir);
 }

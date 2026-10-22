@@ -127,9 +127,18 @@ pub const GLOBAL_PEERS: SpaceId = [0u8; 32];
 pub trait PeerBook: Send + Sync + 'static {
     fn load(&self, space: &SpaceId) -> Vec<String>;
     fn save(&self, space: &SpaceId, addrs: &[String]);
+    /// Banned peers as (peer id, unix-seconds expiry), so a restart does not forgive a flooder.
+    fn load_bans(&self) -> Vec<(String, u64)> {
+        Vec::new()
+    }
+    fn save_bans(&self, _bans: &[(String, u64)]) {}
 }
 
-/// JSON file peer book: `{ "<space hex>": ["/ip4/...", ...] }`, written atomically.
+/// Reserved key in the peers file for the ban list (never collides with a 64-hex space id).
+const BANS_KEY: &str = "bans";
+
+/// JSON file peer book: `{ "<space hex>": ["/ip4/...", ...], "bans": ["<peer> <expiry>", ...] }`,
+/// written atomically.
 pub struct FilePeerBook {
     path: PathBuf,
     state: Mutex<BTreeMap<String, Vec<String>>>,
@@ -175,6 +184,29 @@ impl PeerBook for FilePeerBook {
             tracing::warn!("peer book write failed: {e}");
         }
     }
+
+    fn load_bans(&self) -> Vec<(String, u64)> {
+        let g = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        g.get(BANS_KEY)
+            .into_iter()
+            .flatten()
+            .filter_map(|l| {
+                let (peer, until) = l.split_once(' ')?;
+                Some((peer.to_string(), until.parse().ok()?))
+            })
+            .collect()
+    }
+
+    fn save_bans(&self, bans: &[(String, u64)]) {
+        let mut g = self.state.lock().unwrap_or_else(|e| e.into_inner());
+        g.insert(
+            BANS_KEY.to_string(),
+            bans.iter().map(|(p, t)| format!("{p} {t}")).collect(),
+        );
+        if let Err(e) = self.flush(&g) {
+            tracing::warn!("peer book write failed: {e}");
+        }
+    }
 }
 
 /// Peer book that remembers nothing (callers that do not want persistence).
@@ -202,6 +234,18 @@ mod tests {
         let again = FilePeerBook::open(&path).unwrap();
         assert_eq!(again.load(&space), vec!["/ip4/1.2.3.4/tcp/1".to_string()]);
         assert!(again.load(&[4u8; 32]).is_empty());
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn bans_persist_across_reopen() {
+        let dir = std::env::temp_dir().join(format!("hermod-bans-{}", std::process::id()));
+        let path = dir.join("peers.json");
+        let bans = vec![("12D3KooWabc".to_string(), 1_900_000_000u64)];
+        FilePeerBook::open(&path).unwrap().save_bans(&bans);
+        let again = FilePeerBook::open(&path).unwrap();
+        assert_eq!(again.load_bans(), bans);
+        assert!(again.load(&[4u8; 32]).is_empty(), "bans are not a space");
         let _ = fs::remove_dir_all(dir);
     }
 }
