@@ -50,6 +50,12 @@ jobs:
 
   e2e:
     runs-on: ubuntu-22.04
+    # Software GL on 4 vCPUs: 46 of the 89 tests took 28 min under docker --cpus=4 on an M-series host (two-user tests 2 min, one-page tests seconds); a hosted x86 runner is slower, so the suite runs in 4 shards for margin under the 6 h limit and faster feedback.
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/4', '2/4', '3/4', '4/4']
     steps:
       - uses: actions/checkout@v4
       - name: Linux dependencies
@@ -68,11 +74,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       # Builds the devhost binary, then Playwright builds the UI (devhost transport) and starts three real devhosts.
-      - run: npm run test:e2e
+      - run: npm run test:e2e -- --shard=${{ matrix.shard }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-report-${{ strategy.job-index }}
           # Traces and videos push the artifact past 4 GB; the page snapshot and screenshot are enough to triage.
           path: |
             test-results/**/error-context.md

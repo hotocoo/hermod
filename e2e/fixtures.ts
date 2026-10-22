@@ -1,6 +1,6 @@
 import { deflateSync } from 'node:zlib';
 import { test as base, expect, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
-import { BOOT_FACTOR } from './gpu';
+import { BOOT_FACTOR, BOOT_WAIT } from './gpu';
 
 export { expect };
 
@@ -82,10 +82,11 @@ export async function bootApp(page: Page, host: string, who: string, keepTour = 
       else await page.getByRole('button', { name: 'Skip for now' }).click();
     }
   }
+  // The town canvas mounts after the scene module loads and the GL context is created: under software GL that waits on the shared GPU process, which the other page's shader compiles keep busy.
   await expect(g.town).toBeVisible();
-  await expect(page.locator('canvas')).toHaveCount(1);
-  await expect(page.getByText('A messenger for everything you make together')).toBeHidden({ timeout: 40_000 });
-  await expect(page.getByText(/^Raising/)).toBeHidden();
+  await expect(page.locator('canvas')).toHaveCount(1, { timeout: BOOT_WAIT.canvas });
+  await expect(page.getByText('A messenger for everything you make together')).toBeHidden({ timeout: BOOT_WAIT.intro });
+  await expect(page.getByText(/^Raising/)).toBeHidden({ timeout: BOOT_WAIT.raising });
   if (!keepTour) await dismissOnboarding(page);
 }
 
@@ -220,8 +221,8 @@ export async function twoUsers(browser: Browser, names: [string, string] = ['Ada
   const ctxs = await Promise.all([0, 1].map(() => browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 }, baseURL: UI_URL, permissions: ['clipboard-read', 'clipboard-write'] })));
   const [a, b] = await Promise.all(ctxs.map((c) => c.newPage()));
   const errors = [watchErrors(a), watchErrors(b)];
-  await bootApp(a, DEVHOST_A, names[0], false, false);
-  await bootApp(b, DEVHOST_B, names[1], false, false);
+  // Together, not one after the other: under software GL the first page's late shader compiles would otherwise stall the second page's boot (measured: 36 s together vs 70 s in turn on 4 vCPUs).
+  await Promise.all([bootApp(a, DEVHOST_A, names[0], false, false), bootApp(b, DEVHOST_B, names[1], false, false)]);
   return { a, b, errors, close: async () => { await Promise.all(ctxs.map((c) => c.close())); } };
 }
 
