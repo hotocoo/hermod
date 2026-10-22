@@ -11,10 +11,8 @@ export function ListView() {
   return (
     <main className={s.root} aria-label="Town as a list">
       <div className={s.inner}>
-        <h2 className={s.title}>{vm.space.name}</h2>
-        <p className={s.sub}>{vm.space.tagline}</p>
         <nav aria-label="Spaces">
-          <h3 className={s.head}>Spaces</h3>
+          <h2 className={s.head}>Spaces</h2>
           <ul className={s.list}>
             {vm.rail.map((r) => (
               <li key={r.id}>
@@ -27,7 +25,7 @@ export function ListView() {
           </ul>
         </nav>
         <nav aria-label={`Buildings in ${vm.space.name}`}>
-          <h3 className={s.head}>Buildings</h3>
+          <h2 className={s.head}>Buildings</h2>
           <ul className={s.list}>
             {vm.buildings.map((b) => (
               <li key={b.id}>
