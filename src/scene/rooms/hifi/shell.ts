@@ -95,6 +95,6 @@ export async function buildShell(s: Shell, lib: AssetLibrary, signal?: AbortSign
     if (baked?.lightMap && p.geometry.getAttribute('uv1') && !THIN_TRIM.test(p.name)) { m = m.clone(); m.lightMap = baked.lightMap; m.lightMapIntensity = LM_GAIN; own.push(m); }
     geos.push(p.geometry); const mesh = new THREE.Mesh(p.geometry, m); mesh.name = p.name; mesh.receiveShadow = true; group.add(mesh);
   }
-  return { group, dispose: () => { geos.forEach((g) => g.dispose()); own.forEach((m) => m.dispose()); } };
+  return { group, dispose: () => { geos.forEach((g) => g.dispose()); own.forEach((m) => m.dispose()); mats.forEach((m) => lib.releaseMaterial(m)); } };
 }
 

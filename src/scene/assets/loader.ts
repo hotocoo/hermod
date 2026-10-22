@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { acquireKtx2, releaseKtx2 } from './ktx2';
+import { gpuOnly } from '../styles/village/tex';
 import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
@@ -62,6 +63,8 @@ export class AssetLibrary {
   private ready = new Map<string, ModelAsset>();
   private texCache = new Map<string, Promise<THREE.Texture>>();
   private matCache = new Map<string, THREE.MeshStandardMaterial>();
+  private matInfo = new Map<THREE.MeshStandardMaterial, { k: string; tex: string[]; refs: number }>();
+  private texRefs = new Map<string, number>();
   private lru: string[] = [];
   private disposed = false;
   private roomsMan: Promise<Record<string, Partial<Record<AssetTier, RoomBakeEntry>>>> | null = null;
@@ -95,13 +98,22 @@ export class AssetLibrary {
     const e: MaterialEntry | undefined = (await this.manifest()).materials[id]; if (!e) throw new Error(`unknown material ${id}`);
     const tier = this.pick(e); const f = e.tiers[tier]!.file; const rep = opt.repeat ?? [1, 1];
     const k = key('mat', id, tier, rep[0], rep[1], opt.rotation ?? 0, opt.normalScale ?? 1, String(opt.color ?? ''));
-    const hit = this.matCache.get(k); if (hit) return hit;
+    const hit = this.matCache.get(k); if (hit) return this.hold(hit);
     const [base, nor, orm] = await raceAbort(Promise.all([this.texture(this.url(f.base, tier), true), this.texture(this.url(f.normal, tier), false), this.texture(this.url(f.orm, tier), false)]), signal);
-    const again = this.matCache.get(k); if (again) return again;
+    const again = this.matCache.get(k); if (again) return this.hold(again);
     const tune = (t: THREE.Texture) => { const c = t.clone(); c.wrapS = c.wrapT = THREE.RepeatWrapping; c.repeat.set(rep[0], rep[1]); c.rotation = opt.rotation ?? 0; c.anisotropy = this.aniso; c.colorSpace = t.colorSpace; c.needsUpdate = true; return c; };
     const bt = tune(base), nt = tune(nor), ot = tune(orm);
     const m = new THREE.MeshStandardMaterial({ map: bt, normalMap: nt, aoMap: ot, roughnessMap: ot, metalnessMap: ot, roughness: 1, metalness: 1, color: opt.color ?? 0xffffff });
-    m.normalScale.setScalar(opt.normalScale ?? 1); m.name = id; this.matCache.set(k, m); return m;
+    m.normalScale.setScalar(opt.normalScale ?? 1); m.name = id; this.matCache.set(k, m);
+    const tex = [this.url(f.base, tier) + '|s', this.url(f.normal, tier) + '|l', this.url(f.orm, tier) + '|l']; tex.forEach((t) => this.texRefs.set(t, (this.texRefs.get(t) ?? 0) + 1));
+    this.matInfo.set(m, { k, tex, refs: 0 }); return this.hold(m);
+  }
+  private hold(m: THREE.MeshStandardMaterial) { this.matInfo.get(m)!.refs++; return m; }
+  /** Drop one hold from `material()`. The last hold disposes the material, its sampler clones and, once no material uses them, the shared source textures. */
+  releaseMaterial(m: THREE.MeshStandardMaterial): void {
+    const i = this.matInfo.get(m); if (!i || --i.refs > 0) return;
+    this.matInfo.delete(m); this.matCache.delete(i.k); [m.map, m.normalMap, m.aoMap].forEach((t) => t?.dispose()); m.dispose();
+    for (const t of i.tex) { const n = (this.texRefs.get(t) ?? 1) - 1; if (n > 0) { this.texRefs.set(t, n); continue; } this.texRefs.delete(t); this.texCache.get(t)?.then((x) => x.dispose(), () => undefined); this.texCache.delete(t); }
   }
 
   async hdri(id: string, signal?: AbortSignal): Promise<THREE.DataTexture> {
@@ -179,7 +191,7 @@ export class AssetLibrary {
   }
 
   private tuneMaterial(m: THREE.MeshStandardMaterial) {
-    for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'] as const) { const t = m[k]; if (t) t.anisotropy = this.aniso; }
+    for (const k of ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap'] as const) { const t = m[k]; if (!t) continue; t.anisotropy = this.aniso; if ((t as THREE.CompressedTexture).isCompressedTexture) gpuOnly(t as THREE.CompressedTexture); }
     if (m.map) m.map.colorSpace = THREE.SRGBColorSpace;
     // Glass (authored or tagged) keeps real transmission, IOR and volume on high and ultra: the pane refracts the scene behind it at 1x.
     const t = m as THREE.MeshPhysicalMaterial;

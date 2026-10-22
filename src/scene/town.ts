@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
+import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
 import type { SectionId } from '@/lib/data/types';
 import { createInteriors, type InteriorRoom } from './interiors';
 import { createOverlay } from './overlay';
@@ -275,7 +275,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     })().catch(() => { warming = false; });
   }
   function prewarmRooms() {
-    if (prewarmed) return; prewarmed = true; const ids = ['chat', 'feed', 'board', 'skein', 'desk'];
+    if (prewarmed) return; prewarmed = true; const ids = ['chat', 'feed', 'board', 'skein', 'desk'].slice(0, ROOM_RESIDENCY.maxRooms); // more would only be evicted again
     ids.forEach((id, i) => setTimeout(() => { if (!alive || !IN.canLoad(id)) return; void IN.load(id).then((room) => { if (room) void prep(room, { room: true, label: 'room:' + id }); }); }, 3500 + i * 1400));
   }
 

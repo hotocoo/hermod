@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import { ROOM_MAKERS } from './rooms';
 import { createRoomKit, type RoomKit } from './rooms/kit';
-import { INTERIOR_MAKERS } from '@/config/scene';
+import { INTERIOR_MAKERS, ROOM_RESIDENCY } from '@/config/scene';
 import type { SectionId } from '@/lib/data/types';
 import type { Mats } from './types';
 import type { World } from './world';
@@ -33,12 +33,9 @@ export function registerRoomProvider(section: string, provider: RoomProvider): (
   providers.set(section, provider); return () => { if (providers.get(section) === provider) providers.delete(section); };
 }
 
-/** Rooms kept built at once (the active one never counts as evictable); older ones are disposed and rebuilt on demand. */
-const MAX_ROOMS = 3;
-
 /**
  * Lazy room cache. Rooms are built on first entry, only the active room is ticked, and the least recently used
- * rooms are disposed beyond MAX_ROOMS. Rooms are never in the scene graph unless the camera is inside (the town adds and removes them).
+ * rooms are disposed beyond ROOM_RESIDENCY.maxRooms. Rooms are never in the scene graph unless the camera is inside (the town adds and removes them).
  */
 export function createInteriors(M: Mats, WK: World, makers: Partial<Record<InteriorName, InteriorMaker>> = interiorMakers) {
   const rooms = new Map<string, InteriorRoom>(); const pending = new Map<string, Promise<InteriorRoom | null>>(); const lastPaint = new Map<string, InteriorPaint>();
@@ -50,7 +47,7 @@ export function createInteriors(M: Mats, WK: World, makers: Partial<Record<Inter
   const touch = (id: string, room: InteriorRoom) => { rooms.delete(id); rooms.set(id, room); };
   function evict() {
     for (const [id, room] of rooms) {
-      if (rooms.size <= MAX_ROOMS) return; if (id === active) continue;
+      if (rooms.size <= ROOM_RESIDENCY.maxRooms) return; if (id === active) continue;
       room.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); }); (room.userData.dispose as (() => void) | undefined)?.(); rooms.delete(id);
     }
   }

@@ -95,6 +95,7 @@ export async function buildRoom(layout: RoomLayout, lib: AssetLibrary, seed: str
     const ids = [...new Set([...solved.placements.map((p) => p.asset), ...L.shell.openings.flatMap((o) => (o.asset ? [o.asset] : [])), ...L.presence.traces, ...L.presence.figures])];
     const assets = new Map<string, ModelAsset>(await Promise.all(ids.map(async (id) => [id, await lease.model(id)] as [string, ModelAsset])));
     const baked = await lib.bakedRoom(L.section, lease.signal);
+    if (baked) disposables.push(() => { baked.lightMap.dispose(); baked.furnitureMap?.dispose(); }); // 2048 px RGBA lightmap + furniture atlas per room: freed when the room is evicted
     const lmIdx = new Map<string, number>(); { let n = 0; for (const p of solved.placements) if (p.kind !== 'surface' && (catalog[p.asset] as unknown as { source?: { lightmap?: boolean } }).source?.lightmap) lmIdx.set(p.key, n++); } const shell = await buildShell(L.shell, lib, lease.signal, baked ?? undefined); group.add(shell.group); disposables.push(shell.dispose);
 
     // environment: the room's HDRI as reflections and as the view through windows
