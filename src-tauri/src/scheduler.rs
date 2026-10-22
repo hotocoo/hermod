@@ -19,6 +19,8 @@ const DEBOUNCE: Duration = Duration::from_millis(400);
 /// Automation output cap per rule.
 const RULE_BURST: usize = 5;
 const RULE_WINDOW: Duration = Duration::from_secs(60);
+/// How often the cache kept for others is checked against the `blob_cache_bytes` setting.
+const CACHE_TRIM_EVERY: Duration = Duration::from_secs(60);
 
 fn now_ms() -> i64 {
     hermod_core::api::now_ms()
@@ -28,8 +30,13 @@ pub async fn run(ctx: Arc<Ctx>) {
     let mut rx = ctx.subscribe();
     let mut fired: HashMap<String, Vec<Instant>> = HashMap::new();
     let mut dirty = true;
+    let mut last_trim: Option<Instant> = None;
     loop {
         run_schedule(&ctx).await;
+        if last_trim.is_none_or(|t| t.elapsed() >= CACHE_TRIM_EVERY) {
+            last_trim = Some(Instant::now());
+            trim_cache(&ctx).await;
+        }
         if dirty {
             dirty = false;
             run_automation(&ctx, &mut fired).await;
@@ -47,6 +54,26 @@ pub async fn run(ctx: Arc<Ctx>) {
                 Err(RecvError::Closed) => return,
             }
         }
+    }
+}
+
+/// Keep the encrypted cache held for others within the person's `blob_cache_bytes` limit.
+async fn trim_cache(ctx: &Arc<Ctx>) {
+    let Ok(live) = ctx.live().await else { return };
+    let l = live.clone();
+    let freed = tokio::task::spawn_blocking(move || {
+        let limit = crate::settings::node_settings(&l.core)?.blob_cache_bytes;
+        l.core.storage_trim_cache(limit).map_err(|e| e.to_string())
+    })
+    .await;
+    match freed {
+        Ok(Ok(0)) => {}
+        Ok(Ok(n)) => {
+            tracing::info!("cache over its limit: freed {n} bytes");
+            live.forget_blob_info();
+        }
+        Ok(Err(e)) => tracing::warn!("cache trim failed: {e}"),
+        Err(e) => tracing::warn!("cache trim task failed: {e}"),
     }
 }
 

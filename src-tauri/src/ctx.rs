@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 use tokio::sync::{RwLock, broadcast, mpsc};
 
 use crate::adapter::{self, CoreStore, Notice};
-use crate::{notify, settings};
+use crate::{blob, notify, settings};
 
 pub type BoxFut<T> = Pin<Box<dyn Future<Output = T> + Send>>;
 
@@ -122,6 +122,9 @@ pub struct Live {
     pub core: Arc<Core>,
     node: tokio::sync::Mutex<Option<NodeRt>>,
     mime: Arc<Mutex<HashMap<String, String>>>,
+    /// Complete blobs being served: their manifest and content type, so a Range request does not
+    /// re-read the manifest, re-check every chunk and re-hash chunk 0 each time.
+    blob_info: Mutex<HashMap<String, Arc<blob::BlobInfo>>>,
     online: Arc<Mutex<HashMap<SpaceId, HashSet<UserId>>>>,
     /// Collections touched by remote events applied since the last `changed` for that space.
     touched: Touched,
@@ -162,6 +165,23 @@ fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
 
 impl Live {
     /// Content type recorded for a blob: memory first, then the persisted table.
+    pub fn blob_info(&self, hash: &str) -> Option<Arc<blob::BlobInfo>> {
+        lock(&self.blob_info).get(hash).cloned()
+    }
+
+    pub fn blob_info_put(&self, hash: &str, info: Arc<blob::BlobInfo>) {
+        let mut m = lock(&self.blob_info);
+        if m.len() >= blob::MAX_INFO_ENTRIES {
+            m.clear();
+        }
+        m.insert(hash.to_string(), info);
+    }
+
+    /// Drop cached serving info after chunks may have gone (cache eviction, a failed read).
+    pub fn forget_blob_info(&self) {
+        lock(&self.blob_info).clear();
+    }
+
     pub fn blob_mime(&self, hash: &str) -> Option<String> {
         if let Some(m) = lock(&self.mime).get(hash).cloned() {
             return Some(m);
@@ -204,6 +224,8 @@ impl Live {
                 if m.len() < 100_000 {
                     m.insert(r.hash.clone(), r.mime.clone());
                 }
+                // A type learned now beats one sniffed earlier.
+                lock(&self.blob_info).remove(&r.hash);
             }
         }
     }
@@ -229,6 +251,7 @@ fn open_live(dir: &Path) -> Result<Arc<Live>, String> {
         core: Arc::new(core),
         node: tokio::sync::Mutex::new(None),
         mime: Arc::new(Mutex::new(HashMap::new())),
+        blob_info: Mutex::new(HashMap::new()),
         online: Arc::new(Mutex::new(HashMap::new())),
         touched: Arc::new(Mutex::new(HashMap::new())),
         storage: Mutex::new(None),

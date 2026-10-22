@@ -2,12 +2,13 @@
 //! content type detection, and on-demand fetching of missing chunks through the node.
 //! Shared by the `hermod-blob://` URI scheme and the devhost `/blob/:hash` route.
 
+use std::sync::Arc;
 use std::time::Duration;
 
-use hermod_core::blobs::CHUNK_SIZE;
+use hermod_core::blobs::Manifest;
 use hermod_core::ids;
 
-use crate::ctx::Ctx;
+use crate::ctx::{Ctx, Live};
 
 /// Largest single response body. Bigger blobs are served as partial content, which media
 /// elements and browsers handle by following up with further ranges.
@@ -135,34 +136,18 @@ pub fn mime_of(recorded: Option<&str>, head: &[u8]) -> String {
         .unwrap_or_else(|| "application/octet-stream".into())
 }
 
-fn read_span(
-    ctx_blobs: &hermod_core::blobs::BlobStore,
-    id: &str,
-    a: u64,
-    b: u64,
-) -> Result<Vec<u8>, String> {
-    let cs = CHUNK_SIZE as u64;
-    let mut out = Vec::with_capacity((b - a + 1) as usize);
-    for idx in (a / cs)..=(b / cs) {
-        let chunk = ctx_blobs
-            .read_chunk(id, idx as u32)
-            .map_err(|e| e.to_string())?;
-        let base = idx * cs;
-        let from = a.saturating_sub(base) as usize;
-        let to = ((b + 1).min(base + chunk.len() as u64) - base) as usize;
-        if from > to || to > chunk.len() {
-            return Err("blob chunk is shorter than its manifest says".into());
-        }
-        out.extend_from_slice(&chunk[from..to]);
-    }
-    Ok(out)
-}
-
 /// Make sure the blob is complete locally, asking peers for the rest when it is not.
 pub async fn ensure_local(ctx: &Ctx, hash: &str) -> Result<(), String> {
     let live = ctx.live().await?;
-    let blobs = live.core.blobs();
-    if blobs.is_complete(hash).unwrap_or(false) {
+    if live.blob_info(hash).is_some() {
+        return Ok(());
+    }
+    let (core, h) = (live.core.clone(), hash.to_string());
+    let complete =
+        tokio::task::spawn_blocking(move || core.blobs().is_complete(&h).unwrap_or(false))
+            .await
+            .map_err(|e| e.to_string())?;
+    if complete {
         return Ok(());
     }
     let id: [u8; 32] = ids::hex_decode_array(hash).map_err(|e| e.to_string())?;
@@ -177,6 +162,32 @@ pub async fn ensure_local(ctx: &Ctx, hash: &str) -> Result<(), String> {
     }
 }
 
+/// What serving a complete blob needs, read once per blob.
+#[derive(Debug)]
+pub struct BlobInfo {
+    manifest: Manifest,
+    mime: String,
+}
+
+/// Most blobs whose serving info is kept in memory; the map is cleared when it fills.
+pub const MAX_INFO_ENTRIES: usize = 2048;
+
+/// Bytes of the blob start used to sniff its content type.
+const SNIFF_LEN: u64 = 512;
+
+fn load_info(live: &Live, hash: &str) -> Option<Arc<BlobInfo>> {
+    let blobs = live.core.blobs();
+    let manifest = blobs.manifest(hash).ok().flatten()?;
+    if !blobs.has_all_chunks(&manifest) {
+        return None;
+    }
+    let head = blobs.read_range_in(&manifest, hash, 0, SNIFF_LEN).ok()?;
+    let mime = mime_of(live.blob_mime(hash).as_deref(), &head);
+    let info = Arc::new(BlobInfo { manifest, mime });
+    live.blob_info_put(hash, info.clone());
+    Some(info)
+}
+
 /// Serve `hash` for an optional `Range` header.
 pub async fn serve(ctx: &Ctx, hash: &str, range: Option<&str>) -> BlobResponse {
     if !is_hash(hash) {
@@ -189,20 +200,18 @@ pub async fn serve(ctx: &Ctx, hash: &str, range: Option<&str>) -> BlobResponse {
     let Ok(live) = ctx.live().await else {
         return BlobResponse::error(503);
     };
-    let blobs = live.core.blobs();
-    let manifest = match blobs.manifest(hash) {
-        Ok(Some(m)) => m,
-        _ => return BlobResponse::error(404),
+    let info = match live.blob_info(hash) {
+        Some(i) => i,
+        None => {
+            let (l, h) = (live.clone(), hash.to_string());
+            match tokio::task::spawn_blocking(move || load_info(&l, &h)).await {
+                Ok(Some(i)) => i,
+                _ => return BlobResponse::error(404),
+            }
+        }
     };
-    let total = manifest.size;
-    let recorded = live.blob_mime(hash);
-    let head_len = total.min(512);
-    let head = if head_len > 0 {
-        read_span(blobs, hash, 0, head_len - 1).unwrap_or_default()
-    } else {
-        Vec::new()
-    };
-    let mime = mime_of(recorded.as_deref(), &head);
+    let total = info.manifest.size;
+    let mime = info.mime.clone();
     let (status, span) = match parse_range(range, total) {
         RangeReq::Unsatisfiable => {
             return BlobResponse {
@@ -218,11 +227,16 @@ pub async fn serve(ctx: &Ctx, hash: &str, range: Option<&str>) -> BlobResponse {
         RangeReq::Full => (200, None),
     };
     let (a, b) = span.unwrap_or((0, total.saturating_sub(1)));
-    let body = if total == 0 {
-        Ok(Vec::new())
-    } else {
-        read_span(blobs, hash, a, b)
-    };
+    let (l, h, i) = (live.clone(), hash.to_string(), info.clone());
+    let body = tokio::task::spawn_blocking(move || {
+        l.core
+            .blobs()
+            .read_range_in(&i.manifest, &h, a, b - a + 1)
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| r);
     match body {
         Ok(body) => BlobResponse {
             status,
@@ -233,6 +247,8 @@ pub async fn serve(ctx: &Ctx, hash: &str, range: Option<&str>) -> BlobResponse {
         },
         Err(e) => {
             tracing::error!("blob {hash} read failed: {e}");
+            // The chunks may be gone (cache eviction): look again next time.
+            live.forget_blob_info();
             BlobResponse::error(500)
         }
     }

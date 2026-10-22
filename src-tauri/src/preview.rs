@@ -106,15 +106,19 @@ fn parse_url(raw: &str) -> Result<Url, String> {
 }
 
 /// Resolves the host and returns one address, refusing when any answer is not public.
-async fn resolve(url: &Url, opts: Opts) -> Result<(String, SocketAddr), String> {
+async fn resolve(url: &Url, deadline: Instant, opts: Opts) -> Result<(String, SocketAddr), String> {
     let host = url.host_str().ok_or("that link has no host")?.to_string();
     let port = url.port_or_known_default().ok_or("that link has no port")?;
     let addrs: Vec<SocketAddr> = match host.trim_matches(['[', ']']).parse::<IpAddr>() {
         Ok(ip) => vec![SocketAddr::new(ip, port)],
-        Err(_) => tokio::net::lookup_host((host.as_str(), port))
-            .await
-            .map_err(|_| "that site could not be found".to_string())?
-            .collect(),
+        Err(_) => tokio::time::timeout(
+            deadline.saturating_duration_since(Instant::now()),
+            tokio::net::lookup_host((host.as_str(), port)),
+        )
+        .await
+        .map_err(|_| "that site took too long".to_string())?
+        .map_err(|_| "that site could not be found".to_string())?
+        .collect(),
     };
     let first = *addrs.first().ok_or("that site could not be found")?;
     if !opts.allow_private && addrs.iter().any(|a| !is_public_ip(a.ip())) {
@@ -139,7 +143,7 @@ async fn get(
 ) -> Result<Fetched, String> {
     let mut url = start.clone();
     for _ in 0..=MAX_REDIRECTS {
-        let (host, addr) = resolve(&url, opts).await?;
+        let (host, addr) = resolve(&url, deadline, opts).await?;
         let left = deadline.saturating_duration_since(Instant::now());
         if left.is_zero() {
             return Err("that site took too long".into());
@@ -227,7 +231,11 @@ fn decode_entities(s: &str) -> String {
     while let Some(i) = rest.find('&') {
         out.push_str(&rest[..i]);
         rest = &rest[i..];
-        let Some(end) = rest[..rest.len().min(12)].find(';') else {
+        // Search bytes: a fixed byte window may end inside a multi-byte character.
+        let Some(end) = rest.as_bytes()[..rest.len().min(12)]
+            .iter()
+            .position(|&b| b == b';')
+        else {
             out.push('&');
             rest = &rest[1..];
             continue;
@@ -509,6 +517,15 @@ mod tests {
         assert!(parse_url("https://").is_err());
         assert!(parse_url(&format!("https://a.org/{}", "x".repeat(3000))).is_err());
         assert!(parse_url("https://example.org/a?b=c").is_ok());
+    }
+
+    #[test]
+    fn entities_survive_multibyte_text_after_an_ampersand() {
+        // The 12th byte after '&' falls inside a CJK character.
+        assert_eq!(
+            decode_entities("&a漢字漢字漢字 &amp; ok"),
+            "&a漢字漢字漢字 & ok"
+        );
     }
 
     #[test]

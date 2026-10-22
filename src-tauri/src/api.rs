@@ -19,7 +19,8 @@ use crate::blob;
 use crate::ctx::{ALL_COLLECTIONS, Ctx, Live, collections_for};
 use crate::settings::{self, NodePatch, NodeSettings};
 
-const MAX_UPLOAD_BYTES: usize = 256 * 1024 * 1024;
+/// Largest file accepted over the IPC bridge, checked before the body is parsed.
+pub const MAX_UPLOAD_BYTES: usize = 256 * 1024 * 1024;
 const MAX_EVENT_JSON: usize = 512 * 1024;
 const MAX_SIGNAL_BYTES: usize = 64 * 1024;
 const ADDR_WAIT: Duration = Duration::from_secs(3);
@@ -32,6 +33,35 @@ pub(crate) type Res<T> = Result<T, String>;
 
 pub(crate) fn e<E: std::fmt::Display>(err: E) -> String {
     err.to_string()
+}
+
+/// Header carrying the non-binary arguments (ASCII-escaped JSON) of a raw-body command.
+pub const RAW_ARGS_HEADER: &str = "x-hermod-args";
+
+/// Commands that take their bytes as the raw IPC body instead of a JSON number array.
+pub async fn handle_raw(
+    ctx: &Arc<Ctx>,
+    name: &str,
+    meta: Option<&str>,
+    bytes: Vec<u8>,
+) -> Res<Value> {
+    // Before any parsing or work: an oversized body costs nothing more.
+    if bytes.len() > MAX_UPLOAD_BYTES {
+        return Err("that file is too large".into());
+    }
+    let meta: Value = match meta {
+        Some(m) => serde_json::from_str(m).map_err(|_| "bad request arguments".to_string())?,
+        None => json!({}),
+    };
+    let out = match name {
+        "blob_put_bytes" => put_bytes(ctx, &meta, bytes).await,
+        "save_file" => save_bytes(ctx, &meta, bytes).await,
+        _ => Err("that command does not take a raw body".into()),
+    };
+    if let Err(msg) = &out {
+        tracing::warn!("command {name} failed: {msg}");
+    }
+    out
 }
 
 /// Dispatch one command. Logs and returns the error text on failure.
@@ -284,13 +314,7 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             live.remember_blobs([&r]);
             to_json(r)
         }
-        "blob_put_bytes" => {
-            let name = clean_name(&str_arg(a, "name")?);
-            let bytes = bytes_arg(a, "bytes")?;
-            let r = blk(&live, move |c| c.blob_put_bytes(&name, &bytes).map_err(e)).await?;
-            live.remember_blobs([&r]);
-            to_json(r)
-        }
+        "blob_put_bytes" => put_bytes(ctx, a, bytes_arg(a, "bytes")?).await,
         "pick_files" => {
             let shell = ctx
                 .shell
@@ -343,23 +367,7 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             blk(&live, move |c| write_blob(c, &hash, &d)).await?;
             Ok(json!(dest.to_string_lossy()))
         }
-        "save_file" => {
-            let suggested =
-                clean_name(&opt_str(a, "suggestedName").unwrap_or_else(|| "file".into()));
-            let bytes = bytes_arg(a, "bytes")?;
-            let shell = ctx
-                .shell
-                .clone()
-                .ok_or("saving is only available in the desktop app")?;
-            let Some(dest) = tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
-                .await
-                .map_err(e)??
-            else {
-                return Ok(Value::Null);
-            };
-            std::fs::write(&dest, bytes).map_err(|x| format!("could not save the file: {x}"))?;
-            Ok(json!(dest.to_string_lossy()))
-        }
+        "save_file" => save_bytes(ctx, a, bytes_arg(a, "bytes")?).await,
 
         // ---- node ----
         "node_status" => Ok(ctx.node_view().await),
@@ -504,6 +512,7 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         }
         "storage_clear_cache" => {
             let freed = blk(&live, |c| c.storage_clear_cache().map_err(e)).await?;
+            live.forget_blob_info();
             Ok(json!({ "freed_bytes": freed }))
         }
         "audit_list" => {
@@ -524,7 +533,6 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
 
         // ---- backup, reset, updates, devices ----
         "backup_export" => {
-            let path = PathBuf::from(str_arg(a, "path")?);
             let pass = str_arg(a, "passphrase")?;
             if pass.chars().count() < 8 {
                 return Err("choose a passphrase of at least 8 characters".into());
@@ -533,31 +541,25 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                 .get("includeBlobs")
                 .and_then(Value::as_bool)
                 .unwrap_or(false);
-            if !path.is_absolute() || path.parent().is_none_or(|p| !p.is_dir()) {
-                return Err("choose an existing folder for the backup".into());
-            }
+            let Some(path) = backup_target(ctx, a).await? else {
+                return Ok(Value::Null);
+            };
+            let out = json!(path.to_string_lossy());
             blk(&live, move |c| {
                 c.backup_export(&path, &pass, blobs).map_err(e)
             })
             .await?;
-            Ok(Value::Null)
+            Ok(out)
         }
         "backup_import" => {
             let path = PathBuf::from(str_arg(a, "path")?);
+            if !ctx.path_allowed(&path) {
+                return Err("choose the backup with the file picker first".into());
+            }
             let pass = str_arg(a, "passphrase")?;
             drop(live);
-            ctx.with_closed(move |dir| {
-                // Prove the file and passphrase are good before touching live data.
-                let probe = dir.with_extension("restore-check");
-                let _ = std::fs::remove_dir_all(&probe);
-                let checked = Core::backup_import(&probe, &path, &pass)
-                    .map_err(|x| format!("cannot restore this backup: {x}"));
-                let _ = std::fs::remove_dir_all(&probe);
-                checked?;
-                Core::wipe_data(dir).map_err(e)?;
-                Core::backup_import(dir, &path, &pass).map_err(e)
-            })
-            .await?;
+            ctx.with_closed(move |dir| restore_backup(dir, &path, &pass))
+                .await?;
             Ok(Value::Null)
         }
         "app_reset" => {
@@ -772,6 +774,68 @@ fn bytes_arg(a: &Value, key: &str) -> Res<Vec<u8>> {
                 .ok_or_else(|| "bad file data".to_string())
         })
         .collect()
+}
+
+async fn put_bytes(ctx: &Arc<Ctx>, a: &Value, bytes: Vec<u8>) -> Res<Value> {
+    let live = ctx.live().await?;
+    let name = clean_name(&str_arg(a, "name")?);
+    let r = blk(&live, move |c| c.blob_put_bytes(&name, &bytes).map_err(e)).await?;
+    live.remember_blobs([&r]);
+    to_json(r)
+}
+
+async fn save_bytes(ctx: &Arc<Ctx>, a: &Value, bytes: Vec<u8>) -> Res<Value> {
+    let suggested = clean_name(&opt_str(a, "suggestedName").unwrap_or_else(|| "file".into()));
+    let shell = ctx
+        .shell
+        .clone()
+        .ok_or("saving is only available in the desktop app")?;
+    let Some(dest) = tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
+        .await
+        .map_err(e)??
+    else {
+        return Ok(Value::Null);
+    };
+    std::fs::write(&dest, bytes).map_err(|x| format!("could not save the file: {x}"))?;
+    Ok(json!(dest.to_string_lossy()))
+}
+
+/// Where a backup goes: the app asks the person with the save dialog (the webview names no
+/// path); the devhost and tests, which have no dialog, may pass one.
+async fn backup_target(ctx: &Arc<Ctx>, a: &Value) -> Res<Option<PathBuf>> {
+    let Some(shell) = ctx.shell.clone() else {
+        let path = PathBuf::from(str_arg(a, "path")?);
+        if !ctx.path_allowed(&path)
+            || !path.is_absolute()
+            || path.parent().is_none_or(|p| !p.is_dir())
+        {
+            return Err("choose an existing folder for the backup".into());
+        }
+        return Ok(Some(path));
+    };
+    let suggested = clean_name(&opt_str(a, "suggestedName").unwrap_or_else(|| "backup".into()));
+    tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
+        .await
+        .map_err(e)?
+}
+
+/// Restore into a scratch dir (this proves the file and passphrase), then swap it in. Reading
+/// and decrypting the backup happens once, and the live data is untouched until it succeeds.
+fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> Res<()> {
+    let probe = dir.with_extension("restore-check");
+    let _ = std::fs::remove_dir_all(&probe);
+    let staged = Core::backup_import(&probe, file, pass)
+        .map_err(|x| format!("cannot restore this backup: {x}"))
+        .and_then(|()| {
+            Core::wipe_data(dir).map_err(e)?;
+            for entry in std::fs::read_dir(&probe).map_err(e)? {
+                let name = entry.map_err(e)?.file_name();
+                std::fs::rename(probe.join(&name), dir.join(&name)).map_err(e)?;
+            }
+            Ok(())
+        });
+    let _ = std::fs::remove_dir_all(&probe);
+    staged
 }
 
 fn write_blob(c: &Core, hash: &str, dest: &std::path::Path) -> Res<()> {
