@@ -102,7 +102,7 @@ export function PrivacyModal() {
   const st = useAppStore(); const p = st.privacy; const prefs = st.prefs;
   const [nick, setNick] = useState(''); const [folder, setFolder] = useState(''); const [types, setTypes] = useState<string[]>([]);
   const [status, setStatus] = useState(''); const [emoji, setEmoji] = useState(''); const [pron, setPron] = useState('');
-  const addFolder = async () => { const name = folder.trim(); if (!name) return; await st.savePrefs({ folders: [...(prefs.folders ?? []), { id: uid('f'), name, include: [], types: types as ('dm' | 'group' | 'space' | 'unread')[] }] }); setFolder(''); setTypes([]); };
+  const addFolder = async () => { const name = folder.trim(); if (!name) return; const picked = types; setFolder(''); setTypes([]); /* cleared before the save, so what is typed while it runs is kept */ await st.savePrefs({ folders: [...(prefs.folders ?? []), { id: uid('f'), name, include: [], types: picked as ('dm' | 'group' | 'space' | 'unread')[] }] }); };
   return (
     <Dialog title="Privacy and chat settings" kicker="Stored on this device" onClose={st.closeModal} wide>
       <div className={f.field} style={{ gap: 10 }}>

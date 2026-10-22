@@ -746,6 +746,8 @@ impl Driver {
             list.drain(..list.len() - BOOK_CAP);
         }
         self.book_dirty.insert(space);
+        // Written at once, not on the next maintenance tick: a kill before it would forget the peer and the restart could not redial it.
+        self.flush_book();
     }
 
     fn flush_book(&mut self) {

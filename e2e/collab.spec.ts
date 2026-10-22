@@ -42,16 +42,23 @@ test('messages sync both ways in real time', async () => {
   await expect(b.getByRole('navigation', { name: 'Spaces' })).toBeVisible();
 });
 
+/** The pill wait (60 s) plus the drain wait (90 s) outlast the default per-test timeout. */
+const OFFLINE_TEST_MS = 240_000;
+
 test('offline-first: a message sent while the peer is gone shows a sync pill, then drains on reconnect', async () => {
+  test.setTimeout(OFFLINE_TEST_MS);
   const text = unique('sent while Bo was away');
   const pill = a.getByRole('status').filter({ hasText: /to sync|saved here/ });
+  // B leaves its page before its host dies, so the dropped event stream is not counted as an app error.
+  const bUrl = b.url();
+  await b.goto('about:blank');
   await stopDevhost(1);
   await say(a, text);
   await expect(msg(a, text)).toBeVisible();
   await expect(pill).toContainText(/1 change/, { timeout: 60_000 });
   await startDevhost(1);
   await expect(pill).toHaveCount(0, { timeout: 90_000 });
-  await b.reload();
+  await b.goto(bUrl);
   await enterSection(b, 'chat');
   await expect(msg(b, text)).toBeVisible({ timeout: 60_000 });
 });

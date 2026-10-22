@@ -296,6 +296,8 @@ test('palette person opens a real DM that syncs to that person (A-003)', async (
 test('pin, mute and archive a chat from its menu; folders filter the list (M-032 to M-035)', async () => {
   const chan = unique('zlist').replace(/\s/g, '-');
   const other = unique('alist').replace(/\s/g, '-');
+  // The former test left A in the DM Space; this one lists the shared Space's channels next to the DM row.
+  await a.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
   await enterSection(a, 'chat');
   await newChannel(a, other);
   await newChannel(a, chan);
@@ -339,6 +341,8 @@ test('pin, mute and archive a chat from its menu; folders filter the list (M-032
   // A DM Space row follows the same folder and archive rules (A-003 with M-032, M-033).
   const dmRow = nav.getByRole('button', { name: /Bo Tester/ }).first();
   await dmRow.click();
+  // A DM row is a Space row: it switches Space and leaves the building, so the chat is entered again.
+  await enterSection(a, 'chat');
   await chatMenu(a, 'Add to Pairs');
   await folders.getByRole('button', { name: 'Pairs' }).click();
   await expect(dmRow).toBeVisible();

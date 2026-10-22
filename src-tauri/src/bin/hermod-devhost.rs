@@ -12,7 +12,7 @@ use std::sync::Arc;
 use axum::Extension;
 use axum::Router;
 use axum::body::Body;
-use axum::extract::{Path, State};
+use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
@@ -24,6 +24,9 @@ use hermodr_lib::{api, blob};
 use tokio_stream::StreamExt;
 use tokio_stream::wrappers::BroadcastStream;
 use tower_http::cors::{AllowOrigin, CorsLayer};
+
+/// Largest `/invoke` body: uploads arrive as a JSON number array (at most 4 bytes per byte: three digits and a comma), so the limit scales the upload cap; axum's 2 MiB default refused any multi-chunk blob.
+const INVOKE_BODY_LIMIT: usize = api::MAX_UPLOAD_BYTES * 4;
 
 #[derive(Parser)]
 #[command(
@@ -150,7 +153,10 @@ async fn main() -> anyhow_free::Result<()> {
         .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
         .allow_headers([header::CONTENT_TYPE, header::RANGE]);
     let app = Router::new()
-        .route("/invoke/{command}", post(invoke))
+        .route(
+            "/invoke/{command}",
+            post(invoke).layer(DefaultBodyLimit::max(INVOKE_BODY_LIMIT)),
+        )
         .route("/events", get(events))
         .route("/blob/{hash}", get(blob_route))
         .layer(Extension(a.port))
