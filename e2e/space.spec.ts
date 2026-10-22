@@ -234,6 +234,12 @@ test.describe('a shared Space between two users', () => {
     const list = a.getByRole('main', { name: 'Town as a list' });
     await expect(list).toBeVisible();
     await expect(list.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: new RegExp(space) })).toBeVisible();
+    // The list starts right of the space rail, not under it, and the space title is not repeated by the list.
+    const rail = await a.getByRole('navigation', { name: 'Spaces' }).first().boundingBox();
+    const card = await list.getByRole('button').first().boundingBox();
+    expect(card!.x).toBeGreaterThanOrEqual(rail!.x + rail!.width);
+    await expect(a.getByRole('heading', { level: 1, name: space })).toHaveCount(1);
+    await expect(a.getByRole('heading', { level: 2, name: space })).toHaveCount(0);
     const buildings = list.getByRole('navigation', { name: /^Buildings in / }).getByRole('button');
     expect(await buildings.count()).toBeGreaterThanOrEqual(5);
     await buildings.first().focus();

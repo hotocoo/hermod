@@ -2,9 +2,9 @@
   position: absolute;
   z-index: 30;
   left: 28px;
-  top: max(176px,calc(50% - 150px));
+  top: max(var(--hud-clear),calc(50% - 150px));
   /* the rail starts at max(176px, 50% - 150px): cap its height so its bottom (the New Space and Join buttons) never leaves the viewport once there are many spaces */
-  max-height: min(calc(100vh - 196px), calc(50vh + 130px));
+  max-height: min(calc(100vh - var(--hud-clear) - 20px), calc(50vh + 130px));
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
@@ -85,3 +85,6 @@
   border-color: var(--color-accent) !important;
   color: var(--color-accent) !important;
 }
+
+/* Phones: stop above the bottom bar (46px bar + 24px inset + gap) so the rail never covers it; it scrolls inside. */
+@media (max-width: 640px) { .root { max-height: calc(100vh - var(--hud-clear) - 100px); } }

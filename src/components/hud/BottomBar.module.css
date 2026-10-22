@@ -6,6 +6,7 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  max-width: calc(100vw - 24px);
   transition: opacity 400ms ease,transform 600ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
 }
 
@@ -81,4 +82,8 @@
   font-style: italic;
   color: color-mix(in srgb,var(--color-text) 60%,transparent);
   text-align: center;
+  width: max-content;
+  max-width: 100%;
 }
+/* Phones: the hint (keys, right-drag) does not fit beside the rail and compass; the buttons carry the same actions. */
+@media (max-width: 640px) { .hint { display: none; } }

@@ -95,3 +95,6 @@
   border-radius: 50%;
   background: var(--color-accent);
 }
+
+/* Phones: lift the compass above the bottom bar and drop the sky readout. */
+@media (max-width: 640px) { .root { right: 12px; bottom: 84px; } .readout { display: none; } }

@@ -1,9 +1,12 @@
 .root {
   position: absolute;
+  left: var(--hud-left);
   right: 24px;
   top: 22px;
   z-index: 30;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
   transition: opacity 400ms ease;
@@ -22,9 +25,15 @@
 }
 
 .syncPill {
-  display: inline-flex;
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  line-height: 38px; /* one line in the 40px pill; the full text is in the title */
   font-size: 12px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: color-mix(in srgb,var(--color-text) 72%,transparent);
 }
 
@@ -169,3 +178,8 @@
 }
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Stacked layout: the header sits on its own row above the top bar. */
+@media (max-width: 960px) { .root { top: 60px; right: 12px; } }
+/* Phones: icon-only search and clock so the pills fit in two rows. */
+@media (max-width: 640px) { .searchLabel, .kbd, .period { display: none; } }
