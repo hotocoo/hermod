@@ -6,8 +6,8 @@ use std::time::Duration;
 use libp2p::swarm::NetworkBehaviour;
 use libp2p::swarm::behaviour::toggle::Toggle;
 use libp2p::{
-    PeerId, StreamProtocol, autonat, connection_limits, dcutr, gossipsub, identify, identity, kad,
-    mdns, ping, relay, request_response, upnp,
+    PeerId, StreamProtocol, allow_block_list, autonat, connection_limits, dcutr, gossipsub,
+    identify, identity, kad, mdns, ping, relay, request_response, upnp,
 };
 
 use crate::config::{Limits, NodeConfig};
@@ -19,6 +19,8 @@ pub type Rpc<Q, R> = request_response::cbor::Behaviour<Q, R>;
 #[derive(NetworkBehaviour)]
 pub struct Behaviour {
     pub limits: connection_limits::Behaviour,
+    /// Banned (flooding) peers: refused before a connection is established, in both directions.
+    pub blocked: allow_block_list::Behaviour<allow_block_list::BlockedPeers>,
     pub identify: identify::Behaviour,
     pub ping: ping::Behaviour,
     pub autonat: autonat::v1::Behaviour,
@@ -126,6 +128,7 @@ impl Behaviour {
         };
         Ok(Self {
             limits: connection_limits::Behaviour::new(conn_limits(&cfg.limits)),
+            blocked: allow_block_list::Behaviour::default(),
             identify: identify::Behaviour::new(
                 identify::Config::new(IDENTIFY_PROTOCOL.into(), key.public())
                     .with_agent_version(format!("hermod-node/{}", env!("CARGO_PKG_VERSION"))),

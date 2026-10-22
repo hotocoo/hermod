@@ -2,7 +2,7 @@
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use libp2p::futures::StreamExt;
 use libp2p::gossipsub::{self, IdentTopic, TopicHash};
@@ -166,7 +166,6 @@ pub struct Driver {
 
 const BOOK_CAP: usize = 48;
 const OUTBOX_CAP: usize = 4096;
-const STRIKE_LIMIT: u32 = 50;
 
 impl Driver {
     pub fn new(
@@ -290,6 +289,7 @@ impl Driver {
                 self.dial_quiet(a);
             }
         }
+        self.restore_bans();
         for s in self.store.joined_spaces() {
             let _ = self.join(s);
         }
@@ -391,6 +391,7 @@ impl Driver {
         self.eph_topics.remove(&e.hash());
         self.space_peers.remove(&space);
         self.outbox.remove(&space);
+        self.report_sync();
         self.book_dirty.insert(space);
         self.flush_book();
         self.book.remove(&space);
@@ -429,6 +430,7 @@ impl Driver {
                 q.pop_front();
             }
             q.push_back(bytes);
+            self.report_sync();
         }
         Ok(())
     }
@@ -450,6 +452,7 @@ impl Driver {
         if !q.is_empty() {
             self.outbox.insert(space, q);
         }
+        self.report_sync();
     }
 
     fn signal(
@@ -641,6 +644,10 @@ impl Driver {
         v
     }
 
+    fn outbox_len(&self) -> u32 {
+        self.outbox.values().map(|q| q.len() as u32).sum()
+    }
+
     pub fn status(&self) -> NodeStatus {
         NodeStatus {
             peer_id: self.local.to_string(),
@@ -661,7 +668,8 @@ impl Driver {
             rate_in_bps: self.rates.0,
             rate_out_bps: self.rates.1,
             sync_pending: self.sync_inflight.len() as u32,
-            outbox: self.outbox.values().map(|q| q.len() as u32).sum(),
+            outbox: self.outbox_len(),
+            banned: self.banned.len() as u32,
         }
     }
 
@@ -701,7 +709,19 @@ impl Driver {
             }
         }
         let now = Instant::now();
-        self.banned.retain(|_, t| *t > now);
+        let expired: Vec<PeerId> = self
+            .banned
+            .iter()
+            .filter(|(_, t)| **t <= now)
+            .map(|(p, _)| *p)
+            .collect();
+        for p in &expired {
+            self.banned.remove(p);
+            self.swarm.behaviour_mut().blocked.unblock_peer(*p);
+        }
+        if !expired.is_empty() {
+            self.persist_bans();
+        }
         self.strikes.clear();
         self.event_rate.gc();
         self.eph_in_rate.gc();
@@ -764,14 +784,6 @@ impl Driver {
                 num_established,
                 ..
             } => {
-                if self
-                    .banned
-                    .get(&peer_id)
-                    .is_some_and(|t| *t > Instant::now())
-                {
-                    let _ = self.swarm.disconnect_peer_id(peer_id);
-                    return;
-                }
                 if let Some(r) = self.pending_dials.remove(&connection_id) {
                     let _ = r.send(Ok(peer_id));
                 }
@@ -964,9 +976,50 @@ impl Driver {
         *n += 1;
         if *n >= STRIKE_LIMIT {
             tracing::warn!("peer {peer} flooded, banning for 10 minutes");
-            self.banned
-                .insert(peer, Instant::now() + Duration::from_secs(600));
-            let _ = self.swarm.disconnect_peer_id(peer);
+            self.ban(peer, Duration::from_secs(BAN_SECS));
+        }
+    }
+
+    /// Refuse `peer` at the transport (before a connection is established), drop it now, and
+    /// remember the ban across restarts.
+    fn ban(&mut self, peer: PeerId, dur: Duration) {
+        self.banned.insert(peer, Instant::now() + dur);
+        self.swarm.behaviour_mut().blocked.block_peer(peer);
+        let _ = self.swarm.disconnect_peer_id(peer);
+        self.persist_bans();
+    }
+
+    fn persist_bans(&self) {
+        let now = Instant::now();
+        let unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        let bans: Vec<(String, u64)> = self
+            .banned
+            .iter()
+            .map(|(p, t)| {
+                (
+                    p.to_string(),
+                    unix + t.saturating_duration_since(now).as_secs(),
+                )
+            })
+            .collect();
+        self.cfg.peer_book.save_bans(&bans);
+    }
+
+    fn restore_bans(&mut self) {
+        let unix = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs());
+        for (p, until) in self.cfg.peer_book.load_bans() {
+            let (Ok(peer), Some(left)) = (p.parse::<PeerId>(), until.checked_sub(unix)) else {
+                continue;
+            };
+            if left > 0 {
+                self.banned
+                    .insert(peer, Instant::now() + Duration::from_secs(left));
+                self.swarm.behaviour_mut().blocked.block_peer(peer);
+            }
         }
     }
 
@@ -1016,6 +1069,12 @@ impl Driver {
         match decode::<Gossip>(data) {
             Some(Gossip::Event(bytes)) => {
                 let bytes = bytes.into_vec();
+                if bytes.len() > MAX_GOSSIP_EVENT {
+                    self.strike(src);
+                    return;
+                }
+                // Backstop per author, well above the store's own cap (30/s by default), so
+                // the store's configured limit is the one that normally trips first.
                 let key = self
                     .store
                     .event_author(&bytes)
@@ -1197,8 +1256,9 @@ impl Driver {
         }
     }
 
+    /// Work still owed to the network: queued outbound events plus syncs in flight.
     pub fn report_sync(&mut self) {
-        let n = self.sync_inflight.len() as u32;
+        let n = self.sync_inflight.len() as u32 + self.outbox_len();
         if n != self.last_sync_count {
             self.last_sync_count = n;
             self.emit(NodeEvent::SyncPending { count: n });

@@ -368,6 +368,7 @@ impl Ctx {
             return Err("accept the Terms of Use before joining the network".into());
         }
         let s = settings::node_settings(&live.core)?;
+        live.core.set_rate(s.rate());
         let seed = adapter::identity_seed(live.core.dir())?;
         let (ntx, nrx) = mpsc::unbounded_channel::<Notice>();
         let store = Arc::new(CoreStore::new(live.core.clone(), ntx, live.touched.clone()));
@@ -536,7 +537,7 @@ pub fn stopped_view(peer_id: &str) -> Value {
         "reachability": "unknown", "nat": "offline",
         "bandwidth": { "in_bps": 0, "out_bps": 0, "relay_bps": 0 },
         "storage": { "for_others_bytes": 0, "own_bytes": 0 },
-        "listen": [],
+        "listen": [], "banned": 0,
     })
 }
 
@@ -561,6 +562,7 @@ pub fn status_view(s: &NodeStatus, cfg: &Option<settings::NodeSettings>) -> Valu
         // Filled in by `Ctx::node_view` from the real store.
         "storage": { "for_others_bytes": 0, "own_bytes": 0 },
         "listen": listen,
+        "banned": s.banned,
     })
 }
 

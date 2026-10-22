@@ -31,10 +31,14 @@ export interface NodeStatus {
   bandwidth: { in_bps: number; out_bps: number; relay_bps: number };
   storage: { for_others_bytes: number; own_bytes: number };
   listen: string[];
+  /** Peers currently banned for flooding. */
+  banned: number;
 }
 export interface NodeSettings {
   relay_paused: boolean; relay_circuits: number; relay_bandwidth_bps: number; relay_bytes_per_circuit: number;
   blob_cache_bytes: number; max_connections: number;
+  /** Per-author live-gossip caps: sustained events per second, burst, bytes per event. */
+  event_rate_per_sec: number; event_burst: number; max_event_bytes: number;
   /** Keep the node running when the window is closed (tray mode). */
   background: boolean;
 }

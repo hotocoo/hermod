@@ -33,6 +33,10 @@ pub const SIGNAL_IN_RATE: (f64, f64) = (10.0, 30.0);
 pub const BLOB_SERVE_INFLIGHT_PER_PEER: u32 = 16;
 /// Announced providers remembered per blob with an active fetch job.
 pub const MAX_PROVIDERS_PER_BLOB: usize = 32;
+/// Strikes (rate floods, rejected or undecodable gossip) within a maintenance interval that earn a ban.
+pub const STRIKE_LIMIT: u32 = 50;
+/// How long a peer that hit `STRIKE_LIMIT` stays banned.
+pub const BAN_SECS: u64 = 600;
 /// Parallel chunk requests per blob.
 pub const BLOB_WINDOW: usize = 8;
 

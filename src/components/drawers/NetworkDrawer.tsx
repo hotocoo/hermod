@@ -66,6 +66,7 @@ export function NetworkDrawer({ vm }: { vm: ViewModel }) {
       ) : (
         <dl className={s.stats}>
           <div className={s.stat}><dt>Peers</dt><dd>{node.peers}</dd></div>
+          {node.banned > 0 && <div className={s.stat}><dt>Banned for flooding</dt><dd>{node.banned}</dd></div>}
           <div className={s.stat}><dt>Relaying now</dt><dd>{node.relaying}{node.relay_paused ? ' (paused)' : ''}</dd></div>
           <div className={`${s.stat} ${s.wide}`}><dt>Reachability</dt><dd>{REACH[node.reachability]}{node.nat ? ` NAT: ${node.nat}.` : ''}</dd></div>
           <div className={s.stat}><dt>Bandwidth in / out</dt><dd>{rate(node.bandwidth.in_bps)} / {rate(node.bandwidth.out_bps)}</dd></div>

@@ -2,6 +2,8 @@
 //! blocked users, retention. Stored as small JSON values in `Core`'s settings table.
 
 use hermod_core::Core;
+use hermod_core::event::MAX_BODY_BYTES;
+use hermod_core::ratelimit::RateConfig;
 use hermod_node::config::{CEIL_CONNECTIONS, CEIL_RELAY_BPS, CEIL_RELAY_CIRCUITS, Limits};
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +14,11 @@ pub const CEIL_BYTES_PER_CIRCUIT: u64 = 512 * MIB;
 /// Ceiling for the blob cache size.
 pub const CEIL_BLOB_CACHE: u64 = 4 * GIB;
 const MIN_CONNECTIONS: u32 = 8;
+/// Ceilings for the per-author gossip caps (E-010): sustained events per second and burst.
+pub const CEIL_EVENT_RATE: u32 = 1000;
+pub const CEIL_EVENT_BURST: u32 = 2000;
+/// Smallest event body the size cap may be set to.
+const MIN_EVENT_BYTES: u64 = 1024;
 
 const NODE_KEY: &str = "node_settings";
 const NOTIFY_KEY: &str = "notify_settings";
@@ -25,6 +32,10 @@ pub struct NodeSettings {
     pub relay_bytes_per_circuit: u64,
     pub blob_cache_bytes: u64,
     pub max_connections: u32,
+    /// Per-author live-gossip cap: sustained events per second, burst, and bytes per event.
+    pub event_rate_per_sec: u32,
+    pub event_burst: u32,
+    pub max_event_bytes: u64,
     /// Keep the node running when the window is closed (tray mode).
     pub background: bool,
 }
@@ -38,12 +49,16 @@ pub struct NodePatch {
     pub relay_bytes_per_circuit: Option<u64>,
     pub blob_cache_bytes: Option<u64>,
     pub max_connections: Option<u32>,
+    pub event_rate_per_sec: Option<u32>,
+    pub event_burst: Option<u32>,
+    pub max_event_bytes: Option<u64>,
     pub background: Option<bool>,
 }
 
 impl NodeSettings {
     pub fn defaults(share_resources: bool) -> Self {
         let l = Limits::default();
+        let r = RateConfig::default();
         NodeSettings {
             relay_paused: !share_resources,
             relay_circuits: l.relay_circuits,
@@ -51,6 +66,9 @@ impl NodeSettings {
             relay_bytes_per_circuit: l.relay_bytes_per_circuit,
             blob_cache_bytes: 512 * MIB,
             max_connections: l.max_connections,
+            event_rate_per_sec: r.events_per_sec as u32,
+            event_burst: r.burst,
+            max_event_bytes: r.max_event_bytes as u64,
             background: false,
         }
     }
@@ -75,10 +93,28 @@ impl NodeSettings {
         if let Some(v) = p.max_connections {
             self.max_connections = v.clamp(MIN_CONNECTIONS, CEIL_CONNECTIONS);
         }
+        if let Some(v) = p.event_rate_per_sec {
+            self.event_rate_per_sec = v.clamp(1, CEIL_EVENT_RATE);
+        }
+        if let Some(v) = p.event_burst {
+            self.event_burst = v.clamp(1, CEIL_EVENT_BURST);
+        }
+        if let Some(v) = p.max_event_bytes {
+            self.max_event_bytes = v.clamp(MIN_EVENT_BYTES, MAX_BODY_BYTES as u64);
+        }
         if let Some(v) = p.background {
             self.background = v;
         }
         self
+    }
+
+    /// Live-gossip caps handed to the store.
+    pub fn rate(&self) -> RateConfig {
+        RateConfig {
+            events_per_sec: f64::from(self.event_rate_per_sec),
+            burst: self.event_burst,
+            max_event_bytes: self.max_event_bytes as usize,
+        }
     }
 
     pub fn limits(&self) -> Limits {
@@ -100,6 +136,9 @@ impl NodeSettings {
             "relay_bytes_per_circuit": CEIL_BYTES_PER_CIRCUIT,
             "blob_cache_bytes": CEIL_BLOB_CACHE,
             "max_connections": CEIL_CONNECTIONS,
+            "event_rate_per_sec": CEIL_EVENT_RATE,
+            "event_burst": CEIL_EVENT_BURST,
+            "max_event_bytes": MAX_BODY_BYTES,
         })
     }
 }
@@ -132,6 +171,9 @@ pub fn node_settings_set(core: &Core, patch: &NodePatch) -> Result<NodeSettings,
         relay_bytes_per_circuit,
         blob_cache_bytes,
         max_connections,
+        event_rate_per_sec,
+        event_burst,
+        max_event_bytes,
         background
     );
     let json = serde_json::to_string(&stored).map_err(|e| e.to_string())?;
@@ -287,6 +329,21 @@ mod tests {
         assert_eq!(s.blob_cache_bytes, CEIL_BLOB_CACHE);
         assert!(!s.relay_paused);
         assert!(NodeSettings::defaults(false).relay_paused);
+    }
+
+    #[test]
+    fn event_caps_default_to_core_and_clamp() {
+        let d = NodeSettings::defaults(true);
+        assert_eq!(d.rate(), RateConfig::default());
+        let s = d.apply(&NodePatch {
+            event_rate_per_sec: Some(0),
+            event_burst: Some(u32::MAX),
+            max_event_bytes: Some(u64::MAX),
+            ..NodePatch::default()
+        });
+        assert_eq!(s.event_rate_per_sec, 1);
+        assert_eq!(s.event_burst, CEIL_EVENT_BURST);
+        assert_eq!(s.max_event_bytes, MAX_BODY_BYTES as u64);
     }
 
     #[test]

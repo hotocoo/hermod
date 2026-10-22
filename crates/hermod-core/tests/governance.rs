@@ -541,6 +541,31 @@ fn ingest_rate_cap_applies_to_gossip_but_not_to_backfill() {
 }
 
 #[test]
+fn set_rate_tightens_the_gossip_cap_on_an_open_core() {
+    let (_d, b) = core();
+    let (_d2, a) = core();
+    let s = a.space_create("Flood", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap();
+    b.set_rate(hermod_core::ratelimit::RateConfig {
+        events_per_sec: 1.0,
+        burst: 2,
+        max_event_bytes: 1 << 20,
+    });
+    for i in 0..10 {
+        a.append(&s, post_msg("general", &format!("m{i}"), "x"))
+            .unwrap();
+    }
+    let evs = a.missing_since(&s, &b.vector(&s).unwrap()).unwrap();
+    let limited = evs
+        .iter()
+        .take(10)
+        .filter(|e| matches!(b.ingest((*e).clone()), Err(Error::RateLimited(_))))
+        .count();
+    assert!(limited > 0, "the new cap applies without reopening");
+}
+
+#[test]
 fn moderation_tombstones_posts_comments_and_cheap_arms() {
     let (a, b, _c, s, _d) = trio();
     b.append(&s, post_msg("general", "bad", "spam")).unwrap();

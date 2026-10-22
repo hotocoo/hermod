@@ -155,6 +155,11 @@ impl Store {
         Self::init(Connection::open(path).map_err(migrations::classify)?, rate)
     }
 
+    /// Swaps the live-gossip rate and size caps; existing buckets start over.
+    pub fn set_rate(&mut self, rate: RateConfig) {
+        self.limiter = Limiter::new(rate);
+    }
+
     pub fn open_in_memory() -> Result<Self> {
         Self::init(Connection::open_in_memory()?, RateConfig::default())
     }

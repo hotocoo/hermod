@@ -375,7 +375,12 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         "node_settings_set" => {
             let patch: NodePatch =
                 serde_json::from_value(a.clone()).map_err(|x| format!("invalid settings: {x}"))?;
-            let s = blk(&live, move |c| settings::node_settings_set(c, &patch)).await?;
+            let s = blk(&live, move |c| {
+                let s = settings::node_settings_set(c, &patch)?;
+                c.set_rate(s.rate());
+                Ok(s)
+            })
+            .await?;
             if let Some(node) = ctx.node().await {
                 node.set_limits(s.limits()).await.map_err(e)?;
             }

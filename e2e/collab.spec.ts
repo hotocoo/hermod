@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, openSpaceSettings } from './fixtures';
-import { freshDevhosts } from './devhosts';
+import { freshDevhosts, stopDevhost, startDevhost } from './devhosts';
 
 /** Every spec file starts on three empty devhosts, so no spec depends on state a former one left. */
 test.beforeAll(async () => { test.setTimeout(180_000); await freshDevhosts(); });
@@ -40,4 +40,18 @@ test('messages sync both ways in real time', async () => {
   await expect(msg(b, 'hi Bo, Ada here')).toBeVisible({ timeout: 30_000 });
   await b.reload();
   await expect(b.getByRole('navigation', { name: 'Spaces' })).toBeVisible();
+});
+
+test('offline-first: a message sent while the peer is gone shows a sync pill, then drains on reconnect', async () => {
+  const text = unique('sent while Bo was away');
+  const pill = a.getByRole('status').filter({ hasText: /to sync|saved here/ });
+  await stopDevhost(1);
+  await say(a, text);
+  await expect(msg(a, text)).toBeVisible();
+  await expect(pill).toContainText(/1 change/, { timeout: 60_000 });
+  await startDevhost(1);
+  await expect(pill).toHaveCount(0, { timeout: 90_000 });
+  await b.reload();
+  await enterSection(b, 'chat');
+  await expect(msg(b, text)).toBeVisible({ timeout: 60_000 });
 });
