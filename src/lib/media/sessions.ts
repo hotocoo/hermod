@@ -71,3 +71,13 @@ export function onRemoteDescription(s: NegotiationState, type: 'offer' | 'answer
   const collision = type === 'offer' && !ready;
   return { ignore: !s.polite && collision, collision };
 }
+
+/** Who we said hello to: a broadcast hello opens a reply window, a targeted one (retry) whitelists that peer. */
+export class HelloLedger {
+  private until = 0;
+  private readonly peers = new Set<string>();
+  broadcast(now: number, windowMs: number): void { this.until = now + windowMs; }
+  to(peer: string): void { this.peers.add(peer); }
+  /** True when a hello-ack from `from` answers a hello we sent. */
+  accepts(from: string, now: number): boolean { return now < this.until || this.peers.has(from); }
+}

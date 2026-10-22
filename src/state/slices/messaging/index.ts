@@ -5,7 +5,7 @@ import { copyText } from '../../../lib/clipboard';
 import { urlsIn } from '../../../lib/messaging/markdown';
 import { appendEvent, guarded, uid } from '../../act';
 import type { Message } from '../../dataTypes';
-import { chatKey, curSpace, meId } from '../../selectors';
+import { channelsOf, chatKey, curSpace, meId } from '../../selectors';
 import type { AppStore } from '../../types';
 import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
@@ -235,8 +235,12 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     },
     noteTyping: (from, space, channel) => {
       const s = get(); if (!s.privacy.typing || from === meId(s)) return;
-      const key = `${space}/${channel}`;
-      set((x) => ({ typing: { ...x.typing, [key]: { ...(x.typing[key] ?? {}), [from]: Date.now() + TYPING_TTL_MS } } }));
+      if (!s.seed || !channelsOf(s.seed, space).some((c) => c.id === channel)) return; // keys are attacker-chosen
+      const key = `${space}/${channel}`; const now = Date.now();
+      set((x) => {
+        const live = Object.fromEntries(Object.entries(x.typing).map(([k, m]) => [k, Object.fromEntries(Object.entries(m).filter(([, until]) => until > now))] as const).filter(([, m]) => Object.keys(m).length > 0));
+        return { typing: { ...live, [key]: { ...(live[key] ?? {}), [from]: now + TYPING_TTL_MS } } };
+      });
     },
     notePresence: (from) => {
       if (!get().privacy.presence) return;

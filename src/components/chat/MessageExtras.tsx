@@ -1,15 +1,18 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { LIMITS } from '@/config/app';
+import { fmtSec } from '@/lib/format';
+import { isSafeHref } from '@/lib/messaging/markdown';
 import { getBridge, type BlobRef, type EventBody } from '@/lib/bridge';
 import type { Message } from '@/state/dataTypes';
 import { appendEvent } from '@/state/act';
+import { chatKey } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
 import { arcadeOf } from '@/state/vm/arcade';
 import s from './messaging.module.css';
 
 const SPEEDS = [1, 1.5, 2];
-const fmtDur = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
 const url = (b: BlobRef) => getBridge().blobUrl(b.hash);
 
 export function Forwarded({ m }: { m: Message }) {
@@ -20,10 +23,9 @@ export function Forwarded({ m }: { m: Message }) {
 }
 
 export function QuoteCard({ m }: { m: Message }) {
-  const q = m.ext?.quote; const people = useAppStore((st) => st.seed?.people); const chat = useAppStore((st) => st.msgs);
+  const q = m.ext?.quote; const people = useAppStore((st) => st.seed?.people); const alive = useAppStore((st) => (st.msgs[chatKey(st)] ?? []).some((x) => x.id === q?.msg_id));
   const space = useAppStore((st) => st.space); const ch = useAppStore((st) => st.ch[st.space]); const jump = useAppStore((st) => st.openMessageLink);
   if (!q) return null;
-  const alive = (chat[`${space}/${ch}`] ?? []).some((x) => x.id === q.msg_id);
   const go = () => { if (alive) jump(`hermod://msg/${space}/${ch}/${q.msg_id}`); };
   return (
     <button type="button" className={s.quoteCard} onClick={go} aria-label={`Quoted message from ${people?.[q.by]?.name ?? 'someone'}`}>
@@ -53,7 +55,7 @@ export function VoiceNote({ blob, peaks, durMs }: { blob: BlobRef; peaks: number
         onKeyDown={(e) => { const a = audio.current; if (!a) return; if (e.key === 'ArrowRight') a.currentTime += 5; if (e.key === 'ArrowLeft') a.currentTime -= 5; }}>
         {bars.map((p, i) => <span key={i} className={i / bars.length < pos ? `${s.bar} ${s.barOn}` : s.bar} style={{ height: `${Math.max(8, (p / 255) * 100)}%` }} />)}
       </div>
-      <span className={s.dur}>{fmtDur(durMs)}</span>
+      <span className={s.dur}>{fmtSec(durMs / 1000)}</span>
       <button type="button" className={s.speed} onClick={cycle} aria-label={`Playback speed ${SPEEDS[speed]}x`}>{SPEEDS[speed]}x</button>
     </div>
   );
@@ -89,14 +91,18 @@ export function ViewOnce({ m }: { m: Message }) {
 
 export function PreviewCard({ m }: { m: Message }) {
   const p = m.ext?.preview; if (!p) return null;
-  let host = p.url; try { host = new URL(p.url).host; } catch { /* keep the raw url */ }
-  return (
-    <a className={s.preview} href={p.url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Link preview: ${p.title}`}>
-      
+  let host = p.url; try { host = new URL(p.url).host; } catch { /* keep raw url */ }
+  const title = String(p.title ?? '').slice(0, LIMITS.previewTitle); const desc = String(p.description ?? '').slice(0, LIMITS.previewDesc);
+  // The URL is peer-supplied: only a vetted http(s) address becomes a link.
+  const body = (
+    <>
       {p.image && <img className={s.previewImg} src={url(p.image)} alt="" loading="lazy" />}
-      <span style={{ minWidth: 0 }}><span className={s.previewUrl}>{host}</span><br /><span className={s.previewTitle}>{p.title}</span>{p.description && <span className={s.previewDesc}>{p.description}</span>}</span>
-    </a>
+      <span style={{ minWidth: 0 }}><span className={s.previewUrl}>{host}</span><br /><span className={s.previewTitle}>{title}</span>{desc && <span className={s.previewDesc}>{desc}</span>}</span>
+    </>
   );
+  return isSafeHref(p.url)
+    ? <a className={s.preview} href={p.url} target="_blank" rel="noopener noreferrer nofollow" aria-label={`Link preview: ${title}`}>{body}</a>
+    : <div className={s.preview} aria-label={`Link preview: ${title}`}>{body}</div>;
 }
 
 /** One tick: sent. Two: somebody opted in to receipts and read it. Coloured: everyone else did. */

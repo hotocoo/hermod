@@ -4,6 +4,7 @@ import type { VmProps } from '@/components/panel/types';
 import { Icon } from '@/components/ui/Icon';
 import { getBridge } from '@/lib/bridge';
 import { humanSize } from '@/lib/upload';
+import { chatKey } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
 import { ComposeBars, ComposerTools } from './ComposerTools';
 import { useChanCfg } from './useMsgView';
@@ -21,15 +22,18 @@ export function Composer({ vm }: VmProps) {
   const [dragging, setDragging] = useState(false);
   const [snapOpen, setSnapOpen] = useState(false);
   const [title, setTitle] = useState(''); const [tags, setTags] = useState('');
+  // Draft lives outside the view model so a keystroke does not rebuild it (see useViewModel).
+  const draft = useAppStore((st) => st.drafts[chatKey(st)] ?? ''); const setDraft = useAppStore((st) => st.setDraft);
+  const canSend = !!draft.trim() || vm.attached.length > 0 || !!vm.snapRef;
   const cfg = useChanCfg(); const forum = cfg?.kind === 'forum'; const locked = !!cfg && !cfg.canSend;
   const probe = useAppStore((st) => st.probePreview); const ping = useAppStore((st) => st.typingPing); const forumPost = useAppStore((st) => st.forumPost);
-  useEffect(() => { const t = setTimeout(() => { void probe(vm.draft); }, 600); return () => clearTimeout(t); }, [vm.draft, probe]);
-  const publish = () => { void forumPost(title, tags.split(',').map((t) => t.trim()).filter(Boolean), vm.draft.trim()).then(() => { setTitle(''); setTags(''); vm.onDraft({ target: { value: '' } }); }); };
+  useEffect(() => { const t = setTimeout(() => { void probe(draft); }, 600); return () => clearTimeout(t); }, [draft, probe]);
+  const publish = () => { void forumPost(title, tags.split(',').map((t) => t.trim()).filter(Boolean), draft.trim()).then(() => { setTitle(''); setTags(''); setDraft(''); }); };
 
   // Auto-grow to content, capped by CSS max-height.
-  useEffect(() => { const el = area.current; if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }, [vm.draft]);
+  useEffect(() => { const el = area.current; if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px`; } }, [draft]);
 
-  const query = MENTION_AT_CARET.exec(vm.draft.slice(0, caret))?.[2] ?? null;
+  const query = MENTION_AT_CARET.exec(draft.slice(0, caret))?.[2] ?? null;
   const suggestions = useMemo(() => {
     if (query === null) return [];
     return Object.entries(vm.people)
@@ -41,15 +45,15 @@ export function Composer({ vm }: VmProps) {
   // The caret is placed when the new draft commits, not a frame later: a frame later it would jump back over what was typed since.
   const pendingCaret = useRef<number | null>(null);
   const placeCaret = (pos: number) => { area.current?.focus(); area.current?.setSelectionRange(pos, pos); setCaret(pos); };
-  useLayoutEffect(() => { const pos = pendingCaret.current; if (pos === null) return; pendingCaret.current = null; placeCaret(pos); }, [vm.draft]);
+  useLayoutEffect(() => { const pos = pendingCaret.current; if (pos === null) return; pendingCaret.current = null; placeCaret(pos); }, [draft]);
   const setText = (text: string, pos: number) => {
-    if (text === vm.draft) { placeCaret(pos); return; }
+    if (text === draft) { placeCaret(pos); return; }
     pendingCaret.current = pos;
-    vm.onDraft({ target: { value: text } });
+    setDraft(text);
   };
   const insert = (first: string) => {
-    const before = vm.draft.slice(0, caret).replace(MENTION_AT_CARET, `$1@${first} `);
-    setText(before + vm.draft.slice(caret), before.length);
+    const before = draft.slice(0, caret).replace(MENTION_AT_CARET, `$1@${first} `);
+    setText(before + draft.slice(caret), before.length);
     setPick(0);
   };
 
@@ -98,7 +102,7 @@ export function Composer({ vm }: VmProps) {
               )}
             </ul>
           )}
-          <div className={`${x.toolRow} ${s.relative}`}><ComposerTools draft={vm.draft} setDraft={(v) => setText(v, v.length)} /></div>
+          <div className={`${x.toolRow} ${s.relative}`}><ComposerTools draft={draft} setDraft={(v) => setText(v, v.length)} /></div>
           <div className={`${s.boxRow} ${s.relative}`}>
             <input ref={files} type="file" multiple hidden onChange={(e) => { void vm.attachFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
             <button type="button" aria-label="Attach files" title="Attach files" className={s.tool} onClick={() => (getBridge().kind === 'tauri' ? void vm.attachNative() : files.current?.click())}>{vm.ic.clip}</button>
@@ -127,11 +131,11 @@ export function Composer({ vm }: VmProps) {
                 ))}
               </ul>
             )}
-            <textarea ref={area} rows={1} className={s.area} value={vm.draft} placeholder={locked ? 'You cannot post in this channel' : vm.placeholder} readOnly={locked} aria-label="Message"
+            <textarea ref={area} rows={1} className={s.area} value={draft} placeholder={locked ? 'You cannot post in this channel' : vm.placeholder} readOnly={locked} aria-label="Message"
               role="combobox" aria-expanded={listOpen} aria-controls="mention-list" aria-autocomplete="list" aria-activedescendant={listOpen ? `mention-${pick}` : undefined}
-              onChange={(e) => { vm.onDraft(e); setCaret(e.target.selectionStart); setPick(0); ping(); }}
+              onChange={(e) => { setDraft(e.target.value); setCaret(e.target.selectionStart); setPick(0); ping(); }}
               onSelect={(e) => setCaret(e.currentTarget.selectionStart)} onKeyDown={onKey} onPaste={onPaste} />
-            <button type="button" onClick={() => { if (vm.canSend && !locked) vm.onSend(); }} aria-label="Send" aria-disabled={!vm.canSend} className={s.send} style={{ color: vm.sendFg }}>{vm.ic.send}</button>
+            <button type="button" onClick={() => { if (canSend && !locked) vm.onSend(); }} aria-label="Send" aria-disabled={!canSend} className={s.send} style={{ color: canSend ? vm.sendFgOn : vm.sendFgOff }}>{vm.ic.send}</button>
           </div>
         </div>
         <div className={s.hints}><span>Enter to send</span><span>Shift + Enter for a new line</span><span>@ to mention</span><span className={s.hintEnd}>Ctrl K to jump anywhere</span></div>

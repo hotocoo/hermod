@@ -14,5 +14,7 @@ export const spaceOf = (spaces: Space[], id: string): Space => spaces.find((x) =
 /** Immutable keyed update: returns a copy of rec with rec[key] replaced. */
 export const withKey = <V,>(rec: Record<string, V>, key: string, value: V): Record<string, V> => ({ ...rec, [key]: value });
 
+/** Immutable keyed removal. */
+export const omitKey = <V,>(rec: Record<string, V>, key: string): Record<string, V> => Object.fromEntries(Object.entries(rec).filter(([k]) => k !== key));
 export const sumValues = (rec: Record<string, number>, keep: (k: string) => boolean = () => true): number =>
   Object.keys(rec).filter(keep).reduce((a, k) => a + rec[k], 0);

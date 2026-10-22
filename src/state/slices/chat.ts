@@ -4,9 +4,9 @@ import { COPY } from '../../config/copy';
 import { errorMessage, getBridge, type BlobRef } from '../../lib/bridge';
 import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
-import { withKey } from '../helpers';
+import { omitKey, withKey } from '../helpers';
 import { chatKey, curSpace } from '../selectors';
-import type { AppStore, ChatSlice } from '../types';
+import type { AppStore, Attached, ChatSlice } from '../types';
 import { takeComposeExtras } from './messaging';
 
 /** Splits `@Name` mentions out of a draft against the people the core knows, returning their user ids. */
@@ -19,25 +19,31 @@ export function mentionsIn(text: string, people: Record<string, { name: string }
   return ids;
 }
 
+/** Frees the blob: object URLs held by composer previews. */
+export function revokePreviews(list: readonly Attached[]): void {
+  for (const a of list) if (a.local) URL.revokeObjectURL(a.local);
+}
+
 export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, get) => ({
-  msgs: {}, drafts: {}, tdraft: '', attached: [], editing: null, editDraft: '', snapRef: null,
+  msgs: {}, drafts: {}, tdraft: '', attached: {}, editing: null, editDraft: '', snapRef: null,
   setSnapRef: (snapRef) => set({ snapRef }),
   seen: {}, incoming: {},
 
   setDraft: (v) => set((s) => ({ drafts: withKey(s.drafts, chatKey(s), v) })),
 
   send: async () => {
-    const s = get(); const key = chatKey(s); const text = (s.drafts[key] ?? '').trim(); const files = s.attached; const snap = s.snapRef ?? undefined;
+    const s = get(); const key = chatKey(s); const text = (s.drafts[key] ?? '').trim(); const files = s.attached[key] ?? []; const snap = s.snapRef ?? undefined;
     if (!text && !files.length && !snap) return;
     const ch = s.ch[s.space]; if (!ch || !s.seed) return;
-    set({ drafts: withKey(s.drafts, key, ''), attached: [], snapRef: null });
+    set({ drafts: withKey(s.drafts, key, ''), attached: omitKey(s.attached, key), snapRef: null });
     const extras = takeComposeExtras(get, set);
     const ok = await appendEvent(get, s.space, {
       t: 'message.post', channel_id: ch, msg_id: uid('m'), text, attachments: files.map((f) => f.blob), snap,
       mentions: mentionsIn(text, s.seed.people), ext: extras.ext, preview: extras.preview,
     });
     // Restore what the user typed so nothing is lost on failure (the toast already explained why).
-    if (!ok) set((x) => ({ drafts: withKey(x.drafts, key, text), attached: files, snapRef: snap ?? null }));
+    if (ok) revokePreviews(files);
+    else set((x) => ({ drafts: withKey(x.drafts, key, text), attached: files.length ? withKey(x.attached, key, files) : x.attached, snapRef: snap ?? null }));
   },
 
   setTDraft: (tdraft) => set({ tdraft }),
@@ -66,19 +72,25 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   },
 
   attachFiles: async (files) => {
-    const bridge = getBridge();
+    const bridge = getBridge(); const key = chatKey(get());
     for (const f of files) {
       if (f.size > UPLOAD.maxBytes) { get().showToast(COPY.fileTooLarge(f.name, UPLOAD.maxBytes), undefined, 'error'); continue; }
       const blob: BlobRef | undefined = await guarded(get, async () => bridge.blobPutBytes(f.name, new Uint8Array(await f.arrayBuffer())));
-      if (blob) set((s) => ({ attached: [...s.attached, { blob, local: blob.mime.startsWith('image/') || blob.mime.startsWith('video/') ? URL.createObjectURL(f) : '' }] }));
+      if (blob) set((s) => ({ attached: withKey(s.attached, key, [...(s.attached[key] ?? []), { blob, local: blob.mime.startsWith('image/') || blob.mime.startsWith('video/') ? URL.createObjectURL(f) : '' }]) }));
     }
   },
   /** Tauri: the native picker hands paths to Rust (`blob_put`), so large files never pass through the WebView. */
   attachNative: async () => {
+    const key = chatKey(get());
     const stored = await guarded(get, () => pickAndStore('', true));
-    if (stored?.length) set((s) => ({ attached: [...s.attached, ...stored.map((x) => ({ blob: x.blob, local: '' }))] }));
+    if (stored?.length) set((s) => ({ attached: withKey(s.attached, key, [...(s.attached[key] ?? []), ...stored.map((x) => ({ blob: x.blob, local: '' }))]) }));
   },
-  detach: (hash) => set((s) => ({ attached: s.attached.filter((a) => a.blob.hash !== hash) })),
+  detach: (hash) => set((s) => {
+    const key = chatKey(s); const all = s.attached[key] ?? [];
+    revokePreviews(all.filter((a) => a.blob.hash === hash));
+    const left = all.filter((a) => a.blob.hash !== hash);
+    return { attached: left.length ? withKey(s.attached, key, left) : omitKey(s.attached, key) };
+  }),
 
   newChannel: async () => {
     const s = get(); const sp = curSpace(s);

@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react';
+import { memo, useState, type KeyboardEvent } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { Vm } from '@/components/panel/types';
 import { getBridge } from '@/lib/bridge';
@@ -31,8 +31,8 @@ function KindBody({ m }: { m: Msg }) {
 }
 
 function Actions({ m }: { m: Msg }) {
-  const st = useAppStore();
-  const space = st.spaces.find((sp) => sp.id === st.space); const isAdmin = space?.role === 'admin' || space?.role === 'owner';
+  const isAdmin = useAppStore((st) => { const role = st.spaces.find((sp) => sp.id === st.space)?.role; return role === 'admin' || role === 'owner'; });
+  const st = useAppStore.getState();
   const r = m.raw; const ok = forwardable(r);
   const btn = (label: string, icon: string, fn: () => void) => <button type="button" className={s.act} onClick={fn} aria-label={label} title={label}><Icon name={icon} size={14} /></button>;
   return (
@@ -50,7 +50,7 @@ function Actions({ m }: { m: Msg }) {
   );
 }
 
-export function Message({ m, icons, people }: Props) {
+function MessageView({ m, icons, people }: Props) {
   const { ic, icS } = icons;
   const [shown, setShown] = useState(false); const [hist, setHist] = useState(false); const [picker, setPicker] = useState(false);
   const react = useAppStore((st) => st.react); const chat = useAppStore(chatKey);
@@ -152,6 +152,12 @@ export function Message({ m, icons, people }: Props) {
     </article>
   );
 }
+
+/** The view model hands a fresh object per message on every rebuild; only these inputs change what is drawn. */
+const same = (a: Msg, b: Msg): boolean => a.raw === b.raw && a.snap?.seal === b.snap?.seal
+  && (Object.keys(a) as (keyof Msg)[]).every((k) => { const v = a[k]; return v !== null && typeof v === 'object' || typeof v === 'function' || v === b[k]; });
+
+export const Message = memo(MessageView, (a, b) => a.people === b.people && a.icons.ic === b.icons.ic && a.icons.icS === b.icons.icS && same(a.m, b.m));
 
 function ReactionEmoji({ name }: { name: string }) {
   const hash = useCustomEmoji().find((e) => e.name === name)?.blob.hash;

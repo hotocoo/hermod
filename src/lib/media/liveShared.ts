@@ -1,4 +1,5 @@
 import { MEDIA } from '../../config/media';
+import type { SignalMsg } from './sessions';
 import type { MediaBridge } from './types';
 
 export interface LiveState { viewers: number; max: number }
@@ -53,4 +54,14 @@ export function listenLive(
       if (s) on.state(s);
     }
   });
+}
+
+/** Parks an early signal from `from`, bounded in senders, messages per sender and total bytes. Returns the new queue map (or the same one when the signal is dropped). */
+export function parkEarly(early: ReadonlyMap<string, SignalMsg[]>, from: string, m: SignalMsg, caps: { earlyMaxPerSender: number; earlyMaxSenders: number; earlyMaxBytes: number } = MEDIA.live): Map<string, SignalMsg[]> {
+  const q = early.get(from);
+  const size = (x: SignalMsg) => JSON.stringify(x.data ?? null).length;
+  let bytes = size(m);
+  for (const list of early.values()) for (const x of list) bytes += size(x);
+  if ((!q && early.size >= caps.earlyMaxSenders) || (q?.length ?? 0) >= caps.earlyMaxPerSender || bytes > caps.earlyMaxBytes) return early as Map<string, SignalMsg[]>;
+  return new Map(early).set(from, [...(q ?? []), m]);
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MEDIA } from '../../../config/media';
-import { ENVELOPE, gateSession, isPolite, newSid, onRemoteDescription, parseSignal } from '../sessions';
+import { ENVELOPE, HelloLedger, gateSession, isPolite, newSid, onRemoteDescription, parseSignal } from '../sessions';
 import { Signaling } from '../signaling';
 import type { MediaBridge } from '../types';
 import type { SignalEvent } from '../../bridge/types';
@@ -110,5 +110,18 @@ describe('Signaling', () => {
     const f = fakeBridge();
     f.bridge.mediaSignal = async () => { throw new Error('offline'); };
     await expect(new Signaling(f.bridge, 'sp', 'me').send('c', 's', 'hello', {}, 'p')).rejects.toMatchObject({ code: 'signal-failed', peer: 'p' });
+  });
+});
+
+describe('HelloLedger', () => {
+  it('honours acks only inside the broadcast window or from a retried peer', () => {
+    const h = new HelloLedger();
+    expect(h.accepts('p', 0)).toBe(false);
+    h.broadcast(100, 50);
+    expect(h.accepts('p', 149)).toBe(true);
+    expect(h.accepts('p', 150)).toBe(false);
+    h.to('p');
+    expect(h.accepts('p', 10_000)).toBe(true);
+    expect(h.accepts('q', 10_000)).toBe(false);
   });
 });
