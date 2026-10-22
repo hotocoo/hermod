@@ -6,7 +6,7 @@ import type { Arrival } from '../arrivals';
 import { withKey } from '../helpers';
 import { channelUnread, channelsOf, curSpace, personOf } from '../selectors';
 import { notifyArrival } from '../notify';
-import { isMuted } from './messaging/helpers';
+import { isMuted, unmutedRook } from './messaging/helpers';
 import { getTown } from '../townPort';
 import { timer } from '../timers';
 import type { AppStore, RavenSlice } from '../types';
@@ -50,7 +50,7 @@ export const createRavenSlice: StateCreator<AppStore, [], [], RavenSlice> = (set
 
   markRookRead: async () => {
     const s = get();
-    const unread = s.rook.filter((r) => !r.read);
+    const unread = unmutedRook(s.rook, s.prefs.muted).filter((r) => !r.read);
     await guarded(get, () => Promise.all(unread.map((r) => getBridge().readMark(r.sp, r.ch))));
     await s.refresh();
   },

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VmProps } from '@/components/panel/types';
 import { Icon } from '@/components/ui/Icon';
+import { COPY } from '@/config/copy';
 import { MUTE_CHOICES, isMuted } from '@/state/slices/messaging/helpers';
 import { chatKey } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
@@ -51,7 +52,7 @@ function ChatMenu({ vm }: VmProps) {
         <ul className={x.menu} style={{ right: 0, top: '100%' }} role="menu" aria-label="Chat options">
           {item(pinned ? 'Unpin chat' : 'Pin chat', () => { void st.togglePinChat(key); })}
           {item(archived ? 'Unarchive chat' : 'Archive chat', () => { void st.toggleArchiveChat(key); })}
-          {(st.prefs.folders ?? []).map((fo) => item(fo.include.includes(key) ? `Remove from ${fo.name}` : `Add to ${fo.name}`, () => { void st.toggleChatInFolder(fo.id, key); }))}
+          {(st.prefs.folders ?? []).map((fo) => item((fo.include.includes(key) ? COPY.folderRemoveChat : COPY.folderAddChat)(fo.name), () => { void st.toggleChatInFolder(fo.id, key); }))}
           {muted ? item('Unmute', () => { void st.muteChat(key, null); }) : MUTE_CHOICES.map((c) => item(`Mute for ${c.label}`, () => { void st.muteChat(key, c.ms); }))}
           {item('Summarize chat with local AI', () => { const t = vm.messages.filter((m) => !m.removed).slice(-60).map((m) => `${m.name}: ${m.text}`).join('\n'); void st.localAi('summarize', t).then((a) => { if (a) st.showToast(a.slice(0, 400)); }); })}
           {item('Media, files and links', () => st.openModal({ kind: 'gallery' }))}

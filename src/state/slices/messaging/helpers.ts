@@ -1,7 +1,7 @@
 /** Pure builders for messaging events (unit tested). */
 import type { BlobRef, EventBody, MsgExt, QuoteRef } from '../../../lib/bridge';
 import { plainText } from '../../../lib/messaging/markdown';
-import type { Message } from '../../dataTypes';
+import type { Message, RookEntry } from '../../dataTypes';
 import { uid } from '../../act';
 
 export const QUOTE_CHARS = 240;
@@ -57,6 +57,8 @@ export function isMuted(muted: Record<string, number> | undefined, key: string, 
   const until = muted?.[key];
   return until !== undefined && (until === MUTE_FOREVER || until > now);
 }
+/** Rookery entries minus muted chats: a muted chat raises no inbox entry and counts in no badge (MESSAGING 3.16). */
+export const unmutedRook = (rook: RookEntry[], muted: Record<string, number> | undefined, now = Date.now()): RookEntry[] => rook.filter((r) => !isMuted(muted, `${r.sp}/${r.ch}`, now));
 export const MUTE_CHOICES: { label: string; ms: number }[] = [
   { label: '1 hour', ms: 3_600_000 }, { label: '8 hours', ms: 8 * 3_600_000 }, { label: '1 week', ms: 7 * 86_400_000 }, { label: 'Until I turn it on', ms: -1 },
 ];

@@ -18,8 +18,6 @@ export const HOME_KIND = 'Personal';
 export const HOME_ID = 'home';
 /** Kind of a direct or group message Space (made by `dm_start`, shared only by its members). */
 export const DM_KIND = 'dm';
-/** A DM Space with more joined members than this is a group DM. */
-export const DM_PAIR_MEMBERS = 2;
 
 export const TIMING = {
   introMs: 3400,

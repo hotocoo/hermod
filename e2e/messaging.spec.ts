@@ -287,19 +287,28 @@ test('palette person opens a real DM that syncs to that person (A-003)', async (
   const input = await openPalette(a);
   await input.fill('Bo Tester');
   await a.getByRole('listbox', { name: 'Results' }).getByRole('option').filter({ hasText: 'Bo Tester' }).first().click();
-  await expect(a.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: /Direct message/ }).first()).toHaveAttribute('aria-current', 'page', { timeout: 60_000 });
+  const nav = a.getByRole('navigation', { name: 'Channels' });
+  // The row carries the other person's name, so DMs with different people tell apart.
+  await expect(nav.getByRole('button', { name: /Bo Tester/ }).first()).toHaveAttribute('aria-current', 'page', { timeout: 60_000 });
+  await expect(nav.getByRole('button', { name: 'Direct message' })).toHaveCount(0);
 });
 
 test('pin, mute and archive a chat from its menu; folders filter the list (M-032 to M-035)', async () => {
-  const chan = unique('list').replace(/\s/g, '-');
+  const chan = unique('zlist').replace(/\s/g, '-');
+  const other = unique('alist').replace(/\s/g, '-');
   await enterSection(a, 'chat');
+  await newChannel(a, other);
   await newChannel(a, chan);
-  const row = a.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: chan });
+  const nav = a.getByRole('navigation', { name: 'Channels' });
+  const row = nav.getByRole('button', { name: chan });
+  const order = async () => { const names = await nav.getByRole('button').allTextContents(); return names.findIndex((n) => n.includes(chan)) - names.findIndex((n) => n.includes(other)); };
+  expect(await order(), 'created later and sorted after before pinning').toBeGreaterThan(0);
 
   await chatMenu(a, 'Pin chat');
   await a.getByRole('button', { name: 'Chat options' }).click();
   await expect(a.getByRole('button', { name: 'Unpin chat' })).toBeVisible();
   await a.keyboard.press('Escape');
+  await expect.poll(order, 'a pinned chat sorts first').toBeLessThan(0);
 
   await chatMenu(a, 'Mute for 1 hour');
   await expect(a.getByRole('heading', { level: 2, name: chan })).toContainText('muted');
@@ -310,14 +319,36 @@ test('pin, mute and archive a chat from its menu; folders filter the list (M-032
   const priv = a.getByRole('dialog', { name: 'Privacy and chat settings' });
   await priv.getByLabel('Folder name').fill('Work');
   await priv.getByRole('button', { name: 'Add folder' }).click();
+  await priv.getByLabel('Folder name').fill('Pairs');
+  await priv.getByRole('button', { name: 'Add folder' }).click();
   await priv.getByRole('button', { name: 'Done' }).click();
+  const folders = a.getByRole('group', { name: 'Folders' });
   await chatMenu(a, 'Add to Work');
-  await a.getByRole('group', { name: 'Folders' }).getByRole('button', { name: 'Work' }).click();
+  await folders.getByRole('button', { name: 'Work' }).click();
   await expect(row).toBeVisible();
-  await a.getByRole('group', { name: 'Folders' }).getByRole('button', { name: 'All' }).click();
+  await expect(nav.getByRole('button', { name: other })).toHaveCount(0);
+  await expect(nav.getByRole('button', { name: /Bo Tester/ })).toHaveCount(0);
+  await folders.getByRole('button', { name: 'All' }).click();
+  await expect(nav.getByRole('button', { name: other })).toBeVisible();
 
   await chatMenu(a, 'Archive chat');
   await expect(row).toHaveCount(0);
   await a.getByRole('button', { name: /Show archived/ }).click();
   await expect(row).toBeVisible();
+
+  // A DM Space row follows the same folder and archive rules (A-003 with M-032, M-033).
+  const dmRow = nav.getByRole('button', { name: /Bo Tester/ }).first();
+  await dmRow.click();
+  await chatMenu(a, 'Add to Pairs');
+  await folders.getByRole('button', { name: 'Pairs' }).click();
+  await expect(dmRow).toBeVisible();
+  await folders.getByRole('button', { name: 'Work' }).click();
+  await expect(dmRow).toHaveCount(0);
+  await folders.getByRole('button', { name: 'All' }).click();
+  const hideArchived = a.getByRole('button', { name: /Hide archived/ });
+  if (await hideArchived.count()) await hideArchived.click();
+  await chatMenu(a, 'Archive chat');
+  await expect(dmRow).toHaveCount(0);
+  await a.getByRole('button', { name: /Show archived/ }).click();
+  await expect(dmRow).toBeVisible();
 });

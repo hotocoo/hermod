@@ -3,7 +3,7 @@ import type { VmProps } from '@/components/panel/types';
 import { Icon } from '@/components/ui/Icon';
 import { PresenceDot } from '@/components/ui/PresenceDot';
 import type { Role } from '@/lib/bridge';
-import { DM_KIND, DM_PAIR_MEMBERS } from '@/config/app';
+import { DM_KIND } from '@/config/app';
 import { hiddenAsArchived, inFolder, isMuted, pinnedFirst } from '@/state/slices/messaging/helpers';
 import { roomOf, spaceUnread } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
@@ -37,16 +37,16 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
   const sorted = (list: typeof rows) => pinnedFirst([...list].sort((a, b) => (cfgOf(a.id)?.position ?? 0) - (cfgOf(b.id)?.position ?? 0)), (c) => keyOf(c.id), pinned);
   const channels = sorted(rows.filter((c) => c.notDm)); const dms = sorted(rows.filter((c) => c.isDm));
   const cats = [...new Set(channels.map((c) => cfgOf(c.id)?.category ?? ''))].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b)));
-  // A DM Space has one chat; its key is the Space and its open channel. shortcut: a group DM counts as a group once more than two people have joined.
+  // A DM Space has one chat; its key is the Space and its open channel. Group or pair is fixed at creation (Space.group).
   const dmRows = pinnedFirst(st.spaces.filter((sp) => sp.kind === DM_KIND).map((sp) => ({ sp, key: `${sp.id}/${st.ch[sp.id] ?? sp.defaultChannel ?? ''}`, unread: sp.id === st.space || !st.seed ? 0 : spaceUnread(st, st.seed, sp.id) }))
-    .filter((r) => shown(r.key, r.unread > 0, { dm: true, group: (r.sp.members ?? 0) > DM_PAIR_MEMBERS })), (r) => r.key, pinned);
+    .filter((r) => shown(r.key, r.unread > 0, { dm: true, group: !!r.sp.group })), (r) => r.key, pinned);
 
   const item = (c: (typeof vm.channels)[number]) => {
     const k = keyOf(c.id); const cfg = cfgOf(c.id); const muted = isMuted(prefs.muted, k);
     const icon = cfg?.kind === 'announcement' ? 'bell' : cfg?.kind === 'forum' ? 'chat' : cfg?.kind === 'voice' || cfg?.kind === 'stage' ? 'mic' : 'hash';
     return (
       <div key={c.id} className={x.chRow}>
-        <button type="button" onClick={c.onClick} className={s.ch} aria-current={c.active ? 'page' : undefined} style={{ background: c.bg, color: c.color, fontWeight: c.weight, opacity: muted ? 0.6 : 1, flex: 1 }}>
+        <button type="button" onClick={c.onClick} className={muted ? `${s.ch} ${x.muted}` : s.ch} aria-current={c.active ? 'page' : undefined} style={{ background: c.bg, color: c.color, fontWeight: c.weight, flex: 1 }}>
           {c.isDm ? <span className={s.chFace}><span aria-hidden="true">{c.initials}</span><PresenceDot id={c.dmId} /></span> : <Icon name={icon} size={14} strokeWidth={1.8} />}
           <span className={s.chName}>{c.name}</span>
           {voiceIn(c.id) > 0 && <span className={x.badge} title="In voice now">{voiceIn(c.id)}</span>}
@@ -97,7 +97,7 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
       <button type="button" className={s.ch} onClick={() => { void st.openSaved(); }}><Icon name="bookmark" size={14} /><span className={s.chName}>Saved messages</span></button>
       {dmRows.map(({ sp, key, unread }) => (
         <div key={sp.id} className={x.chRow}>
-          <button type="button" className={s.ch} onClick={() => st.goSpace(sp.id)} aria-current={sp.id === st.space ? 'page' : undefined} style={{ opacity: isMuted(prefs.muted, key) ? 0.6 : 1, flex: 1 }}>
+          <button type="button" className={isMuted(prefs.muted, key) ? `${s.ch} ${x.muted}` : s.ch} onClick={() => st.goSpace(sp.id)} aria-current={sp.id === st.space ? 'page' : undefined} style={{ flex: 1 }}>
             <span className={s.chFace} aria-hidden="true">{sp.mono}</span><span className={s.chName}>{sp.name}</span>
             {pinned.includes(key) && <Icon name="pin" size={11} />}
             {unread > 0 && <span className={s.chBadge} aria-label={`${unread} unread`}>{unread}</span>}

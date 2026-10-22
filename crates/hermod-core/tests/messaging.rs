@@ -8,7 +8,7 @@ use hermod_core::ids::{SpaceId, UserId};
 use hermod_core::msgext::{AutoAction, AutoRef, AutoTrigger, Forward, MsgExt, QuoteRef, VoiceMeta};
 use hermod_core::projections::shapes::{Message, Snapshot};
 use hermod_core::projections::{self, ProjectionCtx, SearchFilters, SpaceInput, project};
-use hermod_core::{Core, Role as CoreRole};
+use hermod_core::{Core, ProfileInput, Role as CoreRole};
 
 fn blob(name: &str, mime: &str) -> BlobRef {
     BlobRef {
@@ -1503,8 +1503,76 @@ fn a_dm_space_never_reaches_a_third_member_of_the_shared_space() {
     assert_eq!(b.dm_requests().unwrap().len(), 1);
     assert!(c.dm_requests().unwrap().is_empty());
     let dm: SpaceId = started.summary.space_id.parse().unwrap();
+    // Offer the dm space's own events to the third member too: it holds no key, so it must not
+    // end up with the space, whatever the ingest call reports.
+    for (space, evs) in &started.events {
+        if *space == dm {
+            for e in evs {
+                let _ = c.ingest_sync(e.clone());
+            }
+        }
+    }
     assert!(
         c.members(&dm).is_err(),
-        "a non-member has no view of the dm space"
+        "a non-member has no view of dm space"
     );
+    let snap: Snapshot = serde_json::from_value(c.snapshot().unwrap()).unwrap();
+    assert!(
+        snap.spaces.iter().all(|s| s.id != dm.to_string()),
+        "the dm space never appears for the third member"
+    );
+    assert!(
+        snap.collections
+            .messages
+            .keys()
+            .all(|k| !k.starts_with(&dm.to_string())),
+        "none of its chat reaches the third member"
+    );
+}
+
+#[test]
+fn an_unnamed_dm_shows_the_other_person_on_both_sides_even_before_accept() {
+    let (_da, a, _db, b, shared) = shared_space();
+    for (core, name) in [(&a, "Ada Okafor"), (&b, "Bea Quist")] {
+        core.profile_set(ProfileInput {
+            name: name.into(),
+            ..Default::default()
+        })
+        .unwrap();
+    }
+    sync(&a, &b, &shared);
+    sync(&b, &a, &shared);
+    let started = a.dm_start(&[b.user_id()], None, vec![]).unwrap();
+    let dm: SpaceId = started.summary.space_id.parse().unwrap();
+    let name_in = |c: &Core| -> Option<String> {
+        let s: Snapshot = serde_json::from_value(c.snapshot().unwrap()).unwrap();
+        s.spaces
+            .iter()
+            .find(|x| x.id == dm.to_string())
+            .map(|x| x.name.clone())
+    };
+    assert_eq!(
+        name_in(&a).as_deref(),
+        Some("Bea Quist"),
+        "the starter sees the invitee before they accept"
+    );
+    for (space, evs) in &started.events {
+        for e in evs {
+            if *space == shared {
+                b.ingest_sync(e.clone()).unwrap();
+            }
+        }
+    }
+    let joined = b.dm_accept(&b.dm_requests().unwrap()[0].id).unwrap();
+    for e in joined.events {
+        a.ingest_sync(e).unwrap();
+    }
+    sync(&a, &b, &dm);
+    assert_eq!(name_in(&a).as_deref(), Some("Bea Quist"));
+    assert_eq!(name_in(&b).as_deref(), Some("Ada Okafor"));
+    for c in [&a, &b] {
+        let s: Snapshot = serde_json::from_value(c.snapshot().unwrap()).unwrap();
+        let sp = s.spaces.iter().find(|x| x.id == dm.to_string()).unwrap();
+        assert_eq!(sp.group, Some(false), "a 1:1 dm is never a group");
+    }
 }

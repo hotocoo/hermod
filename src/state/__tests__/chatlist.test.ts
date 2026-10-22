@@ -4,7 +4,7 @@ import type { NotifySettings } from '../../lib/bridge';
 import type { Arrival } from '../arrivals';
 import { arrivalKind } from '../notify';
 import { paletteItems } from '../palette';
-import { MUTE_FOREVER, hiddenAsArchived, inFolder, pinnedFirst, toggleInFolder } from '../slices/messaging/helpers';
+import { MUTE_FOREVER, hiddenAsArchived, inFolder, pinnedFirst, toggleInFolder, unmutedRook } from '../slices/messaging/helpers';
 import type { AppStore } from '../types';
 
 const settings = { enabled: true, dm: true, mention: true, meeting: true, reminder: true, muted_spaces: [], muted_channels: [], dnd_until: 0, dnd_schedule: { enabled: false, from_hour: 0, to_hour: 0 } } as unknown as NotifySettings;
@@ -69,5 +69,21 @@ describe('M-032 folders', () => {
     expect(inFolder({ include: [], types: ['group'] }, 'x/general', group)).toBe(true);
     expect(inFolder({ include: [], types: ['dm'] }, 'x/general', group)).toBe(false);
     expect(inFolder({ include: [], types: ['dm'] }, 'x/general', { ...group, group: false })).toBe(true);
+  });
+});
+
+describe('M-035 mute keeps a chat out of the rookery', () => {
+  const entry = (sp: string, ch: string, read = false) => ({ by: 'u2', sp, ch, text: 'hi', t: '1m', read });
+  it('drops entries of a muted chat and keeps every other chat, so its badge count excludes them', () => {
+    const rook = [entry('s1', 'general'), entry('s1', 'random'), entry('s2', 'general')];
+    const kept = unmutedRook(rook, { 's1/general': MUTE_FOREVER });
+    expect(kept.map((r) => `${r.sp}/${r.ch}`)).toEqual(['s1/random', 's2/general']);
+    expect(kept.filter((r) => !r.read)).toHaveLength(2);
+  });
+  it('brings the entries back once the mute has run out or is lifted', () => {
+    const rook = [entry('s1', 'general')];
+    expect(unmutedRook(rook, { 's1/general': 1_000 }, 2_000)).toHaveLength(1);
+    expect(unmutedRook(rook, {})).toHaveLength(1);
+    expect(unmutedRook(rook, undefined)).toHaveLength(1);
   });
 });

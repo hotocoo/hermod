@@ -16,6 +16,8 @@ export interface Space {
   growth?: SpaceGrowth;
   /** The signed-in user's role in this Space (absent for Home). */
   role?: Role;
+  /** For a dm Space: started as a group, fixed at creation. */
+  group?: boolean;
 }
 export type SectionId = 'chat' | 'hearth' | 'feed' | 'board' | 'skein' | 'desk' | 'arcade';
 export interface Section { label: string; icon: string; blurb: string; place: string; kicker: string; plot: string; fresh: string }
