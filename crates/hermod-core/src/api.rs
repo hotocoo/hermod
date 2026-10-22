@@ -1645,7 +1645,10 @@ mod tests {
         assert!(changes_my_keys(&rekey("me"), "me"));
         assert!(!changes_my_keys(&rekey("you"), "me"));
         assert!(changes_my_keys(
-            &EventBody::MemberRemove { user: "x".into() },
+            &EventBody::MemberRemove {
+                user: "x".into(),
+                last_seq: None
+            },
             "me"
         ));
     }
