@@ -43,7 +43,7 @@ function Pins({ vm }: VmProps) {
 function ChatMenu({ vm }: VmProps) {
   const [popRef, popOpen, setPopOpen] = usePopover(); const st = useAppStore(); const key = chatKey(st); const cfg = useChanCfg();
   const muted = isMuted(st.prefs.muted, key); const pinned = (st.prefs.pinned ?? []).includes(key); const archived = (st.prefs.archived ?? []).includes(key);
-  const item = (label: string, fn: () => void) => <li><button type="button" className={s.popItem} onClick={() => { fn(); setPopOpen(false); }}>{label}</button></li>;
+  const item = (label: string, fn: () => void) => <li key={label}><button type="button" className={s.popItem} onClick={() => { fn(); setPopOpen(false); }}>{label}</button></li>;
   return (
     <span ref={popRef} style={{ position: 'relative' }}>
       <button type="button" className={s.search} aria-label="Chat options" aria-haspopup="menu" aria-expanded={popOpen} onClick={() => setPopOpen(!popOpen)}><Icon name="more" size={16} /></button>
@@ -51,6 +51,7 @@ function ChatMenu({ vm }: VmProps) {
         <ul className={x.menu} style={{ right: 0, top: '100%' }} role="menu" aria-label="Chat options">
           {item(pinned ? 'Unpin chat' : 'Pin chat', () => { void st.togglePinChat(key); })}
           {item(archived ? 'Unarchive chat' : 'Archive chat', () => { void st.toggleArchiveChat(key); })}
+          {(st.prefs.folders ?? []).map((fo) => item(fo.include.includes(key) ? `Remove from ${fo.name}` : `Add to ${fo.name}`, () => { void st.toggleChatInFolder(fo.id, key); }))}
           {muted ? item('Unmute', () => { void st.muteChat(key, null); }) : MUTE_CHOICES.map((c) => item(`Mute for ${c.label}`, () => { void st.muteChat(key, c.ms); }))}
           {item('Summarize chat with local AI', () => { const t = vm.messages.filter((m) => !m.removed).slice(-60).map((m) => `${m.name}: ${m.text}`).join('\n'); void st.localAi('summarize', t).then((a) => { if (a) st.showToast(a.slice(0, 400)); }); })}
           {item('Media, files and links', () => st.openModal({ kind: 'gallery' }))}

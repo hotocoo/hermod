@@ -6,6 +6,7 @@ import type { Arrival } from '../arrivals';
 import { withKey } from '../helpers';
 import { channelUnread, channelsOf, curSpace, personOf } from '../selectors';
 import { notifyArrival } from '../notify';
+import { isMuted } from './messaging/helpers';
 import { getTown } from '../townPort';
 import { timer } from '../timers';
 import type { AppStore, RavenSlice } from '../types';
@@ -27,8 +28,9 @@ export const createRavenSlice: StateCreator<AppStore, [], [], RavenSlice> = (set
     });
     fresh.forEach((a) => notifyArrival(get(), a));
     const s = get();
-    if (!s.ravens || s.photo || s.onb) return;
-    const last = fresh.slice(-RAVEN_BURST_MAX).pop() as Arrival;
+    const loud = fresh.filter((a) => !isMuted(s.prefs.muted, `${a.sp}/${a.ch}`)); // a muted chat sends no raven either
+    if (!s.ravens || s.photo || s.onb || !loud.length) return;
+    const last = loud.slice(-RAVEN_BURST_MAX).pop() as Arrival;
     const L = personOf(seed, last.by);
     const deliver = () => {
       set({ letter: { by: last.by, from: L.name, text: last.text, sp: last.sp, ch: last.ch, id: Date.now() } });

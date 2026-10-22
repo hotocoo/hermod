@@ -2,13 +2,13 @@ import type { StateCreator } from 'zustand';
 import { COPY } from '../../config/copy';
 import { LAYOUT, STORAGE_KEYS, TIMING } from '../../config/app';
 import { writeString } from '../../lib/storage';
-import { appendEvent, uid } from '../act';
+import { appendEvent } from '../act';
 import { panelWidth } from '../geometry';
 import { arcadeHints } from '../arcadeHints';
 import { asPick, asSection, getTown, type TownSpaceInfo } from '../townPort';
 import { paintRows } from '../paint';
 import { seedOf, spaceOf, withKey } from '../helpers';
-import { curSpace, dmChannelFor, hasSection, homeSpace, personOf, sectionPlace } from '../selectors';
+import { curSpace, hasSection, personOf, sectionPlace } from '../selectors';
 import { timer } from '../timers';
 import type { AppStore, NavSlice } from '../types';
 
@@ -136,15 +136,4 @@ export const createNavSlice: StateCreator<AppStore, [], [], NavSlice> = (set, ge
   togglePin: () => set((s) => ({ idxPinned: !s.idxPinned })),
   openOverview: () => set({ overview: true, thread: null }),
 
-  openDm: async (userId) => {
-    const s = get(); const seed = seedOf(get); const home = homeSpace(s.spaces);
-    if (!home) return;
-    let ch = dmChannelFor(seed, s.spaces, userId);
-    if (!ch) {
-      ch = uid('dm');
-      const ok = await appendEvent(get, home.id, { t: 'channel.create', channel_id: ch, name: '', topic: '', dm: userId });
-      if (!ok) return;
-    }
-    get().goChannel(home.id, ch);
-  },
 });

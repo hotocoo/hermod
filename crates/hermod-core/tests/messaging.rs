@@ -1438,3 +1438,73 @@ fn mark_read_hands_back_the_receipt_only_when_receipts_are_on_so_the_host_can_go
     a.ingest(receipt).unwrap();
     assert_eq!(seen_by(&a, "a1"), vec![b.user_id().to_string()]);
 }
+
+#[test]
+fn chat_list_prefs_round_trip_and_reject_bad_shapes() {
+    let (dir, c) = core();
+    let folder = serde_json::json!({ "id": "f1", "name": "DMs", "include": ["s/general"], "types": ["dm", "group"] });
+    c.chat_prefs_set(&serde_json::json!({
+        "folders": [folder],
+        "archived": ["s/old"],
+        "pinned": ["s/general"],
+        "muted": { "s/general": 0, "s/later": 1_800_000_000_000_i64 },
+    }))
+    .unwrap();
+    // A later patch to one key keeps the others (shallow merge).
+    c.chat_prefs_set(&serde_json::json!({ "archived": [] }))
+        .unwrap();
+    drop(c);
+    let c = Core::open(dir.path()).unwrap();
+    let p = c.chat_prefs_get().unwrap();
+    assert_eq!(p["folders"][0]["name"], "DMs");
+    assert_eq!(p["folders"][0]["include"][0], "s/general");
+    assert_eq!(p["folders"][0]["types"][1], "group");
+    assert_eq!(p["archived"].as_array().unwrap().len(), 0);
+    assert_eq!(p["pinned"][0], "s/general");
+    assert_eq!(p["muted"]["s/general"], 0);
+    assert_eq!(p["muted"]["s/later"], 1_800_000_000_000_i64);
+    for bad in [
+        serde_json::json!({ "folders": "all" }),
+        serde_json::json!({ "archived": {} }),
+        serde_json::json!({ "pinned": 1 }),
+    ] {
+        assert!(c.chat_prefs_set(&bad).is_err(), "{bad}");
+    }
+    assert_eq!(
+        c.chat_prefs_get().unwrap(),
+        p,
+        "a rejected patch changes nothing"
+    );
+}
+
+#[test]
+fn a_dm_space_never_reaches_a_third_member_of_the_shared_space() {
+    let (_da, a, _db, b, shared) = shared_space();
+    let (_dc, c) = core();
+    let inv = a.invite_create(&shared, None, vec![]).unwrap();
+    let joined = c.invite_accept(&inv.code).unwrap();
+    for e in joined.events {
+        a.ingest_sync(e).unwrap();
+    }
+    sync(&a, &c, &shared);
+    sync(&a, &b, &shared);
+    sync(&c, &a, &shared);
+    let started = a.dm_start(&[b.user_id()], None, vec![]).unwrap();
+    // The carrier events travel through the shared space, so the third member ingests the same
+    // log as Bea; the sealed invite is addressed to Bea alone.
+    for (space, evs) in &started.events {
+        for e in evs {
+            if *space == shared {
+                b.ingest_sync(e.clone()).unwrap();
+                c.ingest_sync(e.clone()).unwrap();
+            }
+        }
+    }
+    assert_eq!(b.dm_requests().unwrap().len(), 1);
+    assert!(c.dm_requests().unwrap().is_empty());
+    let dm: SpaceId = started.summary.space_id.parse().unwrap();
+    assert!(
+        c.members(&dm).is_err(),
+        "a non-member has no view of the dm space"
+    );
+}

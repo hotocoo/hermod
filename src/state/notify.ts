@@ -1,7 +1,8 @@
 /** OS notifications for arrivals while the window is unfocused: DMs and mentions (FEATURES N-001), honouring mute and Do Not Disturb. */
-import { NOTIFY } from '../config/app';
+import { DM_KIND, NOTIFY } from '../config/app';
 import { getBridge, type NotifySettings } from '../lib/bridge';
 import type { Arrival } from './arrivals';
+import { isMuted } from './slices/messaging/helpers';
 import { isHomeSpace, personOf } from './selectors';
 import type { AppStore } from './types';
 
@@ -49,10 +50,16 @@ function allowed(n: NotifySettings, a: Pick<Arrival, 'sp' | 'ch'>, kind: NotifyK
   return true;
 }
 
+/** Which OS notification (if any) an arrival earns: none for a chat I muted (MESSAGING 3.16, @everyone included), else a DM or a mention that the settings allow. */
+export function arrivalKind(n: NotifySettings, muted: Record<string, number> | undefined, a: Arrival, home: boolean): 'dm' | 'mention' | null {
+  if (isMuted(muted, `${a.sp}/${a.ch}`)) return null;
+  const kind = a.mentionsMe ? 'mention' : (home ? 'dm' : null);
+  return kind && allowed(n, a, kind) ? kind : null;
+}
+
 export function notifyArrival(s: AppStore, a: Arrival): void {
   if (!settings || !s.seed || typeof document === 'undefined' || document.hasFocus()) return;
   const sp = s.spaces.find((x) => x.id === a.sp);
-  const kind: 'dm' | 'mention' | null = a.mentionsMe ? 'mention' : (sp && isHomeSpace(sp) ? 'dm' : null);
-  if (!kind || !allowed(settings, a, kind)) return;
+  if (!arrivalKind(settings, s.prefs.muted, a, !!sp && (isHomeSpace(sp) || sp.kind === DM_KIND))) return;
   sendNotification(personOf(s.seed, a.by).name, a.text, { sp: a.sp, ch: a.ch });
 }

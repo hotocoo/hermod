@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { GL_ARGS } from './gpu';
-import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, pngBuffer } from './fixtures';
+import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, pngBuffer, openPalette } from './fixtures';
 import { freshDevhosts } from './devhosts';
 
 /** Every spec file starts on three empty devhosts, so no spec depends on state a former one left. */
@@ -280,4 +280,44 @@ test('my contact code renders as a QR code and a link', async () => {
   expect((await dlg.getByLabel('Link').inputValue()).length).toBeGreaterThan(20);
   await a.keyboard.press('Escape');
   // Not asserting a clean console here: another workstream's missing room assets log "Room provider failed" errors on every building.
+});
+
+test('palette person opens a real DM that syncs to that person (A-003)', async () => {
+  await enterSection(a, 'chat');
+  const input = await openPalette(a);
+  await input.fill('Bo Tester');
+  await a.getByRole('listbox', { name: 'Results' }).getByRole('option').filter({ hasText: 'Bo Tester' }).first().click();
+  await expect(a.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: /Direct message/ }).first()).toHaveAttribute('aria-current', 'page', { timeout: 60_000 });
+});
+
+test('pin, mute and archive a chat from its menu; folders filter the list (M-032 to M-035)', async () => {
+  const chan = unique('list').replace(/\s/g, '-');
+  await enterSection(a, 'chat');
+  await newChannel(a, chan);
+  const row = a.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: chan });
+
+  await chatMenu(a, 'Pin chat');
+  await a.getByRole('button', { name: 'Chat options' }).click();
+  await expect(a.getByRole('button', { name: 'Unpin chat' })).toBeVisible();
+  await a.keyboard.press('Escape');
+
+  await chatMenu(a, 'Mute for 1 hour');
+  await expect(a.getByRole('heading', { level: 2, name: chan })).toContainText('muted');
+  await chatMenu(a, 'Unmute');
+  await expect(a.getByRole('heading', { level: 2, name: chan })).not.toContainText('muted');
+
+  await a.getByRole('button', { name: 'Privacy and chat settings' }).click();
+  const priv = a.getByRole('dialog', { name: 'Privacy and chat settings' });
+  await priv.getByLabel('Folder name').fill('Work');
+  await priv.getByRole('button', { name: 'Add folder' }).click();
+  await priv.getByRole('button', { name: 'Done' }).click();
+  await chatMenu(a, 'Add to Work');
+  await a.getByRole('group', { name: 'Folders' }).getByRole('button', { name: 'Work' }).click();
+  await expect(row).toBeVisible();
+  await a.getByRole('group', { name: 'Folders' }).getByRole('button', { name: 'All' }).click();
+
+  await chatMenu(a, 'Archive chat');
+  await expect(row).toHaveCount(0);
+  await a.getByRole('button', { name: /Show archived/ }).click();
+  await expect(row).toBeVisible();
 });

@@ -80,8 +80,6 @@ export interface NavSlice {
   raise(): void; panelW(): number;
   setGalTab(id: string): void; setShopTab(id: string): void; setFeedTab(id: string): void;
   pinIdx(): void; unpinIdx(): void; togglePin(): void; openOverview(): void;
-  /** Open (or create, in Home) the direct-message channel with a person. */
-  openDm(userId: string): Promise<void>;
 }
 
 export interface SceneSlice {

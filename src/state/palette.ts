@@ -52,7 +52,7 @@ export function paletteItems(s: AppStore, seed: Seed): PaletteItem[] {
   }))));
   Object.keys(seed.people).filter((k) => k !== 'system' && k !== me).forEach((k) => items.push({
     group: G.people, label: seed.people[k].name, sub: seed.people[k].role, icon: 'at', person: seed.people[k].i,
-    go: () => { void s.openDm(k); },
+    go: () => { void s.startDm([k]); },
   }));
   const dark = s.theme === 'dark';
   items.push({ group: G.actions, label: dark ? COPY.paletteSwitchLight : COPY.paletteSwitchDark, sub: COPY.paletteTheme, icon: dark ? 'sun' : 'moon', go: () => s.toggleTheme() });
