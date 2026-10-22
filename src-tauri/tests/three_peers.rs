@@ -6,8 +6,8 @@ use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 
-use hermod_node::Multiaddr;
 use hermod_node::config::{NodeConfig, RelayMode};
+use hermod_node::{Multiaddr, NodeHandle};
 use hermodr_lib::ctx::{Ctx, NodeTweak, Options};
 use hermodr_lib::{api, blob};
 use serde_json::{Value, json};
@@ -23,6 +23,9 @@ const QUIET: Duration = Duration::from_secs(5);
 const LOCKED_AFTER_REMOVAL: u64 = 2;
 /// Size of the attachment C fetches from A.
 const BLOB_BYTES: u32 = 300_000;
+/// Peers C holds while the circuit is up: A directly and B through A. Only three nodes
+/// exist, so this count means C is connected to B, and B listens on nothing.
+const C_PEERS_WITH_CIRCUIT: u32 = 2;
 
 async fn within<F: Future>(what: &str, f: F) -> F::Output {
     tokio::time::timeout(DEADLINE, f)
@@ -106,6 +109,12 @@ async fn removed_from(c: &Arc<Ctx>, space: &str) -> bool {
         found |= v.get("removed") == Some(&Value::Bool(true)) && v.to_string().contains(space);
     });
     found
+}
+
+/// Whether C is still linked to B through the circuit A relays.
+async fn circuit_up(a: &NodeHandle, c: &NodeHandle) -> bool {
+    a.status().await.unwrap().relaying_circuits >= 1
+        && c.status().await.unwrap().peers >= C_PEERS_WITH_CIRCUIT
 }
 
 fn walk(v: &Value, f: &mut impl FnMut(&Value)) {
@@ -209,7 +218,12 @@ async fn sync_backfill_blob_relay_and_removal() {
         .await
         .unwrap();
     assert_eq!(reached, b_node.peer_id());
-    assert!(a_node.status().await.unwrap().relaying_circuits >= 1);
+    // The node sends a signal as a direct request only while connected to the target, else
+    // over gossip (which A would forward); bracket the send so only the circuit can carry it.
+    assert!(
+        circuit_up(&a_node, &c_node).await,
+        "circuit up before the signal"
+    );
     let mut b_events = b.subscribe();
     call(
         &c,
@@ -227,6 +241,10 @@ async fn sync_backfill_blob_relay_and_removal() {
         }
     })
     .await;
+    assert!(
+        circuit_up(&a_node, &c_node).await,
+        "circuit up after the signal"
+    );
 
     // Removal: A removes C (with a rekey); new posts reach B readable, never C.
     call(
@@ -242,13 +260,14 @@ async fn sync_backfill_blob_relay_and_removal() {
     })
     .await;
     post(&a, &space, "a3", "secret from A after removal", json!([])).await;
-    post(&b, &space, "b2", "secret from B after removal", json!([])).await;
+    // B seals with the newest key it holds; reading a3 proves it applied the rekey first.
     until_text(
         &b,
         "secret from A after removal",
         "A's new-epoch post reaches B",
     )
     .await;
+    post(&b, &space, "b2", "secret from B after removal", json!([])).await;
     until_text(
         &a,
         "secret from B after removal",
