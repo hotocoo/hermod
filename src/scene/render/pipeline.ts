@@ -156,7 +156,10 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
   let still: { c: EffectComposer; src: TexturePass; den: ShaderPass } | null = null; let spec: QualitySpec | null = null; let composer: EffectComposer | null = null; let bloom: UnrealBloomPass | null = null; let ao: GTAOPass | null = null;
   let fogPass: FogPass | null = null; let fogIn: FogInputs | null = null; let fogOn = false; const amb = new THREE.Color(); let wFog = 0, wRain = 0;
   let W = 1, H = 1, pr = 1; const comp = new ShaderPass(COMPOSITE); const U = comp.uniforms;
-  const taa = new TaaPass(); const camSig = new THREE.Matrix4(); let jit = 0;
+  const taa = new TaaPass(); const camSig = new THREE.Matrix4(); let jit = 0; let sigOff = 0, sigFov = 0;
+  /** Horizontal panel shift as a fraction of the width (town); the TAA jitter is added on top of it, never replaces it. */
+  let panOff = 0;
+  const applyView = (jx: number, jy: number) => camera.setViewOffset(W * pr, H * pr, panOff * W * pr + jx, jy, W * pr, H * pr);
   const dof = new DofPass(DOF); dof.enabled = false; let dofOn = 0;
   let sceneRT: THREE.WebGLRenderTarget | null = null; const sceneDepth = () => sceneRT?.depthTexture ?? null; dof.depthOf = sceneDepth;
   const mb = new MotionBlurPass(MB); mb.enabled = false; mb.depthOf = sceneDepth; const prevVP = new THREE.Matrix4(), curVP = new THREE.Matrix4(), prevPos = new THREE.Vector3(), prevQuat = new THREE.Quaternion();
@@ -172,15 +175,15 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     composer = new EffectComposer(renderer, rt); composer.setPixelRatio(pr); composer.setSize(W, H);
     composer.addPass(new ScenePass(scene, camera, sceneRT));
     if (fogOn && fogIn) { fogPass = new FogPass(camera, fogIn); fogPass.depthOf = sceneDepth; composer.addPass(fogPass); } // HDR volumetric fog on the scene RT (needs its depth), before AO, DOF, bloom and tone mapping
-    if (spec.ao) { ao = new GTAOPass(scene, camera, W * pr * spec.aoScale, H * pr * spec.aoScale); ao.blendIntensity = POST.ao.blend; ao.updateGtaoMaterial({ radius: POST.ao.radius, distanceExponent: POST.ao.distanceExponent, thickness: POST.ao.thickness, scale: POST.ao.scale, samples: POST.ao.samples, screenSpaceRadius: false }); aoFromSceneDepth(ao, sceneDepth); composer.addPass(ao); }
+    if (spec.ao) { ao = new GTAOPass(scene, camera, W * pr, H * pr); ao.blendIntensity = POST.ao.blend; ao.updateGtaoMaterial({ radius: POST.ao.radius, distanceExponent: POST.ao.distanceExponent, thickness: POST.ao.thickness, scale: POST.ao.scale, samples: POST.ao.samples, screenSpaceRadius: false }); aoFromSceneDepth(ao, sceneDepth); composer.addPass(ao); }
     if (spec.dof) composer.addPass(dof);
     if (spec.motionBlur) composer.addPass(mb);
-    if (spec.bloom) { bloom = new UnrealBloomPass(new THREE.Vector2(W * pr * spec.bloomScale, H * pr * spec.bloomScale), POST.bloom.strengthDay, POST.bloom.radius, POST.bloom.thresholdDay); composer.addPass(bloom); }
+    if (spec.bloom) { bloom = new UnrealBloomPass(new THREE.Vector2(W * pr, H * pr), POST.bloom.strengthDay, POST.bloom.radius, POST.bloom.thresholdDay); composer.addPass(bloom); }
     if (spec.taa) composer.addPass(taa);
     composer.addPass(new OutputPass()); composer.addPass(comp);
     composer.passes.forEach((p, i) => { const pr0 = p.render.bind(p); p.render = (...a) => passProf(renderer, `post:${i}:${p.constructor.name}`, () => pr0(...a)); }); if (process.env.NODE_ENV !== 'production') (window as unknown as { __passes: unknown }).__passes = composer.passes; // dev only: per-pass ablation (scripts/perf probes toggle `enabled`) // GPU time per pass while window.__passProf is set (dev A/B)
   }
-  function applySize() { composer?.setPixelRatio(pr); composer?.setSize(W, H); sceneRT?.setSize(W * pr, H * pr); ao?.setSize(W * pr * (spec?.aoScale || 1), H * pr * (spec?.aoScale || 1)); }
+  function applySize() { composer?.setPixelRatio(pr); composer?.setSize(W, H); sceneRT?.setSize(W * pr, H * pr); ao?.setSize(W * pr, H * pr); }
   U.uDither.value = POST.grade.dither; U.uVig.value = POST.vignette.strength; U.uSat.value = POST.grade.saturation; U.uCon.value = POST.grade.contrast;
 
   return {
@@ -194,9 +197,11 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     attachFog(inp: FogInputs) { fogIn = inp; },
     /** Weather amounts (0..1) for the froxel fog density, from the weather sampler. */
     setFogWeather(fog: number, rain: number) { wFog = fog; wRain = rain; },
-    configure(q: QualitySpec) { const tn = (Object.keys(QUALITY) as QualityTier[]).find((k) => QUALITY[k] === q) ?? 'low'; const fo = LIGHT_TIERS[tn].froxel && lfxOn('froxel') && !!fogIn; const rebuild = fo !== fogOn || !spec || spec.dof !== q.dof || spec.motionBlur !== q.motionBlur || spec.post !== q.post || spec.msaa !== q.msaa || spec.ao !== q.ao || spec.bloom !== q.bloom || spec.taa !== q.taa || spec.aoScale !== q.aoScale || spec.bloomScale !== q.bloomScale; fogOn = fo; spec = q; if (rebuild) build(); },
+    configure(q: QualitySpec) { const tn = (Object.keys(QUALITY) as QualityTier[]).find((k) => QUALITY[k] === q) ?? 'low'; const fo = LIGHT_TIERS[tn].froxel && lfxOn('froxel') && !!fogIn; const rebuild = fo !== fogOn || !spec || spec.dof !== q.dof || spec.motionBlur !== q.motionBlur || spec.post !== q.post || spec.msaa !== q.msaa || spec.ao !== q.ao || spec.bloom !== q.bloom || spec.taa !== q.taa; fogOn = fo; spec = q; if (rebuild) build(); },
     setSize(w: number, h: number) { W = w; H = h; pr = renderer.getPixelRatio(); // the tier cap, set on the renderer by town.applyQuality
       U.uAspect.value = w / h; if (composer) applySize(); },
+    /** Panel shift (fraction of the width), applied to the camera view at once so overlays project with it. */
+    setPanOffset(f: number) { panOff = f; applyView(0, 0); },
     /** Per frame sky/grade state. */
     update(f: SkyFrame) {
       if (f.top !== lastTop) { lastTop = f.top; hex(f.top, U.uTop.value as THREE.Vector3); }
@@ -222,15 +227,15 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
         const B = DIRECTOR.motionBlur; const speed = camera.position.distanceTo(prevPos) * 0.4 + prevQuat.angleTo(camera.quaternion) * 14; const k = Math.min(1, Math.max(0, (speed - B.from) / (B.full - B.from)));
         mb.enabled = k > 0.02; mb.uniforms.uStrength.value = k * B.strength; mb.uniforms.uInvProj.value.copy(camera.projectionMatrixInverse); mb.uniforms.uCamWorld.value.copy(camera.matrixWorld); mb.uniforms.uPrevVP.value.copy(prevVP);
         curVP.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); prevPos.copy(camera.position); prevQuat.copy(camera.quaternion);
-      } if (warm) { mb.enabled = !!spec?.motionBlur; dof.enabled = !!spec?.dof; } if (dofOn > 0.02 || warm) { dof.uniforms.uNear.value = camera.near; dof.uniforms.uFar.value = camera.far; dof.uniforms.uAspect.value = W / H; } if (spec?.taa) { const j = (++jit % 8) + 1; camera.updateMatrixWorld(); if (!camSig.equals(camera.matrixWorld) || camera.view?.enabled) taa.resetHistory(); camSig.copy(camera.matrixWorld);
-        camera.setViewOffset(W * pr, H * pr, (halton(j, 2) - 0.5) * 1, (halton(j, 3) - 0.5) * 1, W * pr, H * pr); }
-      composer.render(delta); if (warm) { mb.enabled = false; dof.enabled = !!spec?.dof && dofOn > 0.02; } if (spec?.taa) camera.clearViewOffset(); if (spec?.motionBlur) prevVP.copy(curVP); } else renderer.render(scene, camera); },
+      } if (warm) { mb.enabled = !!spec?.motionBlur; dof.enabled = !!spec?.dof; } if (dofOn > 0.02 || warm) { dof.uniforms.uNear.value = camera.near; dof.uniforms.uFar.value = camera.far; dof.uniforms.uAspect.value = W / H; } if (spec?.taa) { const j = (++jit % 8) + 1; camera.updateMatrixWorld(); if (!camSig.equals(camera.matrixWorld) || sigOff !== panOff || sigFov !== camera.fov) taa.resetHistory(); camSig.copy(camera.matrixWorld); sigOff = panOff; sigFov = camera.fov;
+        applyView(halton(j, 2) - 0.5, halton(j, 3) - 0.5); }
+      composer.render(delta); if (warm) { mb.enabled = false; dof.enabled = !!spec?.dof && dofOn > 0.02; } if (spec?.taa) applyView(0, 0); if (spec?.motionBlur) prevVP.copy(curVP); } else renderer.render(scene, camera); },
     /** One frame with the optional passes (depth of field, motion blur) forced on, so their programs compile now (behind a gate or the boot splash) and not on first use mid-interaction. */
     warm() { this.render(0, true); },
     /** Show a linear HDR texture (path traced still) through denoise, tone mapping and the sky composite. */
     present(tex: THREE.Texture, strength: number) {
       if (!still) { const rt = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, depthBuffer: false }); still = { c: new EffectComposer(renderer, rt), src: new TexturePass(tex), den: new ShaderPass(DENOISE_SHADER) }; still.c.addPass(still.src); still.c.addPass(still.den); still.c.addPass(new OutputPass()); still.c.addPass(comp); }
-      still.c.setPixelRatio(pr); still.c.setSize(W, H); still.src.map = tex; still.den.uniforms.uStrength.value = strength; (still.den.uniforms.uTexel.value as THREE.Vector2).set(1 / (W * pr), 1 / (H * pr)); U.uSkyOn.value = 1; U.uTime.value = U.uTime.value; still.c.render(0);
+      still.c.setPixelRatio(pr); still.c.setSize(W, H); still.src.map = tex; still.den.uniforms.uStrength.value = strength; (still.den.uniforms.uTexel.value as THREE.Vector2).set(1 / (W * pr), 1 / (H * pr)); U.uSkyOn.value = 1; still.c.render(0);
     },
     dispose() { composer?.dispose(); sceneRT?.dispose(); still?.c.dispose(); still = null; },
   };

@@ -15,7 +15,7 @@ import { instantiate, loadVillageGlb, windowMats } from './assets';
 import { windify } from '../../render/wind';
 import { ImpostorBank, IMPOSTOR_FADE, IMPOSTOR_FROM, impostorSwitch } from '../shared/impostor';
 import { InstancedBank, loadGlb, preferUltraAssets, type Placement, windowMats as propWindows } from '../shared/instanced';
-import { groupPlacements, isAuthoredTree } from './placements';
+import { groupPlacements } from './placements';
 import { generateVillagePlan } from './plan';
 import { buildVillagePaths } from './paths';
 import { buildVillageTerrain } from './terrain';
@@ -49,6 +49,7 @@ function buildSite(ctx: StyleCtx): StyleSite {
 
   // plan: deterministic layout per (seed, tier, levels, houses)
   const plan = generateVillagePlan({ seed: info.id, tier: ctx.growth.tier, levels: ctx.growth.levels, houses: ctx.growth.houses, season: seasonNow() });
+  let housesKey = ctx.growth.houses.map((h) => h.user_id + ':' + h.plot_index).join(',');
   const TEXN = ctx.tier === 'ultra' ? 4096 : 2048; const tex = fallbackTextureSet(64); pending.push(applyAuthoredTerrain(tex, 'village', TEXN, getSiteKtx2()).then(() => undefined, () => undefined)); // procedural pixels only until the authored Blender maps are in
   const terrain = buildVillageTerrain(plan, tex, { grass: q.grass }); group.add(terrain.group);
   const paths = buildVillagePaths(plan, terrain.heightAt, tex); if (paths.mesh) group.add(paths.mesh);
@@ -65,7 +66,7 @@ function buildSite(ctx: StyleCtx): StyleSite {
 
   // placements: lamps and trees from the plan (procedural stand-ins until the nature assets are bound)
   const lampLights: THREE.PointLight[] = []; const lampObjs: THREE.Object3D[] = []; const litLamps: LightSpec[] = [];
-  const TREE_KINDS = new Set(['oak', 'birch', 'poplar', 'pine', 'apple']); let useForest = false; void isAuthoredTree;
+  const TREE_KINDS = new Set(['oak', 'birch', 'poplar', 'pine', 'apple']); let useForest = false;
   const treeHolders: THREE.Object3D[] = [];
   for (const pm of plan.placements) {
     const y = heightAt(pm.x, pm.z);
@@ -140,6 +141,8 @@ function buildSite(ctx: StyleCtx): StyleSite {
     /** Same tier: only cottages (members) change, so the town animates them in place; a new tier changes coast, lanes and districts, so it rebuilds with a cross-fade. */
     applyGrowth(g, next) {
       if (g.tier !== plan.tier) return false;
+      const key = g.houses.map((h) => h.user_id + ':' + h.plot_index).join(','); if (key === housesKey) return true; // cottages depend on members only; level changes keep their places
+      housesKey = key;
       const np = generateVillagePlan({ seed: next.id, tier: g.tier, levels: g.levels, houses: g.houses, season: plan.season });
       houses = np.cottages.map((c) => ({ userId: c.userId, plotIndex: c.plotIndex, x: c.x, z: c.z, yaw: c.yaw })); return true;
     },

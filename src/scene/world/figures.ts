@@ -23,7 +23,7 @@ function bake(parts: Piece[]): THREE.BufferGeometry {
 
 /** Standing and seated villagers; limbs are exposed in userData for animation. One rigidly skinned, vertex-coloured mesh per figure (bones: body, 2 legs, 2 arms) on a shared material: 1 draw call instead of 11. */
 export function createFigures(M: Mats) {
-  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 });
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75 }); mat.userData.shared = true; // one material for every figure: not freed with a person
   function person(R: Rng, i: number) { const g = new THREE.Group(); const cloth = i === 0 ? PALETTE.meTunic : PALETTE.cloth[Math.floor(R() * PALETTE.cloth.length)]; const pants = PALETTE.pants[Math.floor(R() * 3)]; const s = 0.55 + R() * 0.08;
     const skin = M.skin.color; const dummy = M.skin;
     const torso = lathe([[0.0, 0], [0.13, 0.0], [0.15, 0.08], [0.14, 0.2], [0.16, 0.3], [0.12, 0.36], [0.05, 0.4], [0, 0.4]], dummy, 32); torso.position.y = 0.44;

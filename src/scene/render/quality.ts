@@ -19,6 +19,7 @@ export function detectTier(gpu: string, cores: number, dpr: number, minSide: num
   if (D.lowGpu.test(gpu)) tier = 'low';
   else if (D.ultraGpu.test(gpu)) tier = 'ultra';
   else if (D.highGpu.test(gpu)) tier = 'high';
+  else if (D.appleGpu.test(gpu) && cores >= D.appleHighCores) tier = 'high';
   else if (D.midGpu.test(gpu)) tier = 'medium';
   let i = QUALITY_ORDER.indexOf(tier);
   if (touch && minSide < D.smallScreenPx) i = Math.min(i, 0);
