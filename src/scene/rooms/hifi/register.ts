@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import { ROOM_RESIDENCY } from '@/config/scene';
 import { AssetLibrary } from '../../assets/loader';
 import type { AssetTier } from '../../assets/types';
 import { registerRoomProvider } from '../../interiors';
@@ -13,7 +14,7 @@ const EXTERNAL = new Set(['hearth']);
  * returns an uninstall that unregisters providers and frees the asset library.
  */
 export function installHifiRooms(opts: { renderer: THREE.WebGLRenderer; tier: AssetTier; base?: Record<AssetTier, string> }): () => void {
-  const lib = new AssetLibrary({ renderer: opts.renderer, tier: opts.tier, base: opts.base, warm: 32 });
+  const lib = new AssetLibrary({ renderer: opts.renderer, tier: opts.tier, base: opts.base, warm: ROOM_RESIDENCY.warmModels });
   const off = Object.entries(LAYOUTS).filter(([section]) => !EXTERNAL.has(section)).map(([section, layout]) => registerRoomProvider(section, ({ context }) => buildRoom(layout, lib, context().seed || 'hermod', () => context().online)));
   return () => { off.forEach((f) => f()); lib.dispose(); };
 }

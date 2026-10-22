@@ -241,6 +241,13 @@ export const MATERIAL_FLAME = { flameA: { color: 0xffb35a, opacity: 0.85 }, flam
 /** Path and stone get textures added on top of the base table. */
 export const PATH_TINT = 0xf2ece2;
 
+/**
+ * Interior room residency. Each built room holds geometry, a 2048 px lightmap and furniture atlas (about 45 MB of GPU memory at the high tiers), so only
+ * `maxRooms` stay built (the room you are in never counts as evictable, the idle warm-up builds no more than this); the others are disposed and rebuilt on door hover or approach.
+ * `warmModels` is how many unreferenced furniture models the high-tier asset library keeps before disposing their GPU copies.
+ */
+export const ROOM_RESIDENCY = { maxRooms: 2, warmModels: 8 } as const;
+
 /** Interior rooms: shared material colors, light rigs, camera framing, and note-board paper colors. */
 export const INTERIOR = {
   mats: {
