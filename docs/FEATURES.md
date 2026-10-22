@@ -269,10 +269,10 @@ Audit basis: design-src (Hermodr Town.dc.html, hermod-core.js, hermod-town.js, h
 | N-002 | Per-space and per-channel mute, Do Not Disturb (manual and scheduled) | DONE (UI wired; needs core/node to verify) | Muted space no notification, still badges quietly | state, components | local | M1 |
 | N-003 | Dock/tray badge count | MISSING | Matches unread | bridge | G-008 | M2 |
 | N-004 | Notification settings page (per kind) | DONE (UI wired; needs core/node to verify) | | components | N-001 | M1 |
-| P-001 | Presence (online, away, offline) | MISSING | Dot reflects peers seen in last 60 s over gossip; ephemeral, not logged | node, components | ephemeral topic `presence` | M1 |
+| P-001 | Presence (online, away, offline) | DONE (UI wired; needs core/node to verify) | Dot reflects peers seen in last 60 s over gossip; ephemeral, not logged | node, components | ephemeral topic `presence` | M1 |
 | P-002 | Typing indicators | MISSING | "Mara is typing" within 1 s, cleared after 5 s | node, components | ephemeral | M2 |
 | P-003 | Read receipts (optional, per-user off switch) | DONE-CORE (core only; bridge/UI pending) | Off by default; when on, "seen by N" | core, components | new `read.mark {channel, upto}` | M3 |
-| P-004 | Idle detection (away after 5 min) | MISSING | | bridge | none | M2 |
+| P-004 | Idle detection (away after 5 min) | DONE (UI wired; needs core/node to verify) | | bridge | none | M2 |
 
 ## W. Settings, app lifecycle, support
 

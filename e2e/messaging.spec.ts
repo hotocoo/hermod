@@ -191,6 +191,11 @@ test('typing indicator shows for the other person', async () => {
   await b.getByLabel('Message', { exact: true }).fill('');
 });
 
+test('presence dot shows on the other person\'s messages', async () => {
+  // Beacons go out every PRESENCE.everyMs (20 s); the first may precede the space list, so allow two intervals.
+  await expect(a.getByRole('article').getByRole('img', { name: 'online' }).first()).toBeVisible({ timeout: 50_000 });
+});
+
 test('slowmode drops a second post from a member inside the window', async () => {
   // A channel of its own: in #general Bo's earlier posts may be inside the 15 s window, which would drop 'slow one' too.
   await newChannel(a, 'quiet');

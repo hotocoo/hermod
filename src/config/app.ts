@@ -140,3 +140,12 @@ export const INVITE_EXPIRY = [
 
 /** Characters before the palette asks the core to search message content. */
 export const SEARCH_MIN_CHARS = 2;
+
+/** Presence beacons (P-001, P-004): send cadence, how long a peer stays shown, when idle becomes away. */
+export const PRESENCE = {
+  checkMs: 5_000, // idle and expiry check cadence; bounds how late an away flip is sent
+  everyMs: 20_000, // beacon refresh, well under ttlMs so one lost beacon does not flap the dot
+  ttlMs: 60_000, // a peer unseen this long is offline (FEATURES P-001)
+  idleMs: 300_000, // no input this long means away (FEATURES P-004)
+  inputEvents: ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const, // pointermove omitted: too frequent
+} as const;

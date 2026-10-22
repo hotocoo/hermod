@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { getBridge } from '@/lib/bridge';
 import { getMount, getOverlay } from '@/state/domRefs';
 import { startBridgeSync } from '@/state/bridgeSync';
+import { startPresence } from '@/state/presenceSend';
 import { useAppStore } from '@/state/store';
 import { attachKeyboard, attachTown, startShell, startTimers, townHandlers } from '@/state/townSync';
 
@@ -38,7 +39,7 @@ export function useAppBoot(): void {
   useEffect(() => {
     if (!live) return;
     void useAppStore.getState().loadMessaging();
-    const cleanups = [startShell(useAppStore), attachKeyboard(useAppStore), startTimers(useAppStore), startBridgeSync(useAppStore)];
+    const cleanups = [startShell(useAppStore), attachKeyboard(useAppStore), startTimers(useAppStore), startBridgeSync(useAppStore), startPresence(useAppStore)];
     let detachTown: (() => void) | null = null;
     let cancelled = false;
     offerUpdate(() => cancelled);

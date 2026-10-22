@@ -4,6 +4,7 @@ import { errorMessage, getBridge, type AuditRow, type Member, type Role } from '
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
 import { useAppStore } from '@/state/store';
+import { PresenceDot } from '@/components/ui/PresenceDot';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
 import { InviteList } from './InviteList';
@@ -93,7 +94,7 @@ function Members({ space, list, reload, admin, owner }: { space: string; list: M
         <tbody>
           {active.map((m) => (
             <tr key={m.user_id}>
-              <td><span aria-label={m.online ? 'online' : 'offline'} title={m.online ? 'online' : 'offline'} style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', marginRight: 8, background: m.online ? 'var(--color-accent)' : 'var(--color-neutral-400)' }} />{m.name}{m.user_id === me ? ' (you)' : ''}</td>
+              <td><PresenceDot id={m.user_id} inline fallbackOnline={m.online} />{m.name}{m.user_id === me ? ' (you)' : ''}</td>
               <td>
                 {owner && m.user_id !== me ? (
                   <select aria-label={`Role of ${m.name}`} className="input" value={m.role} onChange={(e) => run(() => getBridge().memberSetRole(space, m.user_id, e.target.value as Role))}>
