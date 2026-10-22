@@ -616,7 +616,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
       const dts = Math.max(dt, 0.001); const fast = camera.position.distanceTo(giPos) / dts / Math.max(1, camera.position.length()) > GI.busySpeed || camera.quaternion.angleTo(giQuat) / dts > GI.busyTurn || Math.abs(camera.fov - giFov) > 0.02; giPos.copy(camera.position); giQuat.copy(camera.quaternion); giFov = camera.fov; giBusyMs = fast ? 0 : giBusyMs + dt * 1000;
       const typing = performance.now() - lastInputAt < STILL.settleMs; gi.setIsland(siteR(), 0); gi.update(dt, hr, k, giBusyMs < STILL.settleMs || typing, typing); }
     // The mirror pass cannot render shadows itself (needsUpdate is held off), so with no sun map yet its draws would sample an empty shadow texture: wait for the main pass to build it.
-    if (!still.engaged && sun.shadow.map) waterPlanar.update(scene, camera, Q.msaa); // planar water: mirror + refraction passes over the water footprint at 1x
+    if (!still.engaged && sun.shadow.map) waterPlanar.update(scene, camera, Q.msaa, pipeline.sceneTarget); // planar water: mirror + refraction passes over the water footprint at 1x
     drawFrame(dt, now);
     overlayUi?.update(now);
   }

@@ -81,7 +81,6 @@ void main(){
   float f = clamp(log(max(zv, 1e-3) / uNear) / log(uFar / uNear) * uD / 0.5, 0.0, 1.0);
   gl_FragColor = vec4(col.rgb * mix(1.0, a.a, f) + a.rgb * f, col.a);
 }`;
-const COPY = 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ gl_FragColor = texture2D(tDiffuse, vUv); }';
 
 /** Test hook: the fog shader sources. */
 export const FOG_GLSL = { scatter: SCATTER, integrate: INTEGRATE, composite: COMPOSITE } as const;
@@ -100,11 +99,10 @@ const halton = (i: number, b: number) => { let f = 1, r = 0; while (i > 0) { f /
 export class FogPass extends Pass {
   private rt = [0, 1].map(() => new THREE.WebGLRenderTarget(GX * TILES_X, GY * TILES_Y, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, colorSpace: THREE.LinearSRGBColorSpace }));
   private acc = new THREE.WebGLRenderTarget(GX * TILES_X, GY * TILES_Y, { type: THREE.HalfFloatType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, colorSpace: THREE.LinearSRGBColorSpace });
-  private tmp = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false, colorSpace: THREE.LinearSRGBColorSpace });
   private cur = 0; private frame = 0; private reset = true; private prevVP = new THREE.Matrix4(); private vp = new THREE.Matrix4();
   private common = { uGrid: { value: new THREE.Vector2(GX, GY) }, uTiles: { value: new THREE.Vector2(TILES_X, TILES_Y) }, uD: { value: GZ }, uNear: { value: F.near }, uFar: { value: F.far } };
-  private mScatter: THREE.ShaderMaterial; private mInt: THREE.ShaderMaterial; private mComp: THREE.ShaderMaterial; private mCopy: THREE.ShaderMaterial;
-  private qScatter: FullScreenQuad; private qInt: FullScreenQuad; private qComp: FullScreenQuad; private qCopy: FullScreenQuad;
+  private mScatter: THREE.ShaderMaterial; private mInt: THREE.ShaderMaterial; private mComp: THREE.ShaderMaterial;
+  private qScatter: FullScreenQuad; private qInt: FullScreenQuad; private qComp: FullScreenQuad;
   private sunDir = new THREE.Vector3(); private v = new THREE.Vector3(); private tgt = new THREE.Vector3(); private frameIn: FogFrame | null = null; private sigma = 0;
   constructor(private camera: THREE.PerspectiveCamera, private inp: FogInputs) {
     super(); this.needsSwap = false;
@@ -113,8 +111,7 @@ export class FogPass extends Pass {
     this.mScatter = mat(SCATTER, { tHist: { value: null }, uHist: { value: 0 }, uJit: { value: new THREE.Vector3() }, uInvProj: { value: new THREE.Matrix4() }, uCamWorld: { value: new THREE.Matrix4() }, uPrevVP: { value: new THREE.Matrix4() }, uSigma: { value: 0 }, uTime: { value: 0 }, uWind: { value: new THREE.Vector3(0.02, 0, 0.012) }, uScaleH: { value: F.scaleH }, uAniso: { value: F.anisotropy }, uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Vector3() }, uShadowM: { value: new THREE.Matrix4() }, tShadow: { value: null }, uShadowOn: { value: 0 }, uAmb: { value: new THREE.Vector3() }, uNL: { value: 0 }, uLP: { value: lp }, uLC: { value: lc }, uLampGain: { value: F.lampGain }, uSunGain: { value: F.sunGain } });
     this.mInt = mat(INTEGRATE, { tScatter: { value: null }, uInvProj: { value: new THREE.Matrix4() } });
     this.mComp = mat(COMPOSITE, { tDiffuse: { value: null }, tDepth: { value: null }, tAccum: { value: this.acc.texture }, uCamNear: { value: 0.1 }, uCamFar: { value: 500 } });
-    this.mCopy = mat(COPY, { tDiffuse: { value: null } });
-    this.qScatter = new FullScreenQuad(this.mScatter); this.qInt = new FullScreenQuad(this.mInt); this.qComp = new FullScreenQuad(this.mComp); this.qCopy = new FullScreenQuad(this.mCopy);
+    this.qScatter = new FullScreenQuad(this.mScatter); this.qInt = new FullScreenQuad(this.mInt); this.qComp = new FullScreenQuad(this.mComp);
   }
   /** Weather and time of day inputs for this frame; `inside` or zero density disables the pass. */
   set(f: FogFrame) {
@@ -122,7 +119,8 @@ export class FogPass extends Pass {
     this.mScatter.uniforms.uWind.value.set(0.02 + f.wind * 0.01, 0, 0.012 + f.wind * 0.006);
   }
   invalidate() { this.reset = true; }
-  setSize(w: number, h: number) { this.tmp.setSize(w, h); }
+  /** Scene depth, supplied by the pipeline (the composer's ping-pong buffers carry none). */
+  depthOf: (() => THREE.Texture | null) | null = null;
   private lights() {
     const u = this.mScatter.uniforms; const ls = this.inp.lights(); const cam = this.camera.position; const picked: { l: THREE.PointLight | THREE.SpotLight; d: number }[] = [];
     for (const l of ls) { if (!l.visible || l.intensity < 0.02) continue; l.getWorldPosition(this.v); const d = this.v.distanceToSquared(cam); if (Number.isFinite(d + l.intensity + (l.distance || 0))) picked.push({ l, d }); }
@@ -148,13 +146,13 @@ export class FogPass extends Pass {
     renderer.setRenderTarget(this.acc); this.qInt.render(renderer);
     this.cur = next; this.prevVP.copy(this.vp); this.reset = false;
   }
-  render(renderer: THREE.WebGLRenderer, _write: THREE.WebGLRenderTarget, read: THREE.WebGLRenderTarget) {
-    if (!this.frameIn || !read.depthTexture) return;
+  render(renderer: THREE.WebGLRenderer, write: THREE.WebGLRenderTarget, read: THREE.WebGLRenderTarget) {
+    const depth = this.depthOf?.() ?? null; this.needsSwap = !!this.frameIn && !!depth; // composite straight into the write buffer; nothing to swap when skipped
+    if (!this.frameIn || !depth) return;
     const prevAuto = renderer.autoClear; renderer.autoClear = false; this.volumes(renderer);
-    const u = this.mComp.uniforms; u.tDiffuse.value = read.texture; u.tDepth.value = read.depthTexture; u.uCamNear.value = this.camera.near; u.uCamFar.value = this.camera.far;
-    renderer.setRenderTarget(this.tmp); this.qComp.render(renderer);
-    this.mCopy.uniforms.tDiffuse.value = this.tmp.texture; renderer.setRenderTarget(read); this.qCopy.render(renderer);
+    const u = this.mComp.uniforms; u.tDiffuse.value = read.texture; u.tDepth.value = depth; u.uCamNear.value = this.camera.near; u.uCamFar.value = this.camera.far;
+    renderer.setRenderTarget(write); this.qComp.render(renderer);
     renderer.autoClear = prevAuto;
   }
-  dispose() { this.rt.forEach((r) => r.dispose()); this.acc.dispose(); this.tmp.dispose(); [this.mScatter, this.mInt, this.mComp, this.mCopy].forEach((m) => m.dispose()); [this.qScatter, this.qInt, this.qComp, this.qCopy].forEach((q) => q.dispose()); super.dispose(); }
+  dispose() { this.rt.forEach((r) => r.dispose()); this.acc.dispose(); [this.mScatter, this.mInt, this.mComp].forEach((m) => m.dispose()); [this.qScatter, this.qInt, this.qComp].forEach((q) => q.dispose()); super.dispose(); }
 }

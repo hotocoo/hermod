@@ -6,6 +6,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { TexturePass } from 'three/examples/jsm/postprocessing/TexturePass.js';
+import { CopyShader } from 'three/examples/jsm/shaders/CopyShader.js';
 import { DENOISE_SHADER } from './still';
 import { DIRECTOR, LIGHT_TIERS, POST, QUALITY, SKY_DOME as SD, type QualitySpec, type QualityTier } from '@/config/scene';
 import { FogPass, type FogInputs } from './froxelFog';
@@ -122,7 +123,7 @@ class TaaPass extends ShaderPass {
   resetHistory() { this.moved = true; }
   render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget, readBuffer: THREE.WebGLRenderTarget, deltaTime: number, maskActive: boolean) {
     const w = readBuffer.width, h = readBuffer.height;
-    if (!this.history || this.history.width !== w || this.history.height !== h) { this.history?.dispose(); this.history = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace }); this.moved = true; }
+    if (!this.history || this.history.width !== w || this.history.height !== h) { this.history?.dispose(); this.history = new THREE.WebGLRenderTarget(w, h, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, depthBuffer: false }); this.moved = true; }
     this.uniforms.tHistory.value = this.history.texture; (this.uniforms.uTexel.value as THREE.Vector2).set(1 / w, 1 / h); this.uniforms.uBlend.value = this.moved ? 1 : 0.14;
     super.render(renderer, writeBuffer, readBuffer, deltaTime, maskActive);
     this.copy.uniforms.tDiffuse.value = writeBuffer.texture; this.copy.render(renderer, this.history, writeBuffer, deltaTime, false); this.moved = false;
@@ -135,6 +136,14 @@ function aoFromSceneDepth(ao: GTAOPass, depth: () => THREE.Texture | null) {
   (ao as unknown as { _renderGBuffer: boolean })._renderGBuffer = false;
   for (const m of [ao.gtaoMaterial, ao.pdMaterial]) { m.defines.NORMAL_VECTOR_TYPE = 0; m.defines.DEPTH_SWIZZLING = 'x'; m.needsUpdate = true; }
   const render = ao.render.bind(ao); ao.render = (...a: Parameters<GTAOPass['render']>) => { const d = depth(); ao.gtaoMaterial.uniforms.tDepth.value = d; ao.pdMaterial.uniforms.tDepth.value = d; render(...a); };
+}
+
+/** Scene pass: renders into the MSAA target (resolved by three after the draw), then copies the resolved colour into the composer's single-sample write buffer. */
+class ScenePass extends RenderPass {
+  private copy = new ShaderPass(CopyShader);
+  constructor(scene: THREE.Scene, camera: THREE.Camera, private target: THREE.WebGLRenderTarget) { super(scene, camera); this.needsSwap = true; }
+  render(renderer: THREE.WebGLRenderer, writeBuffer: THREE.WebGLRenderTarget, _read: THREE.WebGLRenderTarget, deltaTime: number, maskActive: boolean) { super.render(renderer, writeBuffer, this.target, deltaTime, maskActive); this.copy.render(renderer, writeBuffer, this.target, deltaTime, maskActive); }
+  dispose() { this.copy.dispose(); super.dispose(); }
 }
 
 export interface SkyFrame {
@@ -154,14 +163,15 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
   let expo = 1, lastT = 0; const tmp = new THREE.Vector3(); let lastTop = '', lastBot = '', lastGlow = '';
 
   function build() {
-    composer?.dispose(); composer = null; bloom = null; ao = null; fogPass = null;
+    composer?.dispose(); sceneRT?.depthTexture?.dispose(); sceneRT?.dispose(); sceneRT = null; composer = null; bloom = null; ao = null; fogPass = null;
     if (!spec || !spec.post) return;
-    const rt = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, samples: spec.msaa, colorSpace: THREE.LinearSRGBColorSpace });
-    if (spec.dof || spec.motionBlur || fogOn || spec.ao) { rt.depthTexture = new THREE.DepthTexture(W * pr, H * pr); rt.depthTexture.type = THREE.UnsignedIntType; }
+    // only the scene render needs MSAA and depth: it draws into its own target (whose depth texture feeds fog, AO, DOF and motion blur) and is copied into the single-sample ping-pong buffers
+    const rt = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, depthBuffer: false });
+    sceneRT = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, samples: spec.msaa, colorSpace: THREE.LinearSRGBColorSpace });
+    sceneRT.depthTexture = new THREE.DepthTexture(W * pr, H * pr); sceneRT.depthTexture.type = THREE.UnsignedIntType; // always: fog, AO, DOF, motion blur and the water copies read it
     composer = new EffectComposer(renderer, rt); composer.setPixelRatio(pr); composer.setSize(W, H);
-    // the composer renders the scene into whichever of its two targets is the read buffer, and that alternates frame to frame when the pass count is odd: remember it for the depth readers
-    const rp = new RenderPass(scene, camera); const rpRender = rp.render.bind(rp); rp.render = (r, wb, rb, ...rest) => { sceneRT = rb; rpRender(r, wb, rb, ...rest); }; composer.addPass(rp);
-    if (fogOn && fogIn) { fogPass = new FogPass(camera, fogIn); composer.addPass(fogPass); } // HDR volumetric fog on the scene RT (needs its depth), before AO, DOF, bloom and tone mapping
+    composer.addPass(new ScenePass(scene, camera, sceneRT));
+    if (fogOn && fogIn) { fogPass = new FogPass(camera, fogIn); fogPass.depthOf = sceneDepth; composer.addPass(fogPass); } // HDR volumetric fog on the scene RT (needs its depth), before AO, DOF, bloom and tone mapping
     if (spec.ao) { ao = new GTAOPass(scene, camera, W * pr * spec.aoScale, H * pr * spec.aoScale); ao.blendIntensity = POST.ao.blend; ao.updateGtaoMaterial({ radius: POST.ao.radius, distanceExponent: POST.ao.distanceExponent, thickness: POST.ao.thickness, scale: POST.ao.scale, samples: POST.ao.samples, screenSpaceRadius: false }); aoFromSceneDepth(ao, sceneDepth); composer.addPass(ao); }
     if (spec.dof) composer.addPass(dof);
     if (spec.motionBlur) composer.addPass(mb);
@@ -170,7 +180,7 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     composer.addPass(new OutputPass()); composer.addPass(comp);
     composer.passes.forEach((p, i) => { const pr0 = p.render.bind(p); p.render = (...a) => passProf(renderer, `post:${i}:${p.constructor.name}`, () => pr0(...a)); }); if (process.env.NODE_ENV !== 'production') (window as unknown as { __passes: unknown }).__passes = composer.passes; // dev only: per-pass ablation (scripts/perf probes toggle `enabled`) // GPU time per pass while window.__passProf is set (dev A/B)
   }
-  function applySize() { composer?.setPixelRatio(pr); composer?.setSize(W, H); ao?.setSize(W * pr * (spec?.aoScale || 1), H * pr * (spec?.aoScale || 1)); }
+  function applySize() { composer?.setPixelRatio(pr); composer?.setSize(W, H); sceneRT?.setSize(W * pr, H * pr); ao?.setSize(W * pr * (spec?.aoScale || 1), H * pr * (spec?.aoScale || 1)); }
   U.uDither.value = POST.grade.dither; U.uVig.value = POST.vignette.strength; U.uSat.value = POST.grade.saturation; U.uCon.value = POST.grade.contrast;
 
   return {
@@ -179,7 +189,7 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     /** The froxel volume is built and composited this tier: it supplies all the fog, so `scene.fog` must stay at zero density or the two stack into a whiteout. */
     get froxel() { return !!fogPass; },
     /** Render target the scene pass draws into (null at the low tier). Program keys depend on it (linear output, no in-shader tone mapping), so shader warm-ups compile with it bound. */
-    get sceneTarget(): THREE.WebGLRenderTarget | null { return composer ? composer.renderTarget1 : null; },
+    get sceneTarget(): THREE.WebGLRenderTarget | null { return sceneRT; },
     /** Give the froxel fog its light sources (the sun/moon directional light with its shadow map, and the lamp lights); call before `configure`. */
     attachFog(inp: FogInputs) { fogIn = inp; },
     /** Weather amounts (0..1) for the froxel fog density, from the weather sampler. */
@@ -219,10 +229,10 @@ export function createPipeline(renderer: THREE.WebGLRenderer, scene: THREE.Scene
     warm() { this.render(0, true); },
     /** Show a linear HDR texture (path traced still) through denoise, tone mapping and the sky composite. */
     present(tex: THREE.Texture, strength: number) {
-      if (!still) { const rt = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace }); still = { c: new EffectComposer(renderer, rt), src: new TexturePass(tex), den: new ShaderPass(DENOISE_SHADER) }; still.c.addPass(still.src); still.c.addPass(still.den); still.c.addPass(new OutputPass()); still.c.addPass(comp); }
+      if (!still) { const rt = new THREE.WebGLRenderTarget(W * pr, H * pr, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, depthBuffer: false }); still = { c: new EffectComposer(renderer, rt), src: new TexturePass(tex), den: new ShaderPass(DENOISE_SHADER) }; still.c.addPass(still.src); still.c.addPass(still.den); still.c.addPass(new OutputPass()); still.c.addPass(comp); }
       still.c.setPixelRatio(pr); still.c.setSize(W, H); still.src.map = tex; still.den.uniforms.uStrength.value = strength; (still.den.uniforms.uTexel.value as THREE.Vector2).set(1 / (W * pr), 1 / (H * pr)); U.uSkyOn.value = 1; U.uTime.value = U.uTime.value; still.c.render(0);
     },
-    dispose() { composer?.dispose(); still?.c.dispose(); still = null; },
+    dispose() { composer?.dispose(); sceneRT?.dispose(); still?.c.dispose(); still = null; },
   };
 }
 export type Pipeline = ReturnType<typeof createPipeline>;

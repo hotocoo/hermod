@@ -8,6 +8,7 @@
  */
 import * as THREE from 'three';
 import { passProf } from './passProf';
+import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { classify, hideAll, restore, type PassCull } from './passCull';
 
 export const waterU = {
@@ -29,6 +30,15 @@ const PAD = 6;
 const _box = new THREE.Box3(), _b2 = new THREE.Box3(), _v = new THREE.Vector3(), _c = new THREE.Color(), _frustum = new THREE.Frustum(), _vp = new THREE.Matrix4();
 const _s = new THREE.Vector2(), _t2 = new THREE.Vector3(), _ful = new THREE.Matrix4();
 const _n = new THREE.Vector3(0, 1, 0), _refl = new THREE.Vector3(), _look = new THREE.Vector3(), _tgt = new THREE.Vector3(), _rot = new THREE.Matrix4(), _cp = new THREE.Vector3(), _q = new THREE.Vector4(), _plane = new THREE.Plane(), _clip = new THREE.Vector4();
+
+/** Pixel-exact copy of a resolved scene-target region into a single-sample water target; `uDepth` also carries the resolved depth across (the refraction pass keeps it for Beer-Lambert thickness). */
+const copyMat = (depth: boolean) => new THREE.ShaderMaterial({
+  uniforms: { tColor: { value: null as THREE.Texture | null }, tDepth: { value: null as THREE.Texture | null } },
+  vertexShader: 'void main(){ gl_Position = vec4(position.xy, 0.0, 1.0); }',
+  fragmentShader: `uniform sampler2D tColor;${depth ? ' uniform sampler2D tDepth;' : ''}
+void main(){ ivec2 p = ivec2(gl_FragCoord.xy); gl_FragColor = texelFetch(tColor, p, 0);${depth ? ' gl_FragDepth = texelFetch(tDepth, p, 0).x;' : ''} }`,
+  depthTest: depth, depthFunc: THREE.AlwaysDepth, depthWrite: depth, blending: THREE.NoBlending,
+});
 
 interface Px { x0: number; y0: number; w: number; h: number }
 /** Pixel rectangle of a box's projection (null when it straddles the camera plane: use the whole view). */
@@ -68,26 +78,32 @@ function worldBox(o: THREE.Mesh): THREE.Box3 {
   if (!o.geometry.boundingBox) o.geometry.computeBoundingBox(); return _bb.copy(o.geometry.boundingBox!).applyMatrix4(o.matrixWorld);
 }
 
-export interface WaterPlanar { update(scene: THREE.Scene, camera: THREE.PerspectiveCamera, samples: number): void; dispose(): void }
+export interface WaterPlanar { update(scene: THREE.Scene, camera: THREE.PerspectiveCamera, samples: number, shared: THREE.WebGLRenderTarget | null): void; dispose(): void }
 
 export function createWaterPlanar(renderer: THREE.WebGLRenderer): WaterPlanar {
   let list: THREE.Mesh[] = []; let age = 1e9; let cull: PassCull = { small: [], sprites: [], figures: [], meshes: [] };
   let reflRT: THREE.WebGLRenderTarget | null = null, refrRT: THREE.WebGLRenderTarget | null = null; let rtW = 0, rtH = 0, rtS = -1;
   const vcam = new THREE.PerspectiveCamera(); const rcam = new THREE.PerspectiveCamera();
-  const mk = (W: number, H: number, samples: number, depth: boolean) => {
-    const t = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, samples, depthBuffer: true, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+  const qColor = new FullScreenQuad(copyMat(false)), qDepth = new FullScreenQuad(copyMat(true));
+  const mk = (W: number, H: number, samples: number, depth: boolean, depthBuffer = true) => {
+    const t = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType, colorSpace: THREE.LinearSRGBColorSpace, samples, depthBuffer, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
     if (depth) { t.depthTexture = new THREE.DepthTexture(W, H); t.depthTexture.type = THREE.UnsignedIntType; t.depthTexture.minFilter = t.depthTexture.magFilter = THREE.NearestFilter; }
     t.scissorTest = true; return t;
   };
   const visible = (o: THREE.Object3D) => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; };
 
-  function renderPass(scene: THREE.Scene, cam: THREE.PerspectiveCamera, rt: THREE.WebGLRenderTarget, r: Px) {
+  function renderPass(scene: THREE.Scene, cam: THREE.PerspectiveCamera, rt: THREE.WebGLRenderTarget, r: Px, out: THREE.WebGLRenderTarget, q: FullScreenQuad) {
     rt.viewport.set(0, 0, r.w, r.h); rt.scissor.set(0, 0, r.w, r.h);
     renderer.setRenderTarget(rt); renderer.clear(true, true, false); renderer.render(scene, cam);
+    if (rt === out) return;
+    // drew into the pipeline's shared MSAA target (three resolved it): copy the footprint into this pass's 1x target, then give the shared target its full viewport back
+    const m = q.material as THREE.ShaderMaterial; m.uniforms.tColor.value = rt.texture; if (m.uniforms.tDepth) m.uniforms.tDepth.value = rt.depthTexture;
+    out.viewport.set(0, 0, r.w, r.h); out.scissor.set(0, 0, r.w, r.h); renderer.setRenderTarget(out); q.render(renderer);
+    rt.viewport.set(0, 0, rt.width, rt.height); rt.scissor.set(0, 0, rt.width, rt.height);
   }
 
   return {
-    update(scene, camera, samples) {
+    update(scene, camera, samples, shared) {
       waterU.uOn.value = 0; waterStats.on = false;
       if ((age += 1) > 45) { age = 0; list = []; scene.traverse((o) => { if ((o as THREE.Mesh).isMesh && o.name.startsWith('water:')) list.push(o as THREE.Mesh); }); cull = classify(scene, WATER_PASS.smallR, (o) => o.name.startsWith('water:')); }
       const planar: THREE.Mesh[] = []; for (const m of list) if (!m.name.endsWith(':fall') && visible(m) && m.geometry) planar.push(m);
@@ -107,7 +123,9 @@ export function createWaterPlanar(renderer: THREE.WebGLRenderer): WaterPlanar {
       const fr = footprint(_vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse), _box, h - 0.6, h + 0.2, W, H);
       const rr = footprint(ful, _box, h, h, W, H);
       if (fr.w * fr.h < MIN_PX || rr.w * rr.h < MIN_PX / 2) return;
-      if (!reflRT || !refrRT || rtW !== W || rtH !== H || rtS !== samples) { reflRT?.dispose(); refrRT?.dispose(); reflRT = mk(W, H, samples, false); refrRT = mk(W, H, samples, true); rtW = W; rtH = H; rtS = samples; }
+      // the post pipeline's MSAA scene target (with depth) does the drawing when it covers the view, so the water keeps only single-sample copies instead of two more MSAA colour + depth sets
+      const via = shared && shared.depthTexture && shared.width >= W && shared.height >= H ? shared : null; const key = via ? -1 : samples;
+      if (!reflRT || !refrRT || rtW !== W || rtH !== H || rtS !== key) { reflRT?.dispose(); refrRT?.dispose(); reflRT = mk(W, H, via ? 0 : samples, false, !via); refrRT = mk(W, H, via ? 0 : samples, true); rtW = W; rtH = H; rtS = key; }
 
       // save renderer state
       const prevRT = renderer.getRenderTarget(), autoClear = renderer.autoClear, sa = renderer.shadowMap.autoUpdate, sn = renderer.shadowMap.needsUpdate, ma = scene.matrixWorldAutoUpdate; const ca = renderer.getClearAlpha(); renderer.getClearColor(_c);
@@ -123,13 +141,13 @@ export function createWaterPlanar(renderer: THREE.WebGLRenderer): WaterPlanar {
         const e = proj.elements; _q.x = (Math.sign(_clip.x) + e[8]) / e[0]; _q.y = (Math.sign(_clip.y) + e[9]) / e[5]; _q.z = -1; _q.w = (1 + e[10]) / e[14]; _clip.multiplyScalar(2 / _clip.dot(_q));
         e[2] = _clip.x; e[6] = _clip.y; e[10] = _clip.z + 1 - 0.02; e[14] = _clip.w;
         crop(rcam.projectionMatrix, rcam.projectionMatrix, rr, W, H); rcam.projectionMatrixInverse.copy(rcam.projectionMatrix).invert();
-        passProf(renderer, 'water:reflection', () => renderPass(scene, rcam, reflRT!, rr));
+        passProf(renderer, 'water:reflection', () => renderPass(scene, rcam, via ?? reflRT!, rr, reflRT!, qColor));
         // refraction: the main camera over the footprint, water hidden, depth kept
         const dcam = rcam; dcam.position.copy(_cp); dcam.quaternion.setFromRotationMatrix(_rot.extractRotation(camera.matrixWorld)); dcam.updateMatrixWorld(); dcam.matrixWorldInverse.copy(camera.matrixWorldInverse);
         crop(dcam.projectionMatrix, camera.projectionMatrix, fr, W, H); dcam.projectionMatrixInverse.copy(dcam.projectionMatrix).invert();
         _ref.copy(_box).expandByScalar(WATER_PASS.nearM); _ref.max.y = h + WATER_PASS.aboveM;
         if (cullOn()) for (const m of cull.meshes) if (m.visible && (m.material as THREE.Material).transparent || m.visible && !_ref.intersectsBox(worldBox(m))) { m.visible = false; skipped.push(m); }
-        passProf(renderer, 'water:refraction', () => renderPass(scene, dcam, refrRT!, fr));
+        passProf(renderer, 'water:refraction', () => renderPass(scene, dcam, via ?? refrRT!, fr, refrRT!, qDepth));
       } finally {
         list.forEach((m, i) => { m.visible = vis[i]; }); restore(skipped);
         renderer.setRenderTarget(prevRT); renderer.autoClear = autoClear; renderer.shadowMap.autoUpdate = sa; renderer.shadowMap.needsUpdate = sn; scene.matrixWorldAutoUpdate = ma; renderer.setClearColor(_c, ca);
@@ -140,7 +158,7 @@ export function createWaterPlanar(renderer: THREE.WebGLRenderer): WaterPlanar {
       waterU.uRes.value.set(W, H); waterU.uNearFar.value.set(camera.near, camera.far); waterU.uOn.value = 1;
       waterStats.on = true; waterStats.reflPx = rr.w * rr.h; waterStats.refrPx = fr.w * fr.h;
     },
-    dispose() { reflRT?.dispose(); refrRT?.dispose(); reflRT = refrRT = null; waterU.uOn.value = 0; },
+    dispose() { for (const q of [qColor, qDepth]) { (q.material as THREE.ShaderMaterial).dispose(); q.dispose(); } reflRT?.dispose(); refrRT?.dispose(); reflRT = refrRT = null; waterU.uOn.value = 0; },
   };
 }
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') (window as unknown as { __water: unknown }).__water = { waterStats, waterU }; // dev only: fx-shots probes
