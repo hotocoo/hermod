@@ -10,7 +10,7 @@ test.beforeAll(async () => { test.setTimeout(180_000); await freshDevhosts(); })
  * Real WebRTC and media pipelines between two devhost peers (two identities, two data dirs, real libp2p signalling).
  * Chromium's fake capture devices are used here and only here; the app code is the production code path.
  * Peer connections are observed by wrapping RTCPeerConnection before the app loads, so the checks do not depend on UI wiring.
- * Proves FEATURES H-002, H-003, H-004, H-005, H-009, V-002..V-005, V-011, V-013, V-015, F-001 (video).
+ * Proves FEATURES H-002, H-003, H-004, H-005, H-009, H-011, H-013, V-002..V-005, V-011, V-013, V-015, F-001 (video).
  */
 test.use({
   launchOptions: {
@@ -133,18 +133,19 @@ test.describe('hearth call', () => {
     await expect(b.locator(`[data-testid="tile"][data-user="${aId}"][data-cam="false"]`)).toBeVisible({ timeout: 30_000 });
   });
 
-  test('screen share starts, or is declined with a clear state', async () => {
+  test('a shared screen shows on both sides with the camera off and leads the grid', async () => {
+    // --use-fake-ui-for-media-stream answers the screen picker with Chromium's fake monitor, so sharing always starts here.
     await a.getByRole('button', { name: 'Share screen' }).click();
-    // A cancelled or unavailable picker leaves the button as it was; a granted one flips it.
-    await expect(a.getByRole('button', { name: /Stop sharing|Share screen/ })).toBeVisible();
-    if (await a.getByRole('button', { name: 'Stop sharing' }).isVisible()) {
-      // Camera is off here: the screen alone must show on the peer.
-      const tile = `[data-testid="tile"][data-user="${aId}"]`;
-      await expect(b.locator(`${tile}[data-share="true"][data-cam="false"]`)).toBeVisible({ timeout: 30_000 });
-      await expect.poll(() => b.locator(`${tile} video`).evaluate((v: HTMLVideoElement) => v.videoWidth), { timeout: 30_000 }).toBeGreaterThan(0);
-      await a.getByRole('button', { name: 'Stop sharing' }).click();
-      await expect(b.locator(`${tile}[data-share="false"]`)).toBeVisible({ timeout: 30_000 });
-    }
+    await expect(a.getByRole('button', { name: 'Stop sharing' })).toBeVisible({ timeout: 15_000 });
+    // Camera is off here: the screen alone must show on the peer, and on the sharer's own tile.
+    const tile = `[data-testid="tile"][data-user="${aId}"]`;
+    await expect(b.locator(`${tile}[data-share="true"][data-cam="false"]`)).toBeVisible({ timeout: 30_000 });
+    await expect(a.locator(`${tile}[data-share="true"]`)).toBeVisible();
+    await expect.poll(() => b.locator(`${tile} video`).evaluate((v: HTMLVideoElement) => v.videoWidth), { timeout: 30_000 }).toBeGreaterThan(0);
+    // The shared screen is the spotlight: first tile on both sides.
+    for (const p of [a, b]) await expect(p.getByTestId('tile').first()).toHaveAttribute('data-user', aId);
+    await a.getByRole('button', { name: 'Stop sharing' }).click();
+    await expect(b.locator(`${tile}[data-share="false"]`)).toBeVisible({ timeout: 30_000 });
     await expect(a.getByRole('button', { name: 'Share screen' })).toBeVisible({ timeout: 15_000 });
   });
 
@@ -156,6 +157,33 @@ test.describe('hearth call', () => {
     await expect(tile).toHaveAttribute('data-hand', 'false', { timeout: 30_000 });
   });
 
+  test('a quick reaction shows on the peer tile and fades on its own', async () => {
+    const tile = b.locator(`[data-testid="tile"][data-user="${aId}"]`);
+    await a.getByRole('button', { name: 'React 👍' }).click();
+    await expect(tile).toHaveAttribute('data-react', '👍', { timeout: 30_000 });
+    // Ephemeral: nothing clears it but the fade timer (MEDIA.call.signal.reactionMs).
+    await expect(tile).not.toHaveAttribute('data-react', /./, { timeout: 30_000 });
+  });
+
+  test('a poor link shows the "Poor connection" banner on that peer tile', async () => {
+    // B's real stats are rewritten to a slow round trip, so the production stats poll classifies A's link as poor.
+    await b.evaluate(() => {
+      for (const pc of (window as unknown as { __pcs: RTCPeerConnection[] }).__pcs) {
+        const real = RTCPeerConnection.prototype.getStats.bind(pc);
+        (pc as unknown as { getStats: () => Promise<unknown[]> }).getStats = async () => {
+          const rows: Record<string, unknown>[] = [];
+          (await real()).forEach((r: Record<string, unknown>) => rows.push(r.type === 'candidate-pair' ? { ...r, currentRoundTripTime: 5 } : r));
+          return rows;
+        };
+      }
+    });
+    const tile = b.locator(`[data-testid="tile"][data-user="${aId}"]`);
+    await expect(tile).toHaveAttribute('data-quality', 'poor', { timeout: 30_000 });
+    await expect(tile.getByRole('status')).toHaveText('Poor connection');
+    await b.evaluate(() => { for (const pc of (window as unknown as { __pcs: RTCPeerConnection[] }).__pcs) delete (pc as unknown as { getStats?: unknown }).getStats; });
+    await expect(tile).not.toHaveAttribute('data-quality', 'poor', { timeout: 30_000 });
+  });
+
   test('recording shows REC to both sides and is saved on stop', async () => {
     await a.getByRole('button', { name: 'Record', exact: true }).click();
     await expect(a.getByText('REC', { exact: true })).toBeVisible({ timeout: 30_000 });
@@ -165,6 +193,24 @@ test.describe('hearth call', () => {
     await a.getByRole('button', { name: 'Stop recording' }).click();
     await saved;
     await expect(a.getByText('REC', { exact: true })).toBeHidden({ timeout: 30_000 });
+  });
+
+  test('an ICE failure that outlasts every restart tells the person why there is no connection', async () => {
+    // Loopback never fails ICE, so B's link to A is made to report `failed` until PeerLink gives up (MEDIA.call.iceRestartMax restarts).
+    // Comfortably more state changes than the restarts PeerLink tries before it reports `failed`.
+    const failures = 8;
+    await b.evaluate((n) => {
+      for (const pc of (window as unknown as { __pcs: RTCPeerConnection[] }).__pcs) {
+        if (pc.connectionState !== 'connected') continue;
+        Object.defineProperty(pc, 'connectionState', { get: () => 'failed', configurable: true });
+        for (let i = 0; i < n; i++) pc.onconnectionstatechange?.(new Event('connectionstatechange'));
+      }
+    }, failures);
+    await expect(b.getByText(/Could not connect directly to this person/)).toBeVisible({ timeout: 15_000 });
+    // Still in the call: the failure is reported, not turned into a silent hang-up.
+    await expect(b.getByRole('button', { name: /^Leave/ })).toBeVisible();
+    // The real state shows again, so the leave check below reads what the browser reports.
+    await b.evaluate(() => { for (const pc of (window as unknown as { __pcs: RTCPeerConnection[] }).__pcs) delete (pc as unknown as { connectionState?: unknown }).connectionState; });
   });
 
   test('leaving closes every connection on both sides', async () => {
@@ -207,6 +253,8 @@ test.describe('live', () => {
 test.describe('video on demand', () => {
   const title = unique('Demo reel');
   const vtt = 'WEBVTT\n\n00:00.000 --> 00:02.000\nHello from the captions\n';
+  /** Start of the "Middle" chapter typed below, in seconds. */
+  const middleAt = 1;
 
   test('a video post with chapters and captions is published and watchable on the peer', async () => {
     const clip = await recordClip(a);
@@ -218,7 +266,7 @@ test.describe('video on demand', () => {
     await chooseWith(a, () => dlg.getByRole('button', { name: 'Choose a video' }).click(), { name: 'reel.webm', mimeType: 'video/webm', buffer: clip });
     await expect(dlg.getByText(/reel\.webm/)).toBeVisible({ timeout: 30_000 });
     await dlg.getByLabel(/^Title/).fill(title);
-    await dlg.getByLabel(/^Chapters/).fill('0:00 Intro\n0:01 Middle');
+    await dlg.getByLabel(/^Chapters/).fill(`0:00 Intro\n0:0${middleAt} Middle`);
     await chooseWith(a, () => dlg.getByRole('button', { name: /Add captions/ }).click(), { name: 'reel.vtt', mimeType: 'text/vtt', buffer: Buffer.from(vtt) });
     await expect(dlg.getByText('reel.vtt')).toBeVisible();
     await dlg.getByRole('button', { name: 'Publish' }).click();
@@ -240,6 +288,11 @@ test.describe('video on demand', () => {
     await expect(b.getByRole('button', { name: 'Captions' })).toHaveAttribute('aria-pressed', 'true');
     await expect.poll(() => player.evaluate((v: HTMLVideoElement) => v.textTracks.length && v.textTracks[0].mode), { timeout: 15_000 }).toBe('showing');
     await expect.poll(() => player.evaluate((v: HTMLVideoElement) => v.textTracks[0]?.cues?.length ?? 0), { timeout: 15_000 }).toBeGreaterThan(0);
+    // chapter jump: the click seeks synchronously, so one immediate read proves the seek (playback alone could not reach it yet)
+    await middle.click();
+    expect(await player.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThanOrEqual(middleAt);
+    await expect(middle).toHaveAttribute('aria-current', 'true', { timeout: 15_000 });
+    await expect(b.getByRole('button', { name: /Intro/ })).not.toHaveAttribute('aria-current');
   });
 });
 

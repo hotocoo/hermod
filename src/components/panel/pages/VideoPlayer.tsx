@@ -130,7 +130,7 @@ function VideoPlayerBody({ vm }: VmProps) {
           <>
             <div className={`${c.kicker} ${s.asideHead}`}>Chapters</div>
             {vid.chapters.map((ch2) => (
-              <button type="button" key={ch2.n} onClick={() => { seek(ch2.t0); void el.current?.play(); }} className={s.chapter} style={chapNow?.t0 === ch2.t0 ? { background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)' } : undefined}>
+              <button type="button" key={ch2.n} onClick={() => { seek(ch2.t0); void el.current?.play(); }} className={s.chapter} aria-current={chapNow?.t0 === ch2.t0 ? true : undefined} style={chapNow?.t0 === ch2.t0 ? { background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)' } : undefined}>
                 <span className={`${s.chapT} ${c.muted}`}>{ch2.t}</span>{ch2.n}
               </button>
             ))}

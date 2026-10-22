@@ -1,16 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { create } from 'zustand';
+import { TIMING } from '../../config/app';
 import { RAVEN } from '../../config/scene';
 import { appendEvent } from '../act';
 import { diffArrivals } from '../arrivals';
 import { sceneSignals } from '../signals';
 import { createChatSlice } from '../slices/chat';
 import { createRavenSlice } from '../slices/ravens';
+import { MUTE_FOREVER } from '../slices/messaging/helpers';
 import { setTown, type TownPort } from '../townPort';
 import type { AppStore } from '../types';
 import type { Seed } from '../../lib/data/types';
 
-vi.mock('../../lib/bridge', async (orig) => ({ ...(await orig<typeof import('../../lib/bridge')>()), getBridge: () => ({ eventAppend: async () => undefined }) }));
+const readMark = vi.fn(async () => undefined);
+vi.mock('../../lib/bridge', async (orig) => ({ ...(await orig<typeof import('../../lib/bridge')>()), getBridge: () => ({ eventAppend: async () => undefined, readMark }) }));
 
 const ME = 'me'; const BO = 'bo';
 const seedWith = (messages: Record<string, { id: string; by: string; text: string }[]>, channels: Record<string, { id: string; unread?: number }[]> = {}): Seed => ({
@@ -93,5 +96,68 @@ describe('a sent message flies a raven off (R-006)', () => {
     await storeWith({ drafts: { 'sp/gen': '  ' } }).getState().send();
     await storeWith({ ravens: false }).getState().send();
     expect(t.flyOut).not.toHaveBeenCalled();
+  });
+});
+
+describe('letter overlay: read, dismiss, fade (R-003)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => { setTown(null); vi.useRealTimers(); });
+  const next = seedWith({ 'sp/gen': [{ id: 'm1', by: BO, text: 'come see' }] });
+  const landed = () => {
+    const enterBuilding = vi.fn();
+    const store = create<AppStore>()((set, get, api) => ({
+      ...createRavenSlice(set, get, api), seed: next, space: 'sp', ch: {}, inside: false, section: 'chat', incoming: {}, ravens: true, photo: false, onb: 0, archi: false,
+      prefs: { muted: {} }, drawer: null, enterBuilding,
+    }) as unknown as AppStore);
+    store.getState().receive(diffArrivals(seedWith({}), next, ME, {}));
+    expect(store.getState().letter).toMatchObject({ from: 'Bo Tester', text: 'come see', sp: 'sp', ch: 'gen' });
+    return { store, enterBuilding };
+  };
+
+  it('Read opens the chat channel the letter came from', () => {
+    const { store, enterBuilding } = landed();
+    store.getState().readLetter();
+    expect(store.getState().letter).toBeNull();
+    expect(store.getState().ch).toEqual({ sp: 'gen' });
+    expect(enterBuilding).toHaveBeenCalledWith('chat');
+  });
+  it('Dismiss closes it without opening anything', () => {
+    const { store, enterBuilding } = landed();
+    store.getState().dismissLetter();
+    expect(store.getState().letter).toBeNull();
+    expect(enterBuilding).not.toHaveBeenCalled();
+  });
+  it('closes on its own after letterMs', () => {
+    const { store } = landed();
+    vi.advanceTimersByTime(TIMING.letterMs - 1);
+    expect(store.getState().letter).not.toBeNull();
+    vi.advanceTimersByTime(1);
+    expect(store.getState().letter).toBeNull();
+  });
+});
+
+describe('rookery mark all read (R-004)', () => {
+  beforeEach(() => readMark.mockClear());
+  it('marks every unread, unmuted entry read in the core, then refreshes', async () => {
+    const refresh = vi.fn(async () => undefined);
+    const rook = [
+      { sp: 'sp', ch: 'gen', read: false }, { sp: 'sp', ch: 'old', read: true }, { sp: 'sp', ch: 'quiet', read: false }, { sp: 'home', ch: 'dm', read: false },
+    ];
+    const store = create<AppStore>()((set, get, api) => ({
+      ...createRavenSlice(set, get, api), rook, prefs: { muted: { 'sp/quiet': MUTE_FOREVER } }, refresh, showToast: vi.fn(),
+    }) as unknown as AppStore);
+    await store.getState().markRookRead();
+    expect(readMark.mock.calls).toEqual([['sp', 'gen'], ['home', 'dm']]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+  it('says why when the core refuses, and still refreshes', async () => {
+    readMark.mockRejectedValueOnce(new Error('core offline'));
+    const showToast = vi.fn(); const refresh = vi.fn(async () => undefined);
+    const store = create<AppStore>()((set, get, api) => ({
+      ...createRavenSlice(set, get, api), rook: [{ sp: 'sp', ch: 'gen', read: false }], prefs: { muted: {} }, refresh, showToast,
+    }) as unknown as AppStore);
+    await store.getState().markRookRead();
+    expect(showToast).toHaveBeenCalledWith(expect.stringContaining('core offline'), undefined, 'error');
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 });
