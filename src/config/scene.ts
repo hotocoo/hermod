@@ -96,6 +96,8 @@ export const QUALITY_DETECT = {
   softwareGpu: /swiftshader|llvmpipe|software/i,
   /** Render scale on a CPU rasteriser (also drops canvas MSAA and shadow maps, which add depth programs and a pass to every shader link and frame): fill rate is the frame cost there, and the island stays readable at this scale. */
   softwareScale: 0.6,
+  /** Frame cap on a CPU rasteriser: every frame is CPU time taken from the UI and from other apps (the island animates gently, so motion stays smooth enough). */
+  softwareFps: 20,
   lowGpu: /swiftshader|llvmpipe|software|mali|powervr|videocore|adreno \(tm\) [1-5]\d\d|intel.*(hd|uhd|iris)(?!.*xe)/i,
   midGpu: /adreno|intel|iris xe|apple a\d|apple gpu(?! m)/i,
   ultraGpu: /rtx|radeon rx [6-9]|geforce gtx 1[06]|nvidia.*(quadro|titan)/i,

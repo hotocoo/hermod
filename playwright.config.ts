@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { GL_ARGS } from './e2e/gpu';
+import { BOOT_FACTOR, GL_ARGS } from './e2e/gpu';
 
 const PORT = Number(process.env.E2E_UI_PORT ?? 3210);
 /** Devhost ports are BASE, BASE+1, BASE+2 (A, B, FRESH); override E2E_BASE to run two suites side by side. */
@@ -18,7 +18,7 @@ export default defineConfig({
   testDir: './e2e',
   // Side-by-side suites (other E2E_BASE) must not share artifacts.
   outputDir: BASE === 7781 ? 'test-results' : `test-results-${BASE}`,
-  timeout: 120_000,
+  timeout: 120_000 * BOOT_FACTOR,
   expect: { timeout: 30_000 },
   fullyParallel: false,
   workers: 1,

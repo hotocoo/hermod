@@ -1,5 +1,6 @@
 import { deflateSync } from 'node:zlib';
 import { test as base, expect, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test';
+import { BOOT_FACTOR } from './gpu';
 
 export { expect };
 
@@ -64,7 +65,7 @@ export async function bootApp(page: Page, host: string, who: string, keepTour = 
   await page.goto(`/?devhost=${encodeURIComponent(host)}`);
   const g = gate(page);
   for (let step = 0; step < 6; step += 1) {
-    await expect(g.town.or(g.terms).or(g.profile).or(g.welcome)).toBeVisible({ timeout: 60_000 });
+    await expect(g.town.or(g.terms).or(g.profile).or(g.welcome)).toBeVisible({ timeout: 60_000 * BOOT_FACTOR });
     if (await g.town.isVisible()) break;
     if (await g.terms.isVisible()) {
       await acceptTerms(page);
