@@ -418,6 +418,19 @@ impl Store {
             }
         }
         if locked {
+            // Only an author this space already applied events from may park key-less rows;
+            // otherwise a stranger's flood would evict the buffered events of real members.
+            let known: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM events WHERE space_id = ?1 AND author = ?2 AND pending = 0)",
+                params![space_id, author],
+                |r| r.get(0),
+            )?;
+            if !known && source != Source::Local {
+                return Err(Error::invalid(
+                    "event",
+                    "key-less event from an author this space has not seen",
+                ));
+            }
             evict_locked(&tx, space_id, ev.body.len() as i64)?;
         }
         let pending = if locked {
