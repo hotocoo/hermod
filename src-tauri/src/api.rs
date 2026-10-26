@@ -182,6 +182,13 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                 .await?;
             return Ok(Value::Null);
         }
+        // The phrase is a secret: it is only ever read here, never put in a log line or an error.
+        "identity_restore_phrase" => {
+            let phrase = zeroize::Zeroizing::new(str_arg(a, "phrase")?);
+            ctx.with_closed(move |dir| Core::restore_from_phrase(dir, &phrase).map_err(e))
+                .await?;
+            return Ok(Value::Null);
+        }
         "app_reset" => {
             ctx.with_closed(|dir| Core::wipe_data(dir).map_err(e))
                 .await?;
@@ -206,6 +213,14 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             to_json(st)
         }
         "identity_get" => to_json(blk(&live, |c| c.identity().map_err(e)).await?),
+        "identity_phrase" => {
+            // Showing the secret needs an explicit yes from the caller, not just the command.
+            if a.get("confirm").and_then(Value::as_bool) != Some(true) {
+                return Err("confirm before showing the recovery phrase".into());
+            }
+            let phrase = blk(&live, |c| c.identity_phrase().map_err(e)).await?;
+            Ok(json!(phrase.as_str()))
+        }
         "identity_protect" => {
             let mode: hermod_core::keyguard::KeyMode = str_arg(a, "mode")?.parse().map_err(e)?;
             let pass = opt_str(a, "passphrase").map(zeroize::Zeroizing::new);
@@ -252,6 +267,11 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         }
         "invite_create" => invite_create(ctx, &live, a).await,
         "invite_accept" => invite_accept(ctx, &live, a).await,
+        "invite_accept_cancel" => {
+            live.join_cancel
+                .store(true, std::sync::atomic::Ordering::Relaxed);
+            Ok(Value::Null)
+        }
         "invite_list" => {
             let (id, _) = space_of(&live, a).await?;
             let rows = blk(&live, move |c| {
@@ -729,7 +749,13 @@ async fn local_addrs(ctx: &Ctx) -> Vec<String> {
 
 pub(crate) async fn invite_accept(ctx: &Arc<Ctx>, live: &Arc<Live>, a: &Value) -> Res<Value> {
     let code = str_arg(a, "code")?;
-    let joined = blk(live, move |c| c.invite_accept(code.trim()).map_err(e)).await?;
+    // Off the async threads (blk), and stoppable: the proof-of-work search can take seconds.
+    let cancel = live.join_cancel.clone();
+    cancel.store(false, std::sync::atomic::Ordering::Relaxed);
+    let joined = blk(live, move |c| {
+        c.invite_accept_cancellable(code.trim(), &cancel).map_err(e)
+    })
+    .await?;
     if let Some(node) = ctx.node().await {
         let addrs: Vec<hermod_node::Multiaddr> =
             joined.addrs.iter().filter_map(|s| s.parse().ok()).collect();

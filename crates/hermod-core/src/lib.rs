@@ -22,6 +22,7 @@ pub mod keywrap;
 pub mod messaging;
 pub mod migrations;
 pub mod msgext;
+pub mod pow;
 pub mod projections;
 pub mod ratelimit;
 pub mod retention;

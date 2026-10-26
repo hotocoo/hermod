@@ -1,6 +1,7 @@
 mod common;
 
 use std::collections::BTreeMap;
+use std::sync::atomic::AtomicBool;
 
 use common::*;
 use hermod_core::api::InviteOptions;
@@ -147,6 +148,7 @@ fn role_table_every_event_type_is_gated() {
                 tagline: None,
                 sections: None,
                 map_style: None,
+                join_pow_bits: None,
             },
             Role::Admin,
         ),
@@ -198,6 +200,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberJoin {
             via_invite_from: None,
+            pow: None,
             invite: Some("m".into()),
         },
     );
@@ -206,6 +209,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberJoin {
             via_invite_from: None,
+            pow: None,
             invite: Some("g".into()),
         },
     );
@@ -348,6 +352,7 @@ fn invites_expire_cap_uses_and_revoke() {
     );
     let j = |i: &str| EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some(i.into()),
     };
     l.push(&a, NOW, j("one"));
@@ -1014,6 +1019,7 @@ fn map_style_folds_validates_and_clears() {
         tagline: None,
         sections: None,
         map_style: m.map(String::from),
+        join_pow_bits: None,
     };
     let style = |c: &Core| {
         snap(c)
@@ -1128,6 +1134,7 @@ fn revoke_listing_joiners_rejects_backdated_joins() {
     );
     let join = || EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("i".into()),
     };
     l.push(&early, NOW, join());
@@ -1163,6 +1170,7 @@ fn removed_admin_cannot_backdate_events_past_the_removal() {
     l.push(&owner, NOW, invite("i", Role::Admin));
     let join = EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("i".into()),
     };
     l.push(&admin, NOW, join);
@@ -1175,4 +1183,120 @@ fn removed_admin_cannot_backdate_events_past_the_removal() {
     l.push_at(&admin, 4, NOW, invite("backdoor", Role::Member));
     let rep = report(&ctx(owner), &l.input(sid, "S", "Team", false));
     assert!(rep.invites.iter().all(|i| i.id != "backdoor"));
+}
+
+fn set_pow(bits: u8) -> EventBody {
+    EventBody::SpaceUpdate {
+        name: None,
+        tagline: None,
+        sections: None,
+        map_style: None,
+        join_pow_bits: Some(bits),
+    }
+}
+
+/// The space asks `at_invite` bits when the invite is made, then `after` bits; true when a join
+/// carrying `nonce(joiner)` is admitted.
+fn pow_joined(at_invite: u8, after: u8, nonce: impl Fn(&str) -> Option<u64>) -> bool {
+    let (_, owner) = user();
+    let (_, joiner) = user();
+    let mut l = Log::new();
+    l.push(&owner, NOW, space_create("S", &["chat"]));
+    l.push(&owner, NOW, set_pow(at_invite));
+    l.push(&owner, NOW, invite());
+    l.push(&owner, NOW, set_pow(after));
+    l.push(
+        &joiner,
+        NOW,
+        EventBody::MemberJoin {
+            via_invite_from: None,
+            invite: Some("inv".into()),
+            pow: nonce(&joiner.to_string()),
+        },
+    );
+    let rep = report(&ctx(owner), &l.input(SpaceId::random(), "S", "Team", false));
+    rep.members.iter().any(|m| m.user == joiner.to_string())
+}
+
+#[test]
+fn join_pow_admits_valid_nonce_and_rejects_missing_or_weak() {
+    use hermod_core::pow;
+    let mined =
+        |bits: u8| move |who: &str| pow::mine("inv", who, bits, &AtomicBool::new(false)).unwrap();
+    assert!(pow_joined(10, 10, mined(10)), "valid nonce admitted");
+    assert!(!pow_joined(10, 10, |_| None), "missing nonce rejected");
+    let weak = |who: &str| (0..).find(|n| !pow::verify("inv", who, Some(*n), 10));
+    assert!(!pow_joined(10, 10, weak), "insufficient nonce rejected");
+    assert!(pow_joined(0, 0, |_| None), "0 bits needs no work");
+}
+
+#[test]
+fn invite_keeps_the_bits_the_space_asked_when_it_was_made() {
+    use hermod_core::pow;
+    let mined =
+        |bits: u8| move |who: &str| pow::mine("inv", who, bits, &AtomicBool::new(false)).unwrap();
+    assert!(
+        pow_joined(0, 16, |_| None),
+        "an invite made at 0 bits still admits a no-work join after the space goes to 16"
+    );
+    assert!(
+        !pow_joined(10, 0, |_| None),
+        "an invite made at 10 bits still needs work after the space drops to 0"
+    );
+    assert!(pow_joined(10, 0, mined(10)));
+    // A forged invite code claiming fewer bits makes the joiner mine too little.
+    let forged = |who: &str| {
+        (0..).find(|n| {
+            pow::verify("inv", who, Some(*n), 4) && !pow::verify("inv", who, Some(*n), 10)
+        })
+    };
+    assert!(
+        !pow_joined(10, 10, forged),
+        "forged lower pow_bits rejected"
+    );
+}
+
+#[test]
+fn join_pow_bits_cap_and_invite_carry() {
+    let (_d, a) = core();
+    let s = a.space_create("P", "", "Team").unwrap().id;
+    let upd = |b: u8| EventBody::SpaceUpdate {
+        name: None,
+        tagline: None,
+        sections: None,
+        map_style: None,
+        join_pow_bits: Some(b),
+    };
+    let over = hermod_core::pow::MAX_JOIN_POW_BITS + 1;
+    assert!(a.append(&s, upd(over)).is_err(), "above the cap refused");
+    a.append(&s, upd(4)).unwrap();
+    let bits = snap(&a)
+        .spaces
+        .iter()
+        .find(|x| x.name == "P")
+        .unwrap()
+        .join_pow_bits;
+    assert_eq!(bits, 4);
+    let out = a.invite_create(&s, None, vec![]).unwrap();
+    let inv = hermod_core::invite::InviteV1::parse(&out.code).unwrap();
+    assert_eq!(inv.pow_bits, 4, "invite carries the bits for the joiner");
+}
+
+#[test]
+fn cancelled_join_work_stores_nothing() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let s = a.space_create("W", "", "Team").unwrap().id;
+    a.append(&s, set_pow(hermod_core::pow::MAX_JOIN_POW_BITS))
+        .unwrap();
+    let code = a.invite_create(&s, None, vec![]).unwrap().code;
+    let stop = AtomicBool::new(true);
+    assert!(matches!(
+        b.invite_accept_cancellable(&code, &stop),
+        Err(Error::Cancelled)
+    ));
+    assert!(
+        b.resolve_space(&s.to_string()).is_err(),
+        "a cancelled join leaves no space behind"
+    );
 }

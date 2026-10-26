@@ -15,6 +15,8 @@ use crate::keyguard::{self, KeyMode, Unlock};
 
 /// File name of the persisted identity inside the app data dir.
 pub const KEY_FILE: &str = "identity.key";
+/// Words in a recovery phrase: 24 words encode the 32 byte seed plus an 8 bit checksum.
+pub const PHRASE_WORDS: usize = 24;
 
 /// The local user's keypair. The secret never leaves this type except through [`Identity::seed`].
 pub struct Identity {
@@ -41,6 +43,41 @@ impl Identity {
     /// The 32 byte secret seed. Exposed so the node can derive its libp2p keypair from the same key.
     pub fn seed(&self) -> [u8; 32] {
         self.key.to_bytes()
+    }
+
+    /// The seed as a 24 word BIP39 phrase (English). Secret: never log it; zeroized on drop.
+    pub fn phrase(&self) -> Result<zeroize::Zeroizing<String>> {
+        let seed = zeroize::Zeroizing::new(self.seed());
+        let m = bip39::Mnemonic::from_entropy(&*seed)
+            .map_err(|_| Error::invalid("recovery phrase", "could not encode the key"))?;
+        Ok(zeroize::Zeroizing::new(m.to_string()))
+    }
+
+    /// Rebuilds the identity from a 24 word phrase. The checksum is validated; the error never
+    /// echoes the phrase.
+    pub fn from_phrase(phrase: &str) -> Result<Self> {
+        let words = phrase.split_whitespace().collect::<Vec<_>>();
+        if words.len() != PHRASE_WORDS {
+            return Err(Error::invalid(
+                "recovery phrase",
+                format!("must be {PHRASE_WORDS} words"),
+            ));
+        }
+        let m = bip39::Mnemonic::parse_in_normalized(bip39::Language::English, &words.join(" "))
+            .map_err(|e| {
+                let why = match e {
+                    bip39::Error::UnknownWord(_) => "contains a word that is not in the list",
+                    bip39::Error::InvalidChecksum => "checksum does not match, check the words",
+                    _ => "is not valid",
+                };
+                Error::invalid("recovery phrase", why)
+            })?;
+        let (entropy, len) = m.to_entropy_array();
+        let entropy = zeroize::Zeroizing::new(entropy);
+        let seed: [u8; 32] = entropy[..len]
+            .try_into()
+            .map_err(|_| Error::invalid("recovery phrase", "is not valid"))?;
+        Ok(Self::from_seed(seed))
     }
 
     /// Clamped X25519/signing scalar derived from the seed (see [`crate::keywrap`]).
@@ -228,6 +265,45 @@ mod tests {
                 fs::metadata(&p).unwrap().permissions().mode() & 0o777,
                 0o600
             );
+        }
+    }
+
+    #[test]
+    fn phrase_round_trips_to_the_same_user_id() {
+        let id = Identity::generate();
+        let phrase = id.phrase().unwrap();
+        assert_eq!(phrase.split_whitespace().count(), PHRASE_WORDS);
+        let back = Identity::from_phrase(&phrase).unwrap();
+        assert_eq!(back.user_id(), id.user_id());
+        assert_eq!(back.seed(), id.seed());
+        // Case and spacing are forgiven the way a person would type it.
+        let sloppy = format!("  {}  ", phrase.replace(' ', "   "));
+        assert_eq!(
+            Identity::from_phrase(&sloppy).unwrap().user_id(),
+            id.user_id()
+        );
+    }
+
+    #[test]
+    fn bad_phrases_are_refused_without_echoing_them() {
+        let phrase = Identity::generate().phrase().unwrap();
+        let mut words: Vec<&str> = phrase.split_whitespace().collect();
+        // Swapping two different words keeps every word valid but breaks the checksum.
+        let (a, b) = (0..words.len())
+            .flat_map(|i| (i + 1..words.len()).map(move |j| (i, j)))
+            .find(|&(i, j)| words[i] != words[j])
+            .unwrap();
+        words.swap(a, b);
+        let bad_sum = words.join(" ");
+        let short = words[..12].join(" ");
+        let unknown = format!("zzzzzz {}", words[1..].join(" "));
+        for bad in [bad_sum, short, unknown, String::new()] {
+            let err = Identity::from_phrase(&bad).unwrap_err().to_string();
+            // Single words can occur in the message text by chance; an adjacent pair cannot.
+            let ws: Vec<&str> = bad.split_whitespace().collect();
+            for pair in ws.windows(2) {
+                assert!(!err.contains(&pair.join(" ")), "error leaked words: {err}");
+            }
         }
     }
 

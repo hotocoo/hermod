@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorMessage, getBridge, type AuditRow, type Member, type Role } from '@/lib/bridge';
+import { COPY } from '@/config/copy';
+import { JOIN_POW_CHOICES } from '@/config/app';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
 import { nicksIn, profilesIn } from '@/state/selectors';
@@ -49,6 +51,22 @@ export function SpaceSettingsModal({ space }: { space: string }) {
   );
 }
 
+/** E-011: admins pick how much work a new member's join request must prove. Takes effect for invites made afterwards. */
+function JoinPow({ space, admin }: { space: string; admin: boolean }) {
+  const get = useAppStore.getState;
+  const bits = useAppStore((s) => spaceOf(s.spaces, space).joinPowBits ?? 0);
+  const save = async (v: number) => { if (await appendEvent(get, space, { t: 'space.update', join_pow_bits: v })) get().showToast(COPY.powSaved); };
+  return (
+    <div className={f.field}>
+      <label className={f.label} htmlFor="ss-pow">{COPY.powLabel}</label>
+      <select id="ss-pow" className="input" value={bits} disabled={!admin} onChange={(e) => void save(Number(e.target.value))}>
+        {(JOIN_POW_CHOICES.includes(bits) ? JOIN_POW_CHOICES : [...JOIN_POW_CHOICES, bits]).map((b) => <option key={b} value={b}>{b === 0 ? COPY.powOff : COPY.powBits(b)}</option>)}
+      </select>
+      <p className={f.note}>{COPY.powNote}</p>
+    </div>
+  );
+}
+
 function General({ space, admin, home, stopPolling }: { space: string; admin: boolean; home: boolean; stopPolling: () => void }) {
   const get = useAppStore.getState;
   const sp = useAppStore((s) => spaceOf(s.spaces, space));
@@ -73,6 +91,7 @@ function General({ space, admin, home, stopPolling }: { space: string; admin: bo
       <div className={f.field}><label className={f.label} htmlFor="ss-tag">Tagline</label>
         <input id="ss-tag" className="input" value={tag} disabled={!admin} onChange={(e) => setTag(e.target.value)} /></div>
       {!admin && !home && <p className={f.note}>Only admins can change these.</p>}
+      {!home && <JoinPow space={space} admin={admin} />}
       <p className={f.note}>Buildings are raised from the island itself: open an empty plot and choose Raise. Raised buildings stay for everyone.</p>
       <div className={f.actions}>
         {!home && <button type="button" className={`btn btn-secondary ${f.danger}`} onClick={doLeave}>Leave Space</button>}

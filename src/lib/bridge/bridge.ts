@@ -19,6 +19,10 @@ export interface Bridge {
   identityProtect(mode: KeyMode, passphrase?: string): Promise<IdentityInfo>;
   /** Opens a passphrase-protected install at startup. Rejects on a wrong passphrase. */
   identityUnlock(passphrase: string): Promise<void>;
+  /** The secret recovery phrase. `confirm` must be true; the UI asks the person first. */
+  identityPhrase(confirm: boolean): Promise<string>;
+  /** Replaces a fresh (or just reset) identity with the one a recovery phrase encodes. */
+  identityRestorePhrase(phrase: string): Promise<void>;
   profileSet(input: ProfileInput): Promise<IdentityInfo>;
   snapshot(): Promise<Snapshot>;
 
@@ -26,6 +30,8 @@ export interface Bridge {
   spaceLeave(spaceId: string): Promise<void>;
   inviteCreate(spaceId: string, opts?: InviteOptions): Promise<InviteOut>;
   inviteAccept(code: string): Promise<SpaceSummary>;
+  /** Stops a running `inviteAccept` (its proof-of-work search); that call then rejects with `cancelled`. */
+  inviteAcceptCancel(): Promise<void>;
   inviteList(spaceId: string): Promise<InviteRecord[]>;
   inviteRevoke(spaceId: string, id: string): Promise<void>;
   spaceMembers(spaceId: string): Promise<Member[]>;
@@ -141,12 +147,15 @@ export function createBridge(t: Transport): Bridge {
     identityGet: () => call('identity_get'),
     identityProtect: (mode, passphrase) => call('identity_protect', { mode, passphrase: passphrase ?? null }),
     identityUnlock: (passphrase) => none('identity_unlock', { passphrase }),
+    identityPhrase: (confirm) => call('identity_phrase', { confirm }),
+    identityRestorePhrase: (phrase) => none('identity_restore_phrase', { phrase }),
     profileSet: (input) => call('profile_set', { ...input }),
     snapshot: () => call('snapshot'),
     spaceCreate: (name, tagline, kind) => call('space_create', { name, tagline, kind }),
     spaceLeave: (spaceId) => none('space_leave', { spaceId }),
     inviteCreate: (spaceId, opts = {}) => call('invite_create', { spaceId, expiresIn: opts.expiresIn ?? null, maxUses: opts.maxUses ?? null, role: opts.role ?? 'member' }),
     inviteAccept: (code) => call('invite_accept', { code }),
+    inviteAcceptCancel: () => none('invite_accept_cancel'),
     inviteList: (spaceId) => call('invite_list', { spaceId }),
     inviteRevoke: (spaceId, id) => none('invite_revoke', { spaceId, id }),
     spaceMembers: (spaceId) => call('space_members', { spaceId }),

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
+import { COPY } from '@/config/copy';
 import { useAppStore } from '@/state/store';
 import s from './screens.module.css';
 
@@ -51,6 +52,8 @@ export function CreateSpaceForm({ onDone }: { onDone: () => void }) {
 
 export function JoinForm({ initial, onDone, focus }: { initial?: string; onDone: () => void; focus?: boolean }) {
   const join = useAppStore((x) => x.joinSpace);
+  const cancel = useAppStore((x) => x.cancelJoin);
+  const joining = useAppStore((x) => x.joining);
   const [value, setValue] = useState(initial ?? ''); const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const id = useId();
@@ -70,7 +73,11 @@ export function JoinForm({ initial, onDone, focus }: { initial?: string; onDone:
         <input id={`${id}-c`} ref={ref} className="input" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" spellCheck={false} />
       </div>
       <p className={s.note}>Hermod has no public directory. A Space can only be joined with an invite from one of its members.</p>
-      <div className={s.actions}><button type="submit" className="btn btn-primary" disabled={!code || busy}>Join Space</button></div>
+      {joining && <p role="status" className={s.note}>{COPY.joinWorking}</p>}
+      <div className={s.actions}>
+        {joining && <button type="button" className="btn btn-secondary" onClick={() => void cancel()}>{COPY.joinCancel}</button>}
+        <button type="submit" className="btn btn-primary" disabled={!code || busy}>Join Space</button>
+      </div>
     </form>
   );
 }

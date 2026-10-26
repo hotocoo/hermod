@@ -299,6 +299,7 @@ impl<'a> World<'a> {
             online: (!s.is_home).then(|| count_within(c.config.online_window_ms)),
             sections: s.sections.clone(),
             map_style: s.map_style.clone(),
+            join_pow_bits: s.join_pow_bits,
             default_channel: default.clone(),
             meeting_channel: default,
             growth,

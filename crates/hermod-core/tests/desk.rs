@@ -33,6 +33,7 @@ fn invite_as(id: &str, role: Role) -> EventBody {
 fn join_via(id: &str) -> EventBody {
     EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some(id.into()),
     }
 }

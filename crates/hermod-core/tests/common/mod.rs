@@ -129,6 +129,7 @@ pub fn post_msg(ch: &str, id: &str, text: &str) -> EventBody {
 pub fn join() -> EventBody {
     EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("inv".into()),
     }
 }

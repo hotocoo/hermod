@@ -94,7 +94,7 @@ export type DocOp = 'insert' | 'update' | 'delete' | 'toggle';
 
 export type EventBody =
   | { t: 'space.create'; name: string; kind: string; tagline: string; mono: string; sections: string[] }
-  | { t: 'space.update'; name?: string; tagline?: string; sections?: string[]; map_style?: string }
+  | { t: 'space.update'; name?: string; tagline?: string; sections?: string[]; map_style?: string; join_pow_bits?: number }
   | { t: 'section.raise'; section: string }
   | { t: 'member.join'; via_invite_from?: string }
   | { t: 'member.leave' }

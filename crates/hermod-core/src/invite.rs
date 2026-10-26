@@ -35,6 +35,13 @@ pub struct InviteV1 {
     pub addrs: Vec<String>,
     /// Expiry as unix seconds, or `None` for never.
     pub exp: Option<u64>,
+    /// Proof-of-work bits the space asked for when this invite was made; `0` = none.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub pow_bits: u8,
+}
+
+fn is_zero(n: &u8) -> bool {
+    *n == 0
 }
 
 impl InviteV1 {
@@ -61,6 +68,7 @@ impl InviteV1 {
             inviter,
             addrs,
             exp,
+            pow_bits: 0,
         }
     }
 
@@ -94,6 +102,7 @@ impl InviteV1 {
             || inv.addrs.iter().any(|a| a.len() > MAX_ADDR_CHARS)
             || inv.lc > MAX_CLOCK
             || inv.epoch > MAX_EPOCH
+            || inv.pow_bits > crate::pow::MAX_JOIN_POW_BITS
         {
             return Err(Error::invalid("invite", "field out of bounds"));
         }

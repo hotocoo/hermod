@@ -46,6 +46,8 @@ pub struct SpaceReport {
     pub removed: bool,
     /// Highest key epoch announced by an authorized `space.rekey`.
     pub max_epoch: u32,
+    /// Proof-of-work bits a join must carry (0 = off).
+    pub join_pow_bits: u8,
     pub members: Vec<MemberInfo>,
     pub invites: Vec<InviteInfo>,
     pub audit: Vec<AuditEntry>,
@@ -87,6 +89,7 @@ pub fn report(ctx: &ProjectionCtx, input: &SpaceInput) -> SpaceReport {
         my_role: s.role_of(&me),
         removed: s.banned.contains(&me),
         max_epoch: s.max_epoch,
+        join_pow_bits: s.join_pow_bits,
         members,
         invites: s
             .invites

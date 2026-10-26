@@ -283,6 +283,9 @@ pub struct InviteSt {
     pub role: Role,
     pub exp: Option<u64>,
     pub max_uses: Option<u32>,
+    /// Space `join_pow_bits` at this invite's fold position: the work a join through it needs,
+    /// fixed at creation so a later change never strands an existing invite.
+    pub pow_bits: u8,
     pub uses: BTreeSet<String>,
     pub revoked: bool,
 }
@@ -324,6 +327,8 @@ pub struct SpaceState {
     pub mono: String,
     pub sections: Vec<String>,
     pub map_style: Option<String>,
+    /// Proof-of-work bits a join must carry (0 = off).
+    pub join_pow_bits: u8,
     created: bool,
     /// The only author whose `space.create` counts; `None` means the first in fold order.
     creator: Option<String>,
@@ -451,6 +456,7 @@ impl SpaceState {
             mono,
             sections: vec!["chat".into()],
             map_style: None,
+            join_pow_bits: 0,
             created: false,
             creator: None,
             prior: Prior::default(),
@@ -543,13 +549,16 @@ impl SpaceState {
         self
     }
 
-    fn can_join(&self, by: &str, invite: Option<&String>, ts: i64) -> bool {
+    fn can_join(&self, by: &str, invite: Option<&String>, pow: Option<u64>, ts: i64) -> bool {
         if self.roles.contains_key(by) || self.banned.contains(by) {
             return false;
         }
         let Some(inv) = invite.and_then(|id| self.invites.iter().find(|i| &i.id == id)) else {
             return false;
         };
+        if !crate::pow::verify(&inv.id, by, pow, inv.pow_bits) {
+            return false;
+        }
         // A revoke that names who had joined is position-independent; an older one applies by fold order.
         let open = self
             .prior
@@ -573,7 +582,9 @@ impl SpaceState {
                 !self.created && self.creator.as_deref().is_none_or(|c| c == by)
             }
             _ if !self.created => false,
-            EventBody::MemberJoin { invite, .. } => self.can_join(by, invite.as_ref(), ts),
+            EventBody::MemberJoin { invite, pow, .. } => {
+                self.can_join(by, invite.as_ref(), *pow, ts)
+            }
             other => self
                 .role_of(by)
                 .is_some_and(|r| r >= min_role(other) && self.msgx_allows(by, r, other, ts)),
@@ -646,7 +657,11 @@ impl SpaceState {
                 tagline,
                 sections,
                 map_style,
+                join_pow_bits,
             } => {
+                if let Some(b) = join_pow_bits.filter(|b| *b <= crate::pow::MAX_JOIN_POW_BITS) {
+                    self.join_pow_bits = b;
+                }
                 if let Some(m) = map_style.as_deref().filter(|m| valid_map_style(m)) {
                     self.map_style = (!m.is_empty()).then(|| m.to_string());
                 }
@@ -734,6 +749,7 @@ impl SpaceState {
                     role: *role,
                     exp: *exp,
                     max_uses: *max_uses,
+                    pow_bits: self.join_pow_bits,
                     uses: BTreeSet::new(),
                     revoked: false,
                 });

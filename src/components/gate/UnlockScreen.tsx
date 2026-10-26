@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { COPY } from '@/config/copy';
 import { errorMessage, getBridge } from '@/lib/bridge';
 import { useAppStore } from '@/state/store';
+import { PhraseRestore } from './PhraseRestore';
 import s from './screens.module.css';
 
 const isTauri = () => typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -73,6 +74,7 @@ export function UnlockScreen() {
           <button type="button" className="btn btn-secondary" disabled={busy} onClick={startOver}>{COPY.recoverReset}</button>
         </div>
       </div>
+      <PhraseRestore startOver />
     </main>
   );
 }

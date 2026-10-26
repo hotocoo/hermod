@@ -165,6 +165,8 @@ pub struct Live {
     /// Events authored while the node was off or refused them: only in the store until a sync
     /// with a peer completes. Counted into the sync pill alongside the node's own queue.
     unsent: AtomicU32,
+    /// Raised by `invite_accept_cancel` to stop a join's proof-of-work search.
+    pub join_cancel: Arc<AtomicBool>,
 }
 
 /// Collections the UI must re-read per space, filled as remote events apply.
@@ -356,6 +358,7 @@ fn open_live(dir: &Path, unlock: &Unlock) -> Result<Arc<Live>, String> {
         touched: Arc::new(Mutex::new(HashMap::new())),
         storage: Mutex::new(None),
         unsent: AtomicU32::new(unsent),
+        join_cancel: Arc::new(AtomicBool::new(false)),
     }))
 }
 
