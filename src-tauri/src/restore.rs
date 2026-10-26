@@ -34,6 +34,29 @@ fn ioerr(x: io::Error) -> String {
     x.to_string()
 }
 
+/// Flushes a directory's entries (renames, creations) to disk so a power loss cannot reorder
+/// them past a later marker. Windows cannot open a directory for this; NTFS journals metadata,
+/// so it is a no-op there.
+fn sync_dir(p: &Path) -> io::Result<()> {
+    if cfg!(unix) {
+        std::fs::File::open(p)?.sync_all()
+    } else {
+        Ok(())
+    }
+}
+
+fn sync_dirs(ps: &[&Path]) -> Result<(), String> {
+    ps.iter().try_for_each(|p| sync_dir(p)).map_err(ioerr)
+}
+
+/// Creates an empty marker file and makes it, and its folder entry, durable.
+fn write_marker(p: &Path) -> Result<(), String> {
+    std::fs::File::create(p)
+        .and_then(|f| f.sync_all())
+        .map_err(ioerr)?;
+    sync_dirs(&[p.parent().unwrap_or(Path::new("."))])
+}
+
 fn exists(p: &Path) -> bool {
     p.symlink_metadata().is_ok()
 }
@@ -57,7 +80,16 @@ pub fn swap_data(dir: &Path, rename: RenameFn, checkpoint: CheckpointFn) -> Resu
     // A leftover from an earlier crash is settled first, never just deleted.
     recover(dir)?;
     let (staged, aside) = (staged_path(dir), aside_path(dir));
+    // Refuse before touching anything: an entry outside the data set has no aside copy, so
+    // installing it could overwrite something that cannot be put back.
+    for entry in std::fs::read_dir(&staged).map_err(ioerr)? {
+        let name = entry.map_err(ioerr)?.file_name();
+        if !DATA_ENTRIES.iter().any(|d| name == *d) {
+            return Err(format!("the backup holds an unexpected entry {name:?}"));
+        }
+    }
     std::fs::create_dir_all(&aside).map_err(ioerr)?;
+    sync_dirs(&[dir.parent().unwrap_or(Path::new("."))])?;
     let mut step = 0u32;
     let mut tick = || {
         step += 1;
@@ -74,7 +106,8 @@ pub fn swap_data(dir: &Path, rename: RenameFn, checkpoint: CheckpointFn) -> Resu
                 tick();
             }
         }
-        std::fs::write(aside.join(INSTALLING), b"").map_err(ioerr)?;
+        sync_dirs(&[dir, &aside])?;
+        write_marker(&aside.join(INSTALLING))?;
         tick();
         for entry in std::fs::read_dir(&staged).map_err(ioerr)? {
             let name = entry.map_err(ioerr)?.file_name();
@@ -82,7 +115,8 @@ pub fn swap_data(dir: &Path, rename: RenameFn, checkpoint: CheckpointFn) -> Resu
             installed.push(name);
             tick();
         }
-        std::fs::write(aside.join(COMPLETE), b"").map_err(ioerr)?;
+        sync_dirs(&[dir, &staged])?;
+        write_marker(&aside.join(COMPLETE))?;
         tick();
         Ok(())
     })();
@@ -107,7 +141,8 @@ pub fn swap_data(dir: &Path, rename: RenameFn, checkpoint: CheckpointFn) -> Resu
         }
         return Err(msg);
     }
-    std::fs::remove_dir_all(&aside).map_err(ioerr)
+    std::fs::remove_dir_all(&aside).map_err(ioerr)?;
+    sync_dirs(&[dir.parent().unwrap_or(Path::new("."))])
 }
 
 /// Settles a swap an earlier run did not finish. Run before the data dir is opened.
@@ -121,7 +156,8 @@ pub fn recover(dir: &Path) -> Result<(), String> {
     if exists(&aside.join(COMPLETE)) {
         tracing::warn!("finishing an interrupted restore");
         remove_any(&aside).map_err(ioerr)?;
-        return remove_any(&staged_path(dir)).map_err(ioerr);
+        remove_any(&staged_path(dir)).map_err(ioerr)?;
+        return sync_dirs(&[dir.parent().unwrap_or(Path::new("."))]);
     }
     tracing::warn!("undoing an interrupted restore");
     // Pass 1: entries the old data lacked are new (all old data was already aside once
@@ -133,7 +169,10 @@ pub fn recover(dir: &Path) -> Result<(), String> {
                 remove_any(&dir.join(name)).map_err(ioerr)?;
             }
         }
+        // The deletions must be durable before the marker that guards them goes.
+        sync_dirs(&[dir])?;
         remove_any(&aside.join(INSTALLING)).map_err(ioerr)?;
+        sync_dirs(&[&aside])?;
     }
     // Pass 2: old entries go back over whatever new one got installed.
     for name in DATA_ENTRIES {
@@ -141,10 +180,12 @@ pub fn recover(dir: &Path) -> Result<(), String> {
         if exists(&kept) {
             remove_any(&dir.join(name)).map_err(ioerr)?;
             std::fs::rename(&kept, dir.join(name)).map_err(ioerr)?;
+            sync_dirs(&[dir, &aside])?;
         }
     }
     remove_any(&aside).map_err(ioerr)?;
-    remove_any(&staged_path(dir)).map_err(ioerr)
+    remove_any(&staged_path(dir)).map_err(ioerr)?;
+    sync_dirs(&[dir.parent().unwrap_or(Path::new("."))])
 }
 
 #[cfg(test)]
@@ -227,6 +268,20 @@ mod tests {
         assert_new(&dir, "done");
         assert_eq!(fs::read_to_string(dir.join("peers.json")).unwrap(), "keep");
         assert!(!aside_path(&dir).exists());
+    }
+
+    #[test]
+    fn an_unexpected_staged_entry_is_refused_before_anything_moves() {
+        let (_t, dir) = fixture();
+        fs::write(staged_path(&dir).join("peers.json"), "evil").unwrap();
+        let err = swap_data(&dir, &real, &|_| {}).unwrap_err();
+        assert!(err.contains("unexpected entry"), "{err}");
+        assert_old(&dir, "refused");
+        assert!(!aside_path(&dir).exists());
+        assert_eq!(
+            fs::read_to_string(staged_path(&dir).join("hermod.db")).unwrap(),
+            "new db"
+        );
     }
 
     #[test]
