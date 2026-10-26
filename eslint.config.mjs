@@ -13,6 +13,12 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Vendored design-source reference copy (gitignored), not app code.
+      "design-src/**",
+      // Generated static sites the e2e runner serves per port, and Playwright's own output.
+      ".e2e-site-*/**",
+      "test-results/**",
+      "playwright-report/**",
     ],
   },
 ];
