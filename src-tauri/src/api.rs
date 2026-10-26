@@ -546,7 +546,7 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let rows = blk(&live, move |c| c.reports_list(&id).map_err(e)).await?;
             Ok(Value::Array(
                 rows.into_iter()
-                    .map(|r| json!({ "id": r.id, "ts": r.ts, "space_id": label, "by": r.by, "target": r.target, "reason": r.reason }))
+                    .map(|r| json!({ "id": r.id, "ts": r.ts, "space_id": label, "by": r.by, "target": r.target, "reason": r.reason, "target_kind": r.target_kind, "target_by": r.target_by, "target_text": r.target_text, "channel": r.channel }))
                     .collect(),
             ))
         }

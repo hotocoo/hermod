@@ -717,6 +717,9 @@ pub enum EventBody {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reason: Option<String>,
     },
+    /// Admin closes a content report: `dismissed` or `removed`.
+    #[serde(rename = "report.resolve")]
+    ReportResolve { report_id: String, outcome: String },
     #[serde(rename = "read.mark")]
     ReadMark { channel_id: String, upto: u64 },
     #[serde(rename = "device.link")]

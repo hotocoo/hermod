@@ -775,6 +775,10 @@ fn role_mentions_follow_the_mention_floor_and_ping_by_role() {
         flags(&w, w.cai),
         vec![(false, false, false), (true, true, false)]
     );
+    // Below the floor (Bea, a member) nobody sees a flag or a ping, whoever views.
+    for who in [w.ada, w.bea, w.cai] {
+        assert_eq!(flags(&w, who)[0], (false, false, false));
+    }
     // Ada owns the space: pinged by both.
     assert!(w.msgs(w.ada, "general")[1].ext.as_ref().unwrap().pings_me);
 }

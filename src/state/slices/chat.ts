@@ -76,6 +76,14 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
     if (v && await appendEvent(get, space, { t: 'content.report', target_id: id, reason: v.reason.trim() || undefined })) get().showToast(COPY.report.sent);
   },
 
+  resolveReport: async (space, r, outcome) => {
+    if (outcome === 'removed') {
+      if (!await get().confirmAction({ ...COPY.report.removeConfirm, danger: true })) return false;
+      if (!await appendEvent(get, space, { t: 'content.remove', target_id: r.target, reason: r.reason || undefined })) return false;
+    }
+    return appendEvent(get, space, { t: 'report.resolve', report_id: r.id, outcome });
+  },
+
   attachFiles: async (files) => {
     const bridge = getBridge(); const key = chatKey(get());
     for (const f of files) {

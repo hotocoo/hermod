@@ -5,7 +5,7 @@ import type { CalEvent, WorkBoard } from '../dataTypes';
 import type { PromptSpec } from '../types';
 import { useAppStore } from '../store';
 
-const eventAppend = vi.fn(async () => undefined);
+const eventAppend = vi.fn<(space: string, body: { t: string }) => Promise<undefined>>(async () => undefined);
 const spaceMembers = vi.fn(async () => [{ user_id: 'u2', name: 'Bea', role: 'member', joined_at: 0, online: true, removed: false }]);
 vi.mock('../../lib/bridge', async (orig) => ({
   ...(await orig<typeof import('../../lib/bridge')>()),
@@ -45,6 +45,19 @@ describe('wired actions send the field names the core expects', () => {
     useAppStore.setState({ ask: async () => ({ reason: ' ' }) });
     await useAppStore.getState().reportContent('p1', SPACE);
     expect(eventAppend).toHaveBeenLastCalledWith(SPACE, { t: 'content.report', target_id: 'p1', reason: undefined });
+  });
+
+  it('report.resolve closes a report; removing content comes first and a declined confirm sends nothing', async () => {
+    const r = { id: 'r1', ts: 0, space_id: SPACE, by: 'u2', target: 'm9', reason: 'rude', target_kind: 'message', target_by: 'u3', target_text: 'x', channel: 'general' } as const;
+    expect(await useAppStore.getState().resolveReport(SPACE, r, 'dismissed')).toBe(true);
+    expect(eventAppend).toHaveBeenLastCalledWith(SPACE, { t: 'report.resolve', report_id: 'r1', outcome: 'dismissed' });
+    eventAppend.mockClear();
+    await useAppStore.getState().resolveReport(SPACE, r, 'removed');
+    expect(eventAppend.mock.calls.map((c) => c[1].t)).toEqual(['content.remove', 'report.resolve']);
+    eventAppend.mockClear();
+    useAppStore.setState({ confirmAction: async () => false });
+    expect(await useAppStore.getState().resolveReport(SPACE, r, 'removed')).toBe(false);
+    expect(eventAppend).not.toHaveBeenCalled();
   });
 
   it('event.cancel carries ev_id', async () => {

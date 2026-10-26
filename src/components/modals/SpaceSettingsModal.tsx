@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { COPY } from '@/config/copy';
 import { exportRows, toCsv, toJson } from '@/lib/auditExport';
-import { errorMessage, getBridge, type AuditRow, type Member, type ReportRow, type Role } from '@/lib/bridge';
+import { errorMessage, getBridge, type AuditRow, type Member, type ReportOutcome, type ReportRow, type Role } from '@/lib/bridge';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
 import { displayName, nicksIn, profilesIn } from '@/state/selectors';
@@ -149,14 +149,16 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
   const [rows, setRows] = useState<AuditRow[] | null>(null);
   const [days, setDays] = useState('');
   const seed = useAppStore((s) => s.seed);
-  const confirm = useAppStore((s) => s.confirmAction);
   const nameOf = (id: string) => (seed ? displayName(seed, space, id) : id.slice(0, 8));
   const [reports, setReports] = useState<ReportRow[] | null>(null);
   const loadReports = useCallback(() => { getBridge().reportsList(space).then(setReports).catch((e) => { setReports([]); toast(errorMessage(e), undefined, 'error'); }); }, [space, toast]);
   useEffect(() => { if (admin) loadReports(); }, [admin, loadReports]);
-  const removeReported = async (r: ReportRow) => {
-    if (!await confirm({ ...COPY.report.removeConfirm, danger: true })) return;
-    if (await appendEvent(useAppStore.getState, space, { t: 'content.remove', target_id: r.target, reason: r.reason || undefined })) loadReports();
+  const resolve = async (r: ReportRow, outcome: ReportOutcome) => { if (await useAppStore.getState().resolveReport(space, r, outcome)) loadReports(); };
+  const open = (r: ReportRow) => {
+    const st = useAppStore.getState();
+    st.closeModal();
+    if (r.target_kind === 'message') st.jumpToMessage(space, r.channel, r.target);
+    else { st.goSpace(space); st.goSection('feed'); }
   };
   const save = async (kind: 'csv' | 'json') => {
     const data = exportRows(rows ?? [], nameOf);
@@ -184,8 +186,19 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
           <h3 style={{ fontSize: 18 }}>{COPY.report.queue}</h3>
           {!reports ? <p className={f.note}>Loading…</p> : reports.length === 0 ? <p className={f.note}>{COPY.report.queueEmpty}</p> : (
             <table className={f.table}>
-              <thead><tr><th scope="col">When</th><th scope="col">Reported by</th><th scope="col">Reason</th><th scope="col">Action</th></tr></thead>
-              <tbody>{reports.map((r) => <tr key={r.id}><td>{new Date(r.ts).toLocaleString()}</td><td>{nameOf(r.by)}</td><td>{r.reason || COPY.report.noReason}</td><td><button type="button" className="btn btn-secondary" aria-label={COPY.report.removeLabel(nameOf(r.by))} onClick={() => { void removeReported(r); }}>Remove content</button></td></tr>)}</tbody>
+              <thead><tr>{(['when', 'by', 'what', 'reason', 'action'] as const).map((k) => <th key={k} scope="col">{COPY.report.cols[k]}</th>)}</tr></thead>
+              <tbody>{reports.map((r) => (
+                <tr key={r.id}>
+                  <td>{new Date(r.ts).toLocaleString()}</td><td>{nameOf(r.by)}</td>
+                  <td>{r.target_kind ? `${nameOf(r.target_by)}: ${r.target_text.slice(0, COPY.report.snippetMax)}` : COPY.report.gone}</td>
+                  <td>{r.reason || COPY.report.noReason}</td>
+                  <td>
+                    {r.target_kind && <button type="button" className="btn btn-secondary" aria-label={COPY.report.openLabel(nameOf(r.by))} onClick={() => open(r)}>{COPY.report.open}</button>}{' '}
+                    <button type="button" className="btn btn-secondary" aria-label={COPY.report.dismissLabel(nameOf(r.by))} onClick={() => { void resolve(r, 'dismissed'); }}>{COPY.report.dismiss}</button>{' '}
+                    {r.target_kind && <button type="button" className="btn btn-secondary" aria-label={COPY.report.removeLabel(nameOf(r.by))} onClick={() => { void resolve(r, 'removed'); }}>{COPY.report.remove}</button>}
+                  </td>
+                </tr>
+              ))}</tbody>
             </table>
           )}
           <h3 style={{ fontSize: 18 }}>Audit log</h3>

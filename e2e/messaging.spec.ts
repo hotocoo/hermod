@@ -630,9 +630,38 @@ test('a reported message reaches the admin queue and the audit log names its aut
   await ask.getByLabel('What is wrong with it?').fill(reason);
   await ask.getByRole('button', { name: 'Send report' }).click();
   const sd = await openSpaceSettings(a, 'Safety');
-  await expect(sd.getByRole('row', { name: new RegExp(reason) })).toBeVisible({ timeout: 45_000 });
+  const queued = sd.getByRole('row', { name: new RegExp(reason) });
+  await expect(queued).toBeVisible({ timeout: 45_000 });
+  await expect(queued.getByText(text)).toBeVisible();
+  await queued.getByRole('button', { name: /^Dismiss report/ }).click();
+  await expect(queued).toBeHidden({ timeout: 30_000 });
   await expect(sd.getByRole('button', { name: 'Export audit log as CSV' })).toBeEnabled();
   await expect(sd.getByRole('button', { name: 'Export audit log as JSON' })).toBeEnabled();
-  await expect(sd.getByRole('row').filter({ hasText: /Ada Tester|Bea/ }).first()).toBeVisible();
+  await expect(sd.getByRole('row').filter({ hasText: /Ada Tester|Bo Tester/ }).first()).toBeVisible();
   await sd.getByRole('button', { name: 'Close' }).click();
+});
+
+// M-036: @admins is honoured only from authors above the channel's mention floor, and pings admins and owners.
+test('a member below the mention floor cannot ping @admins; an owner can (M-036)', async () => {
+  test.setTimeout(420_000);
+  for (const p of [a, b]) {
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+  }
+  await setChannel(a, async (dlg) => { await dlg.getByLabel(/^Who can use @everyone/).selectOption('admin'); });
+  const denied = unique('nope @admins');
+  await say(b, denied);
+  await expect(msg(a, denied).first()).toBeVisible({ timeout: 45_000 });
+  await expect(msg(a, denied).first()).not.toHaveClass(/msgMention/);
+  // Promote Bo to admin; the owner's @admins then lights up Bo's copy.
+  const sd = await openSpaceSettings(a, 'Members');
+  await sd.getByLabel('Role of Bo Tester').selectOption('admin');
+  await sd.getByRole('button', { name: 'Close' }).click();
+  const allowed = unique('hello @admins');
+  await say(a, allowed);
+  await expect(msg(b, allowed).first()).toBeVisible({ timeout: 45_000 });
+  await expect(msg(b, allowed).first()).toHaveClass(/msgMention/);
+  const back = await openSpaceSettings(a, 'Members');
+  await back.getByLabel('Role of Bo Tester').selectOption('member');
+  await back.getByRole('button', { name: 'Close' }).click();
 });
