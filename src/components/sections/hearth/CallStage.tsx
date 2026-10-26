@@ -1,5 +1,6 @@
 'use client';
 import { COPY } from '@/config/copy';
+import { TILE_COLS } from '@/config/ui';
 import { useMediaRt } from '@/state/mediaRt';
 import { ringOf } from '@/state/vm/css';
 import { useViewModel } from '@/state/useViewModel';
@@ -28,7 +29,7 @@ export function CallStage() {
           </div>
           <div className={s.clock}><div className={s.elapsed}>{call.elapsed}</div>{recordingBy.length > 0 && <span className={s.rec} role="status">REC</span>}{call.speakingName} speaking</div>
         </div>
-        <div className={s.tiles} style={{ gridTemplateColumns: vm.tileCols }}>
+        <div className={s.tiles} data-stage={vm.stageBig ? 'big' : 'small'} style={{ gridTemplateColumns: vm.stageBig ? TILE_COLS.one : vm.tileCols }}>
           {vm.tiles.map((t) => <Tile key={t.id} t={t} micOff={vm.icS.micOff} />)}
         </div>
         <div role="status" aria-live="polite" className={s.sr}>{vm.tiles.map((t) => t.name).join(', ')} in the room</div>
@@ -38,6 +39,7 @@ export function CallStage() {
           <button type="button" className={s.ctl} onClick={vm.toggleShare} aria-label={call.shareLabel} title={call.shareLabel} style={round(call.shareBd, 'transparent', call.shareFg)}>{vm.icL.share}</button>
           <button type="button" className={s.ctl} onClick={vm.toggleHand} aria-pressed={hand} aria-label={hand ? COPY.lowerHand : COPY.raiseHand} title={hand ? COPY.lowerHand : COPY.raiseHand} style={round(ringOf(hand), 'transparent', 'inherit')}>✋</button>
           {vm.reactions.map((r) => <button key={r} type="button" className={s.ctl} onClick={() => vm.react(r)} aria-label={COPY.reactLabel(r)}>{r}</button>)}
+          <button type="button" className={s.pill} onClick={vm.toggleStage} aria-pressed={vm.stageBig}>{vm.stageBig ? COPY.stageSmall : COPY.stageBig}</button>
           <button type="button" className={s.pill} onClick={vm.toggleRecord}>{recording ? 'Stop recording' : 'Record'}</button>
           {call.notMeeting && <button type="button" className={`${s.pill} ${s.meet}`} onClick={vm.makeMeeting}>{vm.ic.calendar} Make it a meeting</button>}
           <button type="button" className={`${s.pill} ${s.leave}`} onClick={vm.leave}>{vm.ic.leave} Leave</button>
