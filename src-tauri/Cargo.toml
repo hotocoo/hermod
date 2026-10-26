@@ -67,3 +67,4 @@ keyring = { version = "3.6", default-features = false, features = ["sync-secret-
 
 [dev-dependencies]
 tempfile = "3"
+tauri = { version = "2.12.4", features = ["test"] }

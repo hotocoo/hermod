@@ -171,22 +171,27 @@ fn blob_response(app: &AppHandle, req: &Request<Vec<u8>>) -> BoxFut<Response<Vec
     })
 }
 
+/// The app log: level, size bound and keep count live here so the test exercises the shipped config.
+fn log_builder(targets: impl IntoIterator<Item = Target>) -> tauri_plugin_log::Builder {
+    tauri_plugin_log::Builder::new()
+        .level(log::LevelFilter::Info)
+        .targets(targets)
+        .max_file_size(LOG_MAX_BYTES)
+        .rotation_strategy(RotationStrategy::KeepSome(LOG_KEEP))
+}
+
 pub fn run() {
     let builder = shell::plugins(tauri::Builder::<Wry>::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(
-            tauri_plugin_log::Builder::new()
-                .level(log::LevelFilter::Info)
-                .targets([
-                    Target::new(TargetKind::LogDir {
-                        file_name: Some(LOG_FILE.into()),
-                    }),
-                    Target::new(TargetKind::Stdout),
-                ])
-                .max_file_size(LOG_MAX_BYTES)
-                .rotation_strategy(RotationStrategy::KeepSome(LOG_KEEP))
-                .build(),
+            log_builder([
+                Target::new(TargetKind::LogDir {
+                    file_name: Some(LOG_FILE.into()),
+                }),
+                Target::new(TargetKind::Stdout),
+            ])
+            .build(),
         )
         .register_asynchronous_uri_scheme_protocol("hermod-blob", |c, req, responder| {
             let fut = blob_response(c.app_handle(), &req);
@@ -277,7 +282,15 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::{LOG_KEEP, LOG_MAX_BYTES};
+    use super::{LOG_FILE, LOG_KEEP, LOG_MAX_BYTES, log_builder};
+    use std::time::Duration;
+    use tauri_plugin_log::{Target, TargetKind};
+
+    /// Rotated files are dated to the second, so each rotation waits one tick to get its own name.
+    const ROTATION_TICK: Duration = Duration::from_millis(1_100);
+    const LINE_BYTES: usize = 1_000;
+    /// More rotations than the keep count, so the oldest must be dropped.
+    const EXTRA_ROTATIONS: usize = 3;
 
     /// W-012: the rotating log keeps a bounded amount of disk.
     #[test]
@@ -290,5 +303,49 @@ mod tests {
             );
             assert!(LOG_MAX_BYTES * (LOG_KEEP as u128 + 1) <= 100_000_000);
         }
+    }
+
+    /// W-012: writing past the size bound really rotates, and only LOG_KEEP archives stay.
+    #[test]
+    fn log_rotates_past_the_size_bound_and_keeps_the_configured_count() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = tauri::test::mock_app();
+        let plugin = log_builder([Target::new(TargetKind::Folder {
+            path: dir.path().to_path_buf(),
+            file_name: Some(LOG_FILE.into()),
+        })])
+        .build();
+        app.handle().plugin(plugin).unwrap();
+
+        let line = "x".repeat(LINE_BYTES);
+        let lines_per_rotation = LOG_MAX_BYTES as usize / LINE_BYTES + 10;
+        let archives = |d: &std::path::Path| {
+            std::fs::read_dir(d)
+                .unwrap()
+                .filter_map(|e| e.ok()?.file_name().into_string().ok())
+                .filter(|n| n.starts_with(&format!("{LOG_FILE}_")) && n.ends_with(".log"))
+                .count()
+        };
+        for _ in 0..LOG_KEEP + EXTRA_ROTATIONS {
+            for _ in 0..lines_per_rotation {
+                log::info!("{line}");
+            }
+            log::logger().flush();
+            std::thread::sleep(ROTATION_TICK);
+        }
+        // One more line lands in the fresh active file after the last rotation.
+        log::info!("after rotation");
+        log::logger().flush();
+
+        let active = std::fs::metadata(dir.path().join(format!("{LOG_FILE}.log"))).unwrap();
+        assert!(
+            u128::from(active.len()) < LOG_MAX_BYTES,
+            "active log restarted below the bound"
+        );
+        assert_eq!(
+            archives(dir.path()),
+            LOG_KEEP,
+            "exactly the configured number of rotated logs stays"
+        );
     }
 }
