@@ -26,7 +26,7 @@ export default function TownDev() {
         const buildings = Object.fromEntries(SECTIONS.map((s) => [s, level])) as Record<SectionId, number>;
         const NAMES = ['Ada Lovelace', 'Bo Chen', 'Cleo Park', 'Dmitri Volkov', 'Esi Mensah', 'Farah Khan', 'Gus Olsen', 'Hana Sato', 'Ivo Marin', 'Jo Rivers'];
         const people = Object.fromEntries(Array.from({ length: n }, (_, i) => { const nm = NAMES[i % NAMES.length] + (i >= NAMES.length ? ' ' + Math.floor(i / NAMES.length) : ''); return ['u' + i, { name: nm, initials: nm.split(' ').map((w) => w[0]).slice(0, 2).join('') }]; }));
-        api.setSpace({ id: qs.get('seed') ?? 'ashgrove', sections: SECTIONS, name: 'Ashgrove', online: 6, people, growth: { members: n, active7d: n, tier, radius: GROWTH.radiusByTier[tier - 1], houses: Array.from({ length: n }, (_, i) => ({ user_id: 'u' + i, plot_index: i })), buildings } });
+        api.setSpace({ id: qs.get('seed') ?? 'ashgrove', sections: SECTIONS, name: 'Ashgrove', online: 6, people, growth: { members: n, active7d: n, tier, radius: GROWTH.coreRadiusByTier[tier - 1], houses: Array.from({ length: n }, (_, i) => ({ user_id: 'u' + i, plot_index: i })), buildings } });
         api.setHour(Number(qs.get('hour') ?? 12), true);
         window.__town = { api, ready: true }; dispose = () => api.dispose();
       } catch (e) { window.__town = { api: null as never, ready: false, error: String(e) }; }
