@@ -97,11 +97,14 @@ test('a scheduled send flies a raven when it goes out (R-006)', async () => {
   await expect(letterOn(a)).toContainText(text, { timeout: 90_000 });
 });
 
-// R-005: A writes a letter from the rookery to the shared Space; B, on the island, gets the raven.
+// R-005: a letter is a log event of the Space it is written in, addressed to another Space both users belong to. A writes it
+// from the second shared Space to the first; B, on the Home island, gets the raven.
 test('a letter written in the rookery reaches another Space as a raven', async () => {
+  const other = unique('Dovecote');
+  await sharedSpace(a, b, other);
   await toIsland(b);
+  await goHome(b);
   await toIsland(a);
-  await goHome(a);
   const text = unique('letter from the rookery');
   await a.getByRole('button', { name: /^Rookery/ }).first().click();
   await a.getByRole('dialog', { name: 'Rookery' }).getByRole('button', { name: 'Write a letter' }).click();
