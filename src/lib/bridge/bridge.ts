@@ -1,5 +1,5 @@
 import type {
-  AuditRow, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, InviteOptions,
+  AuditRow, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, KeyMode, InviteOptions,
   InviteOut, InviteRecord, LegalStatus, Member, NodeSettings, NodeSettingsView, NodeStatus, NotifySettings, OutboxStatus,
   PickOptions, ProfileInput, Role, SearchHit, SearchOptions, SpaceSummary, StorageUsage, UpdateInfo,
 } from './types';
@@ -15,6 +15,10 @@ export interface Bridge {
   legalStatus(): Promise<LegalStatus>;
   legalAccept(version: string, shareResources: boolean): Promise<LegalStatus>;
   identityGet(): Promise<IdentityInfo>;
+  /** Moves the identity key to `mode`; the passphrase is required for 'passphrase'. Resolves with the refreshed identity. */
+  identityProtect(mode: KeyMode, passphrase?: string): Promise<IdentityInfo>;
+  /** Opens a passphrase-protected install at startup. Rejects on a wrong passphrase. */
+  identityUnlock(passphrase: string): Promise<void>;
   profileSet(input: ProfileInput): Promise<IdentityInfo>;
   snapshot(): Promise<Snapshot>;
 
@@ -131,6 +135,8 @@ export function createBridge(t: Transport): Bridge {
     legalStatus: () => call('legal_status'),
     legalAccept: (version, shareResources) => call('legal_accept', { version, shareResources }),
     identityGet: () => call('identity_get'),
+    identityProtect: (mode, passphrase) => call('identity_protect', { mode, passphrase: passphrase ?? null }),
+    identityUnlock: (passphrase) => none('identity_unlock', { passphrase }),
     profileSet: (input) => call('profile_set', { ...input }),
     snapshot: () => call('snapshot'),
     spaceCreate: (name, tagline, kind) => call('space_create', { name, tagline, kind }),

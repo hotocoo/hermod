@@ -4,6 +4,7 @@ import { useAppStore } from '@/state/store';
 import { DeclinedScreen } from './DeclinedScreen';
 import { FailedScreen } from './FailedScreen';
 import { ProfileSetup } from './ProfileSetup';
+import { UnlockScreen } from './UnlockScreen';
 import { TermsGate } from './TermsGate';
 import { Welcome } from './Welcome';
 import s from './gate.module.css';
@@ -18,6 +19,7 @@ export function Gate() {
       {phase === 'declined' && <DeclinedScreen />}
       {phase === 'profile' && <ProfileSetup />}
       {phase === 'welcome' && <Welcome />}
+      {phase === 'locked' && <UnlockScreen />}
       {phase === 'failed' && <FailedScreen />}
       <ModalHost />
       <ToastLive />

@@ -1,7 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { STORAGE_KEYS } from '@/config/app';
-import { errorMessage, getBridge, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
+import { COPY } from '@/config/copy';
+import { errorMessage, getBridge, type KeyMode, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
 import { wallMs } from '@/lib/clock';
 import { copyText } from '@/lib/clipboard';
 import { readString, writeString } from '@/lib/storage';
@@ -325,6 +326,55 @@ function Logs() {
   );
 }
 
+const KEY_MODES: ReadonlyArray<readonly [KeyMode, string, string]> = [
+  ['file', COPY.keyModeFile, COPY.keyModeFileSub],
+  ['keychain', COPY.keyModeKeychain, COPY.keyModeKeychainSub],
+  ['passphrase', COPY.keyModePassphrase, COPY.keyModePassphraseSub],
+];
+
+function KeyStorage() {
+  const toast = useToast(); const me = useAppStore((s) => s.me);
+  const [mode, setMode] = useState<KeyMode>(me?.key_mode ?? 'file');
+  const [pass, setPass] = useState(''); const [again, setAgain] = useState(''); const [busy, setBusy] = useState(false);
+  if (!me) return null;
+  const sealing = mode === 'passphrase';
+  const ok = mode !== me.key_mode && (!sealing || (pass.length >= MIN_PASS && pass === again));
+  const apply = async () => {
+    setBusy(true);
+    try {
+      const next = await getBridge().identityProtect(mode, sealing ? pass : undefined);
+      useAppStore.setState({ me: next }); setPass(''); setAgain('');
+      toast(COPY.keyChanged);
+    } catch (e) { fail(toast, e); }
+    setBusy(false);
+  };
+  return (
+    <fieldset className={f.field} style={{ border: 0, padding: 0 }}>
+      <legend className={f.label}>{COPY.keyTitle}</legend>
+      <p className={f.note}>{COPY.keyNote}</p>
+      {KEY_MODES.map(([id, label, sub]) => (
+        <label key={id} className={f.row} style={{ alignItems: 'flex-start', gap: 8 }}>
+          <input type="radio" name="key-mode" checked={mode === id} onChange={() => setMode(id)} disabled={busy} />
+          <span><strong>{label}</strong><br /><span className={f.note}>{sub}</span></span>
+        </label>
+      ))}
+      {sealing && mode !== me.key_mode && (
+        <>
+          <p className={f.note}>{COPY.keyPassphraseWarn}</p>
+          <div className={f.field}><label className={f.label} htmlFor="key-pass">Passphrase (at least {MIN_PASS} characters)</label>
+            <input id="key-pass" type="password" className="input" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="new-password" /></div>
+          <div className={f.field}><label className={f.label} htmlFor="key-again">Repeat passphrase</label>
+            <input id="key-again" type="password" className="input" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" /></div>
+          {again && pass !== again && <p className={f.error}>{COPY.keyPassMismatch}</p>}
+        </>
+      )}
+      <div className={f.actions} style={{ justifyContent: 'flex-start' }}>
+        <button type="button" className="btn btn-primary" disabled={busy || !ok} onClick={apply}>{COPY.keyApply}</button>
+      </div>
+    </fieldset>
+  );
+}
+
 function Identity(): ReactNode {
   const me = useAppStore((s) => s.me);
   if (!me) return <p className={f.note}>No identity loaded.</p>;
@@ -333,6 +383,7 @@ function Identity(): ReactNode {
       <CopyField id="id-handle" label="Handle" value={me.handle} />
       <CopyField id="id-user" label="User id" value={me.user_id} />
       <p className={f.note}>Your user id is public to the spaces you join. The secret key never leaves this device.</p>
+      <KeyStorage />
     </>
   );
 }
