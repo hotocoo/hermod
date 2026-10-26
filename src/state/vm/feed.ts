@@ -5,8 +5,9 @@ import { coll, type Post } from '../dataTypes';
 import { meId, personOf, roleIn } from '../selectors';
 import type { Ctx } from './context';
 import { ACCENT } from './css';
+import { COPY } from '../../config/copy';
 
-export const FEED_TABS = [['foryou', 'For you'], ['following', 'Following'], ['saved', 'Saved']] as const;
+export const FEED_TABS = () => [['foryou', COPY.ui.stateMsgs.vm.tabForYou], ['following', COPY.ui.stateMsgs.vm.tabFollowing], ['saved', COPY.ui.stateMsgs.vm.statSaved]] as const;
 
 export function feedVm(x: Ctx) {
   const { s, seed, I } = x; const me = meId(s);
@@ -19,7 +20,7 @@ export function feedVm(x: Ctx) {
       label: p.label, text: p.text, dur: p.dur, h: `${p.h}px`, likes: num(p.likes), likeCount: p.likes, liked, saved,
       media: p.blob ? { url: blobUrl(p.blob.hash), mime: p.blob.mime, open: () => s.openModal({ kind: 'lightbox', blob: p.blob! }) } : null,
       likeFg: liked ? ACCENT : 'currentColor', saveFg: saved ? ACCENT : 'currentColor',
-      heart: I('heart', 15, liked ? 2.2 : 1.6), mark: I('bookmark', 15, saved ? 2.2 : 1.6), saveLabel: saved ? 'Saved' : 'Save',
+      heart: I('heart', 15, liked ? 2.2 : 1.6), mark: I('bookmark', 15, saved ? 2.2 : 1.6), saveLabel: saved ? COPY.ui.stateMsgs.common.saved : COPY.ui.stateMsgs.common.save,
       onLike: () => { void s.toggleLike(p.id, sp); }, onSave: () => { void s.toggleSave(p.id, sp); },
       canComment: roleIn(s, sp) !== 'guest',
       comments: (p.comments ?? []).filter((c) => !s.blocked[c.by]).map((c) => ({ name: personOf(seed, c.by).name, t: c.t, text: c.text })),
@@ -31,7 +32,7 @@ export function feedVm(x: Ctx) {
   const col = (n: number, k: number) => feed.filter((_, i) => i % n === k);
   return {
     feed, hasFeed: all.length > 0, feedEmptyTab: all.length > 0 && feed.length === 0,
-    feedTabs: FEED_TABS.map(([id, label]) => ({ id, label, on: s.feedTab === id, onClick: () => s.setFeedTab(id) })),
+    feedTabs: FEED_TABS().map(([id, label]) => ({ id, label, on: s.feedTab === id, onClick: () => s.setFeedTab(id) })),
     composePost: () => s.openModal({ kind: 'composePost' }),
     feedCol1: col(3, 0), feedCol2: col(3, 1), feedCol3: col(3, 2), feedA: col(2, 0), feedB: col(2, 1),
   };

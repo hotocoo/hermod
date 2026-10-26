@@ -10,6 +10,7 @@ import { isAdminRole, meId, personOf, profilesIn, roleIn, todayIndex } from '../
 import type { AppStore } from '../types';
 import type { Ctx } from './context';
 import { ACCENT, DIVIDER, fgOf, mixAccent } from './css';
+import { COPY } from '../../config/copy';
 
 type TabDef = readonly [string, string, string, boolean?];
 
@@ -41,7 +42,7 @@ function boardsVm(x: Ctx) {
 }
 
 async function newPinboard(s: AppStore) {
-  const v = await s.ask({ title: 'New inspiration board', kicker: 'Boards', submit: 'Create board', fields: [{ key: 'name', label: 'Name', required: true }] });
+  const v = await s.ask({ title: COPY.ui.stateMsgs.work.inspoTitle, kicker: COPY.ui.stateMsgs.work.inspoKicker, submit: COPY.ui.stateMsgs.work.boardSubmit, fields: [{ key: 'name', label: COPY.ui.stateMsgs.common.name, required: true }] });
   if (v) await appendEvent(() => s, s.space, { t: 'pinboard.create', board_id: uid('pb'), name: v.name.trim() });
 }
 
@@ -125,10 +126,10 @@ function profileVm(x: Ctx) {
       ...prof, role: prof.role || (s.me ? `@${s.me.handle}` : ''), initials: s.me?.initials ?? '', av: s.me?.avatar?.hash ?? '',
       // M-047: banner, status and pronouns from this Space's profile extras (expired statuses are already blanked by the core).
       ext: s.me ? profilesIn(seed, s.space)[s.me.user_id] : undefined,
-      stats: [{ n: num(st.posts.length + st.videos.length), l: 'Posts' }, { n: num(st.snaps.length), l: 'Snapshots' }, { n: num(st.saved.length), l: 'Saved' }, { n: num(st.spaces), l: 'Spaces' }],
+      stats: [{ n: num(st.posts.length + st.videos.length), l: COPY.ui.stateMsgs.vm.statPosts }, { n: num(st.snaps.length), l: COPY.ui.stateMsgs.vm.statSnapshots }, { n: num(st.saved.length), l: COPY.ui.stateMsgs.common.saved }, { n: num(st.spaces), l: COPY.ui.stateMsgs.vm.statSpaces }],
     },
     setAvatar: () => { void s.setAvatar(); },
-    profEdit: s.profEdit, profView: !s.profEdit, profEditLabel: s.profEdit ? 'Save' : 'Edit profile', toggleEditProf: () => { void s.toggleEditProf(); },
+    profEdit: s.profEdit, profView: !s.profEdit, profEditLabel: s.profEdit ? COPY.ui.stateMsgs.common.save : COPY.ui.stateMsgs.vm.editProfile, toggleEditProf: () => { void s.toggleEditProf(); },
     onProfName: (e: InputEvt) => s.setProfName(e.target.value), onProfBio: (e: InputEvt) => s.setProfBio(e.target.value),
     profTabs: PROFILE_TABS.map(([id, label]) => ({ label, fg: fgOf(pTab === id), ul: pTab === id ? ACCENT : 'transparent', onClick: () => s.setProfTab(id) })),
     profGrid: (lists[pTab] ?? []).slice(0, PROFILE_GRID.max).map((t, i) => ({ ...t, label: t.label || PROFILE_TILE_LABEL[pTab], anim: aniPage(i) })),

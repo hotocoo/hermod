@@ -5,6 +5,7 @@ import { blobUrl } from '../../lib/upload';
 import { personOf } from '../selectors';
 import type { Ctx } from './context';
 import { ACCENT, ACCENT_700, TEXT, mixAccent, mixText, fgOf } from './css';
+import { COPY } from '../../config/copy';
 
 export const diffLineVm = (l: DiffLine, k: number, file: Pick<SkeinFile, 'kind'>) => ({
   s: l.s || ' ', mark: l.t === ' ' ? '' : l.t, n: k + 1,
@@ -28,11 +29,11 @@ export function skeinVm(x: Ctx) {
   const weavable = sk.lines.filter((l) => l.ahead).map((l) => ({
     id: l.id, name: l.name, by: l.by ? firstName(personOf(seed, l.by).name) : '', onWeave: () => { void s.weave(s.space, l.id); },
   }));
-  const allLine = { id: 'all', name: 'All lines', note: `${sk.snaps.length} ${T.snapshots.toLowerCase()}`, ahead: 0 };
+  const allLine = { id: 'all', name: COPY.ui.stateMsgs.vm.allLines, note: `${sk.snaps.length} ${T.snapshots.toLowerCase()}`, ahead: 0 };
   const skein = {
     repo: sk.repo, blurb: sk.blurb, T, expert: ex, plain: !ex, lineSel,
     lines: [allLine, ...sk.lines].map((l) => ({
-      id: l.id, name: l.name, note: l.note, ahead: l.ahead, hasAhead: !!l.ahead, aheadLabel: `${l.ahead} to ${T.weave.toLowerCase()}`,
+      id: l.id, name: l.name, note: l.note, ahead: l.ahead, hasAhead: !!l.ahead, aheadLabel: COPY.ui.stateMsgs.vm.aheadTo(l.ahead, T.weave.toLowerCase()),
       active: lineSel === l.id, bg: lineSel === l.id ? mixAccent(11) : 'transparent', fg: fgOf(lineSel === l.id),
       canWeave: !!l.ahead && l.id !== 'all', onClick: () => s.setLine(l.id), onWeave: () => { void s.weave(s.space, l.id); },
     })),

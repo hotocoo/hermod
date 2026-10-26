@@ -10,6 +10,7 @@ import { channelsOf, chatKey, curSpace, isHomeSpace, loadedMessages, mayHaveOlde
 import type { AppStore } from '../../types';
 import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, prependOlder, quoteOf, splitKey, toggleInFolder } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
+import { COPY } from '../../../config/copy';
 
 const EMPTY_COMPOSE: ComposeExtras = { quote: null, viewOnce: false, ttl: 0, preview: null, previewFor: '', previewOff: false };
 const TYPING_TTL_MS = 5000;
@@ -40,7 +41,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
   const post = (body: EventBody) => appendEvent(get, get().space, body);
   const toastErr = (e: unknown) => get().showToast(errorMessage(e), undefined, 'error');
   const upload = (file: File): Promise<BlobRef | undefined> => {
-    if (file.size > UPLOAD.maxBytes) { get().showToast(`${file.name} is too large`, undefined, 'error'); return Promise.resolve(undefined); }
+    if (file.size > UPLOAD.maxBytes) { get().showToast(COPY.ui.stateMsgs.messaging.tooLarge(file.name), undefined, 'error'); return Promise.resolve(undefined); }
     return guarded(get, async () => getBridge().blobPutBytes(file.name, new Uint8Array(await file.arrayBuffer())));
   };
 
@@ -106,14 +107,14 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     },
 
     forwardMessage: async (m, targets) => {
-      if (!forwardable(m)) { get().showToast('This message cannot be forwarded', undefined, 'error'); return; }
+      if (!forwardable(m)) { get().showToast(COPY.ui.stateMsgs.messaging.cannotForward, undefined, 'error'); return; }
       let ok = 0;
       for (const t of targets) if (await appendEvent(get, t.space, forwardBody(m, t.origin, t.channel))) ok += 1;
-      if (ok) get().showToast(ok === 1 ? 'Forwarded' : `Forwarded to ${ok} chats`);
+      if (ok) get().showToast(ok === 1 ? COPY.ui.stateMsgs.messaging.forwardedOne : COPY.ui.stateMsgs.messaging.forwardedMany(ok));
     },
     hideForMe: async (id) => {
       const s = get();
-      const yes = await s.confirmAction({ title: 'Delete for you?', body: 'It disappears from this device only. Other people still see it.', confirm: 'Delete for me', danger: true });
+      const yes = await s.confirmAction({ title: COPY.ui.stateMsgs.messaging.hideTitle, body: COPY.ui.stateMsgs.messaging.hideBody, confirm: COPY.ui.stateMsgs.messaging.hideConfirm, danger: true });
       if (!yes) return;
       await guarded(get, () => getBridge().messageHide(s.space, id));
       await get().refresh();
@@ -134,16 +135,16 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     sendPoll: async () => {
       const ch = chanOf(get()); if (!ch) return;
       const v = await get().ask({
-        title: 'New poll', kicker: 'In this chat', submit: 'Send poll',
+        title: COPY.ui.stateMsgs.messaging.pollTitle, kicker: COPY.ui.stateMsgs.messaging.pollKicker, submit: COPY.ui.stateMsgs.messaging.pollSubmit,
         fields: [
-          { key: 'question', label: 'Question', required: true },
-          { key: 'options', label: 'Options, one per line (2 to 10)', multiline: true, required: true },
-          { key: 'multi', label: 'Votes', options: [{ value: '0', label: 'One choice each' }, { value: '1', label: 'Several choices' }] },
+          { key: 'question', label: COPY.ui.stateMsgs.messaging.pollQuestion, required: true },
+          { key: 'options', label: COPY.ui.stateMsgs.messaging.pollOptions, multiline: true, required: true },
+          { key: 'multi', label: COPY.ui.stateMsgs.messaging.pollVotes, options: [{ value: '0', label: COPY.ui.stateMsgs.messaging.pollOne }, { value: '1', label: COPY.ui.stateMsgs.messaging.pollSeveral }] },
         ],
       });
       if (!v) return;
       const options = v.options.split('\n').map((o) => o.trim()).filter(Boolean).slice(0, 10);
-      if (options.length < 2) { get().showToast('A poll needs at least two options', undefined, 'error'); return; }
+      if (options.length < 2) { get().showToast(COPY.ui.stateMsgs.messaging.pollMin, undefined, 'error'); return; }
       const poll_id = uid('p');
       if (!(await post({ t: 'poll.create', poll_id, question: v.question.trim(), options, multi: v.multi === '1', anonymous: false }))) return;
       await post({ t: 'message.post', channel_id: ch, msg_id: uid('m'), text: v.question.trim(), attachments: [], ext: { kind: 'poll', poll: poll_id } });
@@ -151,7 +152,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     forumPost: async (title, tags, text) => {
       const ch = chanOf(get()); if (!ch || !title.trim()) return;
       const ok = await post({ t: 'message.post', channel_id: ch, msg_id: uid('m'), text, attachments: [], ext: { kind: 'forum_post', title: title.trim().slice(0, 120), tags: tags.slice(0, 5) } });
-      if (ok) get().showToast('Post published');
+      if (ok) get().showToast(COPY.ui.stateMsgs.messaging.postPublished);
     },
     setProfileExt: async (patch) => {
       const banner = patch.banner ? await upload(patch.banner) : undefined;
@@ -166,7 +167,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       await post({ t: 'message.post', channel_id: ch, msg_id: uid('m'), text: '', attachments: [blob], ext: { kind: 'gif' } });
     },
     addGif: async (file) => {
-      if (!/^image\/(gif|webp)$/.test(file.type)) { get().showToast('Choose a GIF or WebP file', undefined, 'error'); return; }
+      if (!/^image\/(gif|webp)$/.test(file.type)) { get().showToast(COPY.ui.stateMsgs.messaging.chooseGif, undefined, 'error'); return; }
       const blob = await upload(file); if (!blob) return;
       await get().savePrefs({ gifs: [...(get().prefs.gifs ?? []).filter((g) => g.hash !== blob.hash), blob].slice(-MAX_GIFS) });
     },
@@ -186,7 +187,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       const item = await guarded(get, () => getBridge().scheduleAdd(s.space, { t: 'message.post', channel_id: ch, msg_id: uid('m'), text, attachments: [], ext: extras.ext, preview: extras.preview }, at));
       if (!item) return;
       set((x) => ({ scheduled: [...x.scheduled, item].sort((a, b) => a.at - b.at), drafts: { ...x.drafts, [key]: '' } }));
-      s.showToast(`Scheduled for ${new Date(at).toLocaleString()}`);
+      s.showToast(COPY.ui.stateMsgs.messaging.scheduled(new Date(at).toLocaleString()));
     },
     cancelScheduled: async (id) => {
       await guarded(get, () => getBridge().scheduleCancel(id));
@@ -241,12 +242,12 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
 
     copyMessageLink: (id) => {
       const s = get();
-      void copyText(messageLink(s.space, chanOf(s), id)).then((ok) => s.showToast(ok ? 'Link copied' : 'Could not copy the link', undefined, ok ? undefined : 'error'));
+      void copyText(messageLink(s.space, chanOf(s), id)).then((ok) => s.showToast(ok ? COPY.ui.stateMsgs.messaging.linkCopied : COPY.ui.stateMsgs.messaging.linkCopyFailed, undefined, ok ? undefined : 'error'));
     },
     openMessageLink: (href) => {
       const l = parseMessageLink(href); if (!l) return false;
       const s = get();
-      if (!s.spaces.some((x) => x.id === l.space)) { s.showToast('You are not in that Space', undefined, 'error'); return true; }
+      if (!s.spaces.some((x) => x.id === l.space)) { s.showToast(COPY.ui.stateMsgs.messaging.notInSpace, undefined, 'error'); return true; }
       s.jumpToMessage(l.space, l.channel, l.msg);
       return true;
     },
@@ -274,7 +275,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     saveToNotes: async (m) => {
       const r = await guarded(get, () => getBridge().savedOpen()); if (!r) return;
       await appendEvent(get, r.space_id, forwardBody(m, curSpace(get()).name, r.channel_id));
-      get().showToast('Saved to notes');
+      get().showToast(COPY.ui.stateMsgs.messaging.savedToNotes);
     },
 
     typingPing: () => {

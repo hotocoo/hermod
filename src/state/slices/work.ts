@@ -22,12 +22,12 @@ const withCurrent = (options: Choice[], current: Choice): Choice[] => (options.s
 
 /** Event form shared by New and Edit; `initial` fills the fields. */
 const eventFields = (initial: { title: string; day: number; start: number; len: number; where: string; note: string }): PromptField[] => [
-  { key: 'title', label: 'Title', initial: initial.title, required: true },
-  { key: 'day', label: 'Day', initial: String(initial.day), options: CALENDAR.days.map((d, i) => ({ value: String(i), label: d })) },
-  { key: 'start', label: 'Starts', initial: String(initial.start), options: withCurrent(HALF_HOURS.map((h) => ({ value: String(h), label: fmtHalfHour(h) })), { value: String(initial.start), label: fmtHalfHour(initial.start) }) },
-  { key: 'len', label: 'Length', initial: String(initial.len), options: withCurrent(CALENDAR.lengths.map((h) => ({ value: String(h), label: COPY.event.length(h) })), { value: String(initial.len), label: COPY.event.length(initial.len) }) },
-  { key: 'where', label: 'Where', initial: initial.where },
-  { key: 'note', label: 'Note', initial: initial.note, multiline: true },
+  { key: 'title', label: COPY.ui.stateMsgs.common.title, initial: initial.title, required: true },
+  { key: 'day', label: COPY.ui.stateMsgs.work.fieldDay, initial: String(initial.day), options: CALENDAR.days.map((d, i) => ({ value: String(i), label: d })) },
+  { key: 'start', label: COPY.ui.stateMsgs.work.fieldStarts, initial: String(initial.start), options: withCurrent(HALF_HOURS.map((h) => ({ value: String(h), label: fmtHalfHour(h) })), { value: String(initial.start), label: fmtHalfHour(initial.start) }) },
+  { key: 'len', label: COPY.ui.stateMsgs.work.fieldLength, initial: String(initial.len), options: withCurrent(CALENDAR.lengths.map((h) => ({ value: String(h), label: COPY.event.length(h) })), { value: String(initial.len), label: COPY.event.length(initial.len) }) },
+  { key: 'where', label: COPY.ui.stateMsgs.work.fieldWhere, initial: initial.where },
+  { key: 'note', label: COPY.ui.stateMsgs.work.fieldNote, initial: initial.note, multiline: true },
 ];
 
 export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, get) => {
@@ -48,7 +48,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       const s = get(); const sp = here(); const bd = s.board[sp];
       // No board yet: make one first instead of asking for a column name that would be thrown away.
       if (!bd?.id) { await s.newBoard(); return; }
-      const v = await s.ask({ title: 'New column', kicker: bd.name, submit: 'Add column', fields: [{ key: 'name', label: 'Name', placeholder: 'Review', required: true }] });
+      const v = await s.ask({ title: COPY.ui.stateMsgs.work.columnTitle, kicker: bd.name, submit: COPY.ui.stateMsgs.work.columnSubmit, fields: [{ key: 'name', label: COPY.ui.stateMsgs.common.name, placeholder: COPY.ui.stateMsgs.work.columnPh, required: true }] });
       if (!v) return;
       await appendEvent(get, sp, { t: 'column.create', board_id: bd.id, col_id: uid('col'), name: v.name.trim() });
     },
@@ -56,8 +56,8 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       const s = get(); const sp = here(); const bd = s.board[sp];
       if (!bd?.id) return;
       const v = await s.ask({
-        title: 'New card', kicker: bd.name, submit: 'Add card',
-        fields: [{ key: 'title', label: 'Title', placeholder: 'What needs doing', required: true }, { key: 'tag', label: 'Tag', placeholder: 'design' }],
+        title: COPY.ui.stateMsgs.work.cardTitle, kicker: bd.name, submit: COPY.ui.stateMsgs.work.cardSubmit,
+        fields: [{ key: 'title', label: COPY.ui.stateMsgs.common.title, placeholder: COPY.ui.stateMsgs.work.cardTitlePh, required: true }, { key: 'tag', label: COPY.ui.stateMsgs.work.cardTag, placeholder: COPY.ui.stateMsgs.work.cardTagPh }],
       });
       if (v) await appendEvent(get, sp, { t: 'card.create', board_id: bd.id, card_id: uid('k'), col_id: colId, title: v.title.trim(), tag: v.tag.trim() });
     },
@@ -71,10 +71,10 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       // A former member can still be the stored assignee; keep them selectable so the select matches the stored value.
       const options = withCurrent([{ value: '', label: COPY.card.unassigned }, ...members.map((m) => ({ value: m.user_id, label: m.name }))], { value: assignee, label: assignee ? personOf(seed(), assignee).name : '' });
       const v = await s.ask({
-        title: COPY.card.editTitle, submit: 'Save',
+        title: COPY.card.editTitle, submit: COPY.ui.stateMsgs.common.save,
         fields: [
-          { key: 'title', label: 'Title', initial: card.title, required: true },
-          { key: 'tag', label: 'Tag', initial: card.tag },
+          { key: 'title', label: COPY.ui.stateMsgs.common.title, initial: card.title, required: true },
+          { key: 'tag', label: COPY.ui.stateMsgs.work.cardTag, initial: card.tag },
           { key: 'assignee', label: COPY.card.assignedTo, initial: assignee, options },
           { key: 'due', label: COPY.card.dueLabel, placeholder: COPY.card.duePlaceholder, initial: card.due ?? '' },
         ],
@@ -91,7 +91,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       if (Object.keys(changes).length) await appendEvent(get, sp, { t: 'card.update', card_id: cardId, ...changes });
     },
     deleteCard: async (cardId) => {
-      const ok = await get().confirmAction({ title: 'Delete this card?', body: 'It is removed from the board for everyone.', confirm: 'Delete', danger: true });
+      const ok = await get().confirmAction({ title: COPY.ui.stateMsgs.work.deleteCardTitle, body: COPY.ui.stateMsgs.work.deleteCardBody, confirm: COPY.ui.stateMsgs.common.delete, danger: true });
       if (ok) await appendEvent(get, here(), { t: 'card.delete', card_id: cardId });
     },
 
@@ -103,8 +103,8 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
     newLine: async () => {
       const s = get(); const sp = here();
       const v = await s.ask({
-        title: 'New line', kicker: 'Skein', submit: 'Start line',
-        fields: [{ key: 'name', label: 'Name', placeholder: 'warmer-palette', required: true }, { key: 'note', label: 'What is it for', placeholder: 'Trying a warmer lantern palette' }],
+        title: COPY.ui.stateMsgs.work.lineTitle, kicker: COPY.ui.stateMsgs.work.lineKicker, submit: COPY.ui.stateMsgs.work.lineSubmit,
+        fields: [{ key: 'name', label: COPY.ui.stateMsgs.common.name, placeholder: COPY.ui.stateMsgs.work.lineNamePh, required: true }, { key: 'note', label: COPY.ui.stateMsgs.work.lineNote, placeholder: COPY.ui.stateMsgs.work.lineNotePh }],
       });
       if (!v) return;
       const id = uid('ln');
@@ -151,7 +151,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
     },
     newDoc: async () => {
       const s = get();
-      const v = await s.ask({ title: 'New doc', kicker: curSpace(s).name, submit: 'Create doc', fields: [{ key: 'title', label: 'Title', required: true }, { key: 'kicker', label: 'Kind of document', placeholder: 'Notes, plan, spec' }] });
+      const v = await s.ask({ title: COPY.ui.stateMsgs.work.docTitle, kicker: curSpace(s).name, submit: COPY.ui.stateMsgs.work.docSubmit, fields: [{ key: 'title', label: COPY.ui.stateMsgs.common.title, required: true }, { key: 'kicker', label: COPY.ui.stateMsgs.work.docKind, placeholder: COPY.ui.stateMsgs.work.docKindPh }] });
       if (!v) return;
       const id = uid('d');
       if (await appendEvent(get, here(), { t: 'doc.create', doc_id: id, title: v.title.trim(), kicker: v.kicker.trim() })) set({ docSel: id });
@@ -161,7 +161,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
     editEvent: async () => {
       const s = get(); const ev = s.events.find((e) => e.id === s.evSel);
       if (!ev) return;
-      const v = await s.ask({ title: COPY.event.editTitle, kicker: curSpace(s).name, submit: 'Save', fields: eventFields({ title: ev.t, day: ev.d, start: ev.s, len: ev.e - ev.s, where: ev.where, note: ev.note }) });
+      const v = await s.ask({ title: COPY.event.editTitle, kicker: curSpace(s).name, submit: COPY.ui.stateMsgs.common.save, fields: eventFields({ title: ev.t, day: ev.d, start: ev.s, len: ev.e - ev.s, where: ev.where, note: ev.note }) });
       if (!v) return;
       const start = Number(v.start); const end = start + Number(v.len); const day = Number(v.day);
       if (end > DAY_END) { s.showToast(COPY.event.outsideGrid, undefined, 'error'); return; }
@@ -177,7 +177,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       const s = get();
       const now = new Date(); const nextHour = Math.min(CALENDAR.startHour + CALENDAR.hours.length - 1, Math.max(CALENDAR.startHour, now.getHours() + 1));
       const v = await s.ask({
-        title: 'New meeting', kicker: curSpace(s).name, submit: 'Add to calendar',
+        title: COPY.ui.stateMsgs.work.meetingTitle, kicker: curSpace(s).name, submit: COPY.ui.stateMsgs.work.meetingSubmit,
         fields: eventFields({ title: '', day: todayIndex(), start: nextHour, len: 1, where: CALENDAR.hearthPlace, note: '' }),
       });
       if (!v) return;
@@ -193,7 +193,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
     cancelEvent: async () => {
       const s = get(); const ev = s.events.find((e) => e.id === s.evSel);
       if (!ev) return;
-      const ok = await s.confirmAction({ title: 'Cancel this meeting?', body: 'It is removed from everyone’s calendar.', confirm: 'Cancel meeting', danger: true });
+      const ok = await s.confirmAction({ title: COPY.ui.stateMsgs.work.cancelTitle, body: COPY.ui.stateMsgs.work.cancelBody, confirm: COPY.ui.stateMsgs.work.cancelConfirm, danger: true });
       if (ok) await appendEvent(get, ev.spaceId ?? here(), { t: 'event.cancel', ev_id: ev.id });
     },
     joinEvent: async () => {
@@ -214,9 +214,9 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
     selectBoard: (boardSel) => set({ boardSel }),
     newBoard: async () => {
       const s = get(); const sp = here();
-      const v = await s.ask({ title: 'New board', kicker: curSpace(s).name, submit: 'Create board', fields: [
-        { key: 'name', label: 'Name', required: true },
-        { key: 'cols', label: 'Columns, one per line', multiline: true, initial: 'To do\nDoing\nDone' },
+      const v = await s.ask({ title: COPY.ui.stateMsgs.work.boardTitle, kicker: curSpace(s).name, submit: COPY.ui.stateMsgs.work.boardSubmit, fields: [
+        { key: 'name', label: COPY.ui.stateMsgs.common.name, required: true },
+        { key: 'cols', label: COPY.ui.stateMsgs.work.boardCols, multiline: true, initial: 'To do\nDoing\nDone' },
       ] });
       if (!v) return;
       const cols = v.cols.split('\n').map((c) => c.trim()).filter(Boolean).map((name) => ({ col_id: uid('col'), name }));
@@ -227,7 +227,7 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       if (!board || board.id === 'saved') return;
       const stored = await guarded(get, () => pickAndStore('image/*', false));
       const pic = stored?.[0]; if (!pic) return;
-      const v = await s.ask({ title: 'Add a pin', kicker: board.name, submit: 'Pin it', fields: [{ key: 'title', label: 'Title', initial: pic.blob.name.replace(/\.[^.]+$/, ''), required: true }] });
+      const v = await s.ask({ title: COPY.ui.stateMsgs.work.pinTitle, kicker: board.name, submit: COPY.ui.stateMsgs.work.pinSubmit, fields: [{ key: 'title', label: COPY.ui.stateMsgs.common.title, initial: pic.blob.name.replace(/\.[^.]+$/, ''), required: true }] });
       if (v) await appendEvent(get, board.spaceId ?? here(), { t: 'pin.add', board_id: board.id, blob: pic.blob, title: v.title.trim(), label: pic.blob.name });
     },
   };

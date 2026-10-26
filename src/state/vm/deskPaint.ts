@@ -1,7 +1,8 @@
 import type { DeskView } from '../deskTypes';
 import { isTerminal } from '../deskTypes';
+import { COPY } from '../../config/copy';
 
-const FALLBACK_QUEUE = { id: '', name: 'General' };
+const FALLBACK_QUEUE = { id: '', name: COPY.ui.stateMsgs.sla.defaultQueue };
 const MAX_CUBBIES = 24;
 
 /** Rows for the Counting House pigeonhole wall: one cubby per queue with its open-ticket count (what the viewer may see). */

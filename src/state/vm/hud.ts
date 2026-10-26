@@ -7,6 +7,7 @@ import { sceneSignals } from '../signals';
 import type { Ctx } from './context';
 import { ACCENT, DIVIDER, ringOf, fgOf, mixAccent, switchStyle } from './css';
 import { doorVm } from './doors';
+import { COPY } from '../../config/copy';
 
 /** Sky/weather/clock widgets, drawers, ravens, settings, onboarding and the HUD chrome. */
 export function hudVm(x: Ctx, door: ReturnType<typeof doorVm>) {
@@ -24,13 +25,13 @@ export function hudVm(x: Ctx, door: ReturnType<typeof doorVm>) {
     isles: s.spaces.map((q) => {
       const un = Object.keys(s.incoming).filter((k) => k.startsWith(`${q.id}/`)).reduce((a, k) => a + s.incoming[k], 0);
       return {
-        id: q.id, name: q.name, kind: q.id === s.space ? 'You are here' : q.kind,
-        sub: (q.members ? `${q.members.toLocaleString('en')} members` : 'Just you') + (un ? ` · ${un} new` : ''),
+        id: q.id, name: q.name, kind: q.id === s.space ? COPY.ui.stateMsgs.hud.youAreHere : q.kind,
+        sub: (q.members ? COPY.ui.stateMsgs.hud.members(q.members.toLocaleString('en')) : COPY.ui.stateMsgs.hud.justYou) + (un ? COPY.ui.stateMsgs.hud.newCount(un) : ''),
         bd: ringOf(q.id === s.space), onClick: () => s.sailTo(q.id),
       };
     }),
-    hudTitle: s.archi ? 'Your archipelago' : sp.name,
-    hudTag: s.archi ? 'Every Space you belong to. Click an island to sail there.' : sp.tagline,
+    hudTitle: s.archi ? COPY.ui.stateMsgs.hud.archiTitle : sp.name,
+    hudTag: s.archi ? COPY.ui.stateMsgs.hud.archiTag : sp.tagline,
     archiBd: ringOf(s.archi), toggleArchi: s.toggleArchi, togglePhoto: s.togglePhoto, photo: s.photo,
     hudOp: hudBlocked ? '0' : '1', hudEvents: hudBlocked ? 'none' : 'auto',
     enterVeilOn: !!s.enterVeil && now - s.enterVeil < TIMING.enterVeilVisibleMs,
@@ -71,7 +72,7 @@ export function hudVm(x: Ctx, door: ReturnType<typeof doorVm>) {
     readLetter: s.readLetter, dismissLetter: s.dismissLetter,
     settings: SETTINGS_ROWS.map((r) => ({ label: r.label, sub: r.sub, onClick: () => s.toggleSetting(r.key), ...switchStyle(settingOn(r.key)) })),
     pillsDisp: props.viewport.w < LAYOUT.pillsMinViewport ? 'none' : 'flex',
-    perchHereN: String(sig.unread), perchHereText: 'unread · the raven is waiting', perchAwayN: String(sig.perch.away),
+    perchHereN: String(sig.unread), perchHereText: COPY.ui.stateMsgs.hud.perchHere, perchAwayN: String(sig.perch.away),
     ravenHere: () => s.onRaven('here'), ravenAway: () => s.onRaven('away'), hintsOn: s.hints,
     replayWelcome: s.replayWelcome, replayIntro: s.replayIntro,
     onbOn: !!ob && !s.intro && !s.inside && !s.drawer && !s.photo,

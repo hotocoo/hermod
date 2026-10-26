@@ -68,7 +68,7 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   deleteMessage: async (id) => {
     const s = get();
     const mine = loadedMessages(s, chatKey(s)).find((m) => m.id === id)?.by === s.me?.user_id;
-    const ok = await s.confirmAction({ title: mine ? 'Delete this message?' : 'Remove this message?', body: 'It is removed for everyone in this Space. Copies other people already received may remain on their devices.', confirm: mine ? 'Delete' : 'Remove', danger: true });
+    const ok = await s.confirmAction({ title: mine ? COPY.ui.stateMsgs.chat.deleteTitle : COPY.ui.stateMsgs.chat.removeTitle, body: COPY.ui.stateMsgs.chat.deleteBody, confirm: mine ? COPY.ui.stateMsgs.common.delete : COPY.ui.stateMsgs.chat.removeConfirm, danger: true });
     if (ok) await appendEvent(get, s.space, mine ? { t: 'message.delete', msg_id: id } : { t: 'content.remove', target_id: id });
   },
 
@@ -109,8 +109,8 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   newChannel: async () => {
     const s = get(); const sp = curSpace(s);
     const v = await s.ask({
-      title: 'New channel', kicker: sp.name, submit: 'Create channel',
-      fields: [{ key: 'name', label: 'Name', placeholder: 'design-review', required: true }, { key: 'topic', label: 'Topic', placeholder: 'What this channel is for' }],
+      title: COPY.ui.stateMsgs.chat.channelTitle, kicker: sp.name, submit: COPY.ui.stateMsgs.chat.channelSubmit,
+      fields: [{ key: 'name', label: COPY.ui.stateMsgs.common.name, placeholder: COPY.ui.stateMsgs.chat.channelNamePh, required: true }, { key: 'topic', label: COPY.ui.stateMsgs.common.topic, placeholder: COPY.ui.stateMsgs.chat.channelTopicPh }],
     });
     if (!v) return;
     const id = uid('c');

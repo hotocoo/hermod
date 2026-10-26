@@ -3,6 +3,7 @@ import type { Seed } from '../../lib/data/types';
 import { coll } from '../dataTypes';
 import { isTerminal, type DeskView, type Ticket, type TicketPriority, type ViewFilter } from '../deskTypes';
 import { personOf } from '../selectors';
+import { COPY } from '../../config/copy';
 
 export type DeskSort = 'updated' | 'created' | 'priority' | 'sla';
 /** `all`, `mine` (assigned to me), `unassigned`, `overdue`, `requested` (made by me), `queue:<id>` or `view:<id>`. */
@@ -41,14 +42,14 @@ export function fmtSpan(ms: number): string {
 export function slaBadge(t: Ticket, now: number): SlaBadgeData | null {
   const s = t.sla;
   if (!s || t.merged_into) return null;
-  if (isTerminal(t.status)) return { tone: s.breached ? 'missed' : 'done', label: s.breached ? 'SLA missed' : 'SLA met', ms: null };
-  if (s.paused && !s.overdue) return { tone: 'paused', label: 'SLA paused', ms: null };
+  if (isTerminal(t.status)) return { tone: s.breached ? 'missed' : 'done', label: s.breached ? COPY.ui.stateMsgs.sla.missed : COPY.ui.stateMsgs.sla.met, ms: null };
+  if (s.paused && !s.overdue) return { tone: 'paused', label: COPY.ui.stateMsgs.sla.paused, ms: null };
   const due = nextDue(t);
   if (due == null) return null;
   const ms = due - now;
-  const what = s.first_responded == null ? 'reply' : 'solve';
-  if (ms < 0) return { tone: 'late', label: `${what} ${fmtSpan(ms)} late`, ms };
-  return { tone: ms <= SOON_MS ? 'soon' : 'ok', label: `${what} in ${fmtSpan(ms)}`, ms };
+  const what = s.first_responded == null ? COPY.ui.stateMsgs.sla.reply : COPY.ui.stateMsgs.sla.solve;
+  if (ms < 0) return { tone: 'late', label: COPY.ui.stateMsgs.sla.late(what, fmtSpan(ms)), ms };
+  return { tone: ms <= SOON_MS ? 'soon' : 'ok', label: COPY.ui.stateMsgs.sla.due(what, fmtSpan(ms)), ms };
 }
 
 export function matchesFilter(t: Ticket, f: ViewFilter, people: Seed['people']): boolean {
@@ -108,7 +109,7 @@ export function counts(desk: DeskView, me: string): DeskCounts {
   };
 }
 
-export const queueName = (desk: DeskView, id: string): string => desk.config.queues.find((q) => q.queue_id === id)?.name ?? (id || 'General');
+export const queueName = (desk: DeskView, id: string): string => desk.config.queues.find((q) => q.queue_id === id)?.name ?? (id || COPY.ui.stateMsgs.sla.defaultQueue);
 export const ticketById = (desk: DeskView, id: string | null): Ticket | null => (id ? (desk.tickets.find((t) => t.id === id) ?? null) : null);
 
 /** Agents that can take a ticket (members and above, from the projection). */

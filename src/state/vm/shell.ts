@@ -10,6 +10,7 @@ import type { skeinVm } from './skein';
 import { ACCENT, DIVIDER } from './css';
 import { counts, deskOf } from './desk';
 import { arcadeOf, arcadeSub } from './arcade';
+import { COPY } from '../../config/copy';
 
 interface Parts {
   chat: ReturnType<typeof chatVm>; hearth: ReturnType<typeof hearthVm>; feed: ReturnType<typeof feedVm>;
@@ -26,13 +27,13 @@ export function shellVm(x: Ctx, p: Parts) {
   const hearthTotal = hearthCount;
   const deskView = deskOf(seed, sp.id); const deskN = deskView ? counts(deskView, s.me?.user_id ?? '') : null;
   const subs: Record<string, string> = {
-    chat: unread ? `${unread} unread` : 'All caught up',
-    hearth: hearth ? (hearthTotal ? `Live · ${hearthTotal} by the fire` : 'Fire’s lit, nobody in') : 'Fire’s lit, nobody in',
-    feed: p.feed.feed.length ? `${p.feed.feed.length} ${p.feed.feed.length === 1 ? 'post' : 'posts'}` : 'Nothing hung yet',
-    board: board ? `${board.name} · ${board.total} cards` : 'No cards yet',
-    skein: skein ? (skein.hasWeavable ? `${skein.weavable.length} lines to weave` : `${skein.snaps.length} snapshots`) : 'No snapshots yet',
+    chat: unread ? COPY.ui.stateMsgs.town.unread(unread) : COPY.ui.stateMsgs.town.caughtUp,
+    hearth: hearth ? (hearthTotal ? COPY.ui.stateMsgs.town.fireLive(hearthTotal) : COPY.ui.stateMsgs.town.fireEmpty) : COPY.ui.stateMsgs.town.fireEmpty,
+    feed: p.feed.feed.length ? COPY.ui.stateMsgs.town.posts(p.feed.feed.length) : COPY.ui.stateMsgs.town.nothingHung,
+    board: board ? COPY.ui.stateMsgs.town.boardCards(board.name, board.total) : COPY.ui.stateMsgs.town.noCards,
+    skein: skein ? (skein.hasWeavable ? COPY.ui.stateMsgs.town.linesToWeave(skein.weavable.length) : COPY.ui.stateMsgs.town.snapshots(skein.snaps.length)) : COPY.ui.stateMsgs.town.noSnapshots,
     arcade: arcadeSub(arcadeOf(seed, sp.id)),
-    desk: deskN ? (deskN.all ? `${deskN.all} open${deskN.overdue ? ` · ${deskN.overdue} overdue` : ''}` : 'No open tickets') : 'No tickets yet',
+    desk: deskN ? (deskN.all ? `${COPY.ui.stateMsgs.town.deskOpen(deskN.all)}${deskN.overdue ? COPY.ui.stateMsgs.town.deskOverdue(deskN.overdue) : ''}` : COPY.ui.stateMsgs.town.noOpen) : COPY.ui.stateMsgs.town.noTickets,
   };
   const badgeOf = (id: string): number | string => {
     if (id === 'chat') return unread || '';
@@ -47,7 +48,7 @@ export function shellVm(x: Ctx, p: Parts) {
     return {
       id, badge: String(badge), hasBadge: !!badge, name: names[id], empty: !b, kicker: b ? seed.sections[id as keyof typeof seed.sections].kicker : EMPTY_PLOT.name,
       sub: b ? subs[id] : `${EMPTY_PLOT.raise}${names[id]}`, live: b && ((id === 'hearth' && hearthCount > 0) || (id === 'chat' && unread > 0)),
-      aria: `${names[id]}, ${b ? subs[id] : `${EMPTY_PLOT.name.toLowerCase()}, nothing built yet`}`,
+      aria: `${names[id]}, ${b ? subs[id] : COPY.ui.stateMsgs.town.emptyAria(EMPTY_PLOT.name.toLowerCase())}`,
       bd: b ? ACCENT : DIVIDER, bdStyle: b ? 'solid' : 'dashed', shadow: hot ? 'var(--shadow-lg)' : 'var(--shadow-md)', lift: hot ? '-4px' : '0px',
       onClick: () => s.clickBuilding(id), onOpen: () => s.openBuilding(id), onEnter: () => s.hoverBuilding(id), onLeave: () => s.hoverBuilding(null),
     };
@@ -77,8 +78,8 @@ export function shellVm(x: Ctx, p: Parts) {
     isChat: p.chat.isChat && ok, isHearthOk: p.chat.isHearth && ok && p.hearth.hasRoom,
     isFeedOk: p.chat.isFeed && ok && s.galTab === 'feed', isBoardOk: p.chat.isBoard && ok && s.shopTab === 'board',
     isSkeinOk: p.chat.isSkein && ok, isDeskOk: p.chat.isDesk && ok, isArcadeOk: p.chat.isArcade && ok,
-    plotEmpty: !ok, plotTitle: `No ${kick} in ${sp.name} yet`, plotLine, raiseLabel: `${EMPTY_PLOT.raise}${names[sec]}`, raise: s.raise,
-    freshBuilt: ok && !hasData[sec] && !(sec === 'board' && s.shopTab !== 'board'), freshTitle: `${names[sec]} is open`, freshLine: seed.sections[sec].fresh,
+    plotEmpty: !ok, plotTitle: COPY.ui.stateMsgs.town.plotTitle(kick, sp.name), plotLine, raiseLabel: `${EMPTY_PLOT.raise}${names[sec]}`, raise: s.raise,
+    freshBuilt: ok && !hasData[sec] && !(sec === 'board' && s.shopTab !== 'board'), freshTitle: COPY.ui.stateMsgs.town.freshTitle(names[sec]), freshLine: seed.sections[sec].fresh,
     hudUnread: railUnread + incAll, hudLive: liveRooms,
     showPill: !!p.hearth.call && !(inside && sec === 'hearth' && p.hearth.inCall), backToCall: s.backToCall,
     zoomIn: s.zoomIn, zoomOut: s.zoomOut, rotL: s.rotL, rotR: s.rotR, recenter: s.recenter, exit: s.exit,

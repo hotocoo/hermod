@@ -3,6 +3,7 @@ import type { BlobRef, EventBody, MsgExt, QuoteRef } from '../../../lib/bridge';
 import { plainText } from '../../../lib/messaging/markdown';
 import type { Message, RookEntry } from '../../dataTypes';
 import { uid } from '../../act';
+import { COPY } from '../../../config/copy';
 
 export const QUOTE_CHARS = 240;
 export const MAX_NOTE_MS = 600_000;
@@ -60,10 +61,10 @@ export function isMuted(muted: Record<string, number> | undefined, key: string, 
 /** Rookery entries minus muted chats: a muted chat raises no inbox entry and counts in no badge (MESSAGING 3.16). */
 export const unmutedRook = (rook: RookEntry[], muted: Record<string, number> | undefined, now = Date.now()): RookEntry[] => rook.filter((r) => !isMuted(muted, `${r.sp}/${r.ch}`, now));
 export const MUTE_CHOICES: { label: string; ms: number }[] = [
-  { label: '1 hour', ms: 3_600_000 }, { label: '8 hours', ms: 8 * 3_600_000 }, { label: '1 week', ms: 7 * 86_400_000 }, { label: 'Until I turn it on', ms: -1 },
+  { get label() { return COPY.ui.stateMsgs.messaging.muteHour; }, ms: 3_600_000 }, { get label() { return COPY.ui.stateMsgs.messaging.muteHours8; }, ms: 8 * 3_600_000 }, { get label() { return COPY.ui.stateMsgs.messaging.muteWeek; }, ms: 7 * 86_400_000 }, { get label() { return COPY.ui.stateMsgs.messaging.muteForever; }, ms: -1 },
 ];
 export const TTL_CHOICES: { label: string; secs: number }[] = [
-  { label: 'Off', secs: 0 }, { label: '1 hour', secs: 3600 }, { label: '1 day', secs: 86_400 }, { label: '7 days', secs: 604_800 }, { label: '30 days', secs: 2_592_000 },
+  { get label() { return COPY.ui.stateMsgs.messaging.ttlOff; }, secs: 0 }, { get label() { return COPY.ui.stateMsgs.messaging.muteHour; }, secs: 3600 }, { get label() { return COPY.ui.stateMsgs.messaging.ttlDay; }, secs: 86_400 }, { get label() { return COPY.ui.stateMsgs.messaging.ttlDays7; }, secs: 604_800 }, { get label() { return COPY.ui.stateMsgs.messaging.ttlDays30; }, secs: 2_592_000 },
 ];
 
 /** An older page goes before the loaded ones; ids already held (a racing or repeated page) are not added twice. */

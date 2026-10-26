@@ -20,6 +20,7 @@ import { shellVm } from './vm/shell';
 import { skeinVm } from './vm/skein';
 import { hasSection } from './selectors';
 import { roomOf } from './selectors';
+import { COPY } from '../config/copy';
 
 export type { VmProps } from './vm/context';
 
@@ -36,8 +37,8 @@ export function selectViewModel(s: AppStore, seed: Seed, props: VmProps) {
   const ok = hasSection(x.sp, s.section);
   return {
     ready: true as const, ic: x.ic, icS: x.icS, icL: x.icL, isDark, isLight: !isDark,
-    themeIcon: isDark ? x.I('sun', 18) : x.I('moon', 18), themeLabel: isDark ? 'Light' : 'Dark', toggleTheme: s.toggleTheme,
-    me: { name: me?.name ?? '', initials: me?.initials ?? '', status: s.call ? `In ${roomOf(seed, s.call.space)?.name ?? ''}` : 'Around' },
+    themeIcon: isDark ? x.I('sun', 18) : x.I('moon', 18), themeLabel: isDark ? COPY.ui.stateMsgs.hud.themeLight : COPY.ui.stateMsgs.hud.themeDark, toggleTheme: s.toggleTheme,
+    me: { name: me?.name ?? '', initials: me?.initials ?? '', status: s.call ? COPY.ui.stateMsgs.hud.statusIn(roomOf(seed, s.call.space)?.name ?? '') : COPY.ui.stateMsgs.hud.statusAround },
     ...chat, ...hearth, ...feed, ...board, ...skein, ...paletteVm(x), ...toastVm(x), ...layoutVm(x, chat, hearth),
     mountRef, overlayRef,
     ...shell, ...hudVm(x, door), ...pagesVm(x, ok), ...mediaVm(x),
