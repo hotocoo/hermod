@@ -11,6 +11,7 @@ use std::time::Duration;
 use hermod_core::api::InviteOptions;
 use hermod_core::event::Role;
 use hermod_core::ids::{self, SpaceId, UserId};
+use hermod_core::textdiff;
 use hermod_core::{BlobRef, Core, EventBody, ProfileInput, SignedEvent};
 use serde_json::{Value, json};
 
@@ -370,6 +371,20 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let d = dest.clone();
             blk(&live, move |c| write_blob(c, &hash, &d)).await?;
             Ok(json!(dest.to_string_lossy()))
+        }
+        "diff_blobs" => {
+            let (from, to) = (opt_str(a, "from"), opt_str(a, "to"));
+            for h in from.iter().chain(to.iter()) {
+                if !blob::is_hash(h) {
+                    return Err("invalid blob hash".into());
+                }
+                blob::ensure_local(ctx, h).await?;
+            }
+            let d = blk(&live, move |c| {
+                textdiff::diff_blobs(c.blobs(), from.as_deref(), to.as_deref()).map_err(e)
+            })
+            .await?;
+            serde_json::to_value(d).map_err(e)
         }
         "save_file" => save_bytes(ctx, a, bytes_arg(a, "bytes")?).await,
 

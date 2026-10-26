@@ -1,5 +1,5 @@
 import type {
-  AuditRow, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, InviteOptions,
+  AuditRow, BlobDiff, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, InviteOptions,
   InviteOut, InviteRecord, LegalStatus, Member, NodeSettings, NodeSettingsView, NodeStatus, NotifySettings, OutboxStatus,
   PickOptions, ProfileInput, Role, SearchHit, SearchOptions, SpaceSummary, StorageUsage, UpdateInfo,
 } from './types';
@@ -34,6 +34,8 @@ export interface Bridge {
   /** Native file picker (Tauri only); resolves to paths for `blobPut`, or null when cancelled. */
   pickFiles(opts?: PickOptions): Promise<string[] | null>;
   blobSaveAs(hash: string, suggestedName: string): Promise<string | null>;
+  /** Line hunks between two stored blobs; a null side is an empty file (added or removed). */
+  diffBlobs(from: string | null, to: string | null): Promise<BlobDiff>;
   saveFile(suggestedName: string, bytes: Uint8Array): Promise<string | null>;
 
   nodeStatus(): Promise<NodeStatus>;
@@ -147,6 +149,7 @@ export function createBridge(t: Transport): Bridge {
     blobPutBytes: (name, bytes) => bytesCall('blob_put_bytes', { name }, bytes),
     pickFiles: (opts = {}) => call('pick_files', { multiple: !!opts.multiple, accept: opts.accept ?? [] }),
     blobSaveAs: (hash, suggestedName) => call('blob_save_as', { hash, suggestedName }),
+    diffBlobs: (from, to) => call('diff_blobs', { from, to }),
     saveFile: (suggestedName, bytes) => bytesCall('save_file', { suggestedName }, bytes),
     nodeStatus: () => call('node_status'),
     nodeSettingsGet: () => call('node_settings_get'),

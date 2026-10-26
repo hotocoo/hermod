@@ -6,7 +6,7 @@ import { personOf } from '../selectors';
 import type { Ctx } from './context';
 import { ACCENT, ACCENT_700, TEXT, mixAccent, mixText, fgOf } from './css';
 
-const diffLineVm = (l: DiffLine, k: number, file: SkeinFile) => ({
+export const diffLineVm = (l: DiffLine, k: number, file: Pick<SkeinFile, 'kind'>) => ({
   s: l.s || ' ', mark: l.t === ' ' ? '' : l.t, n: k + 1,
   bg: l.t === '+' ? mixAccent(14) : (l.t === '-' ? mixText(7) : 'transparent'), fg: l.t === '-' ? mixText(55) : TEXT,
   strike: l.t === '-' && file.kind === 'doc' ? 'line-through' : 'none', markFg: l.t === '+' ? ACCENT_700 : mixText(50),
@@ -21,6 +21,9 @@ export function skeinVm(x: Ctx) {
   const snaps = sk.snaps.filter((q) => lineSel === 'all' || q.line === lineSel);
   const sel = sk.snaps.find((q) => q.id === selId) ?? sk.snaps[0];
   const mainId = sk.lines[0].id;
+  // `parent` is the parent seal's short prefix (empty for a root snapshot).
+  const parentSnap = sel && sel.parent ? sk.snaps.find((q) => q.seal.startsWith(sel.parent)) : undefined;
+  const parentFiles = new Map((parentSnap?.files ?? []).map((f) => [f.path, f]));
   const onSel = (id: string) => !!sel && id === sel.id;
   const weavable = sk.lines.filter((l) => l.ahead).map((l) => ({
     id: l.id, name: l.name, by: l.by ? firstName(personOf(seed, l.by).name) : '', onWeave: () => { void s.weave(s.space, l.id); },
@@ -48,6 +51,7 @@ export function skeinVm(x: Ctx) {
       cliWeave: `skein weave ${(sk.lines.find((l) => l.ahead) ?? { id: mainId }).id} --into ${mainId}`,
       adds: sel.files.reduce((a, f) => a + f.adds, 0), dels: sel.files.reduce((a, f) => a + f.dels, 0), fileCount: sel.files.length, noFiles: sel.files.length === 0,
       files: sel.files.map((f) => ({
+        fromHash: parentFiles.get(f.path)?.blob?.hash ?? null, toHash: f.blob?.hash ?? null,
         path: f.path, kind: f.kind, adds: f.adds, dels: f.dels, isSwatch: f.kind === 'swatch', isCode: f.kind === 'code' || f.kind === 'doc', isAudio: f.kind === 'audio', isDoc: f.kind === 'doc',
         kindLabel: SKEIN_FILE_KIND_LABEL[f.kind], mono: f.kind === 'code' ? MONO_FONT : 'var(--font-body)',
         swatches: (f.swatches ?? []).map((w) => ({ n: w.n, from: w.from, to: w.to })), audio: f.audio,

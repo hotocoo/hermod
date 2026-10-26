@@ -4,6 +4,10 @@
  */
 
 export interface BlobRef { hash: string; size: number; name: string; mime: string }
+/** `diff_blobs` result: line hunks (1-based starts, row `t` is '+', '-' or ' '), or why there are none. */
+export interface DiffRow { t: string; s: string }
+export interface DiffHunk { old_start: number; new_start: number; rows: DiffRow[] }
+export type BlobDiff = { state: 'text'; hunks: DiffHunk[] } | { state: 'binary' } | { state: 'too_large' };
 
 export type Role = 'owner' | 'admin' | 'member' | 'guest';
 export type SpaceKind = 'Team' | 'Community' | 'Friends';
