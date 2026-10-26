@@ -229,8 +229,14 @@ async fn spawn_keyed(cfg: NodeConfig, key: [u8; 32]) -> Peer {
     Peer { h, store, events }
 }
 
+/// Ceiling for one network step (dial, gossip hop, backfill, blob round). Alone these take
+/// milliseconds, but `cargo test --workspace` runs every test binary at once and a loaded
+/// runner starves the swarm's IO tasks: measured a backfill crossing 20 s under that load
+/// while passing in 0.2 s alone. The ceiling only bounds a real hang, so keep it generous.
+const WAIT_TIMEOUT: Duration = Duration::from_secs(90);
+
 async fn within<F: Future>(what: &str, f: F) -> F::Output {
-    tokio::time::timeout(Duration::from_secs(20), f)
+    tokio::time::timeout(WAIT_TIMEOUT, f)
         .await
         .unwrap_or_else(|_| panic!("timed out: {what}"))
 }
