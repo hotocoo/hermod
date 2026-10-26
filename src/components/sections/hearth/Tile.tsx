@@ -18,7 +18,7 @@ export function Tile({ t, micOff }: { t: TileData; micOff: ReactNode }) {
   const el = useRef<HTMLVideoElement>(null);
   useEffect(() => { if (el.current) el.current.srcObject = stream; }, [stream]);
   return (
-    <div data-testid="tile" data-user={t.id} data-speaking={t.speaking} data-muted={t.muted} data-cam={t.cam} data-share={t.share} data-hand={hand} data-quality={poor ? 'poor' : undefined} className={`${s.tile} ${t.share ? s.tileShare : ''}`} style={{ boxShadow: t.glow, animation: t.anim }}>
+    <div data-testid="tile" data-user={t.id} data-speaking={t.speaking} data-muted={t.muted} data-cam={t.cam} data-share={t.share} data-hand={hand} data-react={react} data-quality={poor ? 'poor' : undefined} className={`${s.tile} ${t.share ? s.tileShare : ''}`} style={{ boxShadow: t.glow, animation: t.anim }}>
       <video ref={el} autoPlay playsInline muted={t.isMe} className={live ? (t.share ? s.screen : s.video) : s.videoHidden} aria-label={live ? `${t.name} ${t.share ? 'screen' : 'camera'}` : undefined} />
       {live && <div className={s.camTag}><span className={s.camLabel}>{t.label}</span></div>}
       {t.noCam && (

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, twoUsers, sharedSpace, enterSection, say, toIsland, unique } from './fixtures';
+import { test, expect, twoUsers, sharedSpace, enterSection, expectInside, expectOnIsland, panel, say, toIsland, unique } from './fixtures';
 import { freshDevhosts } from './devhosts';
 
 /** Every spec file starts on three empty devhosts, so no spec depends on state a former one left. */
@@ -28,4 +28,52 @@ test('a message posted by B in another Space brings A a raven letter', async () 
   const letter = a.locator('[data-obstacle]').filter({ hasText: 'A raven from' });
   await expect(letter).toContainText('Bo Tester', { timeout: 30_000 });
   await expect(letter).toContainText('raven mail for Ada');
+});
+
+const letterOn = (p: Page) => p.locator('[data-obstacle]').filter({ hasText: 'A raven from' });
+const goHome = (p: Page) => p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: 'Home' }).click();
+/** B posts while A is on the Home island; resolves once A's letter for it is up (letters fade after TIMING.letterMs, so act at once). */
+async function letterFor(text: string) {
+  await say(b, text);
+  await expect(letterOn(a)).toContainText(text, { timeout: 30_000 });
+}
+
+// R-003: the letter overlay's two buttons. Dismiss only closes it; Read opens the chat the raven came from.
+test('a letter is dismissed, and the next one is read straight into its chat', async () => {
+  await letterFor(unique('dismiss me'));
+  await letterOn(a).getByRole('button', { name: 'Dismiss' }).click();
+  await expect(letterOn(a)).toBeHidden();
+  await expectOnIsland(a); // nothing opened
+
+  const text = unique('read me, Ada');
+  await letterFor(text);
+  await letterOn(a).getByRole('button', { name: 'Read' }).click();
+  await expect(letterOn(a)).toBeHidden();
+  await expectInside(a);
+  await expect(panel(a).getByText(text)).toBeVisible({ timeout: 30_000 });
+});
+
+// R-004: the rookery button counts unread ravens, the drawer lists them, "Mark all as read" clears the count, an entry opens its chat.
+test('the rookery lists what the ravens brought and marks it all read', async () => {
+  await toIsland(a);
+  await goHome(a);
+  const text = unique('rookery note');
+  await letterFor(text);
+  await letterOn(a).getByRole('button', { name: 'Dismiss' }).click();
+
+  const rookBtn = a.getByRole('button', { name: /^Rookery, \d+ new$/ }).first();
+  await expect(rookBtn).toHaveAccessibleName(/^Rookery, [1-9]\d* new$/, { timeout: 30_000 });
+  await rookBtn.click();
+  const drawer = a.getByRole('dialog', { name: 'Rookery' });
+  const entry = drawer.getByRole('button').filter({ hasText: text });
+  await expect(entry).toContainText('Bo Tester');
+  await drawer.getByRole('button', { name: 'Mark all as read' }).click();
+  await expect(drawer.getByRole('button', { name: 'Mark all as read' })).toBeHidden({ timeout: 30_000 });
+  await expect(rookBtn).toHaveAccessibleName('Rookery, 0 new');
+  await expect(entry).toBeVisible(); // read entries stay listed
+
+  await entry.click();
+  await expect(drawer).toBeHidden();
+  await expectInside(a);
+  await expect(panel(a).getByText(text)).toBeVisible({ timeout: 30_000 });
 });

@@ -1144,6 +1144,54 @@ fn unknown_events_and_orphans_are_ignored() {
 }
 
 #[test]
+fn doc_block_update_and_delete_edit_an_existing_doc() {
+    let (_, me) = user();
+    let (_, bea) = user();
+    let sid = SpaceId::random();
+    let mut l = Log::new();
+    let t = |mins: i64| NOW - mins * MIN;
+    let block = |op, id: &str, k: &str, text: &str| EventBody::DocBlock {
+        doc_id: "d".into(),
+        op,
+        block_id: id.into(),
+        block: (!k.is_empty() || !text.is_empty()).then(|| DocBlockIn {
+            k: k.into(),
+            text: text.into(),
+            done: None,
+        }),
+        after: None,
+    };
+    l.push(&me, t(40), space_create("Kiln", &["board"]));
+    l.push(&me, t(39), invite());
+    l.push(&bea, t(38), join());
+    l.push(
+        &me,
+        t(30),
+        EventBody::DocCreate {
+            doc_id: "d".into(),
+            title: "Kiln manual".into(),
+            kicker: "notes".into(),
+        },
+    );
+    l.push(&me, t(29), block(DocOp::Insert, "a", "p", "first draft"));
+    l.push(&me, t(28), block(DocOp::Insert, "b", "p", "goes away"));
+    l.push(&me, t(27), block(DocOp::Insert, "c", "p", "stays"));
+    // Another member edits the first line in place and removes the second.
+    l.push(&bea, t(26), block(DocOp::Update, "a", "", "final words"));
+    l.push(&bea, t(25), block(DocOp::Delete, "b", "", ""));
+    let snap = project(&ctx(me), &[l.input(sid, "Kiln", "Team", false)]);
+    let doc = &snap.collections.docs[0];
+    assert_eq!(
+        doc.blocks
+            .iter()
+            .map(|b| (b.id.as_deref(), b.k.as_str(), b.text.as_str()))
+            .collect::<Vec<_>>(),
+        vec![(Some("a"), "p", "final words"), (Some("c"), "p", "stays")],
+        "update keeps the kind when none is given; delete removes only that block"
+    );
+}
+
+#[test]
 fn empty_log_has_empty_collections() {
     let (_, me) = user();
     let snap = project(&ctx(me), &[]);

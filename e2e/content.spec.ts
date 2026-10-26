@@ -247,6 +247,27 @@ test.describe('docs (V-021..V-024)', () => {
       await expect.poll(() => values(p), sync).toEqual(expect.arrayContaining([todo, fromA, fromB]));
     }
   });
+
+  test('V-027: B edits A\'s line in place and A removes a line; both peers agree', async () => {
+    const paragraphs = (p: Page) => p.getByRole('textbox', { name: 'Paragraph' });
+    const indexOf = async (p: Page, text: string) => {
+      const i = (await paragraphs(p).evaluateAll((els) => els.map((e) => (e as HTMLTextAreaElement).value))).indexOf(text);
+      expect(i, `"${text}" is a paragraph`).toBeGreaterThanOrEqual(0);
+      return i;
+    };
+    const edited = unique('B reworded this');
+    const onB = paragraphs(b).nth(await indexOf(b, fromA));
+    await onB.fill(edited);
+    await onB.blur();
+    for (const p of [a, b]) await expect.poll(() => values(p), sync).toEqual(expect.arrayContaining([edited]));
+    for (const p of [a, b]) await expect.poll(() => values(p), sync).not.toEqual(expect.arrayContaining([fromA]));
+
+    await btn(a, 'Remove paragraph').nth(await indexOf(a, fromB)).click();
+    for (const p of [a, b]) {
+      await expect.poll(() => values(p), sync).not.toEqual(expect.arrayContaining([fromB]));
+      await expect.poll(() => values(p), sync).toEqual(expect.arrayContaining([todo, edited]));
+    }
+  });
 });
 
 test.describe('calendar (V-028..V-030)', () => {
