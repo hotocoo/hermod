@@ -6,13 +6,13 @@
 .blurb{margin:2px 0 0;font-size:13px;font-style:italic;color:color-mix(in srgb,var(--color-text) 62%,transparent)}
 .vocab{display:flex;border:1px solid var(--color-divider);border-radius:6px;overflow:hidden;font-size:13px}
 .vocabBtn{padding:7px 14px;border:0;background:transparent}
-.vocabBtn+.vocabBtn{border-left:1px solid var(--color-divider)}
+.vocabBtn+.vocabBtn{border-inline-start:1px solid var(--color-divider)}
 .body{flex:1;min-height:0;display:grid;grid-template-columns:300px minmax(0,1fr)}
-.left{min-height:0;overflow:auto;padding:18px 20px 24px 28px;border-right:1px solid var(--color-divider)}
+.left{min-height:0;overflow:auto;padding:18px 20px 24px 28px;border-inline-end:1px solid var(--color-divider)}
 .label{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 55%,transparent)}
 .linesLabel{margin-bottom:8px}
 .ledgerLabel{margin:22px 0 6px}
-.line{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border:0;border-radius:6px;text-align:left}
+.line{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border:0;border-radius:6px;text-align:start}
 .line:hover{background:color-mix(in srgb,var(--color-text) 5%,transparent)}
 .lineIcon{opacity:.7}
 .lineMain{flex:1;min-width:0}
@@ -26,11 +26,11 @@
 .weaveName{font-weight:600}
 .weaveBtn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--color-accent);border-radius:6px;background:transparent;color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:14px}
 .weaveBtn:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
-.snap{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;width:100%;padding:0 8px 0 4px;border:0;border-radius:6px;text-align:left}
+.snap{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;width:100%;padding:0 8px 0 4px;border:0;border-radius:6px;text-align:start}
 .snap:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
 .rail{position:relative;align-self:stretch}
-.railLine{position:absolute;left:8px;top:0;bottom:0;width:1px;background:var(--color-divider)}
-.dot{position:absolute;left:3px;top:16px;width:9px;height:9px;border-radius:50%;border:1.5px solid;transition:background 240ms ease}
+.railLine{position:absolute;inset-inline-start:8px;top:0;bottom:0;width:1px;background:var(--color-divider)}
+.dot{position:absolute;inset-inline-start:3px;top:16px;width:9px;height:9px;border-radius:50%;border:1.5px solid;transition:background 240ms ease}
 .snapBody{padding:10px 0}
 .snapTitle{display:block;font-family:var(--font-heading);font-weight:600;font-size:16px;line-height:1.25}
 .snapMeta{display:block;font-size:11px;margin-top:2px;color:color-mix(in srgb,var(--color-text) 58%,transparent)}
@@ -63,7 +63,7 @@
 .swatchHex{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:color-mix(in srgb,var(--color-text) 55%,transparent)}
 .code{padding:6px 0}
 .diffLine{display:grid;grid-template-columns:40px 18px 1fr;font-size:13px;line-height:1.75}
-.lnNum{text-align:right;padding-right:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:color-mix(in srgb,var(--color-text) 38%,transparent)}
+.lnNum{text-align:end;padding-inline-end:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:color-mix(in srgb,var(--color-text) 38%,transparent)}
 .lnMark{font-family:ui-monospace,Menlo,monospace}
 .lnText{white-space:pre-wrap}
 .audio{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}

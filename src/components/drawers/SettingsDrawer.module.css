@@ -7,7 +7,7 @@
   border: 0;
   border-top: 1px solid var(--color-divider);
   background: transparent;
-  text-align: left;
+  text-align: start;
 }
 
 .rowText {
@@ -52,7 +52,7 @@
 .switchKnob {
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 16px;
   height: 16px;
   border-radius: 50%;

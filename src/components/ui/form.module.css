@@ -10,7 +10,7 @@
 .danger { color: #a2352b; border-color: #a2352b; }
 .danger:hover { background: color-mix(in srgb, #a2352b 10%, transparent); }
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.table th, .table td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--color-divider); }
+.table th, .table td { text-align: start; padding: 7px 10px; border-bottom: 1px solid var(--color-divider); }
 .table th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--color-accent-700); }
 .scroll { max-height: min(46dvh, 420px); overflow: auto; }
 .mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; word-break: break-all; }

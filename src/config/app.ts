@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   /** Appearance overrides (text size multiplier, motion: system | reduce). */
   textScale: 'hermodr.textScale',
   motion: 'hermodr.motion',
+  /** W-007: chosen UI locale id (see src/i18n/locale.ts). */
+  locale: 'hermodr.locale',
 } as const;
 
 /** Pseudo-author the core uses for system messages (meeting wrap-up, weave notices). Defined by the contract, not user data. */

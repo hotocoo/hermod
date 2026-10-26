@@ -1,5 +1,6 @@
 /** Small pure formatting and motion helpers shared by state and view model. */
 import { LIMITS } from '../config/app';
+import { getLocale, intlTag } from '../i18n/locale';
 
 export const clone = <T,>(o: T): T => JSON.parse(JSON.stringify(o));
 export const pad = (n: number) => String(n).padStart(2, '0');
@@ -18,9 +19,14 @@ export const isIsoDate = (s: string) => {
   const d = new Date(`${s}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 };
-export const num = (n: number) => n.toLocaleString('en');
-/** "1 card", "3 cards"; pass `many` for irregular plurals. */
-export const count = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
+/** Locale-aware number (digits and grouping follow the active UI locale). */
+export const num = (n: number) => n.toLocaleString(intlTag(getLocale()));
+/** Locale-aware date and time; `opts` picks the fields (defaults to a medium date). */
+export const fmtDate = (d: Date | number, opts: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }) =>
+  new Intl.DateTimeFormat(intlTag(getLocale()), opts).format(d);
+export const fmtTime = (d: Date | number) => fmtDate(d, { timeStyle: 'short' });
+/** "1 card", "3 cards"; pass `many` for irregular plurals. English-only nouns: catalog plurals (t) are the multi-language path. */
+export const count = (n: number, one: string, many = `${one}s`) => `${num(n)} ${new Intl.PluralRules(intlTag(getLocale())).select(n) === 'one' ? one : many}`;
 export const firstName = (name: string) => name.split(' ')[0];
 /** W-006 override: 'system' follows the OS, 'reduce' and 'full' force it. Set by the sky slice. */
 let motionOverride: 'system' | 'reduce' | 'full' = 'system';

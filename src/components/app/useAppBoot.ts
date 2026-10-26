@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 
 import { getBridge } from '@/lib/bridge';
+import { initLocale } from '@/i18n';
 import { getMount, getOverlay } from '@/state/domRefs';
 import { startBridgeSync } from '@/state/bridgeSync';
 import { startPresence } from '@/state/presenceSend';
@@ -42,6 +43,7 @@ export function useAppBoot(): void {
 
   useEffect(() => {
     // Deep links can arrive while a gate is still open, so listen from the very start.
+    initLocale();
     const bridge = getBridge();
     const off = bridge.on('deeplink', (e) => useAppStore.getState().onDeeplink(e.code));
     // A cold-start link fired before this listener existed; Rust kept it for this one read.

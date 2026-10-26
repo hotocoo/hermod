@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { STORAGE_KEYS } from '@/config/app';
+import { COPY } from '@/config/copy';
+import { LOCALES, setLocale, useLocale } from '@/i18n';
 import { errorMessage, getBridge, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
 import { wallMs } from '@/lib/clock';
 import { copyText } from '@/lib/clipboard';
@@ -110,6 +112,7 @@ function Notifications() {
 
 function Appearance() {
   const s = useAppStore();
+  const locale = useLocale();
   const [scale, setScale] = useState(() => Number(readString(STORAGE_KEYS.textScale)) || 100);
   const set = (p: number) => { setScale(p); writeString(STORAGE_KEYS.textScale, String(p)); applyTextScale(p); };
   return (
@@ -129,6 +132,12 @@ function Appearance() {
         <label className={f.label} htmlFor="txt-scale">Text size</label>
         <select id="txt-scale" className="input" value={scale} onChange={(e) => set(Number(e.target.value))}>
           {SCALES.map((p) => <option key={p} value={p}>{p}%</option>)}
+        </select>
+      </div>
+      <div className={f.field} style={{ marginTop: 12 }}>
+        <label className={f.label} htmlFor="ui-locale">{COPY.language}</label>
+        <select id="ui-locale" className="input" value={locale} onChange={(e) => setLocale(e.target.value)}>
+          {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
       </div>
       <MapStyle />

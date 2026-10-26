@@ -1,7 +1,7 @@
 .root {
   position: absolute;
-  left: var(--hud-left);
-  right: 24px;
+  inset-inline-start: var(--hud-left);
+  inset-inline-end: 24px;
   top: 22px;
   z-index: 30;
   display: flex;
@@ -117,7 +117,7 @@
 .badge {
   position: absolute;
   top: -4px;
-  right: -4px;
+  inset-inline-end: -4px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
@@ -168,7 +168,7 @@
 
 .avatarDot {
   position: absolute;
-  right: -1px;
+  inset-inline-end: -1px;
   bottom: -1px;
   width: 10px;
   height: 10px;
@@ -180,6 +180,6 @@
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Stacked layout: the header sits on its own row above the top bar. */
-@media (max-width: 960px) { .root { top: 60px; right: 12px; } }
+@media (max-width: 960px) { .root { top: 60px; inset-inline-end: 12px; } }
 /* Phones: icon-only search and clock so the pills fit in two rows. */
 @media (max-width: 640px) { .searchLabel, .kbd, .period { display: none; } }

@@ -1,8 +1,8 @@
-.row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 0; border: 0; border-top: 1px solid var(--color-divider); background: transparent; text-align: left; }
+.row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 0; border: 0; border-top: 1px solid var(--color-divider); background: transparent; text-align: start; }
 .text { flex: 1; }
 .label { display: block; font-size: 14px; }
 .sub { display: block; font-size: 12px; color: color-mix(in srgb, var(--color-text) 66%, transparent); }
 .track { position: relative; flex: none; width: 40px; height: 22px; border-radius: 11px; border: 1px solid var(--color-divider); transition: background 240ms ease, border-color 240ms ease; }
-.knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--color-neutral-500); transition: transform 240ms ease, background 240ms ease; }
+.knob { position: absolute; top: 2px; inset-inline-start: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--color-neutral-500); transition: transform 240ms ease, background 240ms ease; }
 .on { background: var(--color-accent-100); border-color: var(--color-accent); }
 .on .knob { background: var(--color-accent); transform: translateX(18px); }

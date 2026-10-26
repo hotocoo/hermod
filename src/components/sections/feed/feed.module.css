@@ -6,14 +6,14 @@
 .title{margin:4px 0 0;font-family:var(--font-heading);font-weight:400;font-size:30px}
 .tabs{display:flex;border:1px solid var(--color-divider);border-radius:6px;overflow:hidden;font-size:13px}
 .tab{padding:6px 12px}
-.tab+.tab{border-left:1px solid var(--color-divider)}
+.tab+.tab{border-inline-start:1px solid var(--color-divider)}
 .tabOn{box-shadow:inset 0 0 0 1px var(--color-accent);color:var(--color-accent-700)}
 .cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start}
 .col{display:flex;flex-direction:column;gap:26px}
 .media{position:relative;border:6px solid var(--color-surface);outline:1px solid var(--color-divider);border-radius:2px;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-text) 7%,transparent) 0 1px,transparent 1px 9px),var(--color-neutral-200);display:flex;align-items:flex-end;padding:10px;box-sizing:border-box;transition:transform 420ms cubic-bezier(.22,1,.36,1)}
 .media:hover{transform:translateY(-3px)}
 .label{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:color-mix(in srgb,var(--color-text) 60%,transparent)}
-.dur{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:color-mix(in srgb,var(--color-bg) 85%,transparent);font-size:11px;font-variant-numeric:tabular-nums}
+.dur{position:absolute;top:10px;inset-inline-end:10px;display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;background:color-mix(in srgb,var(--color-bg) 85%,transparent);font-size:11px;font-variant-numeric:tabular-nums}
 .note{padding:20px;border:1px solid var(--color-divider);border-radius:4px}
 .quote{margin:0;font-family:var(--font-heading);font-style:italic;font-size:20px;line-height:1.35;text-wrap:pretty}
 .cardTitle{margin:12px 0 4px;font-family:var(--font-heading);font-weight:600;font-size:18px;line-height:1.2}
@@ -29,7 +29,7 @@
 .commentToggle:hover,.commentToggle[aria-expanded="true"]{color:var(--color-accent-700)}
 .thread{margin-top:6px;display:flex;flex-direction:column;gap:8px}
 .comments{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:13px}
-.commentT{margin-left:6px;font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent)}
+.commentT{margin-inline-start:6px;font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent)}
 .commentForm{display:flex;gap:8px;align-items:center}
 .commentInput{flex:1;min-width:0;padding:5px 8px;border:1px solid var(--color-divider);border-radius:4px;background:transparent;font-size:13px;color:inherit}
 .newPost{display:inline-flex;align-items:center;gap:6px}
