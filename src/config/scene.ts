@@ -449,3 +449,10 @@ export const LIGHT_FX = {
 
 /** A cloud within `halfAngle` (rad) of the camera azimuth sits between it and the island: it shrinks away at `rate` (1/s), never below `minScale`. */
 export const CLOUDS = { cameraSide: { halfAngle: 1.15, rate: 2.5, minScale: 0.001 } } as const;
+
+/** Villager rig, in figure units (total height about 1.07, feet at y 0). Standing hip, shoulder pivot (outboard of the torso so the arm never sinks into the chest), limb lengths, torso lathe profile as [radius, y]; the walk swing adds knee flex on the backward leg; seated: thigh forward by `sitHip`, knee down by `sitKnee`, soles on the floor (seatHeight is the underside of the thigh above it: knee height minus thigh radius, the height a bench must have). */
+export const FIGURE = {
+  hipY: 0.5, hipX: 0.065, thigh: 0.25, shin: 0.23, soleBelowAnkle: 0.02, shoulderX: 0.2, shoulderY: 0.83, shoulderSplay: 0.08, kneeFlex: 1.2,
+  torso: [[0, 0.46], [0.125, 0.46], [0.14, 0.54], [0.12, 0.66], [0.155, 0.77], [0.15, 0.82], [0.1, 0.855], [0.045, 0.875], [0, 0.875]] as readonly (readonly [number, number])[],
+  sitHip: Math.PI / 2, sitKnee: Math.PI / 2, seatHeight: 0.2, seatFloorY: 0.26, seatBreath: 0.01,
+} as const;

@@ -124,33 +124,80 @@ def depth(b): return 0 if b.parent is None else 1 + depth(b.parent)
 ORDER = sorted(pb, key=depth); LEVELS = {}
 for b in ORDER: LEVELS.setdefault(depth(b), []).append(b)
 REST = {b.name: b.bone.matrix_local.copy() for b in pb}
+AIM_TOL_DEG = 12.0       # build fails when an aimed limb ends further than this from its authored target (covers the oscillation amplitudes)
+SYNC_TOL = 1e-3          # bookkeeping matrix vs evaluated pose-bone matrix, armature units (m)
+ELBOW_MIDLINE_MIN = 0.04 # an elbow must stay at least this far on its own side of the body midline (m)
+KNEE_FORWARD_MIN = 0.12  # seated: the knee must lie at least this far in front of the hip (m)
+FLOOR_TOL = 0.025        # seated: lowest vertex of the deformed figure may sit this far off the floor (m)
+LIMB_END = {'upperarm01': 'lowerarm01', 'lowerarm01': 'wrist', 'upperleg01': 'lowerleg01', 'lowerleg01': 'foot'}  # joint -> next limb joint (the *01 bones' own Y axes do not run along the limb in this rig)
+def limb_end(name): base, _, sd = name.rpartition('.'); return LIMB_END[base] + '.' + sd
+def limb_vec(m, name):
+    """Posed limb direction of bone `name`: its head to the next limb joint's head, carried by the bone's current matrix (intermediate *02 bones are never posed, so they follow rigidly)."""
+    end = m @ (REST[name].inverted() @ REST[limb_end(name)]).translation
+    return (end - m.translation).normalized(), end
+AIMED = {}  # bone -> (target, actual direction, head, end) of the last pose_frame
 def pose_frame(acc, root):
     """Absolute pose per bone from the rest chain (own bookkeeping, no reliance on pose-bone matrix setters), then converted to local quaternions."""
-    M = {}
+    M = {}; AIMED.clear()
     for d in sorted(LEVELS):
         for b in LEVELS[d]:
             base_m = REST[b.name].copy() if b.parent is None else M[b.parent.name] @ (REST[b.parent.name].inverted() @ REST[b.name])
-            m = base_m; head = m.translation.copy()
+            m = base_m; head = m.translation.copy(); target = None
             for ax, deg in acc.get(b.name, []):
-                if ax == 'aim':  # swing the bone's long axis (local Y) onto a target direction given in armature axes
-                    cur = m.to_3x3().col[1].normalized(); R = cur.rotation_difference(mathutils.Vector(deg).normalized()).to_matrix().to_4x4()
+                if ax == 'aim':  # swing the LIMB vector (this joint to the next) onto a target direction given in armature axes
+                    target = mathutils.Vector(deg).normalized(); cur, _ = limb_vec(m, b.name); R = cur.rotation_difference(target).to_matrix().to_4x4()
                 else: R = mathutils.Matrix.Rotation(math.radians(deg), 4, ax)
                 m = mathutils.Matrix.Translation(head) @ R @ mathutils.Matrix.Translation(-head) @ m
             if b.name == 'root': m = mathutils.Matrix.Translation(root) @ m
             M[b.name] = m
+            if target is not None: act, end = limb_vec(m, b.name); AIMED[b.name] = (target, act, m.translation.copy(), end)
             rest_rel = REST[b.name] if b.parent is None else REST[b.parent.name].inverted() @ REST[b.name]
             parent_m = mathutils.Matrix.Identity(4) if b.parent is None else M[b.parent.name]
             local = (parent_m @ rest_rel).inverted() @ m if b.parent else REST[b.name].inverted() @ m
             b.rotation_quaternion = local.to_quaternion(); b.location = local.translation if b.parent is None else (0, 0, 0)
-def clip(name, base_pose, osc=(), root=(0, 0, 0)):
+    return M
+def lowest_z():
+    """Lowest vertex (armature-space z, before the export lift) of the deformed figure at the current pose."""
+    bpy.context.view_layer.update(); dg = bpy.context.evaluated_depsgraph_get(); lo = 1e9
+    for o, _ in parts:
+        oe = o.evaluated_get(dg); me = oe.to_mesh()
+        lo = min(lo, min((oe.matrix_world @ v.co).z for v in me.vertices)); oe.to_mesh_clear()
+    return lo
+def verify(name, M, seated, slack):
+    """Build-time anatomy check at a sampled frame: raises (fails the build) instead of shipping a broken pose."""
+    bpy.context.view_layer.update()
+    for b in pb:
+        err = max(abs(x) for r in (b.matrix - M[b.name]) for x in r)
+        if err > SYNC_TOL: raise RuntimeError(f'{name}: pose-bone {b.name} matrix differs from the bookkeeping by {err:.4f} (constraint or inherit mismatch)')
+    for bone, (tgt, act, _, _) in AIMED.items():
+        ang = math.degrees(tgt.angle(act))
+        if ang > AIM_TOL_DEG + slack.get(bone, 0): raise RuntimeError(f'{name}: {bone} limb points {ang:.1f} deg off its target {tuple(round(c, 2) for c in tgt)}')
+    for sd in 'LR':
+        ex = M['lowerarm01.' + sd].translation.x * side(sd)
+        if ex < ELBOW_MIDLINE_MIN: raise RuntimeError(f'{name}: elbow {sd} at {ex:.3f} m crosses the body midline')
+        if seated:
+            fwd = M['upperleg01.' + sd].translation.y - M['lowerleg01.' + sd].translation.y
+            if fwd < KNEE_FORWARD_MIN: raise RuntimeError(f'{name}: knee {sd} only {fwd:.3f} m in front of the hip')
+    if seated:
+        lo = lowest_z() + LIFT
+        if abs(lo) > FLOOR_TOL: raise RuntimeError(f'{name}: lowest vertex {lo:.3f} m off the floor (below it or floating)')
+def clip(name, base_pose, osc=(), root=(0, 0, 0), seated=False):
+    slack = {}  # an authored oscillation legitimately moves its bone off the target by up to its amplitude
+    for bone, ax, amp, cyc, ph in osc: slack[bone] = slack.get(bone, 0) + abs(amp)
     act = bpy.data.actions.new(name); rig.animation_data_create(); rig.animation_data.action = act
     for f in range(0, N + 1, 6):
         t = f / N * 2 * math.pi; acc = {}
         for bone, ax, deg in base_pose: acc.setdefault(bone, []).append((ax, deg))
         for bone, ax, amp, cyc, ph in osc: acc.setdefault(bone, []).append((ax, amp * math.sin(cyc * t + ph)))
-        pose_frame(acc, root)
+        M = pose_frame(acc, root)
+        if f in (0, N // 2): verify(f'{name}@{f}', M, seated, slack)
         for b in pb: b.keyframe_insert('rotation_quaternion', frame=f); b.keyframe_insert('location', frame=f)
     act.use_fake_user = True; return act
+def settle(base_pose):
+    """Root drop that puts the lowest vertex of the seated pose on the floor (feet flat), measured on the deformed mesh."""
+    acc = {}
+    for bone, ax, deg in base_pose: acc.setdefault(bone, []).append((ax, deg))
+    pose_frame(acc, (0, 0, 0)); return -LIFT - lowest_z()
 def side(s): return 1 if s == 'L' else -1
 DOWN = (0, 0, -1)
 def arms(up, fore, k=0.1): return [x for sd in 'LR' for x in ((f'upperarm01.{sd}', 'aim', (side(sd) * up[0], up[1], up[2])), (f'lowerarm01.{sd}', 'aim', (side(sd) * fore[0], fore[1], fore[2])))]
@@ -164,20 +211,20 @@ def secondary(amp=1.0):
             ('upperarm01.L', 'X', 0.8 * amp, 3, ph()), ('upperarm01.R', 'X', 0.8 * amp, 3, ph()), ('lowerarm01.L', 'X', 1.1 * amp, 3, ph()), ('lowerarm01.R', 'X', 1.1 * amp, 3, ph()), ('wrist.L', 'X', 1.5 * amp, 4, ph()), ('wrist.R', 'X', 1.5 * amp, 4, ph())]
 BREATH = secondary()
 SIT = [x for sd in 'LR' for x in ((f'upperleg01.{sd}', 'aim', (side(sd) * 0.08, -1, -0.03)), (f'lowerleg01.{sd}', 'aim', (side(sd) * 0.02, -0.03, -1)))]
-HEIGHT = max((base.matrix_world @ v.co).z for v in base.data.vertices) + LIFT; SEAT = 0.45; DROP = -(HEIGHT * 0.5 - SEAT); hip = HEIGHT * 0.5
+HEIGHT = max((base.matrix_world @ v.co).z for v in base.data.vertices) + LIFT; hip = HEIGHT * 0.5
+SITARMS = arms((0.12, -0.3, -1), (0.05, -1, -0.45)); DROP = settle(SIT + SITARMS)
 ALL = {}
 ALL['idle_stand'] = clip('idle_stand', ARMS, BREATH + [('pelvis.L', 'Z', 1.6, 1, 0.0), ('spine01', 'Z', -1.2, 1, 0.0), ('head', 'Y', 6, 1, 1.0)])
-SITARMS = arms((0.12, -0.3, -1), (0.05, -1, -0.45))
-ALL['idle_sit'] = clip('idle_sit', SIT + SITARMS, BREATH, (0, 0, DROP))
+ALL['idle_sit'] = clip('idle_sit', SIT + SITARMS, BREATH, (0, 0, DROP), True)
 READ = arms((0.12, -0.5, -0.85), (-0.05, -0.75, 0.55)) + [('head', 'X', 24)]
-ALL['idle_read'] = clip('idle_read', SIT + READ, BREATH + [('upperarm01.R', 'X', 1.5, 1, 1.0), ('head', 'X', 2.0, 2, 0.3)], (0, 0, DROP))
+ALL['idle_read'] = clip('idle_read', SIT + READ, BREATH + [('upperarm01.R', 'X', 1.5, 1, 1.0), ('head', 'X', 2.0, 2, 0.3)], (0, 0, DROP), True)
 WR = arms((0.12, -0.45, -0.9), (-0.1, -1, -0.35)) + [('head', 'X', 30), ('spine03', 'X', 6)]
-ALL['idle_write'] = clip('idle_write', SIT + WR, BREATH + [('wrist.R', 'Y', 9, 6, 0), ('wrist.R', 'X', 4, 3, 0.5), ('head', 'Y', 3, 2, 0.2), ('lowerarm01.R', 'X', 2.5, 3, 0)], (0, 0, DROP))
+ALL['idle_write'] = clip('idle_write', SIT + WR, BREATH + [('wrist.R', 'Y', 9, 6, 0), ('wrist.R', 'X', 4, 3, 0.5), ('head', 'Y', 3, 2, 0.2), ('lowerarm01.R', 'X', 2.5, 3, 0)], (0, 0, DROP), True)
 WARM = arms((0.1, -0.55, -0.85), (-0.05, -1, 0.1)) + [('spine03', 'X', 4), ('head', 'X', 5)]
 ALL['idle_warm'] = clip('idle_warm', WARM, BREATH + [('wrist.L', 'Y', 10, 4, 0), ('wrist.R', 'Y', -10, 4, 0)])
 SIP = arms((0.12, -0.3, -1), (0.05, -1, -0.45))
 SIP = [(b, a, d) for b, a, d in SIP if b != 'upperarm01.R' and b != 'lowerarm01.R'] + [('upperarm01.R', 'aim', (-0.12, -0.6, -0.8)), ('lowerarm01.R', 'aim', (0.1, -1, 0.1))]
-ALL['idle_sip'] = clip('idle_sip', SIT + SIP, BREATH + [('lowerarm01.R', 'X', -30, 1, -math.pi / 2), ('head', 'X', -6, 1, -math.pi / 2)], (0, 0, DROP))
+ALL['idle_sip'] = clip('idle_sip', SIT + SIP, BREATH + [('lowerarm01.R', 'X', -30, 1, -math.pi / 2), ('head', 'X', -6, 1, -math.pi / 2)], (0, 0, DROP), True)
 for tr in list(rig.animation_data.nla_tracks): rig.animation_data.nla_tracks.remove(tr)
 rig.animation_data.action = ALL['idle_stand']
 
