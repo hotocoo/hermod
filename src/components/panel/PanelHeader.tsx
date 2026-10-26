@@ -12,7 +12,7 @@ export function PanelHeader({ vm }: VmProps) {
       </div>
       <div role="tablist" className={s.tabs}>
         {vm.sections.map((sec) => (
-          <button key={sec.id} onClick={sec.onClick} title={`${sec.label} (⌥${sec.n})`} aria-label={sec.label} className={s.tab}
+          <button key={sec.id} role="tab" aria-selected={sec.active} onClick={sec.onClick} title={`${sec.label} (⌥${sec.n})`} aria-label={sec.label} className={s.tab}
             style={{ background: sec.tabBg, color: sec.color }}>{sec.iconEl}</button>
         ))}
       </div>

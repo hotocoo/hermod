@@ -148,7 +148,7 @@ export async function openPalette(page: Page): Promise<Locator> {
 
 /** Switches section from the panel header tabs (aria-label = section label). */
 export async function goTab(page: Page, label: string): Promise<void> {
-  await panel(page).getByRole('tablist').first().getByRole('button', { name: label }).click();
+  await panel(page).getByRole('tablist').first().getByRole('tab', { name: label }).click();
 }
 
 /** The toast bubble: role status, or alert for an error. Filter it with `{ hasText }`; the text sits beside a decorative glyph. */

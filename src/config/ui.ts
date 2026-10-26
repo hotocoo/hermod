@@ -68,7 +68,7 @@ export const MONO_FONT = 'ui-monospace, "SF Mono", Menlo, monospace';
 export const ROMAN = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii'] as const;
 export const TILE_COLS = { one: '1fr', two: 'repeat(2, minmax(0,1fr))', three: 'repeat(3, minmax(0,1fr))' } as const;
 
-export const SIGNPOST = { id: 'search', name: 'The Signpost', kicker: 'Find', sub: 'Search everything · ⌘K', aria: 'Search everything' } as const;
+export const SIGNPOST = { id: 'search', name: 'The Signpost', kicker: 'Find', sub: 'Search everything · ⌘K', aria: 'Find The Signpost Search everything · ⌘K' } as const;
 export const EMPTY_PLOT = { name: 'Empty plot', raise: 'Raise ' } as const;
 
 export const PALETTE_GROUPS = { spaces: 'Spaces', channels: 'Explore', rooms: 'Rooms', snapshots: 'Snapshots', tasks: 'Tasks', people: 'People', actions: 'Actions', matches: 'In your messages and documents' } as const;
