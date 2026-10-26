@@ -11,7 +11,6 @@ import { useAppStore } from '@/state/store';
 import { PresenceDot } from '@/components/ui/PresenceDot';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
-import { COPY } from '@/config/copy';
 import { InviteList } from './InviteList';
 import { EmptyNote } from '@/components/panel/EmptyStates';
 
