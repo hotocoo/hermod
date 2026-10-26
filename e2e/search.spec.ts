@@ -45,6 +45,8 @@ test('See all results opens the results page; kind chips filter it (S-002)', asy
   await expect(page.getByRole('button', { name: 'Docs', exact: true })).toHaveAttribute('aria-pressed', 'true');
   await expect(list.getByRole('button', { name: /in a message/ })).toHaveCount(0, sync);
   await expect(list.getByRole('button', { name: new RegExp(doc) })).toBeVisible();
+  await a.keyboard.press('Escape'); // the open results dialog would block the next test's walk to the chat
+  await expect(page).toHaveCount(0);
 });
 
 test('a doc hit jumps to the Docs tab with the doc selected (S-002)', async () => {
