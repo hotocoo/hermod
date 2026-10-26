@@ -21,7 +21,7 @@
 .subtitle {
   margin-top: 10px;
   font-style: italic;
-  font-size: 16px;
+  font-size: 1rem;
   color: color-mix(in srgb,var(--color-text) 80%,transparent);
   animation: hm-title 3200ms cubic-bezier(.22,1,.36,1) 200ms both;
 }

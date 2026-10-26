@@ -36,6 +36,12 @@ pub struct ReportInfo {
     pub target: String,
     pub reason: String,
     pub ts: i64,
+    /// `message` or `post`; empty when the target is gone or unknown.
+    pub target_kind: String,
+    pub target_by: String,
+    pub target_text: String,
+    /// Channel of a reported message, for jumping to it.
+    pub channel: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,10 +52,18 @@ pub struct SpaceReport {
     pub removed: bool,
     /// Highest key epoch announced by an authorized `space.rekey`.
     pub max_epoch: u32,
+    /// Proof-of-work bits a join must carry (0 = off).
+    pub join_pow_bits: u8,
     pub members: Vec<MemberInfo>,
     pub invites: Vec<InviteInfo>,
     pub audit: Vec<AuditEntry>,
     pub reports: Vec<ReportInfo>,
+    /// Linked devices per identity (hex device keys), revoked ones removed.
+    pub devices: std::collections::BTreeMap<String, Vec<String>>,
+    /// Authors seen signing two different events for one seq. Filled by the core from its store
+    /// (the fold never sees a fork: the lowest event id wins on every peer).
+    #[serde(default)]
+    pub equivocating: Vec<String>,
 }
 
 fn fold(input: &SpaceInput) -> SpaceState {
@@ -87,6 +101,7 @@ pub fn report(ctx: &ProjectionCtx, input: &SpaceInput) -> SpaceReport {
         my_role: s.role_of(&me),
         removed: s.banned.contains(&me),
         max_epoch: s.max_epoch,
+        join_pow_bits: s.join_pow_bits,
         members,
         invites: s
             .invites
@@ -106,14 +121,28 @@ pub fn report(ctx: &ProjectionCtx, input: &SpaceInput) -> SpaceReport {
         reports: s
             .reports
             .iter()
-            .map(|r| ReportInfo {
-                id: r.id.clone(),
-                by: r.by.clone(),
-                target: r.target.clone(),
-                reason: r.reason.clone(),
-                ts: r.ts,
+            .filter(|r| r.resolved.is_none())
+            .map(|r| {
+                let (kind, by, text, channel) = s.report_target(&r.target).unwrap_or_default();
+                ReportInfo {
+                    id: r.id.clone(),
+                    by: r.by.clone(),
+                    target: r.target.clone(),
+                    reason: r.reason.clone(),
+                    ts: r.ts,
+                    target_kind: kind.to_string(),
+                    target_by: by,
+                    target_text: text,
+                    channel,
+                }
             })
             .collect(),
+        devices: s
+            .devices
+            .iter()
+            .map(|(user, set)| (user.clone(), set.iter().cloned().collect()))
+            .collect(),
+        equivocating: Vec::new(),
     }
 }
 

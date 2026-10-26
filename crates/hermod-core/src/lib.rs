@@ -11,23 +11,30 @@ pub mod crypto;
 pub mod device;
 pub mod error;
 pub mod event;
+pub mod export;
 pub mod games;
 pub mod growth;
 pub mod identity;
 pub mod ids;
 pub mod invite;
+pub mod keyguard;
 pub mod keywrap;
 pub mod messaging;
 pub mod migrations;
 pub mod msgext;
+pub mod pow;
 pub mod projections;
 pub mod ratelimit;
+pub mod retention;
 pub mod search;
+pub mod snapdir;
 pub mod store;
+mod swap;
+pub mod textdiff;
 
 pub use api::{
-    Core, CoreConfig, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput, SpaceCreated,
-    SpaceSummary,
+    Core, CoreConfig, DeviceRow, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput,
+    SpaceCreated, SpaceSummary,
 };
 pub use error::{Error, Result};
 pub use event::{BlobRef, EventBody, Role, SignedEvent};

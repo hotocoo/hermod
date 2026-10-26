@@ -63,6 +63,9 @@ pub struct MsgExtra {
     pub expires: Option<i64>,
     pub everyone: bool,
     pub here: bool,
+    /// `@admins` / `@owners`, honoured only from authors who clear the channel's mention floor.
+    pub admins: bool,
+    pub owners: bool,
     pub viewed: BTreeSet<String>,
     pub preview_desc: String,
     pub preview_blob: Option<BlobRef>,
@@ -515,6 +518,8 @@ impl SpaceState {
                     expires: self.msgx.expiry(channel_id, ts, norm.ttl_secs),
                     everyone: allowed && has_mention(text, "everyone"),
                     here: allowed && has_mention(text, "here"),
+                    admins: allowed && has_mention(text, "admins"),
+                    owners: allowed && has_mention(text, "owners"),
                     viewed: BTreeSet::new(),
                     preview_desc: clip(
                         preview.as_ref().map_or("", |p| p.description.as_str()),
@@ -667,8 +672,9 @@ impl SpaceState {
                 pronouns,
             } => {
                 let p = self.msgx.profiles.entry(by.to_string()).or_default();
-                if banner.is_some() {
-                    p.banner = banner.clone();
+                // A malformed hash from a peer never projects (it is rendered into URLs).
+                if let Some(b) = banner.as_ref().filter(|b| b.has_valid_hash()) {
+                    p.banner = Some(b.clone());
                 }
                 if let Some(s) = status {
                     p.status = clip(s.trim(), MAX_STATUS);
@@ -794,12 +800,14 @@ impl SpaceState {
         }
     }
 
-    /// Drops expired and device-hidden messages so every view, count and index agrees.
-    pub fn prune(&mut self, now_ms: i64, hidden: &BTreeSet<String>) {
+    /// Drops expired, device-hidden and past-retention (`older_than`) messages so every view,
+    /// count and index agrees.
+    pub fn prune(&mut self, now_ms: i64, hidden: &BTreeSet<String>, older_than: Option<i64>) {
         let extras = &self.msgx.extras;
         for list in self.msgs.values_mut() {
             list.retain(|m| {
                 !hidden.contains(&m.id)
+                    && older_than.is_none_or(|cut| m.ts >= cut)
                     && extras
                         .get(&m.id)
                         .and_then(|x| x.expires)
@@ -975,6 +983,13 @@ pub struct MsgView {
     pub everyone: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub here: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub admins: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub owners: bool,
+    /// A group mention (@everyone, @here, @admins, @owners) that reaches the local user.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pings_me: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto: Option<AutoRef>,
     /// `open` or `archived` for thread roots.

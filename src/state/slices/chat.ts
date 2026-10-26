@@ -2,10 +2,11 @@ import type { StateCreator } from 'zustand';
 import { UPLOAD } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { errorMessage, getBridge, type BlobRef } from '../../lib/bridge';
+import { mentionsName } from '../../lib/messaging/mentions';
 import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
 import { omitKey, withKey } from '../helpers';
-import { chatKey, curSpace } from '../selectors';
+import { chatKey, curSpace, loadedMessages } from '../selectors';
 import type { AppStore, Attached, ChatSlice } from '../types';
 import { takeComposeExtras } from './messaging';
 
@@ -13,8 +14,7 @@ import { takeComposeExtras } from './messaging';
 export function mentionsIn(text: string, people: Record<string, { name: string }>): string[] {
   const ids: string[] = [];
   Object.keys(people).forEach((id) => {
-    const first = people[id].name.split(' ')[0];
-    if (first && new RegExp(`(^|\\s)@${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\W|$)`, 'i').test(text)) ids.push(id);
+    if (mentionsName(text, people[id].name)) ids.push(id);
   });
   return ids;
 }
@@ -27,7 +27,8 @@ export function revokePreviews(list: readonly Attached[]): void {
 export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, get) => ({
   msgs: {}, drafts: {}, tdraft: '', attached: {}, editing: null, editDraft: '', snapRef: null,
   setSnapRef: (snapRef) => set({ snapRef }),
-  seen: {}, incoming: {},
+  seen: {}, incoming: {}, chatWin: { key: '', extra: 0 },
+  widenChat: (key, extra) => set((s) => ({ chatWin: { key, extra: s.chatWin.key === key ? Math.max(s.chatWin.extra, extra) : extra } })),
 
   setDraft: (v) => set((s) => ({ drafts: withKey(s.drafts, chatKey(s), v) })),
 
@@ -66,9 +67,22 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   },
   deleteMessage: async (id) => {
     const s = get();
-    const mine = (s.msgs[chatKey(s)] ?? []).find((m) => m.id === id)?.by === s.me?.user_id;
+    const mine = loadedMessages(s, chatKey(s)).find((m) => m.id === id)?.by === s.me?.user_id;
     const ok = await s.confirmAction({ title: mine ? 'Delete this message?' : 'Remove this message?', body: 'It is removed for everyone in this Space. Copies other people already received may remain on their devices.', confirm: mine ? 'Delete' : 'Remove', danger: true });
     if (ok) await appendEvent(get, s.space, mine ? { t: 'message.delete', msg_id: id } : { t: 'content.remove', target_id: id });
+  },
+
+  reportContent: async (id, space) => {
+    const v = await get().ask({ title: COPY.report.title, submit: COPY.report.submit, fields: [{ key: 'reason', label: COPY.report.reasonLabel, placeholder: COPY.report.reasonPlaceholder, multiline: true }] });
+    if (v && await appendEvent(get, space, { t: 'content.report', target_id: id, reason: v.reason.trim() || undefined })) get().showToast(COPY.report.sent);
+  },
+
+  resolveReport: async (space, r, outcome) => {
+    if (outcome === 'removed') {
+      if (!await get().confirmAction({ ...COPY.report.removeConfirm, danger: true })) return false;
+      if (!await appendEvent(get, space, { t: 'content.remove', target_id: r.target, reason: r.reason || undefined })) return false;
+    }
+    return appendEvent(get, space, { t: 'report.resolve', report_id: r.id, outcome });
   },
 
   attachFiles: async (files) => {
@@ -112,7 +126,11 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   markSeen: (key, uptoArrival) => {
     const s = get(); const i = key.indexOf('/'); const sp = key.slice(0, i); const ch = key.slice(i + 1);
     set((x) => ({ seen: withKey(x.seen, key, true) }));
-    getBridge().readMark(sp, ch, uptoArrival).then(() => get().refresh()).catch((e) => s.showToast(errorMessage(e), undefined, 'error'));
+    // Success: the snapshot now speaks for itself, so drop the local mark. Failure: roll it back, the count is still real.
+    getBridge().readMark(sp, ch, uptoArrival)
+      .then(() => get().refresh())
+      .then(() => set((x) => ({ seen: omitKey(x.seen, key) })))
+      .catch((e) => { set((x) => ({ seen: omitKey(x.seen, key) })); s.showToast(errorMessage(e), undefined, 'error'); });
   },
   clearIncoming: (key) => set((s) => {
     const rest = { ...s.incoming };

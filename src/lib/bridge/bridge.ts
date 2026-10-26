@@ -1,7 +1,7 @@
 import type {
-  AuditRow, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, InviteOptions,
+  AuditRow, BlobDiff, BlobRef, SnapExported, SnapPlan, SnapVerify, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, KeyMode, InviteOptions,
   InviteOut, InviteRecord, LegalStatus, Member, NodeSettings, NodeSettingsView, NodeStatus, NotifySettings, OutboxStatus,
-  PickOptions, ProfileInput, Role, SearchHit, SearchOptions, SpaceSummary, StorageUsage, UpdateInfo,
+  PickOptions, ProfileInput, ReportRow, RetentionSetting, Role, SearchHit, SearchOptions, SpaceExportResult, SpaceSummary, StorageUsage, UpdateInfo,
 } from './types';
 import type { Snapshot } from '../data/types';
 import type { LocalAiSettings, PrivacySettings, ChatPrefs, ContactCard, GalleryItem, GalleryKind, LinkPreviewOut, MsgHit, MsgSearchOptions, PageResult, Scheduled } from './messagingTypes';
@@ -15,6 +15,14 @@ export interface Bridge {
   legalStatus(): Promise<LegalStatus>;
   legalAccept(version: string, shareResources: boolean): Promise<LegalStatus>;
   identityGet(): Promise<IdentityInfo>;
+  /** Moves the identity key to `mode`; the passphrase is required for 'passphrase'. Resolves with the refreshed identity. */
+  identityProtect(mode: KeyMode, passphrase?: string): Promise<IdentityInfo>;
+  /** Opens a passphrase-protected install at startup. Rejects on a wrong passphrase. */
+  identityUnlock(passphrase: string): Promise<void>;
+  /** The secret recovery phrase. `confirm` must be true; the UI asks the person first. */
+  identityPhrase(confirm: boolean): Promise<string>;
+  /** Replaces a fresh (or just reset) identity with the one a recovery phrase encodes. */
+  identityRestorePhrase(phrase: string): Promise<void>;
   profileSet(input: ProfileInput): Promise<IdentityInfo>;
   snapshot(): Promise<Snapshot>;
 
@@ -22,6 +30,8 @@ export interface Bridge {
   spaceLeave(spaceId: string): Promise<void>;
   inviteCreate(spaceId: string, opts?: InviteOptions): Promise<InviteOut>;
   inviteAccept(code: string): Promise<SpaceSummary>;
+  /** Stops a running `inviteAccept` (its proof-of-work search); that call then rejects with `cancelled`. */
+  inviteAcceptCancel(): Promise<void>;
   inviteList(spaceId: string): Promise<InviteRecord[]>;
   inviteRevoke(spaceId: string, id: string): Promise<void>;
   spaceMembers(spaceId: string): Promise<Member[]>;
@@ -34,7 +44,17 @@ export interface Bridge {
   /** Native file picker (Tauri only); resolves to paths for `blobPut`, or null when cancelled. */
   pickFiles(opts?: PickOptions): Promise<string[] | null>;
   blobSaveAs(hash: string, suggestedName: string): Promise<string | null>;
+  /** Line hunks between two stored blobs; a null side is an empty file (added or removed). */
+  diffBlobs(from: string | null, to: string | null): Promise<BlobDiff>;
   saveFile(suggestedName: string, bytes: Uint8Array): Promise<string | null>;
+  /** Native folder picker (Tauri only); resolves to the folder path for `snapScanFolder`, or null when cancelled. */
+  pickFolder(): Promise<string | null>;
+  /** Hashes a picked folder into blobs and counts adds/dels/changes against the parent snapshot (K-003). */
+  snapScanFolder(spaceId: string, path: string, parent?: string): Promise<SnapPlan>;
+  /** Re-hashes the snapshot's stored files (K-002, K-009). */
+  snapVerify(spaceId: string, snapId: string): Promise<SnapVerify>;
+  /** Writes every file of the snapshot into a new folder chosen by the user; null when cancelled (K-010). */
+  snapExport(spaceId: string, snapId: string): Promise<SnapExported | null>;
 
   nodeStatus(): Promise<NodeStatus>;
   nodeSettingsGet(): Promise<NodeSettingsView>;
@@ -52,7 +72,11 @@ export interface Bridge {
   blockList(): Promise<BlockedUser[]>;
   notifySettingsGet(): Promise<NotifySettings>;
   notifySettingsSet(patch: Partial<NotifySettings>): Promise<NotifySettings>;
+  /** Days of messages kept on this device for a space; null keeps everything. */
+  retentionGet(spaceId: string): Promise<number | null>;
   retentionSet(spaceId: string, days: number | null): Promise<void>;
+  /** Export a space as JSON plus files; the app asks for the target with the save dialog, the devhost takes `path`. Null when cancelled. */
+  spaceExport(spaceId: string, path?: string): Promise<SpaceExportResult | null>;
   /** Show an OS notification (the UI already applied mute and Do Not Disturb). */
   notifySend(title: string, body: string, spaceId: string, channelId: string): Promise<void>;
   /** Unread total on the dock icon and tray tooltip; 0 clears it. */
@@ -62,6 +86,7 @@ export interface Bridge {
   storageUsage(): Promise<StorageUsage>;
   storageClearCache(): Promise<{ freed_bytes: number }>;
   auditList(spaceId: string): Promise<AuditRow[]>;
+  reportsList(spaceId: string): Promise<ReportRow[]>;
   logTail(lines: number): Promise<string[]>;
   outboxStatus(): Promise<OutboxStatus>;
   /** The desktop app opens its own save dialog; `path` is for the devhost only. Resolves to the saved path, or null when cancelled. */
@@ -131,12 +156,17 @@ export function createBridge(t: Transport): Bridge {
     legalStatus: () => call('legal_status'),
     legalAccept: (version, shareResources) => call('legal_accept', { version, shareResources }),
     identityGet: () => call('identity_get'),
+    identityProtect: (mode, passphrase) => call('identity_protect', { mode, passphrase: passphrase ?? null }),
+    identityUnlock: (passphrase) => none('identity_unlock', { passphrase }),
+    identityPhrase: (confirm) => call('identity_phrase', { confirm }),
+    identityRestorePhrase: (phrase) => none('identity_restore_phrase', { phrase }),
     profileSet: (input) => call('profile_set', { ...input }),
     snapshot: () => call('snapshot'),
     spaceCreate: (name, tagline, kind) => call('space_create', { name, tagline, kind }),
     spaceLeave: (spaceId) => none('space_leave', { spaceId }),
     inviteCreate: (spaceId, opts = {}) => call('invite_create', { spaceId, expiresIn: opts.expiresIn ?? null, maxUses: opts.maxUses ?? null, role: opts.role ?? 'member' }),
     inviteAccept: (code) => call('invite_accept', { code }),
+    inviteAcceptCancel: () => none('invite_accept_cancel'),
     inviteList: (spaceId) => call('invite_list', { spaceId }),
     inviteRevoke: (spaceId, id) => none('invite_revoke', { spaceId, id }),
     spaceMembers: (spaceId) => call('space_members', { spaceId }),
@@ -147,6 +177,11 @@ export function createBridge(t: Transport): Bridge {
     blobPutBytes: (name, bytes) => bytesCall('blob_put_bytes', { name }, bytes),
     pickFiles: (opts = {}) => call('pick_files', { multiple: !!opts.multiple, accept: opts.accept ?? [] }),
     blobSaveAs: (hash, suggestedName) => call('blob_save_as', { hash, suggestedName }),
+    diffBlobs: (from, to) => call('diff_blobs', { from, to }),
+    pickFolder: () => call('pick_folder'),
+    snapScanFolder: (spaceId, path, parent) => call('snap_scan_folder', { spaceId, path, parent: parent ?? null }),
+    snapVerify: (spaceId, snapId) => call('snap_verify', { spaceId, snapId }),
+    snapExport: (spaceId, snapId) => call('snap_export', { spaceId, snapId }),
     saveFile: (suggestedName, bytes) => bytesCall('save_file', { suggestedName }, bytes),
     nodeStatus: () => call('node_status'),
     nodeSettingsGet: () => call('node_settings_get'),
@@ -161,6 +196,8 @@ export function createBridge(t: Transport): Bridge {
     blockList: () => call('block_list'),
     notifySettingsGet: () => call('notify_settings_get'),
     notifySettingsSet: (patch) => call('notify_settings_set', { ...patch }),
+    retentionGet: (spaceId) => call<RetentionSetting>('retention_get', { spaceId }).then((r) => r.days),
+    spaceExport: (spaceId, path) => call('space_export', { spaceId, path: path ?? null }),
     retentionSet: (spaceId, days) => none('retention_set', { spaceId, days }),
     notifySend: (title, body, spaceId, channelId) => none('notify_send', { title, body, spaceId, channelId }),
     badgeSet: (count) => none('badge_set', { count }),
@@ -168,6 +205,7 @@ export function createBridge(t: Transport): Bridge {
     storageUsage: () => call('storage_usage'),
     storageClearCache: () => call('storage_clear_cache'),
     auditList: (spaceId) => call('audit_list', { spaceId }),
+    reportsList: (spaceId) => call('reports_list', { spaceId }),
     logTail: (lines) => call('log_tail', { lines }),
     outboxStatus: () => call('outbox_status'),
     backupExport: (suggestedName, passphrase, includeBlobs, path) => call('backup_export', { suggestedName, passphrase, includeBlobs, path: path ?? null }),

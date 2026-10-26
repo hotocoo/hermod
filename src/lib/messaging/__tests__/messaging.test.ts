@@ -3,7 +3,7 @@ import { highlight } from '../highlight';
 import { isSafeHref, parseBlocks, parseInline, plainText, urlsIn } from '../markdown';
 import { parseSearchQuery, parseWhen } from '../searchQuery';
 import { EMOJI_GROUPS } from '../emojiData';
-import { forwardBody, forwardable, inFolder, isMuted, MUTE_FOREVER, parseMessageLink, messageLink, peaksOf, quoteOf, splitKey, alive, noteBody } from '../../../state/slices/messaging/helpers';
+import { forwardBody, forwardable, inFolder, isMuted, MUTE_FOREVER, parseMessageLink, messageLink, peaksOf, quoteOf, splitKey, noteBody } from '../../../state/slices/messaging/helpers';
 import type { Message } from '../../../state/dataTypes';
 
 const msg = (over: Partial<Message> = {}): Message => ({ id: 'm1', by: 'u1', t: '10:00', text: 'hello **world**', ...over });
@@ -123,9 +123,5 @@ describe('messaging helpers', () => {
     const n = noteBody('c', { hash: 'h', name: 'v', mime: 'audio/webm', size: 1 }, 'voice', 99_999_999, new Array(200).fill(1)) as { ext: { voice: { dur_ms: number; peaks: number[] } } };
     expect(n.ext.voice.dur_ms).toBe(600_000);
     expect(n.ext.voice.peaks).toHaveLength(64);
-  });
-  it('drops expired messages', () => {
-    const list = [msg({ id: 'a', ext: { lp: 1, expires: 100 } }), msg({ id: 'b' }), msg({ id: 'c', ext: { lp: 2, expires: 900 } })];
-    expect(alive(list, 500).map((m) => m.id)).toEqual(['b', 'c']);
   });
 });

@@ -1,12 +1,14 @@
 import type { VmProps } from '../types';
 import c from '../shared.module.css';
 import s from './video.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 export function VideoLibrary({ vm }: VmProps) {
   return (
     <>
       {vm.videos.length === 0 && vm.shorts.length === 0 && (
-        <p className={`${s.empty} ${c.muted}`}>No videos yet. Share one from the Feed with New post, and it lands here.</p>
+        <EmptyNote {...COPY.empty.videos} />
       )}
       {vm.shorts.length > 0 && <div className={`${c.kicker} ${s.libHead}`}>Shorts</div>}
       <div className={s.shorts}>

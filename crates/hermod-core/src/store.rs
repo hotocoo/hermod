@@ -6,15 +6,16 @@
 //! (`pending = 1`) or ahead of their epoch key (`pending = 2`) are kept and promoted once the gap
 //! fills or `unlock` installs the key; projections only ever see applied events (`pending = 0`).
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::crypto::{SpaceKey, blake3_hash};
 use crate::error::{Error, Result};
-use crate::event::{EventBody, MAX_BODY_BYTES, SignedEvent};
+use crate::event::{EventBody, MAX_BODY_BYTES, SignedEvent, decode_body};
 use crate::ids::{SpaceId, UserId, hex_encode};
 use crate::migrations;
 use crate::ratelimit::{Limiter, RateConfig};
@@ -26,6 +27,11 @@ pub const MAX_PENDING_PER_AUTHOR: i64 = 4096;
 /// Largest `seq`/`lamport` accepted from anyone (2^53 - 1: exact in JS numbers). A peer-chosen
 /// `i64::MAX` would otherwise make every later local append overflow.
 pub const MAX_CLOCK: u64 = (1 << 53) - 1;
+
+/// Room kept below [`MAX_CLOCK`] for local appends: a peer event whose `seq` or `lamport` sits
+/// closer to the limit than this is refused, so one forged clock cannot leave the local user
+/// unable to write. Honest clocks grow by one per event and never get near it.
+pub const CLOCK_HEADROOM: u64 = 1 << 40;
 
 /// Largest key epoch accepted in an event or invite. Epochs rise one per rekey.
 pub const MAX_EPOCH: u32 = 1 << 20;
@@ -39,6 +45,9 @@ pub const MAX_LOCKED_PER_SPACE: i64 = 4096;
 
 /// Body bytes of key-less rows kept per space; the oldest are evicted past it.
 pub const MAX_LOCKED_BYTES_PER_SPACE: i64 = 32 << 20;
+
+/// Fork events (see `equivocations`) appended to each sync page, so peers converge on the lowest id.
+const MAX_FORK_RESEND: i64 = 32;
 
 const APPLIED: i64 = 0;
 const WAIT_SEQ: i64 = 1;
@@ -100,9 +109,19 @@ pub struct Opened {
     pub body: EventBody,
 }
 
+/// Per-space change counter and the decrypted events valid for it.
+#[derive(Default)]
+struct SpaceCache {
+    version: u64,
+    opened: Option<Arc<Vec<Opened>>>,
+}
+
 pub struct Store {
     conn: Connection,
     limiter: Limiter,
+    /// Decrypting and decoding a whole space is the dominant cost of every action, so the result is
+    /// kept until something that feeds it (events, keys, space row) changes. See [`Store::bump`].
+    cache: Mutex<HashMap<SpaceId, SpaceCache>>,
 }
 
 fn blob_arr<const N: usize>(row: &Row, idx: usize) -> Result<[u8; N]> {
@@ -112,20 +131,6 @@ fn blob_arr<const N: usize>(row: &Row, idx: usize) -> Result<[u8; N]> {
 }
 
 const EVENT_COLS: &str = "space_id, author, seq, lamport, ts, epoch, nonce, body, sig";
-
-fn event_from_row(row: &Row) -> Result<SignedEvent> {
-    Ok(SignedEvent {
-        space_id: SpaceId(blob_arr(row, 0)?),
-        author: UserId(blob_arr(row, 1)?),
-        seq: row.get::<_, i64>(2)? as u64,
-        lamport: row.get::<_, i64>(3)? as u64,
-        ts: row.get(4)?,
-        epoch: row.get::<_, i64>(5)? as u32,
-        nonce: blob_arr(row, 6)?,
-        body: row.get(7)?,
-        sig: blob_arr(row, 8)?,
-    })
-}
 
 const SPACE_COLS: &str = "s.space_id, s.space_key, s.name, s.kind, s.is_home, s.joined_at, s.left";
 
@@ -177,7 +182,71 @@ impl Store {
         Ok(Store {
             conn,
             limiter: Limiter::new(rate),
+            cache: Mutex::new(HashMap::new()),
         })
+    }
+
+    fn cache(&self) -> std::sync::MutexGuard<'_, HashMap<SpaceId, SpaceCache>> {
+        self.cache.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    /// Marks everything derived from `space`'s events, keys or row as stale. Called before every
+    /// write that can change what [`Store::load_opened`] returns.
+    fn bump(&self, space: &SpaceId) {
+        let mut cache = self.cache();
+        let c = cache.entry(*space).or_default();
+        c.version += 1;
+        c.opened = None;
+    }
+
+    /// Bumps the version and hands back the cached decrypted log, if any.
+    fn take_opened(&self, space: &SpaceId) -> Option<Arc<Vec<Opened>>> {
+        let mut cache = self.cache();
+        let c = cache.entry(*space).or_default();
+        c.version += 1;
+        c.opened.take()
+    }
+
+    /// Puts `prior` back with `ev` (just applied, alone) added. Any failure to decode leaves the
+    /// cache empty, so the next read decrypts from the stored rows.
+    fn append_opened(
+        &self,
+        space: &SpaceId,
+        prior: Option<Arc<Vec<Opened>>>,
+        ev: &SignedEvent,
+        id: &str,
+    ) {
+        let Some(mut log) = prior else { return };
+        let Ok(keys) = self.all_keys(space) else {
+            return;
+        };
+        let Some(plain) = keys.get(&ev.epoch).and_then(|k| ev.decrypt_any(k).ok()) else {
+            return;
+        };
+        let arrival = self
+            .conn
+            .query_row("SELECT arrival FROM events WHERE id = ?1", [id], |r| {
+                r.get::<_, i64>(0)
+            });
+        let Ok(arrival) = arrival else { return };
+        Arc::make_mut(&mut log).push(Opened {
+            id: id.to_string(),
+            author: ev.author,
+            seq: ev.seq,
+            lamport: ev.lamport,
+            ts: ev.ts,
+            arrival: arrival as u64,
+            body: decode_body(&plain).map_or(EventBody::Unknown, |d| d.body),
+        });
+        if let Some(c) = self.cache().get_mut(space) {
+            c.opened = Some(log);
+        }
+    }
+
+    /// Counter that changes whenever [`Store::bump`] ran for `space`; a derived value computed at
+    /// the same version is still valid.
+    pub fn version(&self, space: &SpaceId) -> u64 {
+        self.cache().get(space).map_or(0, |c| c.version)
     }
 
     /// Schema version of the open database.
@@ -194,6 +263,7 @@ impl Store {
 
     /// Inserts a space and its first key. Returns false if the space already existed.
     pub fn add_space(&self, row: &SpaceRow) -> Result<bool> {
+        self.bump(&row.id);
         let tx = self.conn.unchecked_transaction()?;
         let n = self.conn.execute(
             "INSERT OR IGNORE INTO spaces(space_id, space_key, name, kind, is_home, joined_at, left)
@@ -242,6 +312,7 @@ impl Store {
     }
 
     pub fn mark_left(&self, id: &SpaceId) -> Result<()> {
+        self.bump(id);
         self.conn.execute(
             "UPDATE spaces SET left = 1 WHERE space_id = ?1 AND is_home = 0",
             [&id.0[..]],
@@ -251,6 +322,7 @@ impl Store {
 
     /// Removes a space and everything stored for it. Only for rolling back a join that failed.
     pub fn forget_space(&self, id: &SpaceId) -> Result<()> {
+        self.bump(id);
         let tx = self.conn.unchecked_transaction()?;
         for table in ["events", "space_keys", "spaces"] {
             self.conn.execute(
@@ -265,6 +337,7 @@ impl Store {
 
     /// Clears the `left` flag so a previously left space is tracked again.
     pub fn reopen_space(&self, id: &SpaceId) -> Result<()> {
+        self.bump(id);
         self.conn.execute(
             "UPDATE spaces SET left = 0 WHERE space_id = ?1",
             [&id.0[..]],
@@ -275,6 +348,7 @@ impl Store {
     /// Records a key for an epoch. Several keys per epoch may exist (concurrent rekeys); decryption
     /// tries them all. Returns true if the key was new.
     pub fn add_key(&self, space: &SpaceId, epoch: u32, key: &SpaceKey) -> Result<bool> {
+        self.bump(space);
         let n = self.conn.execute(
             "INSERT OR IGNORE INTO space_keys(space_id, epoch, key_id, key) VALUES (?1, ?2, ?3, ?4)",
             params![&space.0[..], epoch as i64, key_id(key), &key.0[..]],
@@ -343,6 +417,14 @@ impl Store {
                 "seq and lamport must be in 1..=2^53-1 and epoch within bounds",
             ));
         }
+        if source != Source::Local
+            && (ev.seq > MAX_CLOCK - CLOCK_HEADROOM || ev.lamport > MAX_CLOCK - CLOCK_HEADROOM)
+        {
+            return Err(Error::invalid(
+                "event",
+                "seq or lamport too close to the limit",
+            ));
+        }
         if ev.body.len() > MAX_BODY_BYTES {
             return Err(Error::invalid("event", "body too large"));
         }
@@ -378,19 +460,57 @@ impl Store {
                 return Err(Error::invalid("event", "epoch too far ahead"));
             }
         } else {
-            ev.open_any(&keys)?;
+            ev.decrypt_any(&keys)?;
         }
 
+        // The decrypted log is taken out (the bump would drop it) so a single applied event can be
+        // appended to it below instead of decrypting the whole space again.
+        let prior = self.take_opened(&ev.space_id);
         let tx = self.conn.transaction()?;
         let author = &ev.author.0[..];
         let space_id = &ev.space_id.0[..];
-        let same_slot: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM events WHERE space_id = ?1 AND author = ?2 AND seq = ?3)",
-            params![space_id, author, ev.seq as i64],
-            |r| r.get(0),
-        )?;
-        if same_slot {
-            return Err(Error::Equivocation);
+        let slot: Option<(String, i64)> = tx
+            .query_row(
+                "SELECT id, pending FROM events WHERE space_id = ?1 AND author = ?2 AND seq = ?3",
+                params![space_id, author, ev.seq as i64],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?;
+        if let Some((old_id, old_pending)) = slot {
+            // A fork: both ids are recorded, and the lowest id wins on every peer so logs converge.
+            let old_ev: SignedEvent = tx.query_row(
+                &format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"),
+                [&old_id],
+                |r| Ok(event_from_row_at(r, 0)),
+            )??;
+            for (fork_id, fork) in [(&old_id, &old_ev), (&id, ev)] {
+                tx.execute(
+                    "INSERT OR IGNORE INTO equivocations(space_id, author, seq, event_id, event) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![space_id, author, ev.seq as i64, fork_id, fork.to_bytes()?],
+                )?;
+            }
+            let wins = id < old_id && !(old_pending == APPLIED && locked);
+            if !wins {
+                tx.commit()?;
+                return Err(Error::Equivocation);
+            }
+            if old_pending == APPLIED {
+                // Later seqs of the author stay valid: swap the content, keep the slot and its arrival.
+                tx.execute(
+                    "UPDATE events SET id = ?1, lamport = ?2, ts = ?3, epoch = ?4, nonce = ?5, body = ?6, sig = ?7 \
+                     WHERE space_id = ?8 AND author = ?9 AND seq = ?10",
+                    params![id, ev.lamport as i64, ev.ts, ev.epoch as i64, &ev.nonce[..], ev.body, &ev.sig[..], space_id, author, ev.seq as i64],
+                )?;
+                // Same count, different content: force the search index to rebuild.
+                tx.execute("DELETE FROM search_state WHERE space_id = ?1", [space_id])?;
+                tx.commit()?;
+                return Ok(Ingested {
+                    id: id.clone(),
+                    status: IngestStatus::Applied,
+                    applied: vec![id],
+                });
+            }
+            tx.execute("DELETE FROM events WHERE id = ?1", [&old_id])?;
         }
         let applied_max = applied_max(&tx, space_id, author)?;
         let in_order = !locked && ev.seq as i64 == applied_max + 1;
@@ -408,6 +528,19 @@ impl Store {
             }
         }
         if locked {
+            // Only an author this space already applied events from may park key-less rows;
+            // otherwise a stranger's flood would evict the buffered events of real members.
+            let known: bool = tx.query_row(
+                "SELECT EXISTS(SELECT 1 FROM events WHERE space_id = ?1 AND author = ?2 AND pending = 0)",
+                params![space_id, author],
+                |r| r.get(0),
+            )?;
+            if !known && source != Source::Local {
+                return Err(Error::invalid(
+                    "event",
+                    "key-less event from an author this space has not seen",
+                ));
+            }
             evict_locked(&tx, space_id, ev.body.len() as i64)?;
         }
         let pending = if locked {
@@ -428,6 +561,9 @@ impl Store {
             applied.extend(promote(&tx, space_id, author)?);
         }
         tx.commit()?;
+        if applied.len() == 1 && applied[0] == id {
+            self.append_opened(&ev.space_id, prior, ev, &id);
+        }
         let status = if in_order {
             IngestStatus::Applied
         } else {
@@ -454,12 +590,13 @@ impl Store {
             .map(|r| r?)
             .collect::<Result<_>>()?
         };
+        self.bump(space);
         let tx = self.conn.transaction()?;
         let mut authors = BTreeSet::new();
         for (id, ev) in &locked {
             if keys
                 .get(&ev.epoch)
-                .is_some_and(|ks| ev.open_any(ks).is_ok())
+                .is_some_and(|ks| ev.decrypt_any(ks).is_ok())
             {
                 tx.execute(
                     "UPDATE events SET pending = ?2 WHERE id = ?1",
@@ -481,7 +618,7 @@ impl Store {
             .query_row(
                 &format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"),
                 [id],
-                |r| Ok(event_from_row(r)),
+                |r| Ok(event_from_row_at(r, 0)),
             )
             .optional()?
             .transpose()
@@ -501,7 +638,7 @@ impl Store {
         let mut st = self.conn.prepare(&format!(
             "SELECT {EVENT_COLS} FROM events WHERE space_id = ?1 AND {tail}"
         ))?;
-        st.query_map([&space.0[..]], |r| Ok(event_from_row(r)))?
+        st.query_map([&space.0[..]], |r| Ok(event_from_row_at(r, 0)))?
             .map(|r| r?)
             .collect()
     }
@@ -532,7 +669,8 @@ impl Store {
             if room == 0 {
                 break;
             }
-            let seen = vector.get(&a).copied().unwrap_or(0) as i64;
+            // A peer-sent value above i64::MAX would wrap negative and read as "has nothing".
+            let seen = vector.get(&a).copied().unwrap_or(0).min(i64::MAX as u64) as i64;
             let rows = st.query_map(
                 params![
                     &space.0[..],
@@ -540,11 +678,21 @@ impl Store {
                     seen,
                     room.min(i64::MAX as usize) as i64
                 ],
-                |r| Ok(event_from_row(r)),
+                |r| Ok(event_from_row_at(r, 0)),
             )?;
             for r in rows {
                 out.push(r??);
             }
+        }
+        // Forks are handed out on every page: a peer that holds only one side has `seq` in its
+        // vector and would never ask for the other, so the logs could not converge.
+        let mut forks = self.conn.prepare(
+            "SELECT event FROM equivocations WHERE space_id = ?1 ORDER BY event_id LIMIT ?2",
+        )?;
+        for raw in forks.query_map(params![&space.0[..], MAX_FORK_RESEND], |r| {
+            r.get::<_, Vec<u8>>(0)
+        })? {
+            out.push(SignedEvent::from_bytes(&raw?)?);
         }
         Ok(out)
     }
@@ -561,6 +709,16 @@ impl Store {
             out.insert(UserId(a?), m as u64);
         }
         Ok(out)
+    }
+
+    /// Authors seen signing two different events for one `(space, seq)`.
+    pub fn equivocators(&self, space: &SpaceId) -> Result<BTreeSet<UserId>> {
+        let mut st = self
+            .conn
+            .prepare("SELECT DISTINCT author FROM equivocations WHERE space_id = ?1")?;
+        st.query_map([&space.0[..]], |r| Ok(blob_arr::<32>(r, 0)))?
+            .map(|r| Ok(UserId(r??)))
+            .collect()
     }
 
     /// Events stored but not yet applied (waiting for a gap or a key).
@@ -590,11 +748,11 @@ impl Store {
     }
 
     /// Highest lamport among applied events. Buffered events do not count, nor does any row
-    /// above [`MAX_CLOCK`] that an older version accepted.
+    /// above [`MAX_CLOCK`] less [`CLOCK_HEADROOM`] that an older version accepted.
     pub fn max_lamport(&self, space: &SpaceId) -> Result<u64> {
         Ok(self.conn.query_row(
             "SELECT COALESCE(MAX(lamport), 0) FROM events WHERE space_id = ?1 AND pending = 0 AND lamport <= ?2",
-            params![&space.0[..], MAX_CLOCK as i64],
+            params![&space.0[..], (MAX_CLOCK - CLOCK_HEADROOM) as i64],
             |r| r.get::<_, i64>(0),
         )? as u64)
     }
@@ -626,14 +784,36 @@ impl Store {
     }
 
     /// Applied events decrypted and decoded, in fold order. Rows that no longer decode are skipped.
-    pub fn load_opened(&self, space: &SpaceRow) -> Result<Vec<Opened>> {
+    pub fn load_opened(&self, space: &SpaceRow) -> Result<Arc<Vec<Opened>>> {
+        let version = {
+            let cache = self.cache();
+            let c = cache.get(&space.id);
+            if let Some(hit) = c.and_then(|c| c.opened.clone()) {
+                return Ok(hit);
+            }
+            c.map_or(0, |c| c.version)
+        };
+        let opened = self.load_opened_uncached(space)?;
+        let mut cache = self.cache();
+        let c = cache.entry(space.id).or_default();
+        // A write between the read above and here would have bumped the version: then do not keep it.
+        if c.version == version {
+            c.opened = Some(opened.clone());
+        }
+        Ok(opened)
+    }
+
+    /// [`Store::load_opened`] without the cache: decrypts and decodes every applied event.
+    pub fn load_opened_uncached(&self, space: &SpaceRow) -> Result<Arc<Vec<Opened>>> {
         let keys = self.all_keys(&space.id)?;
         let arrivals = self.arrivals(&space.id)?;
         Ok(self
             .events(&space.id)?
             .into_iter()
             .filter_map(|ev| {
-                let d = ev.open_any(keys.get(&ev.epoch)?).ok()?;
+                let plain = ev.decrypt_any(keys.get(&ev.epoch)?).ok()?;
+                // Signed and decrypted but undecodable: kept as Unknown so the author's seq has no hole.
+                let body = decode_body(&plain).map_or(EventBody::Unknown, |d| d.body);
                 let id = ev.id();
                 Some(Opened {
                     arrival: arrivals.get(&id).copied().unwrap_or(0),
@@ -642,10 +822,11 @@ impl Store {
                     seq: ev.seq,
                     lamport: ev.lamport,
                     ts: ev.ts,
-                    body: d.body,
+                    body,
                 })
             })
-            .collect())
+            .collect::<Vec<_>>()
+            .into())
     }
 
     /// `(event count, ciphertext bytes)` stored for a space, any state.
@@ -730,28 +911,18 @@ impl Store {
 
     /// Arrival each read marker covers; this, not the lamport, decides what is unread.
     pub fn read_arrivals(&self) -> Result<BTreeMap<(SpaceId, String), u64>> {
-        let mut st = self
-            .conn
-            .prepare("SELECT space_id, channel_id, arrival FROM read_markers")?;
-        let rows = st.query_map([], |r| {
-            Ok((
-                blob_arr::<32>(r, 0),
-                r.get::<_, String>(1)?,
-                r.get::<_, i64>(2)?,
-            ))
-        })?;
-        let mut out = BTreeMap::new();
-        for r in rows {
-            let (s, c, a) = r?;
-            out.insert((SpaceId(s?), c), a as u64);
-        }
-        Ok(out)
+        self.marker_column("arrival")
     }
 
     pub fn read_markers(&self) -> Result<BTreeMap<(SpaceId, String), u64>> {
-        let mut st = self
-            .conn
-            .prepare("SELECT space_id, channel_id, lamport FROM read_markers")?;
+        self.marker_column("lamport")
+    }
+
+    /// `col` is one of the two fixed column names above, never caller input.
+    fn marker_column(&self, col: &str) -> Result<BTreeMap<(SpaceId, String), u64>> {
+        let mut st = self.conn.prepare(&format!(
+            "SELECT space_id, channel_id, {col} FROM read_markers"
+        ))?;
         let rows = st.query_map([], |r| {
             Ok((
                 blob_arr::<32>(r, 0),
@@ -761,8 +932,8 @@ impl Store {
         })?;
         let mut out = BTreeMap::new();
         for r in rows {
-            let (s, c, l) = r?;
-            out.insert((SpaceId(s?), c), l as u64);
+            let (s, c, v) = r?;
+            out.insert((SpaceId(s?), c), v as u64);
         }
         Ok(out)
     }

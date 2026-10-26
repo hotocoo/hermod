@@ -1,7 +1,9 @@
 import { memo, useState, type KeyboardEvent } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { Vm } from '@/components/panel/types';
+import { COPY } from '@/config/copy';
 import { getBridge } from '@/lib/bridge';
+import { sameData } from '@/lib/sameData';
 import { forwardable } from '@/state/slices/messaging/helpers';
 import { chatKey } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
@@ -45,6 +47,7 @@ function Actions({ m }: { m: Msg }) {
       {r.text && btn('Translate with local AI', 'chat', () => { void st.localAi('translate', r.text).then((t) => { if (t) st.showToast(t.slice(0, 300)); }); })}
       {btn('Copy message link', 'link', () => st.copyMessageLink(r.id))}
       {m.canEdit && !m.editing && btn('Edit message', 'edit', m.startEdit)}
+      {!m.isMe && !m.isSystem && btn(COPY.report.action, 'shield', () => { void st.reportContent(r.id, st.space); })}
       {btn('Delete for me', 'eye', () => { void st.hideForMe(r.id); })}
       {m.canEdit && !m.editing && btn('Delete for everyone', 'trash', m.onDelete)}
     </span>
@@ -62,7 +65,7 @@ function MessageView({ m, icons, people }: Props) {
   };
   const r = m.raw; const ext = r.ext; const special = !!ext?.viewOnce || ['voice', 'video_note', 'sticker', 'gif'].includes(ext?.kind ?? '');
   const poll = ext?.kind === 'poll' ? ext.poll : undefined;
-  const cls = [s.msg, x.lazy, m.isMe ? s.msgMe : '', m.mentionsMe || ext?.everyone ? s.msgMention : ''].join(' ');
+  const cls = [s.msg, x.lazy, m.isMe ? s.msgMe : '', m.mentionsMe || ext?.pingsMe ? s.msgMention : ''].join(' ');
   const editedBtn = m.edited && !m.removed ? <button type="button" className={`${s.edited} ${s.link}`} style={{ textDecoration: 'none' }} aria-expanded={hist} onClick={() => setHist((v) => !v)}>edited</button> : null;
   if (m.blocked && !shown) {
     return (
@@ -107,7 +110,7 @@ function MessageView({ m, icons, people }: Props) {
         ) : (
           <>
             {ext?.kind === 'forum_post' && ext.title && <h3 style={{ margin: '2px 0', fontFamily: 'var(--font-heading)' }}>{ext.title}{(ext.tags ?? []).map((t) => <span key={t} className={x.pill} style={{ marginLeft: 6 }}>{t}</span>)}</h3>}
-            {m.text && !poll && <div className={s.text}><Markdown text={m.text} people={people} everyone={ext?.everyone} />{!m.showHead && <>{editedBtn}{r.pinned && <span className={`${x.badge} ${x.badgeOn}`}>pinned</span>}<Ticks m={r} others={Math.max(1, members - 1)} /><Expiry at={ext?.expires} /></>}</div>}
+            {m.text && !poll && <div className={s.text}><Markdown text={m.text} people={people} everyone={ext?.everyone || ext?.admins || ext?.owners} />{!m.showHead && <>{editedBtn}{r.pinned && <span className={`${x.badge} ${x.badgeOn}`}>pinned</span>}<Ticks m={r} others={Math.max(1, members - 1)} /><Expiry at={ext?.expires} /></>}</div>}
             {poll && <PollCard id={poll} />}
             {special && <KindBody m={m} />}
             {!special && m.att.length > 0 && <div className={s.atts}>{m.att.map((b) => <Attachment key={b.hash} b={b} />)}</div>}
@@ -155,10 +158,7 @@ function MessageView({ m, icons, people }: Props) {
 }
 
 /** The view model hands a fresh object (and fresh handlers) per message on every rebuild: compare the drawn data, skip the handlers. Objects (reactions, receipts, quote) compare by value. */
-const same = (a: Msg, b: Msg): boolean => (Object.keys(a) as (keyof Msg)[]).every((k) => {
-  const v = a[k], w = b[k];
-  return typeof v === 'function' || v === w || (v !== null && typeof v === 'object' && JSON.stringify(v) === JSON.stringify(w));
-});
+const same = (a: Msg, b: Msg): boolean => sameData(a, b);
 
 export const Message = memo(MessageView, (a, b) => a.people === b.people && a.icons.ic === b.icons.ic && a.icons.icS === b.icons.icS && same(a.m, b.m));
 

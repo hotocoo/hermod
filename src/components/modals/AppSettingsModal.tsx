@@ -1,7 +1,11 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { STORAGE_KEYS } from '@/config/app';
-import { errorMessage, getBridge, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
+import { COPY } from '@/config/copy';
+import { FRAME_LIMIT } from '@/config/scene';
+import { savedFrameCap } from '@/scene/frameLimit';
+import { LOCALES, setLocale, useLocale } from '@/i18n';
+import { errorMessage, getBridge, type KeyMode, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
 import { wallMs } from '@/lib/clock';
 import { copyText } from '@/lib/clipboard';
 import { readString, writeString } from '@/lib/storage';
@@ -18,13 +22,15 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Switch } from '@/components/ui/Switch';
 import f from '@/components/ui/form.module.css';
 import { CopyField } from './CopyField';
+import { RecoveryPhrase } from './RecoveryPhrase';
+import { LinkedDevices } from './LinkedDevices';
 
 const TABS = [
   ['notifications', 'Notifications'], ['appearance', 'Appearance'], ['devices', 'Audio and video'], ['storage', 'Storage'], ['backup', 'Backup'],
   ['updates', 'Updates'], ['network', 'Network'], ['logs', 'Logs'], ['identity', 'Identity'],
 ] as const;
 type TabId = (typeof TABS)[number][0];
-const SCALES = [100, 115, 130, 150];
+const SCALES = [100, 115, 130, 150, 200];
 const MIN_PASS = 8;
 const LOG_LINES = 1000;
 
@@ -110,7 +116,10 @@ function Notifications() {
 
 function Appearance() {
   const s = useAppStore();
+  const locale = useLocale();
   const [scale, setScale] = useState(() => Number(readString(STORAGE_KEYS.textScale)) || 100);
+  const [cap, setCap] = useState<string>(() => savedFrameCap());
+  const setFrameCap = (id: string) => { setCap(id); writeString(STORAGE_KEYS.fpsCap, id); getTown()?.setFrameCap(id); };
   const set = (p: number) => { setScale(p); writeString(STORAGE_KEYS.textScale, String(p)); applyTextScale(p); };
   return (
     <>
@@ -129,6 +138,19 @@ function Appearance() {
         <label className={f.label} htmlFor="txt-scale">Text size</label>
         <select id="txt-scale" className="input" value={scale} onChange={(e) => set(Number(e.target.value))}>
           {SCALES.map((p) => <option key={p} value={p}>{p}%</option>)}
+        </select>
+      </div>
+      <div className={f.field} style={{ marginTop: 12 }}>
+        <label className={f.label} htmlFor="fps-cap">{COPY.frameRate}</label>
+        <select id="fps-cap" className="input" value={cap} onChange={(e) => setFrameCap(e.target.value)} aria-describedby="fps-cap-note">
+          {FRAME_LIMIT.options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
+        <span id="fps-cap-note" className={f.note}>{FRAME_LIMIT.options.find((o) => o.id === cap)?.note}</span>
+      </div>
+      <div className={f.field} style={{ marginTop: 12 }}>
+        <label className={f.label} htmlFor="ui-locale">{COPY.language}</label>
+        <select id="ui-locale" className="input" value={locale} onChange={(e) => setLocale(e.target.value)}>
+          {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
         </select>
       </div>
       <MapStyle />
@@ -262,7 +284,7 @@ function Backup() {
       <p className={f.note}>A backup holds your identity, spaces and keys, encrypted with a passphrase only you know. Lose the passphrase and the backup cannot be opened.</p>
       <div className={f.field}><label className={f.label} htmlFor="bk-pass">Passphrase (at least {MIN_PASS} characters)</label>
         <input id="bk-pass" type="password" className="input" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="new-password" /></div>
-      <div className={f.field}><label className={f.label} htmlFor="bk-again">Repeat passphrase</label>
+      <div className={f.field}><label className={f.label} htmlFor="bk-again">{COPY.passphraseRepeat}</label>
         <input id="bk-again" type="password" className="input" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" /></div>
       {again && pass !== again && <p className={f.error}>The passphrases do not match.</p>}
       <Switch label="Include files and media" sub="Bigger backup, but photos and videos come back too." on={blobs} onChange={setBlobs} />
@@ -325,6 +347,55 @@ function Logs() {
   );
 }
 
+const KEY_MODES: ReadonlyArray<readonly [KeyMode, string, string]> = [
+  ['file', COPY.keyModeFile, COPY.keyModeFileSub],
+  ['keychain', COPY.keyModeKeychain, COPY.keyModeKeychainSub],
+  ['passphrase', COPY.keyModePassphrase, COPY.keyModePassphraseSub],
+];
+
+function KeyStorage() {
+  const toast = useToast(); const me = useAppStore((s) => s.me);
+  const [mode, setMode] = useState<KeyMode>(me?.key_mode ?? 'file');
+  const [pass, setPass] = useState(''); const [again, setAgain] = useState(''); const [busy, setBusy] = useState(false);
+  if (!me) return null;
+  const sealing = mode === 'passphrase';
+  const ok = mode !== me.key_mode && (!sealing || (pass.length >= MIN_PASS && pass === again));
+  const apply = async () => {
+    setBusy(true);
+    try {
+      const next = await getBridge().identityProtect(mode, sealing ? pass : undefined);
+      useAppStore.setState({ me: next }); setPass(''); setAgain('');
+      toast(COPY.keyChanged);
+    } catch (e) { fail(toast, e); }
+    setBusy(false);
+  };
+  return (
+    <fieldset className={f.field} style={{ border: 0, padding: 0 }}>
+      <legend className={f.label}>{COPY.keyTitle}</legend>
+      <p className={f.note}>{COPY.keyNote}</p>
+      {KEY_MODES.map(([id, label, sub]) => (
+        <label key={id} className={f.row} style={{ alignItems: 'flex-start', gap: 8 }}>
+          <input type="radio" name="key-mode" checked={mode === id} onChange={() => setMode(id)} disabled={busy} />
+          <span><strong>{label}</strong><br /><span className={f.note}>{sub}</span></span>
+        </label>
+      ))}
+      {sealing && mode !== me.key_mode && (
+        <>
+          <p className={f.note}>{COPY.keyPassphraseWarn}</p>
+          <div className={f.field}><label className={f.label} htmlFor="key-pass">Passphrase (at least {MIN_PASS} characters)</label>
+            <input id="key-pass" type="password" className="input" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="new-password" /></div>
+          <div className={f.field}><label className={f.label} htmlFor="key-again">{COPY.passphraseRepeat}</label>
+            <input id="key-again" type="password" className="input" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" /></div>
+          {again && pass !== again && <p className={f.error}>{COPY.keyPassMismatch}</p>}
+        </>
+      )}
+      <div className={f.actions} style={{ justifyContent: 'flex-start' }}>
+        <button type="button" className="btn btn-primary" disabled={busy || !ok} onClick={apply}>{COPY.keyApply}</button>
+      </div>
+    </fieldset>
+  );
+}
+
 function Identity(): ReactNode {
   const me = useAppStore((s) => s.me);
   if (!me) return <p className={f.note}>No identity loaded.</p>;
@@ -333,6 +404,9 @@ function Identity(): ReactNode {
       <CopyField id="id-handle" label="Handle" value={me.handle} />
       <CopyField id="id-user" label="User id" value={me.user_id} />
       <p className={f.note}>Your user id is public to the spaces you join. The secret key never leaves this device.</p>
+      <KeyStorage />
+      <RecoveryPhrase />
+      <LinkedDevices />
     </>
   );
 }

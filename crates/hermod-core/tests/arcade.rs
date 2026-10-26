@@ -32,6 +32,7 @@ fn invite_member() -> EventBody {
 fn join_m() -> EventBody {
     EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("m".into()),
     }
 }
@@ -238,8 +239,8 @@ fn replay_is_deterministic_under_shuffled_ingest() {
     .unwrap();
     for rot in [1usize, 5, 9] {
         let mut input = h.log.input(h.sid, "Hall", "Team", false);
-        input.events.rotate_left(rot);
-        input.events.reverse();
+        input.events_mut().rotate_left(rot);
+        input.events_mut().reverse();
         let again = serde_json::to_value(project(&ctx(h.a), &[input])).unwrap();
         assert_eq!(reference, again, "rotation {rot}");
     }

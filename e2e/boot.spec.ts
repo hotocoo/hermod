@@ -16,6 +16,24 @@ test.describe('boot', () => {
     await expect(app.getByRole('navigation', { name: 'Spaces' })).toBeVisible();
   });
 
+  test('buildings are one Tab stop, arrows cycle focus, Enter opens the door card, Esc goes back (X-002)', async ({ app }) => {
+    await createSpace(app, unique('Keys'));
+    const buttons = app.locator('[data-bld] > button');
+    await expect(buttons.first()).toBeAttached();
+    await buttons.first().focus();
+    await expect(buttons.first()).toBeFocused();
+    await app.keyboard.press('ArrowRight');
+    await expect(buttons.nth(1)).toBeFocused();
+    await app.keyboard.press('ArrowLeft');
+    await expect(buttons.first()).toBeFocused();
+    await app.keyboard.press('ArrowLeft');
+    await expect(buttons.last()).toBeFocused();
+    await app.keyboard.press('Enter');
+    await app.keyboard.press('Escape');
+    await expect(app.locator('canvas')).toBeVisible();
+    await expect(buttons.last()).toBeAttached();
+  });
+
   test('space rail switches between spaces the user created', async ({ app }) => {
     const first = unique('Alpha'); const second = unique('Beta');
     const nav = app.getByRole('navigation', { name: 'Spaces' });

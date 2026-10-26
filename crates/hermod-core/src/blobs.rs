@@ -197,6 +197,11 @@ impl BlobStore {
             .collect())
     }
 
+    /// True when every chunk of `m` is on disk.
+    pub fn has_all_chunks(&self, m: &Manifest) -> bool {
+        m.chunks.iter().all(|h| self.has_chunk(h))
+    }
+
     pub fn is_complete(&self, id: &str) -> Result<bool> {
         Ok(self.manifest(id)?.is_some() && self.missing(id)?.is_empty())
     }
@@ -247,11 +252,6 @@ impl BlobStore {
             out.extend_from_slice(&chunk[from..to]);
         }
         Ok(out)
-    }
-
-    /// True when every chunk of `m` is on disk.
-    pub fn has_all_chunks(&self, m: &Manifest) -> bool {
-        m.chunks.iter().all(|h| self.has_chunk(h))
     }
 
     pub fn read_all(&self, id: &str) -> Result<Vec<u8>> {

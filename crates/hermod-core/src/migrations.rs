@@ -51,6 +51,13 @@ const MIGRATIONS: &[&str] = &[
      CREATE TRIGGER events_arrival_apply AFTER UPDATE OF pending ON events WHEN NEW.pending = 0 AND OLD.pending <> 0 BEGIN
        UPDATE events SET arrival = (SELECT COALESCE(MAX(arrival), 0) + 1 FROM events) WHERE id = NEW.id;
      END;",
+    // 6: the pending-state lookups (gap buffer size, promote, applied max) filter on author and pending
+    "CREATE INDEX events_pending ON events(space_id, author, pending, seq);",
+    // 7: authors seen signing two different events for one seq (a fork). The lowest event id stays in `events`;
+    // both forks are kept whole so sync can hand them to peers that only saw one.
+    "CREATE TABLE equivocations(
+       space_id BLOB NOT NULL, author BLOB NOT NULL, seq INTEGER NOT NULL, event_id TEXT NOT NULL, event BLOB NOT NULL,
+       PRIMARY KEY(space_id, author, event_id));",
 ];
 
 /// Schema version this build produces.

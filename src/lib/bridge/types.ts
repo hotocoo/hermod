@@ -4,11 +4,17 @@
  */
 
 export interface BlobRef { hash: string; size: number; name: string; mime: string }
+/** `diff_blobs` result: line hunks (1-based starts, row `t` is '+', '-' or ' '), or why there are none. */
+export interface DiffRow { t: string; s: string }
+export interface DiffHunk { old_start: number; new_start: number; rows: DiffRow[] }
+export type BlobDiff = { state: 'text'; hunks: DiffHunk[] } | { state: 'binary' } | { state: 'too_large' };
 
 export type Role = 'owner' | 'admin' | 'member' | 'guest';
 export type SpaceKind = 'Team' | 'Community' | 'Friends';
 
-export interface IdentityInfo { user_id: string; handle: string; name: string; bio: string; initials: string; avatar?: BlobRef }
+/** Where the secret key is kept at rest (core `KeyMode`). */
+export type KeyMode = 'file' | 'keychain' | 'passphrase';
+export interface IdentityInfo { user_id: string; handle: string; name: string; bio: string; initials: string; avatar?: BlobRef; key_mode: KeyMode }
 export interface ProfileInput { name: string; bio: string; initials?: string; avatar?: BlobRef }
 export interface LegalStatus { accepted_version: string | null; accepted_at: number | null; share_resources: boolean }
 /** Result of space_create and invite_accept. `label` is the id the UI uses everywhere (`home` for the home space, else hex). */
@@ -50,6 +56,12 @@ export interface SearchHit { kind: SearchKind; space_id: string; channel_id?: st
 export interface SearchOptions { space?: string; kinds?: SearchKind[]; limit?: number }
 
 export interface StorageUsage { total_bytes: number; cache_for_others_bytes: number; per_space: { space_id: string; name: string; bytes: number }[] }
+/** E-006: one content report, visible to admins only. */
+export interface ReportRow { id: string; ts: number; space_id: string; by: string; target: string; reason: string;
+  /** What was reported: `message`, `post`, or empty when it is gone. */
+  target_kind: 'message' | 'post' | ''; target_by: string; target_text: string; /** Channel of a reported message. */ channel: string }
+/** How an admin closes a report. */
+export type ReportOutcome = 'dismissed' | 'removed';
 export interface AuditRow { ts: number; space_id: string; kind: string; by: string; subject?: string; detail?: string }
 export interface OutboxStatus { pending: number; peers: number }
 export interface NotifySettings {
@@ -62,10 +74,12 @@ export interface NotifySettings {
 }
 export interface BlockedUser { user_id: string; name: string; since: number }
 export interface UpdateInfo { available: boolean; version?: string; notes?: string; current: string }
-export interface DeviceInfo { device_pub: string; name: string; added_at: number; this_device: boolean; revoked: boolean }
-export interface DeviceLink { code: string }
+export interface DeviceInfo { device_pub: string; added_at: number; this_device: boolean; revoked: boolean }
+export interface DeviceLink { code: string; expires_in: number }
 export interface PickOptions { multiple?: boolean; accept?: string[] }
-export interface RetentionSetting { space_id: string; days: number | null }
+export interface RetentionSetting { days: number | null }
+/** Result of `space_export`; the command resolves null when the person cancels the dialog. */
+export interface SpaceExportResult { path: string; messages: number; files: number; missing: number }
 
 // Events, Rust to UI.
 export interface ChangedEvent { space_id: string; collections: string[] }
@@ -86,11 +100,17 @@ export interface AgendaItemIn { text: string; who: string }
 export interface ColumnIn { col_id: string; name: string }
 export interface DocBlockIn { k: 'h' | 'p' | 'q' | 't'; text: string; done?: boolean }
 export interface SnapFileIn { path: string; blob?: BlobRef; adds: number; dels: number }
+/** `snap_verify` result: files whose blob is not fully local, and files whose stored bytes no longer match their hash. */
+export interface SnapVerify { ok: boolean; missing: string[]; corrupt: string[] }
+/** `snap_scan_folder` result: the files for `snap.create` (removed files carry no blob) and the change counts against the parent. */
+export interface SnapPlan { files: SnapFileIn[]; added: number; removed: number; changed: number }
+/** `snap_export` result: the folder written and how many files it holds. */
+export interface SnapExported { path: string; files: number }
 export type DocOp = 'insert' | 'update' | 'delete' | 'toggle';
 
 export type EventBody =
   | { t: 'space.create'; name: string; kind: string; tagline: string; mono: string; sections: string[] }
-  | { t: 'space.update'; name?: string; tagline?: string; sections?: string[]; map_style?: string }
+  | { t: 'space.update'; name?: string; tagline?: string; sections?: string[]; map_style?: string; join_pow_bits?: number }
   | { t: 'section.raise'; section: string }
   | { t: 'member.join'; via_invite_from?: string }
   | { t: 'member.leave' }
@@ -130,12 +150,13 @@ export type EventBody =
   | { t: 'line.weave'; line_id: string; into: string }
   | { t: 'letter.send'; to_space?: string; channel_id: string; text: string }
   // added by the feature audit (FEATURES.md)
-  | { t: 'member.role'; user: string; role: Role }
+  | { t: 'member.role'; user: string; role: Role; last_seq?: number }
   | { t: 'member.remove'; user: string }
   | { t: 'invite.create'; id: string; exp: number | null; max_uses: number | null; role: Role }
   | { t: 'invite.revoke'; id: string }
   | { t: 'content.remove'; target_id: string; reason?: string }
   | { t: 'content.report'; target_id: string; reason?: string }
+  | { t: 'report.resolve'; report_id: string; outcome: ReportOutcome }
   | { t: 'story.reply'; story_id: string; text: string }
   | { t: 'story.love'; story_id: string }
   | { t: 'doc.comment'; doc_id: string; block_id: string; text: string }

@@ -86,6 +86,15 @@ impl Shell for TauriShell {
             .transpose()
     }
 
+    fn pick_folder(&self) -> Result<Option<PathBuf>, String> {
+        self.0
+            .dialog()
+            .file()
+            .blocking_pick_folder()
+            .map(|f| f.into_path().map_err(|e| e.to_string()))
+            .transpose()
+    }
+
     fn save_dialog(&self, suggested: &str) -> Result<Option<PathBuf>, String> {
         self.0
             .dialog()
@@ -138,6 +147,11 @@ fn blob_response(app: &AppHandle, req: &Request<Vec<u8>>) -> BoxFut<Response<Vec
         .get("range")
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
+    let origin = req
+        .headers()
+        .get("origin")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
     Box::pin(async move {
         let plain = |status: u16| {
             Response::builder()
@@ -150,7 +164,7 @@ fn blob_response(app: &AppHandle, req: &Request<Vec<u8>>) -> BoxFut<Response<Vec
         };
         let r = blob::serve(&ctx, &hash, range.as_deref()).await;
         let mut b = Response::builder().status(r.status);
-        for (k, v) in r.headers() {
+        for (k, v) in r.headers(origin.as_deref()) {
             b = b.header(k, v);
         }
         b.body(r.body).unwrap_or_else(|_| plain(500))
@@ -237,10 +251,12 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                let keep = window
-                    .app_handle()
-                    .try_state::<Arc<Ctx>>()
-                    .is_some_and(|c| c.background());
+                let keep = shell::close_hides(
+                    window
+                        .app_handle()
+                        .try_state::<Arc<Ctx>>()
+                        .map(|c| c.background()),
+                );
                 if keep {
                     api.prevent_close();
                     let _ = window.hide();
@@ -257,4 +273,22 @@ pub fn run() {
             tauri::async_runtime::block_on(ctx.shutdown());
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{LOG_KEEP, LOG_MAX_BYTES};
+
+    /// W-012: the rotating log keeps a bounded amount of disk.
+    #[test]
+    fn log_rotation_is_bounded() {
+        const {
+            assert!(LOG_KEEP >= 1);
+            assert!(
+                LOG_MAX_BYTES >= 1_000_000,
+                "rotating too small loses history"
+            );
+            assert!(LOG_MAX_BYTES * (LOG_KEEP as u128 + 1) <= 100_000_000);
+        }
+    }
 }

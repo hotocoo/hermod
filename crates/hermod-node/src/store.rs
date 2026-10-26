@@ -47,12 +47,15 @@ pub trait NodeStore: Send + Sync + 'static {
     fn joined_spaces(&self) -> Vec<SpaceId>;
     /// Highest contiguous `seq` held per author.
     fn vector(&self, space: &SpaceId) -> BTreeMap<Author, u64>;
-    /// Encoded events the remote vector lacks, at most `limit`, in per-author seq order.
+    /// Encoded events the remote vector lacks, at most `limit` and (past the first) at most
+    /// `max_bytes` in total, in per-author seq order. Implementations stop reading at the
+    /// budget instead of loading a full page and cutting it afterwards.
     fn events_after(
         &self,
         space: &SpaceId,
         vector: &BTreeMap<Author, u64>,
         limit: usize,
+        max_bytes: usize,
     ) -> Vec<Vec<u8>>;
     /// Verify and store one encoded event.
     fn ingest(&self, space: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome>;
@@ -61,6 +64,9 @@ pub trait NodeStore: Send + Sync + 'static {
     fn ingest_gossip(&self, space: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome> {
         self.ingest(space, bytes)
     }
+    /// A sync round with a member peer for `space` finished (last page applied), so this device
+    /// now holds everything that peer had at the time. Defaults to nothing.
+    fn sync_complete(&self, _space: &SpaceId) {}
     /// True when the manifest and every chunk are present.
     fn blob_has(&self, blob: &BlobId) -> bool;
     /// Encoded manifest bytes, if known.
@@ -91,7 +97,13 @@ impl NodeStore for RelayOnlyStore {
     fn vector(&self, _: &SpaceId) -> BTreeMap<Author, u64> {
         BTreeMap::new()
     }
-    fn events_after(&self, _: &SpaceId, _: &BTreeMap<Author, u64>, _: usize) -> Vec<Vec<u8>> {
+    fn events_after(
+        &self,
+        _: &SpaceId,
+        _: &BTreeMap<Author, u64>,
+        _: usize,
+        _: usize,
+    ) -> Vec<Vec<u8>> {
         Vec::new()
     }
     fn ingest(&self, _: &SpaceId, _: &[u8]) -> StoreResult<IngestOutcome> {

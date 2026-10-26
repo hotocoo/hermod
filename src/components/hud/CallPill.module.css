@@ -1,11 +1,11 @@
 .root {
   position: absolute;
-  left: 28px;
+  inset-inline-start: 28px;
   bottom: 24px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px 10px 16px;
+  padding-block: 10px; padding-inline: 16px 12px;
   border: 1px solid var(--color-accent);
   border-radius: 30px;
   background: color-mix(in srgb,var(--color-bg) 86%,transparent);
@@ -26,13 +26,13 @@
   border: 0;
   background: transparent;
   padding: 0;
-  text-align: left;
+  text-align: start;
 }
 
 .room {
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.2;
 }
 

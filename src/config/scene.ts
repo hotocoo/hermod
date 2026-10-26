@@ -89,6 +89,17 @@ export const QUALITY: Readonly<Record<QualityTier, QualitySpec>> = {
 export const GI = { minRoomMs: 2, probeSmallR: 1, fitStableFrames: 24, pad: 3, floor: -0.5, height: 10, rebakeHours: 0.6, rebakeEmissiveDelta: 0.35, interactBudgetMs: 1, frameBudgetMs: 8, busySpeed: 0.1, busyTurn: 0.1, maxFrameMs: 20, hemiScale: 0.62, envScale: 0.7, near: 0.2, far: 60 } as const;
 /** Progressive path traced stills (photo mode, postcard, ultra idle refine): sample budgets, idle delay, bounces, denoise strength. */
 export const STILL = { giWaitMs: 40000, idleMs: 2000, settleMs: 400, tilesIdle: 4, tilesPhoto: 2, idleTier: 'ultra' as QualityTier, photoSamples: 192, idleSamples: 512, maxTriangles: 2_500_000, exportSamples: 384, bounces: 4, samplesPerFrame: 1, denoise: { radius: 2, sigmaColor: 0.35, fadeSamples: 160 }, fireflyClamp: 8 } as const;
+/** User frame cap (T-018). `fps` 0 = uncapped; `low` is the low-power mode. `slackMs` forgives requestAnimationFrame jitter so a 60 fps cap on a 60 Hz display does not skip every other frame. */
+export const FRAME_LIMIT = {
+  defaultId: 'off', slackMs: 2,
+  options: [
+    { id: 'off', fps: 0, label: 'Uncapped', note: 'Draw at the display refresh rate.' },
+    { id: '60', fps: 60, label: '60 fps', note: 'Smooth, slightly lighter than uncapped on fast displays.' },
+    { id: '30', fps: 30, label: '30 fps', note: 'Half the GPU work, still fluid.' },
+    { id: 'low', fps: 15, label: 'Low power', note: 'Saves battery and heat; the island animates gently.' },
+  ],
+} as const;
+export type FrameCapId = (typeof FRAME_LIMIT.options)[number]['id'];
 /** GPU classification and the fps-adaptive downgrade. */
 export const QUALITY_DETECT = {
   storageKey: 'hermod.quality', queryParam: 'quality',
@@ -315,6 +326,8 @@ export const INTERIOR = {
 export const GROWTH = {
   /** Base island radius (tier 1) and the radius for each tier 1..5 when the data carries no radius. */
   baseRadius: 12.6, radiusByTier: [12.6, 14.6, 16.8, 19.0, 21.4] as readonly number[], minRadius: 12.6, maxRadius: 26,
+  /** Radius per tier as the core projection reports it (hermod-core tier_radius); first..last is mapped linearly onto minRadius..maxRadius so every tier renders at its own size. */
+  coreRadiusByTier: [10, 14, 19, 26, 36] as readonly number[],
   /** Coastline wobble (fraction of radius), cliff and underside depth per tier. */
   shapeAmp: [0, 0.035, 0.055, 0.075, 0.095] as readonly number[], cliffDepth: [2.6, 2.9, 3.2, 3.5, 3.8] as readonly number[], underDepth: [7, 8, 9, 10, 11] as readonly number[],
   /** Trees: base count comes from ISLAND.treeCount, this many more per extra unit of area ratio. */
@@ -436,3 +449,10 @@ export const LIGHT_FX = {
 
 /** A cloud within `halfAngle` (rad) of the camera azimuth sits between it and the island: it shrinks away at `rate` (1/s), never below `minScale`. */
 export const CLOUDS = { cameraSide: { halfAngle: 1.15, rate: 2.5, minScale: 0.001 } } as const;
+
+/** Villager rig, in figure units (total height about 1.07, feet at y 0). Standing hip, shoulder pivot (outboard of the torso so the arm never sinks into the chest), limb lengths, torso lathe profile as [radius, y]; the walk swing adds knee flex on the backward leg; seated: thigh forward by `sitHip`, knee down by `sitKnee`, soles on the floor (seatHeight is the underside of the thigh above it: knee height minus thigh radius, the height a bench must have). */
+export const FIGURE = {
+  hipY: 0.5, hipX: 0.065, thigh: 0.25, shin: 0.23, soleBelowAnkle: 0.02, shoulderX: 0.2, shoulderY: 0.83, shoulderSplay: 0.08, kneeFlex: 1.2,
+  torso: [[0, 0.46], [0.125, 0.46], [0.14, 0.54], [0.12, 0.66], [0.155, 0.77], [0.15, 0.82], [0.1, 0.855], [0.045, 0.875], [0, 0.875]] as readonly (readonly [number, number])[],
+  sitHip: Math.PI / 2, sitKnee: Math.PI / 2, seatHeight: 0.2, seatFloorY: 0.26, seatBreath: 0.01,
+} as const;

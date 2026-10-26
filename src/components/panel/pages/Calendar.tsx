@@ -2,6 +2,7 @@ import { COPY } from '@/config/copy';
 import type { VmProps } from '../types';
 import c from '../shared.module.css';
 import s from './calendar.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
 
 export function Calendar({ vm }: VmProps) {
   return (
@@ -47,7 +48,7 @@ export function Calendar({ vm }: VmProps) {
             </div>
           </div>
         )}
-        {vm.evNone && vm.calDays.every((d) => d.events.length === 0) && <p className={`${s.pick} ${c.muted}`}>No meetings this week. Add one with New meeting.</p>}
+        {vm.evNone && vm.calDays.every((d) => d.events.length === 0) && <EmptyNote {...COPY.empty.calendarWeek} />}
         {vm.evNone && vm.calDays.some((d) => d.events.length > 0) && <p className={`${s.pick} ${c.muted}`}>Pick a meeting to see who’s coming and what it’s about.</p>}
       </aside>
     </div>

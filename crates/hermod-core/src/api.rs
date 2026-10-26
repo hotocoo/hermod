@@ -6,6 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -17,11 +18,12 @@ use crate::blobs::BlobStore;
 use crate::crypto::{SpaceKey, random_bytes};
 use crate::device;
 use crate::error::{Error, Result};
-use crate::event::{BlobRef, EventBody, KeyWrap, Role, SignedEvent};
+use crate::event::{BlobRef, EventBody, KeyWrap, Role, SignedEvent, SnapFileIn};
 use crate::growth::GrowthConfig;
 use crate::identity::{self, Identity};
 use crate::ids::{SpaceId, UserId, hex_encode};
 use crate::invite::InviteV1;
+use crate::keyguard::{KeyMode, Unlock};
 use crate::keywrap;
 use crate::projections::{
     InviteInfo, MemberInfo, ProjectionConfig, ProjectionCtx, ReportInfo, SpaceInput, SpaceReport,
@@ -29,12 +31,26 @@ use crate::projections::{
 };
 use crate::ratelimit::RateConfig;
 use crate::search::SearchHit;
-use crate::store::{Ingested, Source, SpaceRow, Store};
+use crate::snapdir::{self, SnapPlan};
+use crate::store::{Ingested, MAX_CLOCK, Source, SpaceRow, Store};
+use crate::swap;
 
 pub use crate::projections::AuditEntry;
 
 /// Database file name inside the app data dir.
 pub const DB_FILE: &str = "hermod.db";
+/// Everything in a data dir that is this install's data: identity, database (with its journal
+/// files) and blobs. Wiping and restoring touch exactly these.
+pub const DATA_ENTRIES: [&str; 5] = [
+    identity::KEY_FILE,
+    DB_FILE,
+    "hermod.db-wal",
+    "hermod.db-shm",
+    "blobs",
+];
+/// Largest total of attachment bytes a backup will take. The file is built in memory (about three
+/// copies at once), so a bigger library is refused with a clear error instead of exhausting RAM.
+pub const MAX_BACKUP_BLOB_BYTES: u64 = 512 << 20;
 /// Scratch directory inside the data dir where a backup is unpacked before being moved into place.
 const RESTORE_DIR: &str = ".restore";
 /// Label the UI uses for the home space.
@@ -48,13 +64,19 @@ const DEFAULT_CHANNEL: &str = "general";
 const PROFILE_KEY: &str = "profile";
 /// Local record `creator:<space id>` of the only author whose `space.create` counts for a space.
 const CREATOR_PIN_PREFIX: &str = "creator:";
-const SETTING_PREFIX: &str = "setting.";
+pub(crate) const SETTING_PREFIX: &str = "setting.";
+/// Set per space on restore from a backup that other members also wrote to: local posts wait until
+/// a peer sync has run, since peers may already hold own events newer than the backup (a reused
+/// `seq` would fork the log). Cleared by [`Core::release_own_seq_hold`].
+const OWN_SEQ_HOLD_PREFIX: &str = "own_seq_hold.";
+/// Local record of the identity this install acts for; absent on the device that created it.
+const OWNER_KEY: &str = "device.owner";
 const TZ_SETTING: &str = "tz_offset_secs";
 const RECEIPTS_SETTING: &str = "read_receipts";
 const MAX_SETTING_KEY: usize = 64;
 const MAX_SETTING_VALUE: usize = 4096;
 const MAX_VERSION_LEN: usize = 32;
-const CACHE_GRACE: Duration = Duration::from_secs(3600);
+pub(crate) const CACHE_GRACE: Duration = Duration::from_secs(3600);
 const SEARCH_LIMIT_MAX: usize = 200;
 
 /// Tunables that default sensibly and are only overridden by tests or advanced builds.
@@ -64,6 +86,10 @@ pub struct CoreConfig {
     pub growth: GrowthConfig,
     pub rate: RateConfig,
     pub backup_kdf: KdfParams,
+    /// Overrides [`MAX_BACKUP_BLOB_BYTES`] (tests); `None` keeps it.
+    pub backup_blob_cap: Option<u64>,
+    /// Keychain entry and passphrase needed to read a protected identity key.
+    pub unlock: Unlock,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +101,8 @@ pub struct IdentityInfo {
     pub initials: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<BlobRef>,
+    /// Where the secret key is kept at rest.
+    pub key_mode: KeyMode,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,6 +122,17 @@ struct StoredProfile {
     bio: String,
     initials: String,
     avatar: Option<BlobRef>,
+}
+
+/// One device of this identity, as listed in settings.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DeviceRow {
+    /// Hex device key; the first device is listed under the identity's own key.
+    pub device_pub: String,
+    /// Unix ms of the `device.link` event; 0 for the first device.
+    pub added_at: i64,
+    pub this_device: bool,
+    pub revoked: bool,
 }
 
 /// A space that was just created locally.
@@ -194,7 +233,13 @@ pub struct SnapVerify {
 
 pub(crate) struct Inner {
     pub(crate) store: Store,
+    /// The key that signs local events. On a linked device this is the device key.
     pub(crate) identity: Identity,
+    /// Who the local user is in every space: the identity this install acts for. Equals the
+    /// signing key unless this install was linked as a device of another identity.
+    pub(crate) owner: UserId,
+    /// Folded governance view per space, valid while the store's version for it is unchanged.
+    reports: std::cell::RefCell<std::collections::HashMap<SpaceId, (u64, SpaceReport)>>,
 }
 
 pub struct Core {
@@ -281,11 +326,26 @@ fn changes_my_keys(body: &EventBody, me: &str) -> bool {
 }
 
 impl Inner {
+    /// True when this install acts for another identity (it was linked as a device).
+    fn is_linked_device(&self) -> bool {
+        self.owner != self.identity.user_id()
+    }
+
+    /// Spaces and joins are made under the identity's own key, which a linked device does not hold.
+    fn require_first_device(&self, what: &str) -> Result<()> {
+        if self.is_linked_device() {
+            return Err(Error::Forbidden(format!(
+                "{what} on the device that created this identity"
+            )));
+        }
+        Ok(())
+    }
+
     fn stored_profile(&self) -> Result<StoredProfile> {
         match self.store.kv_get(PROFILE_KEY)? {
             Some(s) => Ok(serde_json::from_str(&s)?),
             None => {
-                let handle = self.identity.user_id().short();
+                let handle = self.owner.short();
                 Ok(StoredProfile {
                     initials: initials_of(&handle),
                     name: handle,
@@ -338,7 +398,7 @@ impl Inner {
     }
 
     pub(crate) fn ctx(&self, cfg: &CoreConfig, now: i64) -> Result<ProjectionCtx> {
-        let mut ctx = ProjectionCtx::new(self.identity.user_id(), now);
+        let mut ctx = ProjectionCtx::new(self.owner, now);
         ctx.tz_offset_secs = self
             .store
             .kv_get(&format!("{SETTING_PREFIX}{TZ_SETTING}"))?
@@ -349,14 +409,39 @@ impl Inner {
         ctx.follows = self.store.follows()?;
         ctx.hidden = crate::messaging::hidden_set(&self.store)?;
         ctx.muted = crate::messaging::muted_map(&self.store)?;
+        ctx.retention_cutoffs = crate::retention::cutoffs(&self.store, now)?;
         ctx.config = cfg.projection.clone();
         ctx.growth = cfg.growth.clone();
         Ok(ctx)
     }
 
+    /// Governance view of one space. Folding the whole log is the cost of every action, so the
+    /// result is kept until the space's events, keys or row change (see `Store::version`).
     fn report(&self, cfg: &CoreConfig, space: &SpaceId) -> Result<SpaceReport> {
+        let version = self.store.version(space);
+        if let Some((v, rep)) = self.reports.borrow().get(space)
+            && *v == version
+        {
+            return Ok(rep.clone());
+        }
+        let rep = self.report_uncached(cfg, space)?;
+        self.reports
+            .borrow_mut()
+            .insert(*space, (version, rep.clone()));
+        Ok(rep)
+    }
+
+    /// [`Inner::report`] folding from the stored log every time.
+    pub(crate) fn report_uncached(&self, cfg: &CoreConfig, space: &SpaceId) -> Result<SpaceReport> {
         let row = self.row(space)?;
-        Ok(report(&self.ctx(cfg, now_ms())?, &self.input(&row)?))
+        let mut rep = report(&self.ctx(cfg, now_ms())?, &self.input(&row)?);
+        rep.equivocating = self
+            .store
+            .equivocators(space)?
+            .iter()
+            .map(UserId::to_string)
+            .collect();
+        Ok(rep)
     }
 
     fn require(&self, cfg: &CoreConfig, space: &SpaceId, min: Role) -> Result<SpaceReport> {
@@ -385,7 +470,28 @@ impl Inner {
         {
             return Err(Error::invalid("map_style", "must be village or sanctuary"));
         }
+        if let EventBody::SpaceUpdate {
+            join_pow_bits: Some(b),
+            ..
+        } = body
+            && *b > crate::pow::MAX_JOIN_POW_BITS
+        {
+            return Err(Error::invalid(
+                "join_pow_bits",
+                format!("must be at most {}", crate::pow::MAX_JOIN_POW_BITS),
+            ));
+        }
         let row = self.row(space)?;
+        if self
+            .store
+            .kv_get(&format!("{OWN_SEQ_HOLD_PREFIX}{space}"))?
+            .is_some()
+        {
+            return Err(Error::Forbidden(
+                "restored from a backup: waiting to sync with other members before you can post"
+                    .into(),
+            ));
+        }
         let me = self.identity.user_id();
         let seq = self.store.vector(space)?.get(&me).copied().unwrap_or(0) + 1;
         let lamport = self
@@ -393,6 +499,9 @@ impl Inner {
             .max_lamport(space)?
             .max(self.store.lamport_floor(space)?)
             + 1;
+        if seq > MAX_CLOCK || lamport > MAX_CLOCK {
+            return Err(Error::invalid("event", "clock exhausted for this space"));
+        }
         let ev = SignedEvent::create(
             &self.identity,
             &row.key,
@@ -437,11 +546,7 @@ impl Inner {
     fn sync_keys(&mut self, space: &SpaceId) -> Result<Vec<String>> {
         let mut applied = Vec::new();
         loop {
-            let row = self.row(space)?;
-            let rep = report(
-                &self.ctx(&CoreConfig::default(), now_ms())?,
-                &self.input(&row)?,
-            );
+            let rep = self.report(&CoreConfig::default(), space)?;
             let me = self.identity.user_id().to_string();
             let mut installed = false;
             for entry in rep.audit.iter().filter(|a| a.kind == "space.rekey") {
@@ -483,6 +588,7 @@ impl Inner {
         if name.is_empty() || name.chars().count() > 80 {
             return Err(Error::invalid("space name", "must be 1 to 80 characters"));
         }
+        self.require_first_device("create spaces")?;
         let nonce: [u8; 32] = crate::crypto::random_bytes();
         let id = SpaceId::derive(&self.identity.user_id(), &nonce);
         let row = SpaceRow {
@@ -542,6 +648,13 @@ impl Inner {
                 user: m.user.clone(),
                 sealed_key: keywrap::wrap(&user, &key)?,
             });
+            // Linked devices hold their own key, so each gets its own wrap.
+            for dev in rep.devices.get(&m.user).into_iter().flatten() {
+                wraps.push(KeyWrap {
+                    user: dev.clone(),
+                    sealed_key: keywrap::wrap(&dev.parse()?, &key)?,
+                });
+            }
         }
         self.append(space, &EventBody::SpaceRekey { epoch: next, wraps })
     }
@@ -553,14 +666,28 @@ impl Core {
         Self::open_with(dir, CoreConfig::default())
     }
 
-    pub fn open_with(dir: impl AsRef<Path>, config: CoreConfig) -> Result<Self> {
+    pub fn open_with(dir: impl AsRef<Path>, mut config: CoreConfig) -> Result<Self> {
         let dir = dir.as_ref().to_path_buf();
         fs::create_dir_all(&dir)?;
-        let identity = Identity::load_or_create(&dir)?;
+        // An interrupted restore is finished or undone before anything reads the key or database.
+        swap::recover(&dir)?;
+        swap::check_key_present(&dir)?;
+        let identity = Identity::load_or_create_with(&dir, &config.unlock)?;
+        // The passphrase is only for reading the key file; do not keep it for the Core's lifetime.
+        config.unlock.passphrase = None;
         let store = Store::open_with(&dir.join(DB_FILE), config.rate.clone())?;
         let blobs = BlobStore::open(&dir)?;
-        let user = identity.user_id();
-        let mut inner = Inner { store, identity };
+        let owner = match store.kv_get(OWNER_KEY)? {
+            Some(o) => o.parse()?,
+            None => identity.user_id(),
+        };
+        let user = owner;
+        let mut inner = Inner {
+            store,
+            identity,
+            owner,
+            reports: Default::default(),
+        };
         if inner.store.home()?.is_none() {
             inner.new_space(HOME_NAME, HOME_TAGLINE, HOME_KIND, &["chat", "feed"], true)?;
         }
@@ -615,7 +742,52 @@ impl Core {
             bio: p.bio,
             initials: p.initials,
             avatar: p.avatar,
+            key_mode: Identity::mode_in(&self.dir)?.unwrap_or(KeyMode::File),
         })
+    }
+
+    /// The 32 byte identity seed the node derives its libp2p keypair from.
+    pub fn identity_seed(&self) -> [u8; 32] {
+        self.lock().identity.seed()
+    }
+
+    /// The 24 word recovery phrase for the identity (D-003). Secret: the caller must show it once
+    /// and never log or store it; the buffer zeroizes on drop.
+    pub fn identity_phrase(&self) -> Result<zeroize::Zeroizing<String>> {
+        self.lock().identity.phrase()
+    }
+
+    /// Replaces the identity of a data dir that holds nothing yet (only the empty home space, no
+    /// profile) with the one the phrase encodes. Call on a closed dir; the caller wipes first
+    /// (start over) when there is data. The key lands as a plain key file; protect it again after.
+    pub fn restore_from_phrase(dir: &Path, phrase: &str) -> Result<()> {
+        let id = Identity::from_phrase(phrase)?;
+        let db = dir.join(DB_FILE);
+        if db.exists() {
+            let store = Store::open(&db)?;
+            let spaces = store.spaces()?;
+            if spaces.iter().any(|s| !s.is_home) || store.kv_get(PROFILE_KEY)?.is_some() {
+                return Err(Error::invalid(
+                    "restore",
+                    "this device already holds data, start over first",
+                ));
+            }
+        }
+        Self::wipe_data(dir)?;
+        id.save(&dir.join(identity::KEY_FILE))
+    }
+
+    /// Moves the identity key to `mode` (see [`Identity::protect`]). `passphrase` is required for
+    /// the passphrase mode and ignored otherwise. Under one lock so no append races the swap.
+    pub fn identity_protect(&self, mode: KeyMode, passphrase: Option<&str>) -> Result<()> {
+        let unlock = Unlock {
+            store: self.config.unlock.store.clone(),
+            passphrase: passphrase.map(|p| zeroize::Zeroizing::new(p.to_string())),
+            legacy_account: None,
+        };
+        self.lock()
+            .identity
+            .protect(&self.dir, mode, &unlock, self.config.backup_kdf)
     }
 
     /// Stores the profile locally and publishes `profile.set` into every joined space.
@@ -738,11 +910,19 @@ impl Core {
         if target.role == Role::Owner && role != Role::Owner && owners <= 1 {
             return Err(Error::Forbidden("the last owner cannot be demoted".into()));
         }
+        let last_seq = inner
+            .store
+            .load_opened(&inner.row(space)?)?
+            .iter()
+            .filter(|e| e.author == *user)
+            .map(|e| e.seq)
+            .max();
         inner.append(
             space,
             &EventBody::MemberRole {
                 user: user.to_string(),
                 role,
+                last_seq,
             },
         )
     }
@@ -869,7 +1049,16 @@ impl Core {
                 role: opts.role,
             },
         )?;
-        let inv = InviteV1::new(
+        // Everything older than the current key, newest first, so the joiner can read history.
+        let history: Vec<(u32, SpaceKey)> = inner
+            .store
+            .all_keys(space)?
+            .into_iter()
+            .rev()
+            .flat_map(|(e, ks)| ks.into_iter().map(move |k| (e, k)))
+            .filter(|(e, k)| !(*e == row.epoch && *k == row.key))
+            .collect();
+        let mut inv = InviteV1::new(
             id.clone(),
             row.id,
             row.key,
@@ -879,7 +1068,9 @@ impl Core {
             self.user,
             opts.addrs,
             exp,
-        );
+        )
+        .with_keys(history);
+        inv.pow_bits = rep.join_pow_bits;
         Ok((
             InviteOut {
                 id,
@@ -925,9 +1116,18 @@ impl Core {
 
     /// Accepts a code, link or deep link. Idempotent for spaces already joined.
     pub fn invite_accept(&self, code: &str) -> Result<Joined> {
+        self.invite_accept_cancellable(code, &AtomicBool::new(false))
+    }
+
+    /// [`Core::invite_accept`] whose proof-of-work search stops with `Error::Cancelled` once
+    /// `cancel` is set. Nothing is stored on cancel.
+    pub fn invite_accept_cancellable(&self, code: &str, cancel: &AtomicBool) -> Result<Joined> {
         let inv = InviteV1::parse(code)?;
         inv.check_expiry(now_secs())?;
+        // Mined before taking the lock: the work can take seconds.
+        let pow = crate::pow::mine(&inv.id, &self.user.to_string(), inv.pow_bits, cancel)?;
         let mut inner = self.lock();
+        inner.require_first_device("join spaces")?;
         let mut joined = Joined {
             id: inv.space_id,
             label: inv.space_id.to_string(),
@@ -962,10 +1162,14 @@ impl Core {
             inner
                 .store
                 .add_key(&inv.space_id, inv.epoch, &inv.space_key)?;
+            for (epoch, key) in &inv.keys {
+                inner.store.add_key(&inv.space_id, *epoch, key)?;
+            }
             inner.store.raise_lamport_floor(&inv.space_id, inv.lc)?;
             let join = EventBody::MemberJoin {
                 via_invite_from: Some(inv.inviter.to_string()),
                 invite: Some(inv.id.clone()),
+                pow,
             };
             let profile = inner.profile_body()?;
             Ok(vec![
@@ -1148,35 +1352,194 @@ impl Core {
 
     // ---- devices ----
 
-    /// Vouches for another device of this identity (`device.link` in the home space).
-    pub fn device_link(&self, device_pub: &[u8; 32]) -> Result<SignedEvent> {
-        let mut inner = self.lock();
-        let home = inner
+    /// True for events signed by this install or by the identity it acts for.
+    // shortcut: this install's sibling devices are not recognised (that needs a fold per event),
+    // so a linked device's own posts can raise a notice on the other one; upgrade by caching the
+    // device set when the node adapter learns of `device.link` events.
+    /// Called when a peer sync round for `space` finished: the own-author vector is now current,
+    /// so posting after a backup restore is safe again.
+    pub fn release_own_seq_hold(&self, space: &SpaceId) -> Result<()> {
+        self.lock()
             .store
-            .home()?
-            .ok_or_else(|| Error::UnknownSpace(HOME_LABEL.into()))?;
-        let cert = device::make_cert(&inner.identity, device_pub);
-        inner.append(
-            &home.id,
-            &EventBody::DeviceLink {
-                device_pub: hex_encode(device_pub),
-                cert,
-            },
-        )
+            .kv_delete(&format!("{OWN_SEQ_HOLD_PREFIX}{space}"))
     }
 
-    pub fn device_revoke(&self, device_pub: &[u8; 32]) -> Result<SignedEvent> {
+    pub fn is_own_author(&self, author: &UserId) -> bool {
+        *author == self.user || *author == self.lock().identity.user_id()
+    }
+
+    /// Starts linking another device: mints a device key, certifies it in every joined space
+    /// (`device.link`), and returns the one-time code that hands the new device its key and the
+    /// space keys, plus the events to publish. The code is a bearer secret and is never stored.
+    pub fn device_link_start(&self, addrs: Vec<String>) -> Result<(String, Vec<SignedEvent>)> {
         let mut inner = self.lock();
+        inner.require_first_device("link devices")?;
+        let dev = Identity::generate();
+        let cert = device::make_cert(&inner.identity, &dev.user_id().0);
+        let proof = device::make_proof(&dev, &inner.owner);
+        let (mut spaces, mut events) = (Vec::new(), Vec::new());
+        for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
+            let ev = inner.append(
+                &row.id,
+                &EventBody::DeviceLink {
+                    device_pub: hex_encode(&dev.user_id().0),
+                    cert: cert.clone(),
+                    proof: proof.clone(),
+                },
+            )?;
+            let keys = inner
+                .store
+                .all_keys(&row.id)?
+                .into_iter()
+                .flat_map(|(epoch, ks)| ks.into_iter().map(move |k| (epoch, k)))
+                .collect();
+            spaces.push(device::LinkSpace {
+                id: row.id,
+                name: row.name,
+                kind: row.kind,
+                is_home: row.is_home,
+                keys,
+                lc: ev.lamport,
+            });
+            events.push(ev);
+        }
+        let link = device::DeviceLinkV1 {
+            v: 1,
+            owner: inner.owner,
+            device_seed: dev.seed(),
+            cert,
+            proof,
+            exp: now_secs() + device::LINK_TTL_SECS,
+            spaces,
+            addrs,
+            profile: inner.store.kv_get(PROFILE_KEY)?,
+        };
+        Ok((link.encode()?, events))
+    }
+
+    /// Installs a link code into an empty data dir (see [`Core::backup_import`] for the shape);
+    /// returns where the linking device can be reached. Nothing is written when the code is bad
+    /// or expired. Call [`Core::open`] on the dir afterwards.
+    pub fn device_link_accept(dir: &Path, code: &str) -> Result<Vec<String>> {
+        let link = device::DeviceLinkV1::decode(code)?;
+        link.check_expiry(now_secs())?;
+        if let Some(p) = &link.profile {
+            serde_json::from_str::<StoredProfile>(p)
+                .map_err(|_| Error::invalid("device link", "bad profile"))?;
+        }
+        let mut kv = BTreeMap::from([(OWNER_KEY.to_string(), link.owner.to_string())]);
+        kv.extend(link.profile.map(|p| (PROFILE_KEY.to_string(), p)));
+        let mut spaces = Vec::new();
+        for sp in link.spaces {
+            kv.insert(format!("lamport_floor.{}", sp.id), sp.lc.to_string());
+            spaces.push(SpaceBackup {
+                id: sp.id,
+                name: sp.name,
+                kind: sp.kind,
+                is_home: sp.is_home,
+                joined_at: now_ms(),
+                left: false,
+                keys: sp.keys,
+                events: Vec::new(),
+            });
+        }
+        Self::install_payload(
+            dir,
+            &Payload {
+                v: 1,
+                identity_seed: link.device_seed,
+                spaces,
+                kv,
+                read_markers: Vec::new(),
+                blocks: Vec::new(),
+                follows: Vec::new(),
+                blobs: Vec::new(),
+            },
+        )?;
+        Ok(link.addrs)
+    }
+
+    /// Ends a linked device everywhere it was certified: `device.revoke` in each space, then a
+    /// rekey where this identity administers, so the device cannot read what follows.
+    pub fn device_revoke(&self, device_pub: &[u8; 32]) -> Result<Vec<SignedEvent>> {
+        let mut inner = self.lock();
+        inner.require_first_device("revoke devices")?;
+        let hex = hex_encode(device_pub);
+        let (mut events, mut found) = (Vec::new(), false);
+        for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
+            let rep = inner.report(&self.config, &row.id)?;
+            let linked = rep
+                .devices
+                .get(&inner.owner.to_string())
+                .is_some_and(|d| d.contains(&hex));
+            if !linked {
+                continue;
+            }
+            found = true;
+            let last_seq = inner
+                .store
+                .load_opened(&row)?
+                .iter()
+                .filter(|e| e.author.0 == *device_pub)
+                .map(|e| e.seq)
+                .max()
+                .unwrap_or(0);
+            events.push(inner.append(
+                &row.id,
+                &EventBody::DeviceRevoke {
+                    device_pub: hex.clone(),
+                    last_seq: Some(last_seq),
+                },
+            )?);
+            if rep.my_role.is_some_and(|r| r >= Role::Admin) {
+                events.push(inner.rekey(&self.config, &row.id)?);
+            }
+        }
+        if !found {
+            return Err(Error::NotFound("device".into()));
+        }
+        Ok(events)
+    }
+
+    /// Every device of this identity, first device included, from the home space.
+    pub fn device_list(&self) -> Result<Vec<DeviceRow>> {
+        let inner = self.lock();
         let home = inner
             .store
             .home()?
             .ok_or_else(|| Error::UnknownSpace(HOME_LABEL.into()))?;
-        inner.append(
-            &home.id,
-            &EventBody::DeviceRevoke {
-                device_pub: hex_encode(device_pub),
-            },
-        )
+        let rep = inner.report(&self.config, &home.id)?;
+        let owner = inner.owner.to_string();
+        let me = hex_encode(&inner.identity.user_id().0);
+        let linked_at = |dev: &str, kind: &str| {
+            rep.audit
+                .iter()
+                .find(|a| a.kind == kind && a.target.as_deref() == Some(dev))
+                .map(|a| a.ts)
+        };
+        let mut rows = vec![DeviceRow {
+            device_pub: owner.clone(),
+            added_at: 0,
+            this_device: !inner.is_linked_device(),
+            revoked: false,
+        }];
+        let live = rep.devices.get(&owner).cloned().unwrap_or_default();
+        let mut seen: Vec<String> = rep
+            .audit
+            .iter()
+            .filter(|a| a.kind == "device.link")
+            .filter_map(|a| a.target.clone())
+            .collect();
+        seen.dedup();
+        for dev in seen {
+            rows.push(DeviceRow {
+                added_at: linked_at(&dev, "device.link").unwrap_or(0),
+                this_device: dev == me,
+                revoked: !live.contains(&dev),
+                device_pub: dev,
+            });
+        }
+        Ok(rows)
     }
 
     // ---- projections and search ----
@@ -1220,42 +1583,69 @@ impl Core {
         };
         for row in &rows {
             if inner.store.search_stale(&row.id)? {
-                let items = search_items(&inner.identity.user_id().to_string(), &inner.input(row)?);
+                let items = search_items(&inner.owner.to_string(), &inner.input(row)?);
                 inner.store.search_reindex(&row.id, &items)?;
             }
         }
         let ids: Vec<SpaceId> = rows.iter().map(|r| r.id).collect();
-        inner
+        let hits = inner
             .store
-            .search_query(q, &ids, kinds, limit.clamp(1, SEARCH_LIMIT_MAX))
+            .search_query(q, &ids, kinds, limit.clamp(1, SEARCH_LIMIT_MAX))?;
+        // Past-retention messages stay indexed (the index follows the log) but never surface.
+        let cuts = crate::retention::cutoffs(&inner.store, now_ms())?;
+        Ok(crate::retention::visible_hits(hits, &cuts))
     }
 
     // ---- skein seals ----
 
-    /// Checks that every blob a snap references is present and hashes correctly (K-002, K-009).
-    pub fn snap_verify(&self, space: &SpaceId, snap_id: &str) -> Result<SnapVerify> {
+    /// The files of a snap, or `None` when no such snap exists.
+    pub fn snap_files(&self, space: &SpaceId, snap_id: &str) -> Result<Option<Vec<SnapFileIn>>> {
         let inner = self.lock();
         let row = inner.row(space)?;
-        let mut files = Vec::new();
-        for ev in inner.store.load_opened(&row)? {
-            if let EventBody::SnapCreate {
-                snap_id: id,
-                files: f,
-                ..
-            } = ev.body
-                && id == snap_id
-            {
-                files = f;
-                break;
-            }
-        }
-        if files.is_empty()
-            && !inner.store.load_opened(&row)?.iter().any(
-                |e| matches!(&e.body, EventBody::SnapCreate { snap_id: id, .. } if id == snap_id),
-            )
-        {
-            return Err(Error::NotFound(format!("snap {snap_id}")));
-        }
+        Ok(inner
+            .store
+            .load_opened(&row)?
+            .iter()
+            .find_map(|ev| match &ev.body {
+                EventBody::SnapCreate {
+                    snap_id: id, files, ..
+                } if id == snap_id => Some(files.clone()),
+                _ => None,
+            }))
+    }
+
+    /// Hashes a picked folder into blobs and plans it against its parent snap (K-003).
+    /// A parent that is not a file snap (a weave, or none) counts as empty.
+    pub fn snap_plan_folder(
+        &self,
+        space: &SpaceId,
+        root: &Path,
+        parent: Option<&str>,
+    ) -> Result<SnapPlan> {
+        let before = match parent {
+            Some(p) => self.snap_files(space, p)?.unwrap_or_default(),
+            None => Vec::new(),
+        };
+        let new = snapdir::walk_folder(root)?
+            .into_iter()
+            .map(|(rel, abs)| Ok((rel, self.blob_put_path(&abs)?)))
+            .collect::<Result<Vec<_>>>()?;
+        snapdir::plan(&self.blobs, &before, new)
+    }
+
+    /// Writes a snap's files into a new or empty folder (K-010); returns the file count.
+    pub fn snap_export(&self, space: &SpaceId, snap_id: &str, dest: &Path) -> Result<u32> {
+        let files = self
+            .snap_files(space, snap_id)?
+            .ok_or_else(|| Error::NotFound(format!("snap {snap_id}")))?;
+        snapdir::export(&self.blobs, &files, dest)
+    }
+
+    /// Checks that every blob a snap references is present and hashes correctly (K-002, K-009).
+    pub fn snap_verify(&self, space: &SpaceId, snap_id: &str) -> Result<SnapVerify> {
+        let files = self
+            .snap_files(space, snap_id)?
+            .ok_or_else(|| Error::NotFound(format!("snap {snap_id}")))?;
         let mut out = SnapVerify {
             ok: true,
             missing: Vec::new(),
@@ -1287,7 +1677,7 @@ impl Core {
         for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
             let (events, event_bytes) = inner.store.space_usage(&row.id)?;
             let mut seen: BTreeMap<String, u64> = BTreeMap::new();
-            for ev in inner.store.load_opened(&row)? {
+            for ev in inner.store.load_opened(&row)?.iter() {
                 for b in ev.body.blob_refs() {
                     seen.insert(b.hash.clone(), b.size);
                 }
@@ -1355,7 +1745,7 @@ impl Core {
         let inner = self.lock();
         let mut keep = HashSet::new();
         for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
-            for ev in inner.store.load_opened(&row)? {
+            for ev in inner.store.load_opened(&row)?.iter() {
                 keep.extend(ev.body.blob_refs().into_iter().map(|b| b.hash.clone()));
             }
         }
@@ -1372,7 +1762,7 @@ impl Core {
             let events = inner.store.all_events(&row.id)?;
             let keys = inner.store.all_keys(&row.id)?;
             if include_blobs {
-                for ev in inner.store.load_opened(&row)? {
+                for ev in inner.store.load_opened(&row)?.iter() {
                     blob_ids.extend(ev.body.blob_refs().into_iter().map(|b| b.hash.clone()));
                 }
             }
@@ -1410,12 +1800,21 @@ impl Core {
         };
         drop(inner);
         let mut blobs = Vec::new();
+        let mut total = 0u64;
         for id in blob_ids {
             let Some(m) = self.blobs.manifest(&id)? else {
                 continue;
             };
             if !self.blobs.missing(&id)?.is_empty() {
                 continue;
+            }
+            total = total.saturating_add(m.size);
+            let cap = self.config.backup_blob_cap.unwrap_or(MAX_BACKUP_BLOB_BYTES);
+            if total > cap {
+                return Err(Error::invalid(
+                    "backup",
+                    format!("attachments exceed {cap} bytes; export without attachments"),
+                ));
             }
             let chunks = m
                 .chunks
@@ -1438,7 +1837,11 @@ impl Core {
 
     /// Restores a backup into an empty data dir. Call [`Core::open`] on the dir afterwards.
     pub fn backup_import(dir: &Path, file: &Path, passphrase: &str) -> Result<()> {
-        let payload = backup::open(&fs::read(file)?, passphrase)?;
+        Self::install_payload(dir, &backup::open(&fs::read(file)?, passphrase)?)
+    }
+
+    /// Writes `payload` into an empty data dir; a failure leaves `dir` untouched.
+    fn install_payload(dir: &Path, payload: &Payload) -> Result<()> {
         fs::create_dir_all(dir)?;
         if dir.join(identity::KEY_FILE).exists() || dir.join(DB_FILE).exists() {
             return Err(Error::invalid(
@@ -1450,7 +1853,7 @@ impl Core {
         let tmp = dir.join(RESTORE_DIR);
         let _ = fs::remove_dir_all(&tmp);
         fs::create_dir_all(&tmp)?;
-        let moved = Self::restore_into(&tmp, &payload).and_then(|()| {
+        let moved = Self::restore_into(&tmp, payload).and_then(|()| {
             // The identity moves last: its presence is what marks `dir` as already restored.
             for name in [
                 DB_FILE,
@@ -1503,6 +1906,11 @@ impl Core {
             if sp.left {
                 store.mark_left(&sp.id)?;
             }
+            // Other writers mean peers may hold own events newer than this backup.
+            let me = Identity::from_seed(payload.identity_seed).user_id();
+            if store.vector(&sp.id)?.keys().any(|a| *a != me) {
+                store.kv_set(&format!("{OWN_SEQ_HOLD_PREFIX}{}", sp.id), "1")?;
+            }
         }
         for (k, v) in &payload.kv {
             store.kv_set(k, v)?;
@@ -1528,23 +1936,18 @@ impl Core {
 
     /// Deletes this install's data (identity, database, blobs). Irreversible without a backup.
     pub fn wipe_data(dir: &Path) -> Result<()> {
-        for name in [
-            identity::KEY_FILE,
-            DB_FILE,
-            "hermod.db-wal",
-            "hermod.db-shm",
-        ] {
-            match fs::remove_file(dir.join(name)) {
-                Ok(()) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => return Err(e.into()),
-            }
-        }
-        match fs::remove_dir_all(dir.join("blobs")) {
-            Ok(()) => Ok(()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(e.into()),
-        }
+        swap::wipe(dir)
+    }
+
+    /// Where an install is staged before [`Core::replace_data`]; an interrupted swap deletes it.
+    pub fn staging_path(dir: &Path) -> PathBuf {
+        swap::staging_path(dir)
+    }
+
+    /// Replaces this install's data with the complete install staged in `staged` (same filesystem).
+    /// An interruption is finished or undone by the next [`Core::open`], never left half-way.
+    pub fn replace_data(dir: &Path, staged: &Path) -> Result<()> {
+        swap::replace(dir, staged)
     }
 
     // ---- local settings and legal ----
@@ -1648,6 +2051,7 @@ mod tests {
         let join = EventBody::MemberJoin {
             via_invite_from: None,
             invite: None,
+            pow: None,
         };
         assert!(!changes_my_keys(&join, "me"));
         let rekey = |user: &str| EventBody::SpaceRekey {

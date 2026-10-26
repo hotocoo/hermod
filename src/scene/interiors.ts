@@ -1,4 +1,5 @@
 import type * as THREE from 'three';
+import { disposeTree } from './dispose';
 import { ROOM_MAKERS } from './rooms';
 import { createRoomKit, type RoomKit } from './rooms/kit';
 import { INTERIOR_MAKERS, ROOM_RESIDENCY } from '@/config/scene';
@@ -51,7 +52,9 @@ export function createInteriors(M: Mats, WK: World, makers: Partial<Record<Inter
       room.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) m.geometry.dispose(); }); (room.userData.dispose as (() => void) | undefined)?.(); rooms.delete(id);
     }
   }
+  let disposed = false;
   function adopt(id: string, room: InteriorRoom): InteriorRoom {
+    if (disposed) { (room.userData.dispose as (() => void) | undefined)?.(); disposeTree(room); return room; }
     room.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh) { o.receiveShadow = true; o.castShadow = !(m.material as THREE.Material).transparent; } });
     applyShadow(room); rooms.set(id, room); const p = lastPaint.get(id); if (p && room.userData.paint) room.userData.paint(p); room.userData.presence?.(ctx.online); evict(); return room;
   }
@@ -83,6 +86,8 @@ export function createInteriors(M: Mats, WK: World, makers: Partial<Record<Inter
       rooms.forEach((r) => r.userData.presence?.(c.online));
     },
     setShadows(on: boolean) { shadows = on; rooms.forEach(applyShadow); },
+    /** Free every cached room (final teardown); a room still being built is dropped when it lands in a cleared cache. */
+    dispose() { disposed = true; for (const [id, r] of [...rooms]) { (r.userData.dispose as (() => void) | undefined)?.(); r.removeFromParent(); disposeTree(r); rooms.delete(id); } pending.clear(); lastPaint.clear(); },
     tick(t: number, cam?: THREE.Camera) { const r = active ? rooms.get(active) : null; if (r && r.userData.tick) r.userData.tick(t, cam); },
   };
 }

@@ -66,8 +66,19 @@ export const TTL_CHOICES: { label: string; secs: number }[] = [
   { label: 'Off', secs: 0 }, { label: '1 hour', secs: 3600 }, { label: '1 day', secs: 86_400 }, { label: '7 days', secs: 604_800 }, { label: '30 days', secs: 2_592_000 },
 ];
 
-/** Messages still alive at `now` (the core already drops expired ones at render time; this keeps an open chat in step between snapshots). */
-export const alive = (list: Message[], now: number): Message[] => list.filter((m) => !m.ext?.expires || m.ext.expires > now);
+/** An older page goes before the loaded ones; ids already held (a racing or repeated page) are not added twice. */
+export function prependOlder(held: Message[], page: Message[]): Message[] {
+  const have = new Set(held.map((m) => m.id));
+  return [...page.filter((m) => !have.has(m.id)), ...held];
+}
+
+/** After a fresh snapshot only the open chat keeps older pages (others are released), minus what the snapshot now holds itself. */
+export function pruneOlder(older: Record<string, Message[]>, olderMore: Record<string, boolean>, msgs: Record<string, Message[]>, openKey: string): { older: Record<string, Message[]>; olderMore: Record<string, boolean> } {
+  const pages = older[openKey];
+  if (!pages) return { older: {}, olderMore: {} };
+  const have = new Set((msgs[openKey] ?? []).map((m) => m.id));
+  return { older: { [openKey]: pages.filter((m) => !have.has(m.id)) }, olderMore: openKey in olderMore ? { [openKey]: olderMore[openKey] } : {} };
+}
 
 /** Archived chats stay out of the list; a new message brings one back unless the chat is muted (MESSAGING 3.16). */
 export const hiddenAsArchived = (archived: boolean, showArchived: boolean, unread: boolean, muted: boolean): boolean => archived && !showArchived && !(unread && !muted);
@@ -87,4 +98,10 @@ export function toggleInFolder<F extends { id: string; include: string[] }>(fold
 export function inFolder(f: { include: string[]; types: string[] }, key: string, kind: { dm: boolean; group: boolean; unread: boolean }): boolean {
   if (f.include.includes(key)) return true;
   return (f.types.includes('dm') && kind.dm && !kind.group) || (f.types.includes('group') && kind.group) || (f.types.includes('space') && !kind.dm) || (f.types.includes('unread') && kind.unread);
+}
+
+/** Threads of one channel split by state, newest activity first (the core already orders them). */
+export function splitThreads<T extends { archived: boolean }>(list: readonly T[] | undefined): { open: T[]; archived: T[] } {
+  const all = list ?? [];
+  return { open: all.filter((t) => !t.archived), archived: all.filter((t) => t.archived) };
 }

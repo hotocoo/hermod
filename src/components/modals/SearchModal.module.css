@@ -1,0 +1,11 @@
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--color-divider); border-radius: 12px; background: transparent; padding: 3px 10px; font-size: 0.75rem; }
+.chipOn { border-color: var(--color-accent); color: var(--color-accent-700); background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; max-height: min(52dvh, 480px); overflow: auto; }
+.hit { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: start; }
+.hit:hover, .hit:focus-visible { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.icon { color: var(--color-accent-text); padding-top: 2px; }
+.text { display: flex; flex-direction: column; min-width: 0; }
+.label { font-size: 0.875rem; overflow-wrap: anywhere; }
+.sub { font-size: 0.75rem; opacity: 0.66; overflow-wrap: anywhere; }
+.empty { padding: 24px; text-align: center; font-style: italic; opacity: 0.7; }

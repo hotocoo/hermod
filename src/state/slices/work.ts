@@ -7,7 +7,8 @@ import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
 import { coll, type DocBlock } from '../dataTypes';
 import { withKey } from '../helpers';
-import { curSpace, personOf, todayIndex } from '../selectors';
+import { restoreOps } from '../docRestore';
+import { curSpace, meId, personOf, roomMeeting, todayIndex } from '../selectors';
 import type { AppStore, PromptField, WorkSlice } from '../types';
 
 /** Half-hour start times that fit in the calendar day. */
@@ -131,6 +132,23 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       const doc = coll(seed(), 'docs').find((d) => d.id === docId);
       await appendEvent(get, doc?.spaceId ?? here(), { t: 'doc.block', doc_id: docId, op: 'delete', block_id: blockId });
     },
+    commentDocBlock: async (docId, blockId) => {
+      const s = get(); const doc = coll(seed(), 'docs').find((d) => d.id === docId);
+      const v = await s.ask({ title: COPY.docs.commentTitle, kicker: doc?.title, submit: COPY.docs.commentSubmit, fields: [{ key: 'text', label: COPY.docs.commentLabel, multiline: true, required: true }] });
+      const text = v?.text.trim();
+      if (text) await appendEvent(get, doc?.spaceId ?? here(), { t: 'doc.comment', doc_id: docId, block_id: blockId, text });
+    },
+    restoreDocVersion: async (docId, seal) => {
+      const doc = coll(seed(), 'docs').find((d) => d.id === docId);
+      const version = doc?.versions.find((v) => v.seal === seal);
+      if (!doc || !version) return false;
+      const ops = restoreOps(docId, doc.blocks, version.blocks);
+      if (!ops.length) { get().showToast(COPY.docs.nothingToRestore); return true; }
+      // New edits one by one; a failure stops the rest and has already toasted, so no half-restored doc is reported as done.
+      for (const op of ops) if (!(await appendEvent(get, doc.spaceId ?? here(), op))) return false;
+      get().showToast(COPY.docs.restored);
+      return true;
+    },
     newDoc: async () => {
       const s = get();
       const v = await s.ask({ title: 'New doc', kicker: curSpace(s).name, submit: 'Create doc', fields: [{ key: 'title', label: 'Title', required: true }, { key: 'kicker', label: 'Kind of document', placeholder: 'Notes, plan, spec' }] });
@@ -179,9 +197,18 @@ export const createWorkSlice: StateCreator<AppStore, [], [], WorkSlice> = (set, 
       if (ok) await appendEvent(get, ev.spaceId ?? here(), { t: 'event.cancel', ev_id: ev.id });
     },
     joinEvent: async () => {
-      const s = get();
-      if (!s.call) await s.joinRoom();
+      const s = get(); const ev = s.events.find((e) => e.id === s.evSel);
+      if (!ev) return;
+      const sp = ev.spaceId ?? here();
+      // The event's own Space, not the open one; join leaves any call elsewhere first.
+      if (s.call?.space !== sp || s.call.room) await s.join(sp);
+      if (get().call?.space !== sp) return;
       get().enterBuilding('hearth');
+      // The meeting opens with the event's title and its note, one agenda item per line; one already running is joined as is.
+      if (get().seed && roomMeeting(get().seed!, sp)) return;
+      const who = meId(get());
+      const agenda = ev.note.split('\n').map((t) => t.trim()).filter(Boolean).map((text) => ({ text, who }));
+      if (await appendEvent(get, sp, { t: 'meeting.start', topic: ev.t, agenda })) get().showToast(COPY.meetingStarted);
     },
 
     selectBoard: (boardSel) => set({ boardSel }),

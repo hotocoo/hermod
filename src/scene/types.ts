@@ -48,7 +48,7 @@ export interface SpaceGrowth {
   members: number; active7d: number;
   /** Island size, 1..5. */
   tier: number;
-  /** Island radius in world units; when absent the config radius for the tier is used. */
+  /** Island radius as the core projection reports it; the scene maps it onto its renderable range (GROWTH.coreRadiusByTier). */
   radius: number;
   /** One cottage per member; `plot_index` picks the ring slot deterministically. */
   houses: readonly { user_id: string; plot_index: number }[];
@@ -153,6 +153,8 @@ export interface TownApi {
   snapshotStill(samples?: number): Promise<string>;
   /** Graphics tier: 'auto' detects from the GPU and downgrades when fps stays low. Saved for the next session. */
   setQuality(tier: QualityTier | 'auto'): void;
+  /** Frame cap / low-power mode (an id from FRAME_LIMIT.options). Persisting the choice is the caller's job. */
+  setFrameCap(id: string): void;
   /** Current tier and whether it follows auto-detect. */
   getQuality(): { tier: QualityTier; auto: boolean; /** Probe GI bake progress 0..1 (1 = settled or off). */ giProgress: number; stillSamples: number; stillEngaged: boolean };
   /** Map style for this device: an id overrides the space default, 'default' clears the override. Live switch (cross-fade rebuild), saved locally. */

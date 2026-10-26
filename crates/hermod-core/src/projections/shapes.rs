@@ -34,6 +34,9 @@ pub struct Space {
     /// Space default map style chosen by an admin (`village` or `sanctuary`); a device override wins.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub map_style: Option<String>,
+    /// Proof-of-work bits a join request must carry (0 = off).
+    #[serde(default)]
+    pub join_pow_bits: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_channel: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -135,6 +138,9 @@ pub struct Message {
     /// watermark so events that land while a mark request waits are not swallowed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arrival: Option<u64>,
+    /// When the author sent it (unix ms): lets the UI tell backfilled history from a live arrival.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ts: Option<i64>,
     /// Messaging fields (docs/MESSAGING.md 3.1).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ext: Option<super::messaging::MsgView>,
@@ -445,6 +451,7 @@ pub struct DocBlock {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DocComment {
     pub by: String,
+    pub block_id: String,
     pub on: String,
     pub text: String,
 }
@@ -453,6 +460,10 @@ pub struct DocComment {
 pub struct DocVersion {
     pub t: String,
     pub seal: String,
+    /// Author of the edit that made this version.
+    pub by: String,
+    /// The doc's blocks as they stood after that edit, so a version can be viewed and restored.
+    pub blocks: Vec<DocBlock>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

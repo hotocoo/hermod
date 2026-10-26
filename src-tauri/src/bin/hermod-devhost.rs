@@ -44,12 +44,21 @@ struct Args {
     /// libp2p listen multiaddr (repeatable). Default: 127.0.0.1 on a free TCP port.
     #[arg(long)]
     listen: Vec<hermod_node::Multiaddr>,
+    /// Exact origin of the UI allowed to call this host (repeatable), e.g. http://localhost:3210.
+    /// Without one, any localhost or 127.0.0.1 origin is allowed.
+    #[arg(long)]
+    ui_origin: Vec<String>,
 }
 
 type Shared = Arc<Ctx>;
 
-/// A JSON body (a cross-site form cannot send one without a CORS preflight) addressed to
-/// `127.0.0.1:<port>` (a DNS-rebound hostname fails this).
+/// Addressed to `127.0.0.1:<port>`: a DNS-rebound hostname fails this.
+fn host_ok(headers: &HeaderMap, port: u16) -> bool {
+    let host = headers.get(header::HOST).and_then(|v| v.to_str().ok());
+    host == Some(format!("127.0.0.1:{port}").as_str())
+}
+
+/// A JSON body (a cross-site form cannot send one without a CORS preflight) with the right Host.
 fn invoke_allowed(headers: &HeaderMap, port: u16) -> bool {
     let json = headers
         .get(header::CONTENT_TYPE)
@@ -59,8 +68,7 @@ fn invoke_allowed(headers: &HeaderMap, port: u16) -> bool {
                 .next()
                 .is_some_and(|m| m.trim().eq_ignore_ascii_case("application/json"))
         });
-    let host = headers.get(header::HOST).and_then(|v| v.to_str().ok());
-    json && host == Some(format!("127.0.0.1:{port}").as_str())
+    json && host_ok(headers, port)
 }
 
 async fn invoke(
@@ -108,7 +116,18 @@ async fn deeplink(
     }
 }
 
-async fn events(State(ctx): State<Shared>) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+async fn events(
+    State(ctx): State<Shared>,
+    Extension(port): Extension<u16>,
+    headers: HeaderMap,
+) -> Response {
+    if !host_ok(&headers, port) {
+        return (StatusCode::FORBIDDEN, "request not allowed").into_response();
+    }
+    events_stream(&ctx).into_response()
+}
+
+fn events_stream(ctx: &Ctx) -> Sse<impl Stream<Item = Result<Event, Infallible>> + use<>> {
     let stream = BroadcastStream::new(ctx.subscribe()).filter_map(|m| {
         m.ok()
             .map(|ev| Ok(Event::default().event(ev.name).data(ev.payload.to_string())))
@@ -118,15 +137,19 @@ async fn events(State(ctx): State<Shared>) -> Sse<impl Stream<Item = Result<Even
 
 async fn blob_route(
     State(ctx): State<Shared>,
+    Extension(port): Extension<u16>,
     Path(hash): Path<String>,
     headers: HeaderMap,
 ) -> Response {
+    if !host_ok(&headers, port) {
+        return (StatusCode::FORBIDDEN, "request not allowed").into_response();
+    }
     let range = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
     let r = blob::serve(&ctx, &hash, range).await;
     let mut resp = Response::new(Body::from(r.body.clone()));
     *resp.status_mut() =
         StatusCode::from_u16(r.status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
-    for (k, v) in r.headers() {
+    for (k, v) in r.headers(None) {
         if let (Ok(k), Ok(v)) = (
             HeaderName::from_bytes(k.as_bytes()),
             HeaderValue::from_str(&v),
@@ -137,7 +160,11 @@ async fn blob_route(
     resp
 }
 
-fn origin_ok(o: &HeaderValue) -> bool {
+/// The configured UI origins when there are any, else any localhost origin.
+fn origin_ok(o: &HeaderValue, allowed: &[String]) -> bool {
+    if !allowed.is_empty() {
+        return o.to_str().is_ok_and(|s| allowed.iter().any(|a| a == s));
+    }
     o.to_str().is_ok_and(|s| {
         ["http://localhost:", "http://127.0.0.1:"]
             .iter()
@@ -170,8 +197,11 @@ async fn main() -> anyhow_free::Result<()> {
         None,
     )
     .await?;
+    let ui_origins = a.ui_origin;
     let cors = CorsLayer::new()
-        .allow_origin(AllowOrigin::predicate(|o, _| origin_ok(o)))
+        .allow_origin(AllowOrigin::predicate(move |o, _| {
+            origin_ok(o, &ui_origins)
+        }))
         .allow_methods([axum::http::Method::GET, axum::http::Method::POST])
         .allow_headers([header::CONTENT_TYPE, header::RANGE]);
     let app = Router::new()
@@ -233,6 +263,23 @@ mod tests {
             &headers(Some("application/json"), "127.0.0.1:7001"),
             7000
         ));
+    }
+
+    #[test]
+    fn host_check_covers_every_route() {
+        assert!(host_ok(&headers(None, "127.0.0.1:7000"), 7000));
+        assert!(!host_ok(&headers(None, "evil.example:7000"), 7000));
+        assert!(!host_ok(&HeaderMap::new(), 7000));
+    }
+
+    #[test]
+    fn origin_follows_the_configured_ui_or_any_localhost() {
+        let o = |s: &str| HeaderValue::from_str(s).unwrap();
+        assert!(origin_ok(&o("http://localhost:3210"), &[]));
+        assert!(!origin_ok(&o("http://evil.example"), &[]));
+        let only = vec!["http://localhost:3210".to_string()];
+        assert!(origin_ok(&o("http://localhost:3210"), &only));
+        assert!(!origin_ok(&o("http://localhost:9999"), &only));
     }
 }
 

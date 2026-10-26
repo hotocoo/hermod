@@ -71,6 +71,15 @@ impl<'a> World<'a> {
             seen_by,
             everyone: x.is_some_and(|x| x.everyone),
             here: x.is_some_and(|x| x.here),
+            admins: x.is_some_and(|x| x.admins),
+            owners: x.is_some_and(|x| x.owners),
+            pings_me: x.is_some_and(|x| {
+                let mine = s.role_of(&self.me);
+                x.everyone
+                    || x.here
+                    || (x.admins && mine >= Some(Role::Admin))
+                    || (x.owners && mine == Some(Role::Owner))
+            }),
             auto: ext.auto,
             thread_state,
             preview: m.preview.as_ref().map(|(url, title, _)| PreviewView {

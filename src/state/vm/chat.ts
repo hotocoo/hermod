@@ -1,5 +1,6 @@
 import { LIMITS } from '../../config/app';
 import { ROMAN } from '../../config/ui';
+import { mentionsName } from '../../lib/messaging/mentions';
 import { anim } from '../../lib/format';
 import type { Message } from '../dataTypes';
 import { channelUnread, channelsOf, chatKey, displayName, findSnap, isHomeSpace, meId, personOf, spaceUnread, roomOf, withNicks } from '../selectors';
@@ -9,6 +10,11 @@ import { ACCENT, ACCENT_100, ACCENT_700, ACCENT_800, DIVIDER, TEXT, fgOf, mixAcc
 
 const REACTION_QUICK = '👍';
 const enterToSend = (fn: () => void) => (e: KeyEvt) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fn(); } };
+
+/** Index of the first message to map: the newest `messageWindow + extra`, stretched to include a loaded jump target (`jumpAt`, -1 when none). */
+export function windowStart(total: number, extra: number, jumpAt: number): number {
+  return Math.max(0, total - Math.max(LIMITS.messageWindow + extra, jumpAt < 0 ? 0 : total - jumpAt));
+}
 
 function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
   const { s, seed } = x; const me = meId(s); const P = (id: string) => personOf(seed, id);
@@ -22,7 +28,7 @@ function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
     editDraft: s.editDraft, onEditDraft: (e: InputEvt) => s.setEditDraft(e.target.value), saveEdit: s.saveEdit, cancelEdit: s.cancelEdit,
     startEdit: () => s.startEdit(m.id, m.text), onDelete: () => { void s.deleteMessage(m.id); },
     canTicket: x.sp.sections.includes('desk') && !m.removed && m.by !== 'system' && !!m.text, onTicket: () => { void s.deskTicketFromMessage(m.id); },
-    mentionsMe: !!me && !!seed.people[me] && m.text.includes(`@${seed.people[me].name.split(' ')[0]}`),
+    mentionsMe: !!me && !!seed.people[me] && mentionsName(m.text, seed.people[me].name),
     att: (m.att ?? []).map((b) => ({ ...b, open: () => s.openModal({ kind: 'lightbox', blob: b }) })),
     showHead: !prev || prev.by !== m.by || !!m.meet, compact: !!prev && prev.by === m.by && !m.meet,
     hasImg: !!m.img, img: m.img, hasSnap: !!m.snap,
@@ -80,8 +86,14 @@ export function chatVm(x: Ctx) {
   const key = chatKey(s);
   const have = s.msgs[key] ?? []; const seen = new Set(have.map((m) => m.id));
   const raw = [...(s.older[key] ?? []).filter((m) => !seen.has(m.id)), ...have]; // pages loaded by loadOlder precede the snapshot's messages
-  const messages = raw.map((m, i, arr) => messageVm(x, m, i, arr, key));
-  const threadMsg = messages.find((m) => m.id === s.thread) ?? null;
+  // Only the visible window is mapped: the newest messageWindow plus what "show earlier" widened, and a jump target stretches it to include itself.
+  const extra = s.chatWin.key === key ? s.chatWin.extra : 0;
+  const jumpAt = s.jump?.key === key ? raw.findIndex((m) => m.id === s.jump?.id) : -1;
+  const start = windowStart(raw.length, extra, jumpAt);
+  const messages = raw.slice(start).map((m, i, arr) => messageVm(x, m, i, arr, key));
+  const root = s.thread ? raw.find((m) => m.id === s.thread) : undefined; // the open thread's root may sit above the window
+  const threadMsg = messages.find((m) => m.id === s.thread) ?? (root ? messageVm(x, root, 0, [root], key) : null);
+  const pinned = raw.filter((m) => m.pinned && !m.removed).map((m) => ({ id: m.id, name: displayName(seed, s.space, m.by), text: m.text }));
   const snapChoices = (s.skein[s.space]?.snaps ?? []).map((q) => ({ id: q.id, title: q.title, line: q.line }));
 
   return {
@@ -93,15 +105,15 @@ export function chatVm(x: Ctx) {
     sections, secIdx, secX: `${secIdx * 100}%`, section: s.section,
     isChat: secOn('chat'), isHearth: secOn('hearth'), isFeed: secOn('feed'), isBoard: secOn('board'), isSkein: secOn('skein'), isDesk: secOn('desk'), isArcade: secOn('arcade'),
     sectionLabel: seed.sections[s.section].label,
-    channels, chan, messages, hasMessages: messages.length > 0, noMessages: messages.length === 0, 
+    channels, chan, messages, hiddenMessages: start, pinned, hasMessages: raw.length > 0, noMessages: raw.length === 0,
     emptyTitle: chan.name ? `It’s quiet in ${chan.isDm ? chan.name : `#${chan.name}`}` : 'No channel yet', emptyLine: 'Every good channel starts with one message. Say hi, share a link, or drop a file here.',
     onSend: () => { void s.send(); }, onDraftKey: enterToSend(() => { void s.send(); }),
     attached: s.attached[key] ?? [], detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: withNicks(seed, s.space), meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,
     snapRefTitle: snapChoices.find((q) => q.id === s.snapRef)?.title ?? '', isHome: spaceHome,
     sendFgOn: ACCENT, sendFgOff: mixText(35),
     placeholder: chan.isDm ? `Message ${chan.name.split(' ')[0]}` : `Write to #${chan.name}`,
-    threadOpen: !!threadMsg, thread: threadMsg, closeThread: s.closeThread, tdraft: s.tdraft, onTDraft: (e: InputEvt) => s.setTDraft(e.target.value),
+    threadOpen: !!s.thread, threadFound: !!threadMsg, thread: threadMsg, closeThread: s.closeThread, tdraft: s.tdraft, onTDraft: (e: InputEvt) => s.setTDraft(e.target.value),
     onTSend: () => { void s.tsend(); }, onTKey: enterToSend(() => { void s.tsend(); }),
-    threadX: threadMsg ? '0%' : '104%', threadOp: threadMsg ? '1' : '0', threadEvents: threadMsg ? 'auto' : 'none',
+    threadX: s.thread ? '0%' : '104%', threadOp: s.thread ? '1' : '0', threadEvents: s.thread ? 'auto' : 'none',
   };
 }

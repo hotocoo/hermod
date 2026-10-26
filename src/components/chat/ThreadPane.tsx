@@ -1,4 +1,5 @@
 import type { VmProps } from '@/components/panel/types';
+import { COPY } from '@/config/copy';
 import s from './chat.module.css';
 import { Face } from '@/components/ui/Face';
 
@@ -7,6 +8,12 @@ export function ThreadPane({ vm }: VmProps) {
   return (
     <section aria-label="Thread" className={s.pane}
       style={{ transform: `translateX(${vm.threadX})`, opacity: vm.threadOp, pointerEvents: vm.threadEvents as 'auto' | 'none' }}>
+      {vm.threadOpen && !t && (
+        <div className={s.tHead}>
+          <div className={s.tHeadMain}><div className={s.tKick}>{COPY.threadLoading}</div></div>
+          <button onClick={vm.closeThread} aria-label={COPY.closeThread} className={s.tClose}>{vm.icS.x}</button>
+        </div>
+      )}
       {vm.threadOpen && t && (
         <>
           <div className={s.tHead}>

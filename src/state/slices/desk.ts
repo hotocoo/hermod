@@ -3,7 +3,7 @@ import { errorMessage, getBridge, type BlobRef, type EventBody } from '../../lib
 import { uid } from '../act';
 import { coll } from '../dataTypes';
 import type { DeskConfig, DeskMacro, MacroAction, Ticket, TicketPriority, TicketStatus, ViewFilter } from '../deskTypes';
-import { curSpace, meId, personOf } from '../selectors';
+import { curSpace, loadedMessages, meId, personOf } from '../selectors';
 import type { DeskScope, DeskSort, StatusMode } from '../vm/desk';
 import type { AppStore, DeskSlice } from '../types';
 
@@ -86,8 +86,8 @@ export const createDeskSlice: StateCreator<AppStore, [], [], DeskSlice> = (set, 
 
     deskTicketFromMessage: async (msgId) => {
       const s = get(); const sp = curSpace(s); const seed = s.seed;
-      const key = Object.keys(s.msgs).find((k) => k.startsWith(`${sp.id}/`) && s.msgs[k].some((m) => m.id === msgId));
-      const msg = key ? s.msgs[key].find((m) => m.id === msgId) : undefined;
+      const key = Object.keys(s.msgs).find((k) => k.startsWith(`${sp.id}/`) && loadedMessages(s, k).some((m) => m.id === msgId));
+      const msg = key ? loadedMessages(s, key).find((m) => m.id === msgId) : undefined;
       if (!msg || !seed) return;
       const agent = coll(seed, 'desk')[sp.id]?.agent ?? false;
       const first = (msg.text.split('\n')[0] || 'Chat message').trim();

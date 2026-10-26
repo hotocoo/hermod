@@ -1,5 +1,5 @@
 /** Store shape: one interface per slice (data + actions). AppStore is their intersection. */
-import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit } from '../lib/bridge/types';
+import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, ReportOutcome, ReportRow, Role, SearchHit, SearchKind } from '../lib/bridge/types';
 import type { Seed, Space, SectionId } from '../lib/data/types';
 import type { Theme, Palette } from '../lib/theme';
 import type { MotionMode } from '../lib/prefs';
@@ -23,7 +23,7 @@ export type DrawerId = 'sky' | 'rook' | 'set' | 'net';
 export type RookRef = Pick<RookEntry, 'sp' | 'ch'>;
 
 /** Boot phases: the gates the user passes before the town. */
-export type Phase = 'boot' | 'legal' | 'declined' | 'profile' | 'welcome' | 'app' | 'failed';
+export type Phase = 'boot' | 'legal' | 'declined' | 'profile' | 'welcome' | 'app' | 'failed' | 'locked';
 
 /** An attachment waiting in the composer (already stored as a blob). */
 export interface Attached { blob: BlobRef; local: string }
@@ -39,7 +39,7 @@ export type Modal =
   | { kind: 'newSpace' } | { kind: 'join'; code?: string } | { kind: 'invite'; space: string } | { kind: 'spaceSettings'; space: string }
   | { kind: 'shortcuts' } | { kind: 'about' } | { kind: 'appSettings'; tab?: string } | { kind: 'search' }
   | { kind: 'lightbox'; blob: BlobRef } | { kind: 'composePost' } | { kind: 'composeStory' } | { kind: 'newSnapshot' }
-  | { kind: 'forward'; msg: Message } | { kind: 'gallery' } | { kind: 'channelSettings'; space: string; channel: string } | { kind: 'privacy' } | { kind: 'contacts' } | { kind: 'schedule' };
+  | { kind: 'forward'; msg: Message } | { kind: 'gallery' } | { kind: 'channelSettings'; space: string; channel: string } | { kind: 'privacy' } | { kind: 'contacts' } | { kind: 'schedule' } | { kind: 'letter' };
 
 export interface CoreSlice {
   seed: Seed | null;
@@ -54,12 +54,15 @@ export interface SessionSlice {
   node: NodeStatus | null; syncPending: number; blocked: Record<string, true>;
   /** Invite code received from a deep link while a gate was still open. */
   pendingCode: string | null;
+  /** A join is running (its proof-of-work search can take seconds); `cancelJoin` stops it. */
+  joining: boolean;
   boot(): Promise<void>;
   acceptLegal(shareResources: boolean): Promise<void>;
   declineLegal(): void;
   saveProfile(name: string, bio: string): Promise<boolean>;
   createSpace(name: string, tagline: string, kind: string): Promise<boolean>;
   joinSpace(code: string): Promise<boolean>;
+  cancelJoin(): Promise<void>;
   leaveSpace(id: string): Promise<boolean>;
   enterApp(): void;
   onDeeplink(code: string): void;
@@ -110,10 +113,16 @@ export interface ChatSlice {
   editing: string | null; editDraft: string; snapRef: string | null;
   setSnapRef(id: string | null): void;
   seen: Record<string, boolean>; incoming: Record<string, number>;
+  /** How many messages beyond `LIMITS.messageWindow` the open chat shows ("show earlier"); belongs to one chat key and resets when another opens. */
+  chatWin: { key: string; extra: number }; widenChat(key: string, extra: number): void;
   setDraft(v: string): void; send(): Promise<void>; setTDraft(v: string): void; tsend(): Promise<void>;
   react(key: string, mid: string, l: string): Promise<void>;
   startEdit(id: string, text: string): void; setEditDraft(v: string): void; saveEdit(): Promise<void>; cancelEdit(): void;
   deleteMessage(id: string): Promise<void>;
+  /** E-006: ask for a reason, then send `content.report` for a message or post. */
+  reportContent(id: string, space: string): Promise<void>;
+  /** E-006: close a report. `removed` first removes the content (after a confirm); resolves true once the report is closed. */
+  resolveReport(space: string, report: ReportRow, outcome: ReportOutcome): Promise<boolean>;
   attachFiles(files: File[]): Promise<void>; attachNative(): Promise<void>; detach(hash: string): void;
   newChannel(): Promise<void>;
   toggleThread(id: string): void; closeThread(): void;
@@ -158,6 +167,10 @@ export interface WorkSlice {
   newLine(): Promise<void>;
   selectDoc(id: string): void; toggleDocBlock(docId: string, blockId: string): Promise<void>; addDocBlock(docId: string, kind: DocBlock['k']): Promise<void>;
   updateDocBlock(docId: string, blockId: string, text: string): Promise<void>; deleteDocBlock(docId: string, blockId: string): Promise<void>;
+  /** Comment on one line of a doc (V-025). */
+  commentDocBlock(docId: string, blockId: string): Promise<void>;
+  /** Restore a version as new doc.block edits (V-026); resolves false when nothing could be restored. */
+  restoreDocVersion(docId: string, seal: string): Promise<boolean>;
   newDoc(): Promise<void>;
   selectEvent(id: string): void; newEvent(): Promise<void>; rsvp(): Promise<void>; cancelEvent(): Promise<void>; editEvent(): Promise<void>; joinEvent(): Promise<void>;
   selectBoard(id: string): void; newBoard(): Promise<void>; addPin(): Promise<void>;
@@ -190,10 +203,11 @@ export interface RavenSlice {
 }
 
 export interface OverlaySlice {
-  drawer: DrawerId | null; palette: boolean; q: string; pi: number; hits: SearchHit[]; toast: ToastState | null;
+  drawer: DrawerId | null; palette: boolean; q: string; pi: number; hits: SearchHit[]; searchSpace: string; searchKinds: SearchKind[]; toast: ToastState | null;
   profile: boolean; profEdit: boolean; prof: Profile | null; profTab: string; onb: number;
   toggleDrawer(id: DrawerId): void; closeDrawer(): void;
   openPalette(): void; closePalette(): void; togglePalette(): void; setQ(v: string): void; setPi(i: number): void;
+  setSearchSpace(id: string): void; toggleSearchKind(k: SearchKind): void;
   runResult(i: number): void;
   showToast(text: string, ms?: number, kind?: ToastState['kind']): void;
   stepOnb(n: number): void; replayWelcome(): void;

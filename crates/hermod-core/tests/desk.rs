@@ -33,6 +33,7 @@ fn invite_as(id: &str, role: Role) -> EventBody {
 fn join_via(id: &str) -> EventBody {
     EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some(id.into()),
     }
 }
@@ -277,7 +278,7 @@ fn ticket_numbers_are_deterministic_under_shuffled_ingest() {
         r.reverse();
         for evs in [s, r] {
             let mut input = d.log.input(d.sid, "Acme", "Team", false);
-            input.events = evs;
+            input.events = evs.into();
             let snap = project(&ctx(a), &[input]);
             let got = serde_json::to_string(&snap.collections.desk.into_values().next().unwrap())
                 .unwrap();

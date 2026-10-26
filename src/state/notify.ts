@@ -1,5 +1,6 @@
 /** OS notifications for arrivals while the window is unfocused: DMs and mentions (FEATURES N-001), honouring mute and Do Not Disturb. */
 import { DM_KIND, NOTIFY } from '../config/app';
+import { COPY } from '../config/copy';
 import { getBridge, type NotifySettings } from '../lib/bridge';
 import type { Arrival } from './arrivals';
 import { isMuted } from './slices/messaging/helpers';
@@ -57,9 +58,15 @@ export function arrivalKind(n: NotifySettings, muted: Record<string, number> | u
   return kind && allowed(n, a, kind) ? kind : null;
 }
 
-export function notifyArrival(s: AppStore, a: Arrival): void {
-  if (!settings || !s.seed || typeof document === 'undefined' || document.hasFocus()) return;
-  const sp = s.spaces.find((x) => x.id === a.sp);
-  if (!arrivalKind(settings, s.prefs.muted, a, !!sp && (isHomeSpace(sp) || sp.kind === DM_KIND))) return;
-  sendNotification(personOf(s.seed, a.by).name, a.text, { sp: a.sp, ch: a.ch });
+/** OS notifications for one apply's arrivals: the first `NOTIFY.burstMax` that qualify show on their own, the rest fold into one summary. */
+export function notifyArrivals(s: AppStore, arrivals: Arrival[]): void {
+  const seed = s.seed; const cfg = settings;
+  if (!cfg || !seed || typeof document === 'undefined' || document.hasFocus()) return;
+  const earned = arrivals.filter((a) => {
+    const sp = s.spaces.find((x) => x.id === a.sp);
+    return arrivalKind(cfg, s.prefs.muted, a, !!sp && (isHomeSpace(sp) || sp.kind === DM_KIND));
+  });
+  earned.slice(0, NOTIFY.burstMax).forEach((a) => sendNotification(personOf(seed, a.by).name, a.text, { sp: a.sp, ch: a.ch }));
+  const rest = earned.slice(NOTIFY.burstMax);
+  if (rest.length) sendNotification(COPY.notifyMoreTitle, COPY.notifyMore(rest.length), { sp: rest[0].sp, ch: rest[0].ch });
 }

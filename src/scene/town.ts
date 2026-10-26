@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_DETECT, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
+import { CAMERA, COLORS, FIGURE, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_DETECT, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
 import type { SectionId } from '@/lib/data/types';
 import { createInteriors, type InteriorRoom } from './interiors';
 import { createOverlay } from './overlay';
@@ -11,6 +11,7 @@ import type {
   ArcadeHints, BaseMats, ClockMode, Fx, Hints, HouseActor, MiniIsle, PersonActor, PickId, Plot, Plots, RavenSource, RingFn, RingFx, SpaceInfo, ThreadActor, TownApi, TownMode, TownOptions, Visitor,
 } from './types';
 import { isMesh } from './util';
+import { capFps, savedFrameCap, tooSoon } from './frameLimit';
 import { createWeather } from './weather';
 import { disposeTree, sharedOf } from './dispose';
 import { createWorld } from './world';
@@ -132,6 +133,9 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const later = (fn: () => void, ms: number) => { const id = setTimeout(() => { timers.delete(id); fn(); }, ms); timers.add(id); };
   const cancelLater = () => { timers.forEach(clearTimeout); timers.clear(); };
+  /** Deferred work tied to the town's whole life (warm-ups, GI refresh): survives a space switch, runs only while alive, cleared by dispose. */
+  const lifeTimers = new Set<ReturnType<typeof setTimeout>>();
+  const whileAlive = (fn: () => void, ms: number) => { const id = setTimeout(() => { lifeTimers.delete(id); if (alive) fn(); }, ms); lifeTimers.add(id); };
   /** Space waiting for its switch build (`current` already names it). */
   let pendingBuild: SpaceInfo | null = null;
   function makeMini(sp: SpaceInfo) {
@@ -218,7 +222,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     const ids = SECTION_ORDER;
     ids.forEach((id, i) => { plots[id] = makePlot(id, gs.levels[id] > 0, (first ? TIMING.plotDelayFirst : TIMING.plotDelayNext) + i * TIMING.plotStagger, Math.max(1, gs.levels[id]) as BuildingLevel); });
     houses = site!.houses.map((h, i) => makeHouse(h, info, i, first));
-    if (first && !soft) { setTimeout(prewarmRooms, 0); setTimeout(warmGpu, 2500); }
+    if (first && !soft) { whileAlive(prewarmRooms, 0); whileAlive(warmGpu, 2500); }
     const n = Math.min(ISLAND.peopleMax, Math.max(ISLAND.peopleMin, Math.round((info.online || 4) / ((info.online || 0) > 50 ? 20 : 1))));
     for (let i = 0; i < n; i++) people.push(makePerson(rng(info.id + i), i));
     applyRoom(); if (!loomLight.parent) island.add(loomLight);
@@ -287,7 +291,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   }
   function prewarmRooms() {
     if (prewarmed) return; prewarmed = true; const ids = ['chat', 'feed', 'board', 'skein', 'desk'].slice(0, ROOM_RESIDENCY.maxRooms); // more would only be evicted again
-    ids.forEach((id, i) => setTimeout(() => { if (!alive || !IN.canLoad(id)) return; void IN.load(id).then((room) => { if (room) void prep(room, { room: true, label: 'room:' + id }); }); }, 3500 + i * 1400));
+    ids.forEach((id, i) => whileAlive(() => { if (!IN.canLoad(id)) return; void IN.load(id).then((room) => { if (room) void prep(room, { room: true, label: 'room:' + id }); }); }, 3500 + i * 1400));
   }
 
   /** Same space, same sections, new growth data: grow the island, add cottages and upgrade buildings in place. */
@@ -386,7 +390,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     };
     const go = () => { void loading.then(async (room) => { if (room) { await prep(room, { gate: true, room: true, maxMs: 4000, label: 'enter:' + id }); cut(room); } else cb?.(); }); };
     if (mode === 'inside' || reduced) { go(); return; }
-    push(); shoot('push', from0); setTimeout(go, CAMERA.roomPush.cutMs);
+    push(); shoot('push', from0); whileAlive(go, CAMERA.roomPush.cutMs);
   }
   function leaveInside() { const was = insideId; mode = 'island'; insideAt = null; insideId = null; if (was && was !== 'hearth') { const dp = doorWorld(was, new THREE.Vector3()) || new THREE.Vector3(); const yaw = plots[was] ? plots[was].g.rotation.y : 0; const C = CAMERA.leave; rig.tx.snap(dp.x); rig.tz.snap(dp.z); rig.ty.snap(dp.y + C.ty); rig.az.snap(nearestAz(yaw)); rig.el.snap(C.el); rig.dist.snap(C.dist); rig.off.snap(0); fov.snap(C.fov); } interiorRoot.children.slice().forEach((c) => interiorRoot.remove(c)); IN.setActive(null); gi.setVisible(true); focus(null); }
   let panelOpen = false;
@@ -429,7 +433,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   function panBy(dx: number, dy: number) { const a = rig.az.x, sc = rig.dist.x * 0.0017; const rx = Math.cos(a), rz = -Math.sin(a), fx2 = -Math.sin(a), fz = -Math.cos(a); userTx += -rx * dx * sc + fx2 * dy * sc; userTz += -rz * dx * sc + fz * dy * sc; clampT(); rig.tx.t = userTx; rig.tz.t = userTz; }
   function zoomAt(d: number, cx?: number, cy?: number) { const nd = Math.max(CAMERA.zoom.min, Math.min(CAMERA.zoom.max * camK, userDist + d)); const f = (userDist - nd) / userDist; if (cx != null) { const g = groundAt(cx, cy!); if (g) { userTx += (g.x - userTx) * f * 0.9; userTz += (g.z - userTz) * f * 0.9; clampT(); rig.tx.t = userTx; rig.tz.t = userTz; } } userDist = nd; rig.dist.t = userDist; }
   let archiAcc = 0;
-  function onKeyNav(e: KeyboardEvent) { idle = 0; if ((opts.blocked?.()) || focusId || /INPUT|TEXTAREA/.test((e.target && (e.target as HTMLElement).tagName) || '') || e.metaKey || e.ctrlKey || e.altKey) return; const st = CAMERA.keyStep; if (e.key === 'ArrowLeft') panBy(st, 0); else if (e.key === 'ArrowRight') panBy(-st, 0); else if (e.key === 'ArrowUp') panBy(0, st); else if (e.key === 'ArrowDown') panBy(0, -st); else if (e.key === '=' || e.key === '+') zoomAt(-5); else if (e.key === '-') zoomAt(5); else if (e.key === '0') recenter(); else if (e.key === 'q') { userAz += CAMERA.keyOrbit; rig.az.t = userAz; } else if (e.key === 'e') { userAz -= CAMERA.keyOrbit; rig.az.t = userAz; } else return; e.preventDefault(); }
+  function onKeyNav(e: KeyboardEvent) { idle = 0; if ((opts.blocked?.()) || focusId || /INPUT|TEXTAREA/.test((e.target && (e.target as HTMLElement).tagName) || '') || e.metaKey || e.ctrlKey || e.altKey || (!e.shiftKey && (e.target as HTMLElement | null)?.closest?.('[data-bld]'))) return; const st = CAMERA.keyStep; if (e.key === 'ArrowLeft') panBy(st, 0); else if (e.key === 'ArrowRight') panBy(-st, 0); else if (e.key === 'ArrowUp') panBy(0, st); else if (e.key === 'ArrowDown') panBy(0, -st); else if (e.key === '=' || e.key === '+') zoomAt(-5); else if (e.key === '-') zoomAt(5); else if (e.key === '0') recenter(); else if (e.key === 'q') { userAz += CAMERA.keyOrbit; rig.az.t = userAz; } else if (e.key === 'e') { userAz -= CAMERA.keyOrbit; rig.az.t = userAz; } else return; e.preventDefault(); }
   window.addEventListener('keydown', onKeyNav);
   /** Any pointer activity, over the HUD and labels too, holds the idle orbit: a label must not slide away under the cursor. */
   const onAnyMove = () => { idle = 0; }; window.addEventListener('pointermove', onAnyMove, { passive: true });
@@ -479,7 +483,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
  
  let last = performance.now(); let raf = 0; const t0 = last;
   /** CPU rasteriser only: while the camera rests, GPU work (every pass) drops to a slow heartbeat; the simulation still steps each allowed frame, so springs and timers keep real time. True = skip this frame's draw. */
-  let lastSoftDraw = 0;
+  let lastSoftDraw = 0; let fpsCap = capFps(savedFrameCap());
   const softHold = (now: number, settled: boolean) => { if (!soft || gating > 0 || !settled || now - lastSoftDraw >= 1000 / QUALITY_DETECT.softwareIdleFps) { lastSoftDraw = now; return false; } return true; };
   let errLogged = false;
   let lastProg = 0, lastTex = 0;
@@ -492,6 +496,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   function frame(now: number) { const t0f = performance.now(); try { frameInner(now); } catch (e) { if (!errLogged) { errLogged = true; console.error('Town frame: ' + ((e as Error) && (e as Error).stack || e)); } }  const ms = performance.now() - t0f; gi.noteFrame(ms); if (ms > 40 && gating === 0) { const mi = renderer.info; const progs = mi.programs?.length ?? 0; console.info(`[spike] frame ${ms.toFixed(0)} ms | programs ${progs} (+${progs - lastProg}) textures ${mi.memory.textures} (+${mi.memory.textures - lastTex}) geometries ${mi.memory.geometries} calls ${mi.render.calls} tris ${mi.render.triangles} | mode ${mode} tier ${tier} still ${still.engaged ? 'on' : 'off'} gi ${gi.progress.toFixed(2)}`); } lastProg = renderer.info.programs?.length ?? 0; lastTex = renderer.info.memory.textures; }
   function frameInner(now: number) {
     if (!alive) return; raf = requestAnimationFrame(frame);
+    if (tooSoon(now, last, fpsCap)) return; // user frame cap / low-power mode (T-018)
     if (soft && now - last < 1000 / QUALITY_DETECT.softwareFps) return; // software GL: capped rate; 'last' only moves on drawn frames, so adaptive sees real frame times
     if (idle > DIRECTOR.idleThrottleAfter && mode === 'island' && !focusId && !down && (++skipTick & 1)) { adaptive.reset(); return; } // a throttled frame is not a slow one: rawDt would span two frames // ambient motion only: half rate
     const rawDt = (now - last) / 1000; if (autoQ && !soft && rawDt > 0 && !warming && gating === 0) adaptive.push(rawDt); else if (warming || gating > 0) adaptive.reset(); const dt = Math.max(0, Math.min(0.05, rawDt)); last = Math.max(last, now); const t = (now - t0) / 1000;
@@ -582,7 +587,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (hints.board && plots.board && plots.board.built && plots.board.g.userData.smoke && !reduced && Math.random() < dt * 2.6 && shopSmoke.length < 12) { const m = new THREE.Object3D(); const wp = plots.board.g.localToWorld(plots.board.g.userData.smoke.clone()); island.worldToLocal(wp); m.position.copy(wp); shopSmoke.push({ m, life: 0 }); }
     shopSmoke = shopSmoke.filter((s2) => { s2.life += dt / 3; if (s2.life >= 1) { return false; } s2.m.position.y += dt * 0.6; s2.m.position.x += dt * (0.2 + wx.wind.x * 0.6); s2.m.scale.setScalar((0.5 + s2.life * 2) * 0.18); s2.m.userData.o = Math.sin(s2.life * Math.PI) * 0.5; return true; }); puffs.sync(fx.smoke, shopSmoke);
     visitors.forEach((v, i) => { v.s.t = v.on ? 1 : 0; v.s.step(dt); v.g.scale.setScalar(Math.max(0.0001, v.s.x) * 0.55); v.g.visible = v.s.x > 0.01; if (!reduced && v.on) { v.g.rotation.y = v.yaw + Math.sin(t * 0.7 + i * 2) * 0.25; const ar = v.g.userData.arms; if (ar && i % 2 === 0) ar[1].rotation.x = -1.2 - Math.sin(t * 1.5 + i) * 0.15; } });
-    if (fx.seats) fx.seats.forEach((st, i) => { st.s.t = st.on ? 1 : 0; st.s.step(dt); st.fig.scale.setScalar(Math.max(0.0001, st.s.x)); if (st.on && !reduced) st.fig.children[0].position.y = 0.44 + Math.sin(t * 2 + i * 1.7) * 0.01; });
+    if (fx.seats) fx.seats.forEach((st, i) => { st.s.t = st.on ? 1 : 0; st.s.step(dt); st.fig.scale.setScalar(Math.max(0.0001, st.s.x)); if (st.on && !reduced) st.fig.children[0].position.y = st.fig.userData.bodyY + Math.sin(t * 2 + i * 1.7) * FIGURE.seatBreath; });
     const ents = SECTION_ORDER.filter((id) => id !== 'hearth' && plots[id] && plots[id].built);
     const fcA = anchorOf('fire'); const fcx = fcA ? fcA.x : 0, fcz = fcA ? fcA.z : 0;
     people.forEach((p) => {
@@ -591,7 +596,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
       if (p.t >= 1) { if (!p.to.lengthSq()) { const a0 = p.R() * Math.PI * 2; p.to.set(fcx + Math.cos(a0) * 3.2, 0, fcz + Math.sin(a0) * 3.2); } p.from.copy(p.to); const atPlaza = Math.hypot(p.from.x - fcx, p.from.z - fcz) < 3.9; if (atPlaza && ents.length) { const id = ents[Math.floor(p.R() * ents.length)]; const q0 = anchorOf(id)!; const qx = q0.x - fcx, qz = q0.z - fcz; const d = Math.hypot(qx, qz) || 1; const r = d - 2.1; const side = (p.R() - 0.5) * 0.5; p.to.set(fcx + (qx / d) * r + (qz / d) * side, 0, fcz + (qz / d) * r - (qx / d) * side); } else { const a = p.R() * Math.PI * 2, r = 2.95 + p.R() * 0.6; p.to.set(fcx + Math.cos(a) * r, 0, fcz + Math.sin(a) * r); } p.t = 0; p.dur = Math.max(1, p.from.distanceTo(p.to) / 0.9); p.wait = reduced ? 3 : p.R() * 2.5; p.g.position.copy(p.from); p.g.rotation.y = Math.atan2(p.to.x - p.from.x, p.to.z - p.from.z); return; }
       if (reduced) { p.t = 1; p.g.position.copy(p.to); return; }
       p.t = Math.min(1, p.t + dt / p.dur); const e = p.t < 0.5 ? 2 * p.t * p.t : 1 - Math.pow(-2 * p.t + 2, 2) / 2;
-      p.g.position.lerpVectors(p.from, p.to, e); p.g.position.y = siteH(p.g.position.x, p.g.position.z) + Math.abs(Math.sin(p.t * p.dur * 9)) * 0.02; const Lg = p.g.userData.legs, Ar = p.g.userData.arms; if (Lg) { const sw = Math.sin(p.t * p.dur * 9) * 0.55 * Math.min(1, Math.sin(p.t * Math.PI) * 4); Lg[0].rotation.x = sw; Lg[1].rotation.x = -sw; if (Ar) { Ar[0].rotation.x = -sw * 0.8; Ar[1].rotation.x = sw * 0.8; } }
+      p.g.position.lerpVectors(p.from, p.to, e); p.g.position.y = siteH(p.g.position.x, p.g.position.z) + Math.abs(Math.sin(p.t * p.dur * 9)) * 0.02; const Lg = p.g.userData.legs, Ar = p.g.userData.arms; if (Lg) { const sw = Math.sin(p.t * p.dur * 9) * 0.55 * Math.min(1, Math.sin(p.t * Math.PI) * 4); Lg[0].rotation.x = sw; Lg[1].rotation.x = -sw; const Sh = p.g.userData.shins; if (Sh) { Sh[0].rotation.x = Math.max(0, sw) * FIGURE.kneeFlex; Sh[1].rotation.x = Math.max(0, -sw) * FIGURE.kneeFlex; } if (Ar) { Ar[0].rotation.x = -sw * 0.8; Ar[1].rotation.x = sw * 0.8; } }
     });
 
     const WS = weather.sample(dt);
@@ -650,7 +655,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
 
   const api: TownApi = {
     setSpace(info, o) {
-      still.invalidate(); setTimeout(() => gi.invalidate(), 4500);
+      still.invalidate(); whileAlive(() => gi.invalidate(), 4500);
       IN.setContext({ seed: info.id, online: info.online ?? 0 });
       applyArcade(info);
       spaceStyle = info.map_style ?? null; const wantStyle = resolveMapStyle(spaceStyle);
@@ -684,12 +689,13 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     setPhoto(on) { photo = !!on; photoK.t = on ? 1 : 0; idle = 0; },
     snapshotStill: (samples) => still.capture(samples),
     snapshot() { pipeline.render(0); return renderer.domElement.toDataURL('image/png'); },
+    setFrameCap(id) { fpsCap = capFps(id); adaptive.reset(); },
     setQuality(t) { if (t === 'auto') { autoQ = true; try { window.localStorage.removeItem('hermod.quality'); } catch { /* storage blocked */ } applyQuality(autoTier()); } else { autoQ = false; try { window.localStorage.setItem('hermod.quality', t); } catch { /* storage blocked */ } applyQuality(t); } adaptive.reset(); },
     setMapStyle(st) { if (st === 'default') { setLocalMapStyle(null); switchStyle(resolveMapStyle(spaceStyle, null)); } else { setLocalMapStyle(st); switchStyle(st); } },
     getMapStyle: () => ({ style: styleId, local: getLocalMapStyle() !== null }),
     renderInfo: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, site: site ? site.stats() : null, meshesInScene: (() => { const c: Record<string, number> = {}; scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; let v = true, q: THREE.Object3D | null = m; while (q) { if (!q.visible) v = false; q = q.parent; } if (!v) return; const k = (m.name || (m.material as THREE.Material).name || m.geometry.type).replace(/[0-9._]+/g, '#').slice(0, 28); c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 12); })() }),
     getQuality: () => ({ tier, auto: autoQ, giProgress: gi.progress, stillSamples: still.samples, stillEngaged: still.engaged }),
-    dispose() { puffs.dispose(); waterPlanar.dispose(); winLights.dispose(); hifiOff?.(); hifiOff = null; site?.dispose(); site = null; gi.dispose(); still.dispose(); document.removeEventListener('visibilitychange', onVis); pipeline.dispose(); env.dispose(); clearInterval(watchdog); window.removeEventListener('keydown', onKeyNav); for (const ev of INPUT_EVENTS) window.removeEventListener(ev, markInput); cancelLater(); minis.forEach((m) => drop(m.g)); minis = []; window.removeEventListener('pointermove', onAnyMove); alive = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); },
+    dispose() { alive = false; lifeTimers.forEach(clearTimeout); lifeTimers.clear(); clearAll(); IN.dispose(); ravens.ravens.concat(ravens.perched).forEach((r) => drop(r.g)); weather.dispose(); skyBodies.dispose(); clouds.forEach(drop); rings.splice(0).forEach((r) => drop(r.m)); drop(shadowPlane); puffs.dispose(); waterPlanar.dispose(); winLights.dispose(); hifiOff?.(); hifiOff = null; site?.dispose(); site = null; gi.dispose(); still.dispose(); document.removeEventListener('visibilitychange', onVis); pipeline.dispose(); env.dispose(); clearInterval(watchdog); window.removeEventListener('keydown', onKeyNav); for (const ev of INPUT_EVENTS) window.removeEventListener(ev, markInput); cancelLater(); minis.forEach((m) => drop(m.g)); minis = []; window.removeEventListener('pointermove', onAnyMove); alive = false; cancelAnimationFrame(raf); ro.disconnect(); renderer.dispose(); renderer.forceContextLoss(); if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement); },
   };
   return api;
 }

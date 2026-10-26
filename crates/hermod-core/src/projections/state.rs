@@ -12,7 +12,7 @@ use super::messaging::MsgState;
 use super::shapes::MeetSummary;
 use crate::crypto::blake3_hash;
 use crate::event::{BlobRef, DocBlockIn, DocOp, EventBody, Role, valid_map_style};
-use crate::ids::{SpaceId, hex_decode_array, hex_encode};
+use crate::ids::{SpaceId, UserId, hex_decode_array, hex_encode};
 use crate::store::Opened;
 
 /// Fold order key: `(lamport, author bytes, seq)`.
@@ -20,6 +20,8 @@ pub type Ord3 = (u64, [u8; 32], u64);
 
 /// Upper bound on fold passes while [`Prior`] settles; it normally does after one or two.
 pub const MAX_FOLD_PASSES: usize = 4;
+/// Outcomes an admin may record when closing a content report.
+pub const REPORT_OUTCOMES: [&str; 2] = ["dismissed", "removed"];
 
 // Calendar grid an event must sit in; mirrors CALENDAR in src/config/app.ts (Mon..Fri, 08:00 to 18:00).
 const EVENT_DAYS: u32 = 5;
@@ -44,6 +46,8 @@ pub struct Prior {
     pub caps: BTreeMap<String, u64>,
     /// Revoked invite id to the users that may have joined through it.
     pub revoked: BTreeMap<String, BTreeSet<String>>,
+    /// User to `last_seq` of a role change to the highest role their later seqs may act at.
+    pub role_caps: BTreeMap<String, BTreeMap<u64, Role>>,
 }
 
 /// Author of the `space.create` whose nonce derives `id`, if any.
@@ -202,6 +206,7 @@ pub struct PinboardSt {
     pub pins: Vec<PinSt>,
 }
 
+#[derive(Clone)]
 pub struct BlockSt {
     pub id: String,
     pub k: String,
@@ -211,8 +216,17 @@ pub struct BlockSt {
 
 pub struct DocCommentSt {
     pub by: String,
+    pub block_id: String,
     pub on: String,
     pub text: String,
+}
+
+/// One entry of a doc's history: the edit's time, event id, author and the blocks as they stood after it.
+pub struct DocVersionSt {
+    pub ts: i64,
+    pub id: String,
+    pub by: String,
+    pub blocks: Vec<BlockSt>,
 }
 
 pub struct DocSt {
@@ -222,7 +236,7 @@ pub struct DocSt {
     pub blocks: Vec<BlockSt>,
     pub editors: Vec<String>,
     pub last_edit: (i64, String),
-    pub versions: Vec<(i64, String)>,
+    pub versions: Vec<DocVersionSt>,
     pub comments: Vec<DocCommentSt>,
 }
 
@@ -283,6 +297,9 @@ pub struct InviteSt {
     pub role: Role,
     pub exp: Option<u64>,
     pub max_uses: Option<u32>,
+    /// Space `join_pow_bits` at this invite's fold position: the work a join through it needs,
+    /// fixed at creation so a later change never strands an existing invite.
+    pub pow_bits: u8,
     pub uses: BTreeSet<String>,
     pub revoked: bool,
 }
@@ -293,6 +310,8 @@ pub struct ReportSt {
     pub target: String,
     pub reason: String,
     pub ts: i64,
+    /// `dismissed` or `removed` once an admin closed it.
+    pub resolved: Option<String>,
 }
 
 /// One admin-visible governance record.
@@ -324,6 +343,8 @@ pub struct SpaceState {
     pub mono: String,
     pub sections: Vec<String>,
     pub map_style: Option<String>,
+    /// Proof-of-work bits a join must carry (0 = off).
+    pub join_pow_bits: u8,
     created: bool,
     /// The only author whose `space.create` counts; `None` means the first in fold order.
     creator: Option<String>,
@@ -340,6 +361,8 @@ pub struct SpaceState {
     pub audit: Vec<AuditEntry>,
     pub reports: Vec<ReportSt>,
     pub devices: BTreeMap<String, BTreeSet<String>>,
+    /// Reverse of `devices`: linked device key to the identity whose events it signs.
+    device_owner: BTreeMap<String, String>,
     pub max_epoch: u32,
     pub authors: BTreeSet<String>,
     pub last_seen: BTreeMap<String, i64>,
@@ -392,6 +415,13 @@ pub fn blob_label(b: &BlobRef) -> String {
     }
 }
 
+/// Fold key (base58 user id, as `by` is written) of a hex device key; `None` when malformed.
+fn device_key(device_pub_hex: &str) -> Option<String> {
+    crate::ids::hex_decode_array::<32>(device_pub_hex)
+        .ok()
+        .map(|k| UserId(k).to_string())
+}
+
 /// Lowest role allowed to author each event type. `member.join` and `space.create` have their
 /// own rules and are handled before this table.
 pub fn min_role(body: &EventBody) -> Role {
@@ -419,6 +449,7 @@ pub fn min_role(body: &EventBody) -> Role {
         | InviteCreate { .. }
         | InviteRevoke { .. }
         | ContentRemove { .. }
+        | ReportResolve { .. }
         | AutomationSet { .. }
         | DeskConfig { .. } => Role::Admin,
         MemberRole { .. } => Role::Owner,
@@ -451,6 +482,7 @@ impl SpaceState {
             mono,
             sections: vec!["chat".into()],
             map_style: None,
+            join_pow_bits: 0,
             created: false,
             creator: None,
             prior: Prior::default(),
@@ -465,6 +497,7 @@ impl SpaceState {
             audit: Vec::new(),
             reports: Vec::new(),
             devices: BTreeMap::new(),
+            device_owner: BTreeMap::new(),
             max_epoch: 0,
             authors: BTreeSet::new(),
             last_seen: BTreeMap::new(),
@@ -528,7 +561,9 @@ impl SpaceState {
         // An id bound to its creator beats any pin or fold order.
         self.creator = derived_author(&self.id, events.iter().copied()).or(self.creator.take());
         for ev in events {
-            let by = ev.author.to_string();
+            let raw = ev.author.to_string();
+            // A linked device acts as its identity; ord keeps the signing key so ties stay unique.
+            let by = self.device_owner.get(&raw).cloned().unwrap_or(raw);
             let ord: Ord3 = (ev.lamport, ev.author.0, ev.seq);
             if !self.authorize(ev, &by) {
                 continue;
@@ -543,39 +578,65 @@ impl SpaceState {
         self
     }
 
-    fn can_join(&self, by: &str, invite: Option<&String>, ts: i64) -> bool {
+    fn can_join(&self, by: &str, invite: Option<&String>, pow: Option<u64>, ts: i64) -> bool {
         if self.roles.contains_key(by) || self.banned.contains(by) {
             return false;
         }
         let Some(inv) = invite.and_then(|id| self.invites.iter().find(|i| &i.id == id)) else {
             return false;
         };
+        if !crate::pow::verify(&inv.id, by, pow, inv.pow_bits) {
+            return false;
+        }
         // A revoke that names who had joined is position-independent; an older one applies by fold order.
         let open = self
             .prior
             .revoked
             .get(&inv.id)
             .map_or(!inv.revoked, |joined| joined.contains(by));
-        let live = open && inv.exp.is_none_or(|e| (ts.max(0) as u64) / 1000 < e);
+        // An invite dies with its creator's standing: removed, or demoted below the role that may create invites.
+        let standing = !self.banned.contains(&inv.by)
+            && self.role_of(&inv.by).is_none_or(|r| r >= Role::Admin);
+        let live = open && standing && inv.exp.is_none_or(|e| (ts.max(0) as u64) / 1000 < e);
         let room =
             inv.uses.contains(by) || inv.max_uses.is_none_or(|m| (inv.uses.len() as u32) < m);
         live && room
     }
 
+    /// Role `by` holds for an event of sequence `seq`: the fold role, held down by the cap of the
+    /// latest role change that already covered every earlier seq of the signer.
+    fn role_at(&self, by: &str, seq: u64) -> Option<Role> {
+        let role = self.role_of(by)?;
+        let cap = self
+            .prior
+            .role_caps
+            .get(by)
+            .and_then(|c| c.range(..seq).next_back())
+            .map(|(_, r)| *r);
+        Some(cap.map_or(role, |c| c.min(role)))
+    }
+
     fn authorize(&self, ev: &Opened, by: &str) -> bool {
         let ts = ev.ts;
-        if self.prior.caps.get(by).is_some_and(|cap| ev.seq > *cap) {
+        // Caps are keyed by the identity and by the signing key (a revoked device has no identity left to resolve to).
+        let signer = ev.author.to_string();
+        let capped = |who: &str| self.prior.caps.get(who).is_some_and(|cap| ev.seq > *cap);
+        if capped(by) || capped(&signer) {
             return false;
         }
         match &ev.body {
             EventBody::Unknown => false,
+            // Linking and revoking are the identity's own acts; a device never manages devices.
+            EventBody::DeviceLink { .. } | EventBody::DeviceRevoke { .. } if signer != by => false,
             EventBody::SpaceCreate { .. } => {
                 !self.created && self.creator.as_deref().is_none_or(|c| c == by)
             }
             _ if !self.created => false,
-            EventBody::MemberJoin { invite, .. } => self.can_join(by, invite.as_ref(), ts),
+            EventBody::MemberJoin { invite, pow, .. } => {
+                self.can_join(by, invite.as_ref(), *pow, ts)
+            }
             other => self
-                .role_of(by)
+                .role_at(by, ev.seq)
                 .is_some_and(|r| r >= min_role(other) && self.msgx_allows(by, r, other, ts)),
         }
     }
@@ -616,7 +677,7 @@ impl SpaceState {
 
     fn apply(&mut self, ev: &Opened, by: &str, ord: Ord3) {
         let ts = ev.ts;
-        let my_role = self.role_of(by);
+        let my_role = self.role_at(by, ev.seq);
         match &ev.body {
             EventBody::SpaceCreate {
                 name,
@@ -646,7 +707,11 @@ impl SpaceState {
                 tagline,
                 sections,
                 map_style,
+                join_pow_bits,
             } => {
+                if let Some(b) = join_pow_bits.filter(|b| *b <= crate::pow::MAX_JOIN_POW_BITS) {
+                    self.join_pow_bits = b;
+                }
                 if let Some(m) = map_style.as_deref().filter(|m| valid_map_style(m)) {
                     self.map_style = (!m.is_empty()).then(|| m.to_string());
                 }
@@ -686,7 +751,11 @@ impl SpaceState {
                 self.drop_member(by);
                 self.audit(ev, by, "member.leave", None, String::new());
             }
-            EventBody::MemberRole { user, role } => {
+            EventBody::MemberRole {
+                user,
+                role,
+                last_seq,
+            } => {
                 let Some(target) = self.role_of(user) else {
                     return;
                 };
@@ -695,6 +764,17 @@ impl SpaceState {
                     return;
                 }
                 self.roles.insert(user.clone(), *role);
+                // A self-demotion is not capped: its own event would fall under the cap it sets.
+                if let Some(seq) = last_seq.filter(|_| user != by) {
+                    let cap = self
+                        .found
+                        .role_caps
+                        .entry(user.clone())
+                        .or_default()
+                        .entry(seq)
+                        .or_insert(*role);
+                    *cap = (*cap).min(*role);
+                }
                 self.audit(ev, by, "member.role", Some(user), role.as_str().to_string());
             }
             EventBody::MemberRemove { user, last_seq } => {
@@ -734,6 +814,7 @@ impl SpaceState {
                     role: *role,
                     exp: *exp,
                     max_uses: *max_uses,
+                    pow_bits: self.join_pow_bits,
                     uses: BTreeSet::new(),
                     revoked: false,
                 });
@@ -765,7 +846,8 @@ impl SpaceState {
                         name: name.clone(),
                         bio: bio.clone(),
                         initials: initials.clone(),
-                        avatar: avatar.clone(),
+                        // A malformed hash from a peer never projects (it is rendered into URLs).
+                        avatar: avatar.clone().filter(BlobRef::has_valid_hash),
                         ord: (ev.lamport, ev.seq),
                     },
                 );
@@ -1239,7 +1321,12 @@ impl SpaceState {
                         blocks: Vec::new(),
                         editors: vec![by.to_string()],
                         last_edit: (ts, by.to_string()),
-                        versions: vec![(ts, ev.id.clone())],
+                        versions: vec![DocVersionSt {
+                            ts,
+                            id: ev.id.clone(),
+                            by: by.to_string(),
+                            blocks: Vec::new(),
+                        }],
                         comments: Vec::new(),
                     });
                 }
@@ -1258,7 +1345,12 @@ impl SpaceState {
                         d.editors.push(by.to_string());
                     }
                     d.last_edit = (ts, by.to_string());
-                    d.versions.push((ts, ev.id.clone()));
+                    d.versions.push(DocVersionSt {
+                        ts,
+                        id: ev.id.clone(),
+                        by: by.to_string(),
+                        blocks: d.blocks.clone(),
+                    });
                 }
             }
             EventBody::DocComment {
@@ -1272,6 +1364,7 @@ impl SpaceState {
                     let on: String = b.text.chars().take(40).collect();
                     d.comments.push(DocCommentSt {
                         by: by.to_string(),
+                        block_id: block_id.clone(),
                         on,
                         text: text.clone(),
                     });
@@ -1490,23 +1583,61 @@ impl SpaceState {
                     target: target_id.clone(),
                     reason: reason.clone().unwrap_or_default(),
                     ts,
+                    resolved: None,
                 });
             }
-            EventBody::DeviceLink { device_pub, cert } => {
-                if crate::device::verify_cert(&ev.author, device_pub, cert) {
+            EventBody::ReportResolve { report_id, outcome } => {
+                // Authorization (admin) already passed; the outcome is peer input, so validate it.
+                if REPORT_OUTCOMES.contains(&outcome.as_str())
+                    && let Some(r) = self
+                        .reports
+                        .iter_mut()
+                        .find(|r| &r.id == report_id && r.resolved.is_none())
+                {
+                    r.resolved = Some(outcome.clone());
+                    let target = r.target.clone();
+                    self.audit(ev, by, "report.resolve", Some(&target), outcome.clone());
+                }
+            }
+            EventBody::DeviceLink {
+                device_pub,
+                cert,
+                proof,
+            } => {
+                // A key already acting for someone, or holding a seat of its own, cannot be linked.
+                let key = device_key(device_pub).unwrap_or_default();
+                let taken = self.device_owner.contains_key(&key)
+                    || self.roles.contains_key(&key)
+                    || self.banned.contains(&key);
+                if !key.is_empty()
+                    && !taken
+                    && crate::device::verify_cert(&ev.author, device_pub, cert)
+                    && crate::device::verify_proof(&ev.author, device_pub, proof)
+                {
                     self.devices
                         .entry(by.to_string())
                         .or_default()
                         .insert(device_pub.clone());
+                    self.device_owner.insert(key, by.to_string());
                     self.audit(ev, by, "device.link", Some(device_pub), String::new());
                 }
             }
-            EventBody::DeviceRevoke { device_pub } => {
+            EventBody::DeviceRevoke {
+                device_pub,
+                last_seq,
+            } => {
                 if self
                     .devices
                     .get_mut(by)
                     .is_some_and(|d| d.remove(device_pub))
                 {
+                    let key = device_key(device_pub).unwrap_or_default();
+                    self.device_owner.remove(&key);
+                    // The cap makes the cut-off position-independent: a revoked key cannot backdate a lamport past it.
+                    if let Some(seq) = last_seq {
+                        let cap = self.found.caps.entry(key).or_insert(*seq);
+                        *cap = (*cap).min(*seq);
+                    }
                     self.audit(ev, by, "device.revoke", Some(device_pub), String::new());
                 }
             }
@@ -1552,6 +1683,23 @@ impl SpaceState {
     pub fn msg_author(&self, id: &str) -> Option<&str> {
         let (ch, idx) = self.msg_index.get(id)?;
         self.msgs.get(ch)?.get(*idx).map(|m| m.by.as_str())
+    }
+
+    /// What a report points at: `(kind, author, text, channel)` for a live message or post.
+    pub fn report_target(&self, id: &str) -> Option<(&'static str, String, String, String)> {
+        if let Some((ch, idx)) = self.msg_index.get(id)
+            && let Some(m) = self.msgs.get(ch).and_then(|l| l.get(*idx))
+        {
+            return Some(("message", m.by.clone(), m.text.clone(), ch.clone()));
+        }
+        self.posts.iter().find(|p| p.id == id).map(|p| {
+            let text = p
+                .text
+                .clone()
+                .filter(|t| !t.is_empty())
+                .unwrap_or_else(|| p.title.clone());
+            ("post", p.by.clone(), text, String::new())
+        })
     }
 
     fn msg_mut(&mut self, id: &str) -> Option<&mut Msg> {

@@ -22,7 +22,12 @@ const HEADER_LEN: usize = 8 + 12 + SALT_LEN + NONCE_LEN;
 const MAX_M_COST_KIB: u32 = 1 << 20;
 const MAX_T_COST: u32 = 20;
 const MAX_P_COST: u32 = 16;
-const MIN_PASSPHRASE_CHARS: usize = 8;
+pub(crate) const MIN_PASSPHRASE_CHARS: usize = 8;
+
+/// Whether KDF costs read from a file stay under the ceilings above.
+pub(crate) fn kdf_in_bounds(p: &KdfParams) -> bool {
+    p.m_cost_kib <= MAX_M_COST_KIB && p.t_cost <= MAX_T_COST && p.p_cost <= MAX_P_COST
+}
 
 /// Argon2id cost parameters.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -97,7 +102,7 @@ pub mod serde_bytes_compat {
     }
 }
 
-fn derive_key(passphrase: &str, salt: &[u8], p: KdfParams) -> Result<SpaceKey> {
+pub(crate) fn derive_key(passphrase: &str, salt: &[u8], p: KdfParams) -> Result<SpaceKey> {
     let params = Params::new(p.m_cost_kib, p.t_cost, p.p_cost, Some(32))
         .map_err(|e| Error::invalid("backup", e.to_string()))?;
     let mut out = [0u8; 32];
@@ -143,10 +148,7 @@ pub fn open(file: &[u8], passphrase: &str) -> Result<Payload> {
         t_cost: n(1),
         p_cost: n(2),
     };
-    if params.m_cost_kib > MAX_M_COST_KIB
-        || params.t_cost > MAX_T_COST
-        || params.p_cost > MAX_P_COST
-    {
+    if !kdf_in_bounds(&params) {
         return Err(Error::invalid("backup", "unreasonable key derivation cost"));
     }
     let salt = &file[20..20 + SALT_LEN];
@@ -165,9 +167,21 @@ pub fn open(file: &[u8], passphrase: &str) -> Result<Payload> {
     Ok(payload)
 }
 
+/// Writes `bytes` to `path` so a crash leaves either the old file or the whole new one: data is
+/// flushed to disk before the rename, and the directory entry after it.
 pub fn write_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    use std::io::Write;
     let tmp = path.with_extension("tmp");
-    fs::write(&tmp, bytes)?;
+    let mut f = fs::File::create(&tmp)?;
+    f.write_all(bytes)?;
+    f.sync_all()?;
+    drop(f);
     fs::rename(&tmp, path)?;
+    if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+        // Directory fsync is not available everywhere; the file itself is already durable.
+        if let Ok(d) = fs::File::open(parent) {
+            let _ = d.sync_all();
+        }
+    }
     Ok(())
 }

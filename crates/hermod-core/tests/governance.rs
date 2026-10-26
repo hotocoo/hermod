@@ -1,6 +1,7 @@
 mod common;
 
 use std::collections::BTreeMap;
+use std::sync::atomic::AtomicBool;
 
 use common::*;
 use hermod_core::api::InviteOptions;
@@ -147,6 +148,14 @@ fn role_table_every_event_type_is_gated() {
                 tagline: None,
                 sections: None,
                 map_style: None,
+                join_pow_bits: None,
+            },
+            Role::Admin,
+        ),
+        (
+            ReportResolve {
+                report_id: "r".into(),
+                outcome: "dismissed".into(),
             },
             Role::Admin,
         ),
@@ -154,6 +163,7 @@ fn role_table_every_event_type_is_gated() {
             MemberRole {
                 user: "u".into(),
                 role: Role::Admin,
+                last_seq: None,
             },
             Role::Owner,
         ),
@@ -198,6 +208,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberJoin {
             via_invite_from: None,
+            pow: None,
             invite: Some("m".into()),
         },
     );
@@ -206,6 +217,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberJoin {
             via_invite_from: None,
+            pow: None,
             invite: Some("g".into()),
         },
     );
@@ -232,6 +244,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         EventBody::MemberRole {
             user: member.to_string(),
             role: Role::Owner,
+            last_seq: None,
         },
     );
     l.push(
@@ -292,7 +305,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
     assert_eq!(rep.invites.len(), 2, "member could not create an invite");
     assert_eq!(rep.my_role, Some(Role::Owner));
     let mut shuffled = input.clone();
-    shuffled.events.reverse();
+    shuffled.events_mut().reverse();
     assert_eq!(
         serde_json::to_string(&project(&ctx(owner), &[shuffled])).unwrap(),
         serde_json::to_string(&snap).unwrap()
@@ -348,6 +361,7 @@ fn invites_expire_cap_uses_and_revoke() {
     );
     let j = |i: &str| EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some(i.into()),
     };
     l.push(&a, NOW, j("one"));
@@ -599,6 +613,54 @@ fn size_cap_applies_to_gossip_but_not_to_local_or_sync() {
 }
 
 #[test]
+fn report_resolve_is_admin_only_and_drops_the_report() {
+    let (a, b, _c, s, _d) = trio();
+    b.append(&s, post_msg("general", "bad", "spam text"))
+        .unwrap();
+    b.append(
+        &s,
+        EventBody::ContentReport {
+            target_id: "bad".into(),
+            reason: Some("rude".into()),
+        },
+    )
+    .unwrap();
+    sync(&b, &a, &s);
+    let q = a.reports_list(&s).unwrap();
+    assert_eq!(q.len(), 1);
+    assert_eq!(
+        (
+            q[0].target_kind.as_str(),
+            q[0].target_text.as_str(),
+            q[0].channel.as_str()
+        ),
+        ("message", "spam text", "general")
+    );
+    let id = q[0].id.clone();
+    let resolve = |outcome: &str| EventBody::ReportResolve {
+        report_id: id.clone(),
+        outcome: outcome.into(),
+    };
+    // A member's forged resolve, and an admin's unknown outcome, change nothing.
+    b.append(&s, resolve("dismissed")).unwrap();
+    sync(&b, &a, &s);
+    a.append(&s, resolve("whatever")).unwrap();
+    assert_eq!(
+        a.reports_list(&s).unwrap().len(),
+        1,
+        "forged or invalid resolve is ignored"
+    );
+    a.append(&s, resolve("dismissed")).unwrap();
+    assert!(a.reports_list(&s).unwrap().is_empty());
+    assert!(
+        a.audit_list(&s)
+            .unwrap()
+            .iter()
+            .any(|e| e.kind == "report.resolve" && e.detail == "dismissed")
+    );
+}
+
+#[test]
 fn moderation_tombstones_posts_comments_and_cheap_arms() {
     let (a, b, _c, s, _d) = trio();
     b.append(&s, post_msg("general", "bad", "spam")).unwrap();
@@ -747,13 +809,56 @@ fn search_finds_across_types_and_honours_removal_and_blocks() {
         },
     )
     .unwrap();
+    a.append(
+        &s,
+        EventBody::BoardCreate {
+            board_id: "bd".into(),
+            name: "Studio".into(),
+            due: String::new(),
+            cols: vec![],
+        },
+    )
+    .unwrap();
+    a.append(
+        &s,
+        EventBody::ColumnCreate {
+            board_id: "bd".into(),
+            col_id: "todo".into(),
+            name: "Todo".into(),
+        },
+    )
+    .unwrap();
+    a.append(
+        &s,
+        EventBody::CardCreate {
+            board_id: "bd".into(),
+            card_id: "cd".into(),
+            col_id: "todo".into(),
+            title: "Reline the kiln".into(),
+            tag: String::new(),
+            snap: None,
+        },
+    )
+    .unwrap();
+    a.append(
+        &s,
+        EventBody::SnapCreate {
+            snap_id: "sn".into(),
+            line_id: "ln".into(),
+            title: "Kiln schedule".into(),
+            kind: "Code".into(),
+            files: vec![],
+            parent: None,
+        },
+    )
+    .unwrap();
     b.append(&s, post_msg("general", "k2", "glazes for the kiln"))
         .unwrap();
     sync(&a, &b, &s);
     sync(&b, &a, &s);
     let hits = a.search_query("kil", None, &[], 20).unwrap();
     let kinds: Vec<_> = hits.iter().map(|h| h.kind.as_str()).collect();
-    for k in ["message", "post", "doc", "event"] {
+    for k in ["message", "post", "doc", "event", "card", "snap"] {
         assert!(kinds.contains(&k), "{k} in {kinds:?}");
     }
     assert!(hits[0].snippet.contains('\u{1}'), "match is highlighted");
@@ -935,13 +1040,42 @@ fn storage_usage_counts_events_and_referenced_blobs() {
 fn migrations_upgrade_old_schema_and_report_corruption() {
     use hermod_core::migrations;
     let d = tempfile::tempdir().unwrap();
-    let path = d.path().join("old.db");
+    let db = d.path().join(hermod_core::api::DB_FILE);
+    // An install always has its key beside the database; open refuses a database without one.
+    hermod_core::identity::Identity::generate()
+        .save(&d.path().join(hermod_core::identity::KEY_FILE))
+        .unwrap();
     {
-        let mut conn = rusqlite::Connection::open(&path).unwrap();
+        let mut conn = rusqlite::Connection::open(&db).unwrap();
         migrations::migrate_to(&mut conn, 1).unwrap();
         assert_eq!(migrations::version(&conn).unwrap(), 1);
-        conn.execute("INSERT INTO spaces(space_id, space_key, name, kind, joined_at) VALUES (x'01', x'0202', 'Old', 'Team', 1)", []).unwrap();
+        conn.execute("INSERT INTO spaces(space_id, space_key, name, kind, joined_at) VALUES (zeroblob(32), zeroblob(32), 'Old', 'Team', 1)", []).unwrap();
     }
+    // Reopen the v1 database with current code: it migrates and the old row survives.
+    let c = Core::open(d.path()).unwrap();
+    assert_eq!(c.schema_version().unwrap(), migrations::LATEST);
+    c.integrity_check().unwrap();
+    drop(c);
+    let conn = rusqlite::Connection::open(&db).unwrap();
+    let name: String = conn
+        .query_row(
+            "SELECT name FROM spaces WHERE space_id = zeroblob(32)",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(name, "Old");
+    let epoch_keys: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM space_keys WHERE space_id = zeroblob(32)",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(epoch_keys, 1, "the v2 migration backfilled the genesis key");
+    drop(conn);
+
+    // A corrupt database is reported, never a panic.
     let bad = d.path().join("bad.db");
     std::fs::write(
         &bad,
@@ -952,18 +1086,20 @@ fn migrations_upgrade_old_schema_and_report_corruption() {
         hermod_core::store::Store::open(&bad),
         Err(Error::Corrupt(_))
     ));
-    let c = Core::open(tempfile::tempdir().unwrap().path()).unwrap();
-    assert_eq!(c.schema_version().unwrap(), migrations::LATEST);
-    c.integrity_check().unwrap();
+    let bad_dir = tempfile::tempdir().unwrap();
+    std::fs::copy(&bad, bad_dir.path().join(hermod_core::api::DB_FILE)).unwrap();
+    std::fs::copy(
+        d.path().join(hermod_core::identity::KEY_FILE),
+        bad_dir.path().join(hermod_core::identity::KEY_FILE),
+    )
+    .unwrap();
+    assert!(matches!(Core::open(bad_dir.path()), Err(Error::Corrupt(_))));
 }
 
 #[test]
-fn rekey_requires_admin_and_devices_are_logged() {
-    let (a, b, _c, s, _d) = trio();
+fn rekey_requires_admin() {
+    let (_a, b, _c, s, _d) = trio();
     assert!(matches!(b.rekey(&s), Err(Error::Forbidden(_))));
-    let dev = [9u8; 32];
-    a.device_link(&dev).unwrap();
-    a.device_revoke(&dev).unwrap();
 }
 
 #[test]
@@ -1008,12 +1144,81 @@ fn snap_seal_covers_files_and_verification_flags_missing_blobs() {
 }
 
 #[test]
+fn snap_verify_flags_a_tampered_blob_and_export_and_folder_plan_work() {
+    let (d, c) = core();
+    let s = c.space_create("Tamper", "", "Team").unwrap().id;
+    let folder = tempfile::tempdir().unwrap();
+    std::fs::write(folder.path().join("a.txt"), b"one\ntwo\n").unwrap();
+    std::fs::write(folder.path().join(".secret"), b"hidden").unwrap();
+    let plan = c.snap_plan_folder(&s, folder.path(), None).unwrap();
+    assert_eq!((plan.added, plan.removed, plan.changed), (1, 0, 0));
+    let mk = |id: &str, files: Vec<hermod_core::event::SnapFileIn>, parent: Option<&str>| {
+        c.append(
+            &s,
+            EventBody::SnapCreate {
+                snap_id: id.into(),
+                line_id: "main".into(),
+                title: id.into(),
+                kind: "Files".into(),
+                files,
+                parent: parent.map(String::from),
+            },
+        )
+        .unwrap()
+    };
+    mk("s1", plan.files, None);
+    // Edit one line and add a file: the second plan counts both against s1.
+    std::fs::write(folder.path().join("a.txt"), b"one\n2\n").unwrap();
+    std::fs::write(folder.path().join("b.txt"), b"x\n").unwrap();
+    let p2 = c.snap_plan_folder(&s, folder.path(), Some("s1")).unwrap();
+    assert_eq!((p2.added, p2.removed, p2.changed), (1, 0, 1));
+    let a = p2.files.iter().find(|f| f.path == "a.txt").unwrap();
+    assert_eq!((a.adds, a.dels), (1, 1));
+    let out = tempfile::tempdir().unwrap().keep().join("copy");
+    assert_eq!(c.snap_export(&s, "s1", &out).unwrap(), 1);
+    assert_eq!(std::fs::read(out.join("a.txt")).unwrap(), b"one\ntwo\n");
+    assert!(
+        c.snap_export(&s, "s1", &out).is_err(),
+        "non-empty target refused"
+    );
+    assert!(c.snap_verify(&s, "s1").unwrap().ok);
+    // Flip the stored bytes of the one chunk: the seal check must flag the file.
+    let blob = chunk_holding(d.path(), b"one\ntwo\n");
+    std::fs::write(&blob, b"tampered").unwrap();
+    let bad = c.snap_verify(&s, "s1").unwrap();
+    assert!(
+        !bad.ok && bad.corrupt == vec!["a.txt".to_string()],
+        "{bad:?}"
+    );
+}
+
+/// The stored chunk file under a store dir whose bytes equal `data`.
+fn chunk_holding(dir: &std::path::Path, data: &[u8]) -> std::path::PathBuf {
+    fn walk(p: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for e in std::fs::read_dir(p).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                walk(&p, out);
+            } else {
+                out.push(p);
+            }
+        }
+    }
+    let mut v = Vec::new();
+    walk(&dir.join("blobs/chunks"), &mut v);
+    v.into_iter()
+        .find(|p| std::fs::read(p).unwrap() == data)
+        .expect("chunk on disk")
+}
+
+#[test]
 fn map_style_folds_validates_and_clears() {
     let upd = |m: Option<&str>| EventBody::SpaceUpdate {
         name: None,
         tagline: None,
         sections: None,
         map_style: m.map(String::from),
+        join_pow_bits: None,
     };
     let style = |c: &Core| {
         snap(c)
@@ -1128,6 +1333,7 @@ fn revoke_listing_joiners_rejects_backdated_joins() {
     );
     let join = || EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("i".into()),
     };
     l.push(&early, NOW, join());
@@ -1163,6 +1369,7 @@ fn removed_admin_cannot_backdate_events_past_the_removal() {
     l.push(&owner, NOW, invite("i", Role::Admin));
     let join = EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("i".into()),
     };
     l.push(&admin, NOW, join);
@@ -1175,4 +1382,120 @@ fn removed_admin_cannot_backdate_events_past_the_removal() {
     l.push_at(&admin, 4, NOW, invite("backdoor", Role::Member));
     let rep = report(&ctx(owner), &l.input(sid, "S", "Team", false));
     assert!(rep.invites.iter().all(|i| i.id != "backdoor"));
+}
+
+fn set_pow(bits: u8) -> EventBody {
+    EventBody::SpaceUpdate {
+        name: None,
+        tagline: None,
+        sections: None,
+        map_style: None,
+        join_pow_bits: Some(bits),
+    }
+}
+
+/// The space asks `at_invite` bits when the invite is made, then `after` bits; true when a join
+/// carrying `nonce(joiner)` is admitted.
+fn pow_joined(at_invite: u8, after: u8, nonce: impl Fn(&str) -> Option<u64>) -> bool {
+    let (_, owner) = user();
+    let (_, joiner) = user();
+    let mut l = Log::new();
+    l.push(&owner, NOW, space_create("S", &["chat"]));
+    l.push(&owner, NOW, set_pow(at_invite));
+    l.push(&owner, NOW, invite());
+    l.push(&owner, NOW, set_pow(after));
+    l.push(
+        &joiner,
+        NOW,
+        EventBody::MemberJoin {
+            via_invite_from: None,
+            invite: Some("inv".into()),
+            pow: nonce(&joiner.to_string()),
+        },
+    );
+    let rep = report(&ctx(owner), &l.input(SpaceId::random(), "S", "Team", false));
+    rep.members.iter().any(|m| m.user == joiner.to_string())
+}
+
+#[test]
+fn join_pow_admits_valid_nonce_and_rejects_missing_or_weak() {
+    use hermod_core::pow;
+    let mined =
+        |bits: u8| move |who: &str| pow::mine("inv", who, bits, &AtomicBool::new(false)).unwrap();
+    assert!(pow_joined(10, 10, mined(10)), "valid nonce admitted");
+    assert!(!pow_joined(10, 10, |_| None), "missing nonce rejected");
+    let weak = |who: &str| (0..).find(|n| !pow::verify("inv", who, Some(*n), 10));
+    assert!(!pow_joined(10, 10, weak), "insufficient nonce rejected");
+    assert!(pow_joined(0, 0, |_| None), "0 bits needs no work");
+}
+
+#[test]
+fn invite_keeps_the_bits_the_space_asked_when_it_was_made() {
+    use hermod_core::pow;
+    let mined =
+        |bits: u8| move |who: &str| pow::mine("inv", who, bits, &AtomicBool::new(false)).unwrap();
+    assert!(
+        pow_joined(0, 16, |_| None),
+        "an invite made at 0 bits still admits a no-work join after the space goes to 16"
+    );
+    assert!(
+        !pow_joined(10, 0, |_| None),
+        "an invite made at 10 bits still needs work after the space drops to 0"
+    );
+    assert!(pow_joined(10, 0, mined(10)));
+    // A forged invite code claiming fewer bits makes the joiner mine too little.
+    let forged = |who: &str| {
+        (0..).find(|n| {
+            pow::verify("inv", who, Some(*n), 4) && !pow::verify("inv", who, Some(*n), 10)
+        })
+    };
+    assert!(
+        !pow_joined(10, 10, forged),
+        "forged lower pow_bits rejected"
+    );
+}
+
+#[test]
+fn join_pow_bits_cap_and_invite_carry() {
+    let (_d, a) = core();
+    let s = a.space_create("P", "", "Team").unwrap().id;
+    let upd = |b: u8| EventBody::SpaceUpdate {
+        name: None,
+        tagline: None,
+        sections: None,
+        map_style: None,
+        join_pow_bits: Some(b),
+    };
+    let over = hermod_core::pow::MAX_JOIN_POW_BITS + 1;
+    assert!(a.append(&s, upd(over)).is_err(), "above the cap refused");
+    a.append(&s, upd(4)).unwrap();
+    let bits = snap(&a)
+        .spaces
+        .iter()
+        .find(|x| x.name == "P")
+        .unwrap()
+        .join_pow_bits;
+    assert_eq!(bits, 4);
+    let out = a.invite_create(&s, None, vec![]).unwrap();
+    let inv = hermod_core::invite::InviteV1::parse(&out.code).unwrap();
+    assert_eq!(inv.pow_bits, 4, "invite carries the bits for the joiner");
+}
+
+#[test]
+fn cancelled_join_work_stores_nothing() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let s = a.space_create("W", "", "Team").unwrap().id;
+    a.append(&s, set_pow(hermod_core::pow::MAX_JOIN_POW_BITS))
+        .unwrap();
+    let code = a.invite_create(&s, None, vec![]).unwrap().code;
+    let stop = AtomicBool::new(true);
+    assert!(matches!(
+        b.invite_accept_cancellable(&code, &stop),
+        Err(Error::Cancelled)
+    ));
+    assert!(
+        b.resolve_space(&s.to_string()).is_err(),
+        "a cancelled join leaves no space behind"
+    );
 }

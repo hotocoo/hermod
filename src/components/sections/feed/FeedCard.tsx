@@ -7,7 +7,7 @@ export interface FeedPost {
   h: string; likes: string; liked: boolean; saved: boolean; likeFg: string; saveFg: string; heart: ReactNode; mark: ReactNode; saveLabel: string;
   media: { url: string; mime: string; open: () => void } | null; mine: boolean; following: boolean;
   canComment: boolean; comments: { name: string; t: string; text: string }[]; onComment: (text: string) => Promise<boolean>;
-  onLike: MouseEventHandler; onSave: MouseEventHandler; onDelete: MouseEventHandler; onFollow: MouseEventHandler; anim: string;
+  onLike: MouseEventHandler; onSave: MouseEventHandler; onDelete: MouseEventHandler; onReport: MouseEventHandler; onFollow: MouseEventHandler; anim: string;
 }
 
 /** One feed post: media tile or quote note, title, byline, like, save, follow, (own posts) delete and a comment thread. */
@@ -53,6 +53,7 @@ export function FeedCard({ p, play, trash }: { p: FeedPost; play: ReactNode; tra
         {!p.mine && <button type="button" className={s.follow} onClick={p.onFollow} aria-pressed={p.following}>{p.following ? 'Following' : 'Follow'}</button>}
         <button type="button" className={s.like} onClick={p.onLike} aria-pressed={p.liked} aria-label={`Like, ${p.likes}`} style={{ color: p.likeFg }}>{p.heart}{p.likes}</button>
         <button type="button" className={s.save} onClick={p.onSave} aria-pressed={p.saved} aria-label={p.saveLabel} style={{ color: p.saveFg }}>{p.mark}</button>
+        {!p.mine && <button type="button" className={s.follow} onClick={p.onReport}>{COPY.report.action}</button>}
         {p.mine && <button type="button" className={s.save} onClick={p.onDelete} aria-label="Delete this post">{trash}</button>}
       </div>
       <button type="button" className={s.commentToggle} onClick={() => setOpen((v) => !v)} aria-expanded={open}>{COPY.comments.toggle(p.comments.length)}</button>

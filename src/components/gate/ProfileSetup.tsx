@@ -1,6 +1,7 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import { initialsOf } from '@/state/selectors';
+import { PhraseRestore } from './PhraseRestore';
 import { useAppStore } from '@/state/store';
 import s from './screens.module.css';
 
@@ -38,6 +39,7 @@ export function ProfileSetup() {
         </div>
         <div className={s.actions}><button type="submit" className="btn btn-primary" disabled={!name.trim() || busy}>Continue</button></div>
       </form>
+      <PhraseRestore />
     </main>
   );
 }

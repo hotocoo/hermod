@@ -1,6 +1,6 @@
 .root {
   position: absolute;
-  right: 28px;
+  inset-inline-end: 28px;
   bottom: 26px;
   display: flex;
   align-items: center;
@@ -10,12 +10,12 @@
 }
 
 .readout {
-  text-align: right;
+  text-align: end;
 }
 
 .period {
   font-family: var(--font-heading);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.1;
 }
 
@@ -41,7 +41,7 @@
   transform: translateX(-50%);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--color-accent-text);
 }
 
@@ -51,27 +51,27 @@
   bottom: 6px;
   transform: translateX(-50%);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
 .west {
   position: absolute;
   top: 50%;
-  left: 7px;
+  inset-inline-start: 7px;
   transform: translateY(-50%);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
 .east {
   position: absolute;
   top: 50%;
-  right: 7px;
+  inset-inline-end: 7px;
   transform: translateY(-50%);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
@@ -97,4 +97,4 @@
 }
 
 /* Phones: lift the compass above the bottom bar and drop the sky readout. */
-@media (max-width: 640px) { .root { right: 12px; bottom: 84px; } .readout { display: none; } }
+@media (max-width: 640px) { .root { inset-inline-end: 12px; bottom: 84px; } .readout { display: none; } }

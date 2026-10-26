@@ -39,6 +39,5 @@ export async function pickAndStore(accept: string, multiple: boolean): Promise<S
 }
 
 export const blobUrl = (hash: string): string => getBridge().blobUrl(hash);
-export const isImage = (b: { mime: string }) => b.mime.startsWith('image/');
 export const isVideo = (b: { mime: string }) => b.mime.startsWith('video/');
 export const humanSize = (n: number): string => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KiB` : n < 1073741824 ? `${(n / 1048576).toFixed(1)} MiB` : `${(n / 1073741824).toFixed(2)} GiB`);

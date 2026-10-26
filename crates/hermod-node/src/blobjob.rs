@@ -9,7 +9,7 @@ use serde_bytes::ByteBuf;
 
 use crate::driver::{Driver, Internal};
 use crate::proto::*;
-use crate::store::{BlobId, ManifestInfo, SpaceId};
+use crate::store::{BlobId, IngestOutcome, ManifestInfo, SpaceId};
 use crate::types::NodeError;
 
 /// `None`: already complete. Otherwise the manifest (if known) and the missing chunk indices.
@@ -35,6 +35,8 @@ pub struct BlobJob {
     remaining: HashSet<u32>,
     inflight: HashMap<OutboundRequestId, (Option<u32>, PeerId)>,
     tried: HashMap<Option<u32>, HashSet<PeerId>>,
+    /// Failures per peer over the whole job: past `BLOB_PEER_MISS_LIMIT` it is not asked again.
+    misses: HashMap<PeerId, u32>,
     deadline: Instant,
 }
 
@@ -56,6 +58,12 @@ impl BlobJob {
     /// Drops callers that gave up (their receiver is gone) so retries cannot pile up.
     fn prune_waiters(&mut self) {
         self.waiters.retain(|w| !w.reply.is_closed());
+    }
+
+    fn gave_up_on(&self, peer: &PeerId) -> bool {
+        self.misses
+            .get(peer)
+            .is_some_and(|n| *n >= BLOB_PEER_MISS_LIMIT)
     }
 
     /// True once every chunk of `span` (clamped to the manifest) is stored.
@@ -97,16 +105,23 @@ impl Driver {
                 peer,
                 ..
             } => {
-                if !self.spaces.contains(&request.space)
-                    || !self
+                // Same empty answer for a space we have not joined and for a peer not (yet)
+                // known as a member: strangers learn nothing, and an honest peer that asks
+                // before its subscription reached us (connection race) is not struck.
+                let member = self.spaces.contains(&request.space)
+                    && self
                         .space_peers
                         .get(&request.space)
-                        .is_some_and(|p| p.contains(&peer))
-                    || !self.sync_in_rate.allow(&peer.to_string())
-                {
-                    if self.spaces.contains(&request.space) {
+                        .is_some_and(|p| p.contains(&peer));
+                let permit = if member && self.sync_in_rate.allow(&peer.to_string()) {
+                    self.sync_serve_slots.clone().try_acquire_owned().ok()
+                } else {
+                    if member {
                         self.strike(peer);
                     }
+                    None
+                };
+                let Some(permit) = permit else {
                     let _ = self.swarm.behaviour_mut().sync.send_response(
                         channel,
                         SyncResp {
@@ -115,24 +130,22 @@ impl Driver {
                         },
                     );
                     return;
-                }
+                };
                 self.blocking(move |s| {
-                    let mut events =
-                        s.events_after(&request.space, &request.vector, SYNC_PAGE_EVENTS);
-                    let mut more = events.len() >= SYNC_PAGE_EVENTS;
-                    let mut total = 0usize;
-                    let keep = events
-                        .iter()
-                        .take_while(|e| {
-                            total += e.len();
-                            total <= SYNC_PAGE_BYTES
-                        })
-                        .count()
-                        .max(1.min(events.len()));
-                    if keep < events.len() {
-                        events.truncate(keep);
-                        more = true;
-                    }
+                    let _permit = permit;
+                    let events = s.events_after(
+                        &request.space,
+                        &request.vector,
+                        SYNC_PAGE_EVENTS,
+                        SYNC_PAGE_BYTES,
+                    );
+                    let full = events.len() >= SYNC_PAGE_EVENTS;
+                    let (events, cut) = fit_page(events, SYNC_PAGE_BYTES);
+                    // A store that stops at the byte budget cannot say it left events behind:
+                    // a page with less room than one maximum event may have been cut. A
+                    // needless "more" costs the requester one empty round.
+                    let bytes: usize = events.iter().map(Vec::len).sum();
+                    let more = full || cut || bytes + MAX_GOSSIP_EVENT > SYNC_PAGE_BYTES;
                     let events = events.into_iter().map(ByteBuf::from).collect();
                     Internal::SyncServed {
                         channel,
@@ -151,23 +164,30 @@ impl Driver {
                 let Some((peer, space)) = self.sync_reqs.remove(&request_id) else {
                     return;
                 };
+                let from_member = self
+                    .space_peers
+                    .get(&space)
+                    .is_some_and(|p| p.contains(&peer));
                 let more = response.more;
                 let events: Vec<_> = response.events.into_iter().take(SYNC_PAGE_EVENTS).collect();
                 self.bytes_in += events.iter().map(|e| e.len() as u64).sum::<u64>();
                 self.blocking(move |s| {
-                    let applied = events
-                        .iter()
-                        .filter(|b| {
-                            matches!(
-                                s.ingest(&space, b),
-                                Ok(crate::store::IngestOutcome::Applied)
-                            )
-                        })
-                        .count();
+                    let (mut applied, mut rejected) = (0usize, 0usize);
+                    for b in &events {
+                        match s.ingest(&space, b) {
+                            Ok(IngestOutcome::Applied) => applied += 1,
+                            Ok(IngestOutcome::Rejected(_)) => rejected += 1,
+                            _ => {}
+                        }
+                    }
+                    if !more && from_member {
+                        s.sync_complete(&space);
+                    }
                     Internal::SyncApplied {
                         peer,
                         space,
                         applied,
+                        rejected,
                         more,
                     }
                 });
@@ -195,6 +215,14 @@ impl Driver {
                 peer,
                 ..
             } => {
+                let Ok(permit) = self.blob_serve_slots.clone().try_acquire_owned() else {
+                    let _ = self
+                        .swarm
+                        .behaviour_mut()
+                        .blob
+                        .send_response(channel, BlobResp { data: None });
+                    return;
+                };
                 if !acquire_serve(&mut self.serving, peer) {
                     let _ = self
                         .swarm
@@ -215,9 +243,18 @@ impl Driver {
                     .await
                     .ok()
                     .flatten();
-                    if let Some(d) = &data {
-                        bucket.take(d.len() as u64).await;
-                    }
+                    // Refuse rather than sleep past the requester's own timeout.
+                    let data = match data {
+                        Some(d)
+                            if !bucket
+                                .take_within(d.len() as u64, BLOB_SERVE_MAX_WAIT)
+                                .await =>
+                        {
+                            None
+                        }
+                        other => other,
+                    };
+                    drop(permit);
                     let _ = tx.send(Internal::BlobServed {
                         peer,
                         channel,
@@ -308,6 +345,7 @@ impl Driver {
             return;
         };
         job.tried.entry(idx).or_default().insert(peer);
+        *job.misses.entry(peer).or_default() += 1;
         match idx {
             None => job.manifest_pending = false,
             Some(i) => job.todo.push_front(i),
@@ -338,6 +376,7 @@ impl Driver {
                 remaining: HashSet::new(),
                 inflight: HashMap::new(),
                 tried: HashMap::new(),
+                misses: HashMap::new(),
                 deadline: Instant::now() + self.cfg.blob_timeout,
             },
         );
@@ -436,15 +475,30 @@ impl Driver {
         }
     }
 
-    fn candidates(&self, blob: &BlobId) -> Vec<PeerId> {
+    /// Peers to ask, best first: announced providers and space members, then at most
+    /// `BLOB_FALLBACK_PEERS` other connected peers. Returns the list and how many lead it as
+    /// preferred. Banned peers are never asked.
+    fn candidates(&self, blob: &BlobId) -> (Vec<PeerId>, usize) {
         let mut v: Vec<PeerId> = Vec::new();
         let announced = self.providers.get(blob).into_iter().flatten().copied();
-        for p in announced.chain(self.swarm.connected_peers().copied()) {
-            if self.swarm.is_connected(&p) && !v.contains(&p) {
+        let members = self.space_peers.values().flatten().copied();
+        for p in announced.chain(members) {
+            if self.swarm.is_connected(&p) && !self.banned.contains_key(&p) && !v.contains(&p) {
                 v.push(p);
             }
         }
-        v
+        let preferred = v.len();
+        let mut others = 0;
+        for p in self.swarm.connected_peers().copied() {
+            if others >= BLOB_FALLBACK_PEERS {
+                break;
+            }
+            if !self.banned.contains_key(&p) && !v.contains(&p) {
+                v.push(p);
+                others += 1;
+            }
+        }
+        (v, preferred)
     }
 
     pub fn pump_all_jobs(&mut self) {
@@ -454,7 +508,7 @@ impl Driver {
     }
 
     pub fn pump_job(&mut self, blob: &BlobId) {
-        let cands = self.candidates(blob);
+        let (cands, preferred) = self.candidates(blob);
         let Some(job) = self.jobs.get_mut(blob) else {
             return;
         };
@@ -470,9 +524,10 @@ impl Driver {
                 let tried = job.tried.get(&idx);
                 cands
                     .iter()
-                    .filter(|p| !tried.is_some_and(|t| t.contains(*p)))
-                    .min_by_key(|p| load.get(*p).copied().unwrap_or(0))
-                    .copied()
+                    .enumerate()
+                    .filter(|(_, p)| !tried.is_some_and(|t| t.contains(*p)) && !job.gave_up_on(p))
+                    .min_by_key(|(i, p)| (*i >= preferred, load.get(*p).copied().unwrap_or(0)))
+                    .map(|(_, p)| *p)
             };
         let mut sends: Vec<(PeerId, Option<u32>)> = Vec::new();
         if job.info.is_none() {
@@ -516,7 +571,7 @@ impl Driver {
             if let (true, Some(n)) = (idle, next)
                 && cands
                     .iter()
-                    .all(|p| j.tried.get(&n).is_some_and(|t| t.contains(p)))
+                    .all(|p| j.gave_up_on(p) || j.tried.get(&n).is_some_and(|t| t.contains(p)))
             {
                 self.fail_job(blob, "no reachable peer has this blob".into());
             }
@@ -575,6 +630,23 @@ impl Driver {
     }
 }
 
+/// Keeps the leading events within `max_bytes` (always at least one) as a backstop for stores
+/// that return more than the budget; the flag says whether anything was cut.
+fn fit_page(mut events: Vec<Vec<u8>>, max_bytes: usize) -> (Vec<Vec<u8>>, bool) {
+    let mut total = 0usize;
+    let keep = events
+        .iter()
+        .take_while(|e| {
+            total += e.len();
+            total <= max_bytes
+        })
+        .count()
+        .max(1.min(events.len()));
+    let cut = keep < events.len();
+    events.truncate(keep);
+    (events, cut)
+}
+
 /// Takes one serve slot for `peer`; false when it already has `BLOB_SERVE_INFLIGHT_PER_PEER`.
 fn acquire_serve(serving: &mut HashMap<PeerId, u32>, peer: PeerId) -> bool {
     let n = serving.entry(peer).or_default();
@@ -618,6 +690,33 @@ mod tests {
     }
 
     #[test]
+    fn page_is_cut_at_the_byte_budget_but_never_empty() {
+        let page = |sizes: &[usize]| sizes.iter().map(|n| vec![0u8; *n]).collect::<Vec<_>>();
+        let (kept, cut) = fit_page(page(&[10, 10, 10]), 25);
+        assert_eq!((kept.len(), cut), (2, true));
+        let (kept, cut) = fit_page(page(&[10, 10]), 20);
+        assert_eq!((kept.len(), cut), (2, false));
+        let (kept, cut) = fit_page(page(&[100, 1]), 25);
+        assert_eq!(
+            (kept.len(), cut),
+            (1, true),
+            "an oversize first event still goes"
+        );
+        assert!(fit_page(Vec::new(), 25).0.is_empty());
+    }
+
+    #[test]
+    fn global_serve_slots_are_capped() {
+        let slots = std::sync::Arc::new(tokio::sync::Semaphore::new(BLOB_SERVE_GLOBAL_MAX));
+        let held: Vec<_> = (0..BLOB_SERVE_GLOBAL_MAX)
+            .map(|_| slots.clone().try_acquire_owned().expect("under the cap"))
+            .collect();
+        assert!(slots.clone().try_acquire_owned().is_err(), "over the cap");
+        drop(held);
+        assert!(slots.try_acquire_owned().is_ok());
+    }
+
+    #[test]
     fn closed_waiters_are_pruned() {
         let (live_tx, _live_rx) = tokio::sync::oneshot::channel();
         let (dead_tx, dead_rx) = tokio::sync::oneshot::channel();
@@ -640,6 +739,7 @@ mod tests {
             remaining: HashSet::new(),
             inflight: HashMap::new(),
             tried: HashMap::new(),
+            misses: HashMap::new(),
             deadline: Instant::now(),
         };
         job.prune_waiters();

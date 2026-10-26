@@ -15,10 +15,16 @@ export interface IslandLayout { R: number; tier: number; edge: (theta: number) =
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const PP: Readonly<Record<string, { x: number; z: number }>> = PLOTS;
 
+/** T-002: core radii (10..36) span the renderable range (minRadius..maxRadius) linearly, so tiers 4 and 5 no longer clamp to the same size. */
+export function coreToSceneRadius(r: number): number {
+  const lo = G.coreRadiusByTier[0], hi = G.coreRadiusByTier[G.coreRadiusByTier.length - 1];
+  return clamp(G.minRadius + ((r - lo) / (hi - lo)) * (G.maxRadius - G.minRadius), G.minRadius, G.maxRadius);
+}
+
 /** Normalise optional growth data. `sections` decides which buildings exist; growth only supplies their level (1..3). */
 export function resolveGrowth(g: SpaceGrowth | undefined, sections: readonly SectionId[]): GrowthState {
   const tier = g ? clamp(Math.round(g.tier) || 1, 1, G.radiusByTier.length) : 1;
-  const radius = g && Number.isFinite(g.radius) && g.radius > 0 ? clamp(g.radius, G.minRadius, G.maxRadius) : G.radiusByTier[tier - 1];
+  const radius = g && Number.isFinite(g.radius) && g.radius > 0 ? coreToSceneRadius(g.radius) : G.radiusByTier[tier - 1];
   const levels = {} as Record<SectionId, BuildingLevel>;
   for (const id of SECTION_ORDER) levels[id] = (sections.includes(id) ? clamp(Math.round(g?.buildings?.[id] ?? 1) || 1, 1, MAX_LEVEL) : 0) as BuildingLevel;
   return { tier, radius, members: g?.members ?? 0, active7d: g?.active7d ?? 0, levels, houses: g?.houses ?? [] };

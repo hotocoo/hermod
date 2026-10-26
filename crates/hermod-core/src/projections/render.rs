@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::shapes::*;
-use super::state::{BoardSt, Msg, PostSt, SpaceState};
+use super::state::{BlockSt, BoardSt, Msg, PostSt, SpaceState};
 #[path = "render_messaging.rs"]
 pub(super) mod render_messaging;
 use super::time::{ago_long, ago_short, msg_time, snap_time};
@@ -13,6 +13,9 @@ use crate::growth::{self, GrowthInput};
 use crate::ids::SpaceId;
 use crate::messaging::DM_DEFAULT_TITLE;
 
+/// Newest messages per channel carried in the snapshot. Mirrors `LIMITS.messageWindow` in
+/// `src/config/app.ts` (a test keeps the two equal); older history loads through `messages_page`.
+pub const MESSAGE_WINDOW: usize = 150;
 const ROOM_NAME: &str = "The Hearth";
 const SHORT_MAX_SECS: u32 = 60;
 const HOME_LABEL: &str = "home";
@@ -23,6 +26,15 @@ pub struct World<'a> {
     people: BTreeMap<String, Person>,
     labels: HashMap<SpaceId, String>,
     me: String,
+}
+
+fn doc_block(b: &BlockSt) -> DocBlock {
+    DocBlock {
+        id: Some(b.id.clone()),
+        k: b.k.clone(),
+        text: b.text.clone(),
+        done: (b.k == "t").then_some(b.done),
+    }
 }
 
 fn within(ts: i64, now: i64, window: i64) -> bool {
@@ -296,6 +308,7 @@ impl<'a> World<'a> {
             online: (!s.is_home).then(|| count_within(c.config.online_window_ms)),
             sections: s.sections.clone(),
             map_style: s.map_style.clone(),
+            join_pow_bits: s.join_pow_bits,
             default_channel: default.clone(),
             meeting_channel: default,
             growth,
@@ -440,6 +453,7 @@ impl<'a> World<'a> {
             }),
             blocked: self.ctx.blocks.contains(&m.by).then_some(true),
             arrival: Some(m.arrival),
+            ts: Some(m.ts),
             ext: None,
         }
     }
@@ -455,10 +469,16 @@ impl<'a> World<'a> {
                 .chain(s.msgs.keys())
                 .collect();
             for ch in keys {
+                // Only the newest window rides in the snapshot; older history comes by `messages_page`.
                 let list = s
                     .msgs
                     .get(ch)
-                    .map(|l| l.iter().map(|m| self.message_in(s, ch, m)).collect())
+                    .map(|l| {
+                        l[l.len().saturating_sub(MESSAGE_WINDOW)..]
+                            .iter()
+                            .map(|m| self.message_in(s, ch, m))
+                            .collect()
+                    })
                     .unwrap_or_default();
                 out.insert(format!("{label}/{ch}"), list);
             }
@@ -1066,9 +1086,11 @@ impl<'a> World<'a> {
                     .iter()
                     .rev()
                     .take(self.ctx.config.versions_max)
-                    .map(|(ts, id)| DocVersion {
-                        t: snap_time(*ts, now, tz),
-                        seal: id.chars().take(7).collect(),
+                    .map(|v| DocVersion {
+                        t: snap_time(v.ts, now, tz),
+                        seal: v.id.chars().take(7).collect(),
+                        by: v.by.clone(),
+                        blocks: v.blocks.iter().map(doc_block).collect(),
                     })
                     .collect();
                 docs.push((
@@ -1084,21 +1106,13 @@ impl<'a> World<'a> {
                             self.first_name(&d.last_edit.1)
                         ),
                         people: d.editors.clone(),
-                        blocks: d
-                            .blocks
-                            .iter()
-                            .map(|b| DocBlock {
-                                id: Some(b.id.clone()),
-                                k: b.k.clone(),
-                                text: b.text.clone(),
-                                done: (b.k == "t").then_some(b.done),
-                            })
-                            .collect(),
+                        blocks: d.blocks.iter().map(doc_block).collect(),
                         comments: d
                             .comments
                             .iter()
                             .map(|c| DocComment {
                                 by: c.by.clone(),
+                                block_id: c.block_id.clone(),
                                 on: c.on.clone(),
                                 text: c.text.clone(),
                             })

@@ -76,6 +76,10 @@ fn public_v6(v: Ipv6Addr) -> bool {
     if s[0] == 0x2002 {
         return public_v4(embedded(s[1], s[2]));
     }
+    // ::/96 (IPv4-compatible, e.g. ::7f00:1) plus :: and ::1: never public.
+    if s[..6].iter().all(|x| *x == 0) {
+        return false;
+    }
     !(v.is_unspecified()
         || v.is_loopback()
         || v.is_multicast()
@@ -482,6 +486,8 @@ mod tests {
             "fc00::1",
             "fd12:3456::1",
             "ff02::1",
+            "::7f00:1",
+            "::a00:1",
             "::ffff:127.0.0.1",
             "::ffff:10.0.0.1",
             "64:ff9b::7f00:1",

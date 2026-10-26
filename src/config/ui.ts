@@ -1,4 +1,5 @@
 /** Static UI tables: weather, sky presets, onboarding, tabs, skein vocabulary, palette groups. */
+import type { SearchKind } from '../lib/bridge';
 import type { IconName } from './icons';
 
 export const WEATHERS = [
@@ -71,4 +72,8 @@ export const TILE_COLS = { one: '1fr', two: 'repeat(2, minmax(0,1fr))', three: '
 export const SIGNPOST = { id: 'search', name: 'The Signpost', kicker: 'Find', sub: 'Search everything · ⌘K', aria: 'Find The Signpost Search everything · ⌘K' } as const;
 export const EMPTY_PLOT = { name: 'Empty plot', raise: 'Raise ' } as const;
 
+/** Filter chips on the search page, in display order. */
+export const SEARCH_KIND_LABELS: ReadonlyArray<readonly [SearchKind, string]> = [
+  ['message', 'Messages'], ['post', 'Posts'], ['note', 'Notes'], ['doc', 'Docs'], ['card', 'Tasks'], ['snap', 'Snapshots'], ['event', 'Events'], ['ticket', 'Tickets'],
+];
 export const PALETTE_GROUPS = { spaces: 'Spaces', channels: 'Explore', rooms: 'Rooms', snapshots: 'Snapshots', tasks: 'Tasks', people: 'People', actions: 'Actions', matches: 'In your messages and documents' } as const;

@@ -1,3 +1,4 @@
+import { isBlobHash } from '../blobHash';
 import { BridgeError, createBridge, type Transport } from './bridge';
 
 /**
@@ -26,7 +27,7 @@ const devhostTransport: Transport = {
     source.addEventListener(event, on as EventListener);
     return () => source.removeEventListener(event, on as EventListener);
   },
-  blobUrl: (hash) => `${baseUrl()}/blob/${hash}`,
+  blobUrl: (hash) => (isBlobHash(hash) ? `${baseUrl()}/blob/${hash}` : ''),
 };
 
 let source: EventSource | null = null;

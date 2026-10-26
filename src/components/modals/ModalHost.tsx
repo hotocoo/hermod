@@ -8,11 +8,13 @@ import { ComposeStoryModal } from './ComposeStoryModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { InviteModal } from './InviteModal';
 import { JoinModal } from './JoinModal';
+import { LetterModal } from './LetterModal';
 import { LightboxModal } from './LightboxModal';
 import { ForwardModal, GalleryModal, ScheduleModal } from './MessagingModals';
 import { NewSnapshotModal } from './NewSnapshotModal';
 import { NewSpaceModal } from './NewSpaceModal';
 import { PromptDialog } from './PromptDialog';
+import { SearchModal } from './SearchModal';
 import { ShortcutsModal } from './ShortcutsModal';
 import { SpaceSettingsModal } from './SpaceSettingsModal';
 
@@ -27,6 +29,7 @@ export function ModalHost() {
       {modal?.kind === 'spaceSettings' && <SpaceSettingsModal space={modal.space} />}
       {modal?.kind === 'appSettings' && <AppSettingsModal tab={modal.tab} />}
       {modal?.kind === 'shortcuts' && <ShortcutsModal />}
+      {modal?.kind === 'search' && <SearchModal />}
       {modal?.kind === 'about' && <AboutModal />}
       {modal?.kind === 'lightbox' && <LightboxModal blob={modal.blob} />}
       {modal?.kind === 'composePost' && <ComposePostModal />}
@@ -36,6 +39,7 @@ export function ModalHost() {
       {modal?.kind === 'gallery' && <GalleryModal />}
       {modal?.kind === 'schedule' && <ScheduleModal />}
       {modal?.kind === 'channelSettings' && <ChannelSettingsModal space={modal.space} channel={modal.channel} />}
+      {modal?.kind === 'letter' && <LetterModal />}
       {modal?.kind === 'privacy' && <PrivacyModal />}
       {modal?.kind === 'contacts' && <ContactsModal />}
       <PromptDialog />

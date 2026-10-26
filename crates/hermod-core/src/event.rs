@@ -106,14 +106,17 @@ impl SignedEvent {
         decode_body(&crypto::open(key, &self.nonce, &self.body)?)
     }
 
+    /// Decrypts with the first key held for this event's epoch that fits; no decoding. This alone
+    /// proves the author held the key, so the store applies the event even if the body is junk.
+    pub fn decrypt_any(&self, keys: &[SpaceKey]) -> Result<Vec<u8>> {
+        keys.iter()
+            .find_map(|key| crypto::open(key, &self.nonce, &self.body).ok())
+            .ok_or(Error::Decrypt)
+    }
+
     /// Like [`SignedEvent::open`], trying every key held for this event's epoch.
     pub fn open_any(&self, keys: &[SpaceKey]) -> Result<Decoded> {
-        for key in keys {
-            if let Ok(plain) = crypto::open(key, &self.nonce, &self.body) {
-                return decode_body(&plain);
-            }
-        }
-        Err(Error::Decrypt)
+        decode_body(&self.decrypt_any(keys)?)
     }
 
     /// CBOR wire form.
@@ -153,6 +156,21 @@ pub struct BlobRef {
     #[serde(default)]
     pub mime: String,
 }
+
+impl BlobRef {
+    /// Whether `hash` is a well-formed blob id (64 lowercase hex chars). Peer-supplied refs that are
+    /// rendered into URLs must pass this before they project.
+    pub fn has_valid_hash(&self) -> bool {
+        self.hash.len() == BLOB_HASH_LEN
+            && self
+                .hash
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    }
+}
+
+/// Length of a blob id: hex BLAKE3, 32 bytes.
+const BLOB_HASH_LEN: usize = 64;
 
 /// Space role. Ordering is privilege: `Guest < Member < Admin < Owner`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -379,6 +397,9 @@ pub enum EventBody {
         /// Space default map style (`village` or `sanctuary`); an empty string clears it. Absent leaves it unchanged.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         map_style: Option<String>,
+        /// Leading zero bits a join request must prove (`0` = off, capped by `pow::MAX_JOIN_POW_BITS`). Absent leaves it unchanged.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        join_pow_bits: Option<u8>,
     },
     #[serde(rename = "section.raise")]
     SectionRaise { section: String },
@@ -389,11 +410,21 @@ pub enum EventBody {
         /// Id of the `invite.create` this join redeems.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         invite: Option<String>,
+        /// Proof-of-work nonce when the space asks for one (see `pow`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pow: Option<u64>,
     },
     #[serde(rename = "member.leave")]
     MemberLeave {},
     #[serde(rename = "member.role")]
-    MemberRole { user: String, role: Role },
+    MemberRole {
+        user: String,
+        role: Role,
+        /// Highest `seq` the changer saw from the target. The target's later seqs act at most at
+        /// `role`, whatever lamport they claim (a demoted admin cannot backdate). Absent on older events.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "member.remove")]
     MemberRemove {
         user: String,
@@ -717,12 +748,27 @@ pub enum EventBody {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reason: Option<String>,
     },
+    /// Admin closes a content report: `dismissed` or `removed`.
+    #[serde(rename = "report.resolve")]
+    ReportResolve { report_id: String, outcome: String },
     #[serde(rename = "read.mark")]
     ReadMark { channel_id: String, upto: u64 },
     #[serde(rename = "device.link")]
-    DeviceLink { device_pub: String, cert: String },
+    DeviceLink {
+        device_pub: String,
+        /// The identity's signature over `device_pub`.
+        cert: String,
+        /// The device's own signature over the identity; links without it never take effect.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        proof: String,
+    },
     #[serde(rename = "device.revoke")]
-    DeviceRevoke { device_pub: String },
+    DeviceRevoke {
+        device_pub: String,
+        /// Highest `seq` the identity saw from the device. Later seqs are rejected whatever lamport they claim.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "desk.config")]
     DeskConfig {
         queues: Vec<DeskQueueIn>,
@@ -1056,6 +1102,19 @@ impl EventBody {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn blob_hash_must_be_64_lowercase_hex() {
+        let with = |h: &str| BlobRef {
+            hash: h.into(),
+            ..BlobRef::default()
+        };
+        assert!(with(&"ab".repeat(32)).has_valid_hash());
+        assert!(!with(&"AB".repeat(32)).has_valid_hash());
+        assert!(!with(&"ab".repeat(31)).has_valid_hash());
+        assert!(!with("x\") ; background:url(//e/p.png").has_valid_hash());
+        assert!(!with("").has_valid_hash());
+    }
 
     fn make(body: &EventBody) -> (Identity, SpaceKey, SignedEvent) {
         let id = Identity::generate();

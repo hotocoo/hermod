@@ -11,6 +11,7 @@ use std::time::Duration;
 use hermod_core::api::InviteOptions;
 use hermod_core::event::Role;
 use hermod_core::ids::{self, SpaceId, UserId};
+use hermod_core::textdiff;
 use hermod_core::{BlobRef, Core, EventBody, ProfileInput, SignedEvent};
 use serde_json::{Value, json};
 
@@ -18,15 +19,22 @@ use crate::adapter;
 use crate::blob;
 use crate::ctx::{ALL_COLLECTIONS, Ctx, Live, collections_for};
 use crate::settings::{self, NodePatch, NodeSettings};
+use hermod_core::retention::MAX_RETENTION_DAYS;
 
 /// Largest file accepted over the IPC bridge, checked before the body is parsed.
 pub const MAX_UPLOAD_BYTES: usize = 256 * 1024 * 1024;
+/// Largest file accepted as a JSON number array (the fallback for transports without a raw
+/// body). Parsing a JSON array costs many times its size, so this stays small; real uploads use
+/// the raw body up to `MAX_UPLOAD_BYTES`.
+pub const MAX_JSON_UPLOAD_BYTES: usize = 4 * 1024 * 1024;
 const MAX_EVENT_JSON: usize = 512 * 1024;
 const MAX_SIGNAL_BYTES: usize = 64 * 1024;
 const ADDR_WAIT: Duration = Duration::from_secs(3);
 const DIAL_WAIT: Duration = Duration::from_secs(10);
 const DEFAULT_SEARCH_LIMIT: usize = 30;
 const LOG_TAIL_MAX: usize = 2000;
+/// Suggested name (plus the space label) of the folder a space export is saved into.
+const EXPORT_FOLDER_PREFIX: &str = "hermod-export-";
 const CLEAR_MSG: &str = "Hermod could not complete that";
 
 pub(crate) type Res<T> = Result<T, String>;
@@ -157,6 +165,38 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
     if name == "deeplink_pending" {
         return Ok(json!(ctx.take_pending_link()));
     }
+    // Opens the data dir, so it has to work while everything else says "locked".
+    if name == "identity_unlock" {
+        ctx.unlock(str_arg(a, "passphrase")?).await?;
+        return Ok(Value::Null);
+    }
+    // Recovery commands: they only need the closed data dir, so they work while the key cannot
+    // be read (passphrase forgotten, keychain entry gone).
+    match name {
+        "backup_import" => {
+            let path = PathBuf::from(str_arg(a, "path")?);
+            if !ctx.path_allowed(&path) {
+                return Err("choose the backup with the file picker first".into());
+            }
+            let pass = str_arg(a, "passphrase")?;
+            ctx.with_closed(move |dir| restore_backup(dir, &path, &pass))
+                .await?;
+            return Ok(Value::Null);
+        }
+        // The phrase is a secret: it is only ever read here, never put in a log line or an error.
+        "identity_restore_phrase" => {
+            let phrase = zeroize::Zeroizing::new(str_arg(a, "phrase")?);
+            ctx.with_closed(move |dir| Core::restore_from_phrase(dir, &phrase).map_err(e))
+                .await?;
+            return Ok(Value::Null);
+        }
+        "app_reset" => {
+            ctx.with_closed(|dir| Core::wipe_data(dir).map_err(e))
+                .await?;
+            return Ok(Value::Null);
+        }
+        _ => {}
+    }
     let live = ctx.live().await?;
     match name {
         // ---- legal, identity ----
@@ -174,6 +214,25 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             to_json(st)
         }
         "identity_get" => to_json(blk(&live, |c| c.identity().map_err(e)).await?),
+        "identity_phrase" => {
+            // Showing the secret needs an explicit yes from the caller, not just the command.
+            if a.get("confirm").and_then(Value::as_bool) != Some(true) {
+                return Err("confirm before showing the recovery phrase".into());
+            }
+            let phrase = blk(&live, |c| c.identity_phrase().map_err(e)).await?;
+            Ok(json!(phrase.as_str()))
+        }
+        "identity_protect" => {
+            let mode: hermod_core::keyguard::KeyMode = str_arg(a, "mode")?.parse().map_err(e)?;
+            let pass = opt_str(a, "passphrase").map(zeroize::Zeroizing::new);
+            let info = blk(&live, move |c| {
+                c.identity_protect(mode, pass.as_ref().map(|p| p.as_str()))
+                    .map_err(e)?;
+                c.identity().map_err(e)
+            })
+            .await?;
+            to_json(info)
+        }
         "profile_set" => {
             let input: ProfileInput =
                 serde_json::from_value(a.clone()).map_err(|x| format!("invalid profile: {x}"))?;
@@ -209,6 +268,11 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         }
         "invite_create" => invite_create(ctx, &live, a).await,
         "invite_accept" => invite_accept(ctx, &live, a).await,
+        "invite_accept_cancel" => {
+            live.join_cancel
+                .store(true, std::sync::atomic::Ordering::Relaxed);
+            Ok(Value::Null)
+        }
         "invite_list" => {
             let (id, _) = space_of(&live, a).await?;
             let rows = blk(&live, move |c| {
@@ -352,6 +416,86 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                 }
             })
         }
+        "pick_folder" => {
+            let shell = ctx
+                .shell
+                .clone()
+                .ok_or("folder picking is only available in the desktop app")?;
+            let picked = tokio::task::spawn_blocking(move || shell.pick_folder())
+                .await
+                .map_err(e)??;
+            Ok(match picked {
+                None => Value::Null,
+                Some(p) => {
+                    let s = p.to_string_lossy().into_owned();
+                    ctx.allow_path(p);
+                    json!(s)
+                }
+            })
+        }
+        "snap_scan_folder" => {
+            let (id, _) = space_of(&live, a).await?;
+            let path = PathBuf::from(str_arg(a, "path")?);
+            if !ctx.path_allowed(&path) {
+                return Err("choose the folder with the folder picker first".into());
+            }
+            let parent = opt_str(a, "parent");
+            // Line counts diff against the parent's text files, so hold those locally first.
+            if let Some(p) = parent.clone() {
+                let sid = id;
+                let before = blk(&live, move |c| c.snap_files(&sid, &p).map_err(e)).await?;
+                let small = before
+                    .iter()
+                    .flatten()
+                    .filter_map(|f| f.blob.as_ref())
+                    .filter(|b| b.size <= textdiff::MAX_DIFF_BYTES);
+                for b in small {
+                    blob::ensure_local(ctx, &b.hash).await?;
+                }
+            }
+            let plan = blk(&live, move |c| {
+                c.snap_plan_folder(&id, &path, parent.as_deref()).map_err(e)
+            })
+            .await?;
+            live.remember_blobs(plan.files.iter().filter_map(|f| f.blob.as_ref()));
+            Ok(
+                json!({ "files": plan.files, "added": plan.added, "removed": plan.removed, "changed": plan.changed }),
+            )
+        }
+        "snap_verify" => {
+            let (id, _) = space_of(&live, a).await?;
+            let snap = str_arg(a, "snapId")?;
+            let v = blk(&live, move |c| c.snap_verify(&id, &snap).map_err(e)).await?;
+            to_json(v)
+        }
+        "snap_export" => {
+            let (id, _) = space_of(&live, a).await?;
+            let snap = str_arg(a, "snapId")?;
+            let shell = ctx
+                .shell
+                .clone()
+                .ok_or("saving is only available in the desktop app")?;
+            let (sid, sn) = (id, snap.clone());
+            let files = blk(&live, move |c| {
+                c.snap_files(&sid, &sn)
+                    .map_err(e)?
+                    .ok_or_else(|| "snapshot not found".to_string())
+            })
+            .await?;
+            let suggested = clean_name(&snap);
+            let Some(dest) = tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
+                .await
+                .map_err(e)??
+            else {
+                return Ok(Value::Null);
+            };
+            for b in files.iter().filter_map(|f| f.blob.as_ref()) {
+                blob::ensure_local(ctx, &b.hash).await?;
+            }
+            let d = dest.clone();
+            let n = blk(&live, move |c| c.snap_export(&id, &snap, &d).map_err(e)).await?;
+            Ok(json!({ "path": dest.to_string_lossy(), "files": n }))
+        }
         "blob_save_as" => {
             let hash = str_arg(a, "hash")?;
             let suggested =
@@ -370,6 +514,20 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let d = dest.clone();
             blk(&live, move |c| write_blob(c, &hash, &d)).await?;
             Ok(json!(dest.to_string_lossy()))
+        }
+        "diff_blobs" => {
+            let (from, to) = (opt_str(a, "from"), opt_str(a, "to"));
+            for h in from.iter().chain(to.iter()) {
+                if !blob::is_hash(h) {
+                    return Err("invalid blob hash".into());
+                }
+                blob::ensure_local(ctx, h).await?;
+            }
+            let d = blk(&live, move |c| {
+                textdiff::diff_blobs(c.blobs(), from.as_deref(), to.as_deref()).map_err(e)
+            })
+            .await?;
+            serde_json::to_value(d).map_err(e)
         }
         "save_file" => save_bytes(ctx, a, bytes_arg(a, "bytes")?).await,
 
@@ -470,7 +628,6 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             a.get("options").unwrap_or(&Value::Null),
             a.get("moves").unwrap_or(&Value::Null),
         ),
-        "read_markers" => to_json(blk(&live, |c| c.read_markers().map_err(e)).await?),
         "block_user" => {
             let u = user_arg(a, "userId")?;
             blk(&live, move |c| c.block_user(&u).map_err(e)).await?;
@@ -500,21 +657,38 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let patch = a.clone();
             to_json(blk(&live, move |c| settings::notify_settings_set(c, &patch)).await?)
         }
-        "retention_set" => {
+        "retention_get" => {
             let (id, _) = space_of(&live, a).await?;
+            let days = blk(&live, move |c| c.retention_get(&id).map_err(e)).await?;
+            Ok(json!({ "days": days }))
+        }
+        "retention_set" => {
+            let (id, label) = space_of(&live, a).await?;
             let days = match a.get("days") {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(
                     v.as_u64()
-                        .filter(|d| (1..=36500).contains(d))
+                        .filter(|d| (1..=u64::from(MAX_RETENTION_DAYS)).contains(d))
                         .ok_or("retention must be 1 to 36500 days")? as u32,
                 ),
             };
-            blk(&live, move |c| {
-                settings::retention_set(c, &id.to_string(), days)
-            })
-            .await?;
+            let freed = blk(&live, move |c| c.retention_set(&id, days).map_err(e)).await?;
+            if freed > 0 {
+                live.forget_blob_info();
+            }
+            ctx.changed(&label, ALL_COLLECTIONS);
             Ok(Value::Null)
+        }
+        "space_export" => {
+            let (id, label) = space_of(&live, a).await?;
+            let Some(dest) = export_target(ctx, a, &label).await? else {
+                return Ok(Value::Null);
+            };
+            let out = json!(dest.to_string_lossy());
+            let summary = blk(&live, move |c| c.space_export(&id, &dest).map_err(e)).await?;
+            Ok(
+                json!({ "path": out, "messages": summary.messages, "files": summary.files, "missing": summary.missing.len() }),
+            )
         }
 
         // ---- search, storage, audit, logs ----
@@ -538,6 +712,15 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             Ok(Value::Array(
                 rows.into_iter()
                     .map(|r| json!({ "ts": r.ts, "space_id": label, "kind": r.kind, "by": r.by, "subject": r.target, "detail": r.detail }))
+                    .collect(),
+            ))
+        }
+        "reports_list" => {
+            let (id, label) = space_of(&live, a).await?;
+            let rows = blk(&live, move |c| c.reports_list(&id).map_err(e)).await?;
+            Ok(Value::Array(
+                rows.into_iter()
+                    .map(|r| json!({ "id": r.id, "ts": r.ts, "space_id": label, "by": r.by, "target": r.target, "reason": r.reason, "target_kind": r.target_kind, "target_by": r.target_by, "target_text": r.target_text, "channel": r.channel }))
                     .collect(),
             ))
         }
@@ -568,23 +751,6 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             .await?;
             Ok(out)
         }
-        "backup_import" => {
-            let path = PathBuf::from(str_arg(a, "path")?);
-            if !ctx.path_allowed(&path) {
-                return Err("choose the backup with the file picker first".into());
-            }
-            let pass = str_arg(a, "passphrase")?;
-            drop(live);
-            ctx.with_closed(move |dir| restore_backup(dir, &path, &pass))
-                .await?;
-            Ok(Value::Null)
-        }
-        "app_reset" => {
-            drop(live);
-            ctx.with_closed(|dir| Core::wipe_data(dir).map_err(e))
-                .await?;
-            Ok(Value::Null)
-        }
         "update_check" => {
             let shell = ctx
                 .shell
@@ -600,14 +766,61 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             shell.update_install().await?;
             Ok(Value::Null)
         }
-        "device_list" => {
-            let me = live.core.user_id().to_string();
-            Ok(
-                json!([{ "device_pub": me, "name": "This device", "added_at": 0, "this_device": true, "revoked": false }]),
-            )
+        "device_list" => to_json(blk(&live, |c| c.device_list().map_err(e)).await?),
+        "device_link_start" => {
+            let addrs = local_addrs(ctx).await;
+            // The code is a bearer secret: it goes back to the caller only, never into a log or the settings table.
+            let (code, events) = blk(&live, move |c| c.device_link_start(addrs).map_err(e)).await?;
+            for (space, evs) in group(&events) {
+                ctx.publish(&space, &evs).await;
+            }
+            ctx.changed("home", ALL_COLLECTIONS);
+            Ok(json!({ "code": code, "expires_in": hermod_core::device::LINK_TTL_SECS }))
         }
-        "device_link_start" | "device_link_accept" | "device_revoke" => {
-            Err("Linking another device is not available in this version of Hermod".into())
+        "device_link_accept" => {
+            let code = str_arg(a, "code")?;
+            drop(live);
+            let addrs = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let out = addrs.clone();
+            ctx.with_closed(move |dir| {
+                // Linking replaces what is on this install: the new device is the identity it links to.
+                let mut found = Vec::new();
+                swap_in(dir, |probe| {
+                    found = Core::device_link_accept(probe, &code).map_err(|x| x.to_string())?;
+                    Ok(())
+                })?;
+                *out.lock()
+                    .map_err(|_| "link state is unavailable".to_string())? = found;
+                Ok(())
+            })
+            .await?;
+            // The node restarts inside `with_closed` and rejoins every stored space, so only the dial is left.
+            let addrs: Vec<hermod_node::Multiaddr> = addrs
+                .lock()
+                .map_err(|_| "link state is unavailable".to_string())?
+                .iter()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+            if let Some(node) = ctx.node().await
+                && !addrs.is_empty()
+            {
+                match tokio::time::timeout(DIAL_WAIT, node.dial(addrs)).await {
+                    Ok(Ok(p)) => tracing::info!("connected to the linking device {p}"),
+                    Ok(Err(err)) => tracing::warn!("could not reach the linking device yet: {err}"),
+                    Err(_) => tracing::warn!("timed out reaching the linking device"),
+                }
+            }
+            Ok(Value::Null)
+        }
+        "device_revoke" => {
+            let dev: [u8; 32] = hermod_core::ids::hex_decode_array(&str_arg(a, "devicePub")?)
+                .map_err(|_| "that is not a device key".to_string())?;
+            let events = blk(&live, move |c| c.device_revoke(&dev).map_err(e)).await?;
+            for (space, evs) in group(&events) {
+                ctx.publish(&space, &evs).await;
+            }
+            ctx.changed("home", ALL_COLLECTIONS);
+            Ok(Value::Null)
         }
         other => match crate::messaging_api::handle(ctx, &live, other, a).await {
             Some(r) => r,
@@ -687,7 +900,13 @@ async fn local_addrs(ctx: &Ctx) -> Vec<String> {
 
 pub(crate) async fn invite_accept(ctx: &Arc<Ctx>, live: &Arc<Live>, a: &Value) -> Res<Value> {
     let code = str_arg(a, "code")?;
-    let joined = blk(live, move |c| c.invite_accept(code.trim()).map_err(e)).await?;
+    // Off the async threads (blk), and stoppable: the proof-of-work search can take seconds.
+    let cancel = live.join_cancel.clone();
+    cancel.store(false, std::sync::atomic::Ordering::Relaxed);
+    let joined = blk(live, move |c| {
+        c.invite_accept_cancellable(code.trim(), &cancel).map_err(e)
+    })
+    .await?;
     if let Some(node) = ctx.node().await {
         let addrs: Vec<hermod_node::Multiaddr> =
             joined.addrs.iter().filter_map(|s| s.parse().ok()).collect();
@@ -781,8 +1000,8 @@ fn bytes_arg(a: &Value, key: &str) -> Res<Vec<u8>> {
         .get(key)
         .and_then(Value::as_array)
         .ok_or_else(|| format!("missing {key}"))?;
-    if arr.len() > MAX_UPLOAD_BYTES {
-        return Err("that file is too large".into());
+    if arr.len() > MAX_JSON_UPLOAD_BYTES {
+        return Err("that file is too large to send this way".into());
     }
     arr.iter()
         .map(|v| {
@@ -813,8 +1032,12 @@ async fn save_bytes(ctx: &Arc<Ctx>, a: &Value, bytes: Vec<u8>) -> Res<Value> {
     else {
         return Ok(Value::Null);
     };
-    std::fs::write(&dest, bytes).map_err(|x| format!("could not save the file: {x}"))?;
-    Ok(json!(dest.to_string_lossy()))
+    let shown = dest.to_string_lossy().into_owned();
+    tokio::task::spawn_blocking(move || std::fs::write(&dest, bytes))
+        .await
+        .map_err(e)?
+        .map_err(|x| format!("could not save the file: {x}"))?;
+    Ok(json!(shown))
 }
 
 /// Where a backup goes: the app asks the person with the save dialog (the webview names no
@@ -836,23 +1059,47 @@ async fn backup_target(ctx: &Arc<Ctx>, a: &Value) -> Res<Option<PathBuf>> {
         .map_err(e)?
 }
 
+/// Where a space export goes: the app asks with the save dialog (the person names a new folder
+/// there); the devhost and tests may pass an absolute path. The export refuses a non-empty folder.
+async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<PathBuf>> {
+    let Some(shell) = ctx.shell.clone() else {
+        let path = PathBuf::from(str_arg(a, "path")?);
+        if !path.is_absolute() || path.parent().is_none_or(|p| !p.is_dir()) {
+            return Err("choose a folder inside an existing folder".into());
+        }
+        return Ok(Some(path));
+    };
+    let suggested = clean_name(&format!("{EXPORT_FOLDER_PREFIX}{label}"));
+    tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
+        .await
+        .map_err(e)?
+}
+
 /// Restore into a scratch dir (this proves the file and passphrase), then swap it in. Reading
-/// and decrypting the backup happens once, and the live data is untouched until it succeeds.
+/// and decrypting the backup happens once; the live data is set aside and deleted only after
+/// every staged file is in place.
 fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> Res<()> {
-    let probe = dir.with_extension("restore-check");
+    swap_in(dir, |probe| {
+        Core::backup_import(probe, file, pass)
+            .map_err(|x| format!("cannot restore this backup: {x}"))
+    })
+}
+
+/// Installs a fresh data set with `install` into a scratch dir, then swaps it for `dir`'s contents.
+/// The core keeps the old data aside until the new is in, so an interruption is undone on the next
+/// open. A failed swap leaves the staged copy in place for inspection; a failed install clears it.
+fn swap_in(dir: &std::path::Path, install: impl FnOnce(&std::path::Path) -> Res<()>) -> Res<()> {
+    let probe = Core::staging_path(dir);
     let _ = std::fs::remove_dir_all(&probe);
-    let staged = Core::backup_import(&probe, file, pass)
-        .map_err(|x| format!("cannot restore this backup: {x}"))
-        .and_then(|()| {
-            Core::wipe_data(dir).map_err(e)?;
-            for entry in std::fs::read_dir(&probe).map_err(e)? {
-                let name = entry.map_err(e)?.file_name();
-                std::fs::rename(probe.join(&name), dir.join(&name)).map_err(e)?;
-            }
-            Ok(())
-        });
-    let _ = std::fs::remove_dir_all(&probe);
-    staged
+    if let Err(x) = install(&probe) {
+        let _ = std::fs::remove_dir_all(&probe);
+        return Err(x);
+    }
+    Core::replace_data(dir, &probe).map_err(e)?;
+    if let Err(x) = std::fs::remove_dir_all(&probe) {
+        tracing::warn!("could not remove the restore scratch folder: {x}");
+    }
+    Ok(())
 }
 
 fn write_blob(c: &Core, hash: &str, dest: &std::path::Path) -> Res<()> {
@@ -880,4 +1127,22 @@ fn tail_log(file: Option<&std::path::Path>, n: usize) -> Vec<String> {
         .iter()
         .map(|s| s.to_string())
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::tail_log;
+
+    #[test]
+    fn tail_log_handles_missing_short_and_long_files() {
+        assert!(tail_log(None, 5).is_empty(), "no log file configured");
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("hermod.log");
+        assert!(tail_log(Some(&f), 5).is_empty(), "missing file");
+        std::fs::write(&f, "a\nb\n").unwrap();
+        assert_eq!(tail_log(Some(&f), 5), ["a", "b"], "shorter than n");
+        std::fs::write(&f, "1\n2\n3\n4\n5\n6\n").unwrap();
+        assert_eq!(tail_log(Some(&f), 3), ["4", "5", "6"], "only the last n");
+        assert!(tail_log(Some(&f), 0).is_empty());
+    }
 }

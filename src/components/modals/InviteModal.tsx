@@ -1,6 +1,7 @@
 'use client';
 import { useState, type FormEvent } from 'react';
 import { INVITE_EXPIRY } from '@/config/app';
+import { COPY } from '@/config/copy';
 import { errorMessage, getBridge, type InviteOut, type Role } from '@/lib/bridge';
 import { spaceOf } from '@/state/helpers';
 import { useAppStore } from '@/state/store';
@@ -41,6 +42,7 @@ export function InviteModal({ space }: { space: string }) {
           <select id="inv-exp" className="input" value={exp} onChange={(e) => setExp(e.target.value)}>
             {INVITE_EXPIRY.map((o, i) => <option key={o.label} value={i}>{o.label}</option>)}
           </select>
+          <p className={f.note}>{COPY.inviteExpiryNote}</p>
         </div>
         <div className={f.field}>
           <label className={f.label} htmlFor="inv-max">Most uses (optional)</label>

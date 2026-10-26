@@ -1,4 +1,5 @@
 /** Rust to UI: subscribes to the bridge events and keeps the store in step with the core. Returns cleanup. */
+import { UI_COLLECTIONS } from '../config/app';
 import { MEDIA } from '../config/media';
 import { getBridge } from '../lib/bridge';
 import { getNotifySettings, openNotifyTarget, setNotifySettings } from './notify';
@@ -14,10 +15,13 @@ export function onSignal(h: SignalHandler): () => void {
   return () => { signalHandlers.delete(h); };
 }
 
+/** Whether a `changed` event touches anything the UI shows. A payload without a collection list re-reads to be safe. */
+export const touchesUi = (e: { collections?: string[] }): boolean => !Array.isArray(e.collections) || e.collections.some((c) => UI_COLLECTIONS.includes(c));
+
 export function startBridgeSync(store: StoreLike): () => void {
   const bridge = getBridge(); const get = store.getState;
   const stops = [
-    bridge.on('changed', () => get().refreshSoon()),
+    bridge.on('changed', (e) => { if (touchesUi(e)) get().refreshSoon(); }),
     bridge.on('node', (e) => get().setNode(e.status)),
     bridge.on('sync', (e) => get().setSync(e.pending)),
     bridge.on('ephemeral', (e) => {

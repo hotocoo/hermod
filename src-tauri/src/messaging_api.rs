@@ -147,7 +147,10 @@ async fn run(ctx: &Arc<Ctx>, live: &Arc<Live>, name: &str, a: &Value) -> Res<Val
             let body: EventBody =
                 serde_json::from_value(a.get("body").cloned().ok_or("missing body")?)
                     .map_err(|x| format!("invalid message: {x}"))?;
-            to_json(blk(live, move |c| c.schedule_add(&id, body, at).map_err(e)).await?)
+            let s = blk(live, move |c| c.schedule_add(&id, body, at).map_err(e)).await?;
+            // Wakes the scheduler so a message due soon is not left waiting for its next poll.
+            ctx.changed("home", &["messaging"]);
+            to_json(s)
         }
         "schedule_list" => to_json(blk(live, |c| c.schedule_list().map_err(e)).await?),
         "schedule_cancel" => {

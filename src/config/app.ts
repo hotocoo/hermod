@@ -9,15 +9,40 @@ export const STORAGE_KEYS = {
   /** Appearance overrides (text size multiplier, motion: system | reduce). */
   textScale: 'hermodr.textScale',
   motion: 'hermodr.motion',
+  /** Render frame cap / low-power mode: an id from FRAME_LIMIT.options (config/scene.ts). */
+  fpsCap: 'hermodr.fpsCap',
+  /** W-007: chosen UI locale id (see src/i18n/locale.ts). */
+  locale: 'hermodr.locale',
 } as const;
+
+/** Error text the core returns for every command while a passphrase-protected key is still locked (core `Error::Locked`). */
+export const LOCKED_ERROR = 'identity locked';
+
+/** Error text of a join the person stopped (core `Error::Cancelled`); not shown as a failure. */
+export const CANCELLED_ERROR = 'cancelled';
+
+/** Start of the error text while the OS keychain cannot return the identity key (core `Error::KeyUnavailable`). */
+export const KEY_UNAVAILABLE_PREFIX = 'identity key unavailable';
+
+/** Part of the error text a post gets after a restore, until a peer sync has run (core `own_seq_hold`, `Error::Forbidden`). */
+export const OWN_SEQ_HOLD_MARKER = 'waiting to sync with other members';
 
 /** Pseudo-author the core uses for system messages (meeting wrap-up, weave notices). Defined by the contract, not user data. */
 export const SYSTEM_ID = 'system';
 /** Kind of the personal Space and the id the core gives it. */
 export const HOME_KIND = 'Personal';
 export const HOME_ID = 'home';
+/** Join proof-of-work choices in leading zero bits (0 = off). Keep the top in step with core `pow::MAX_JOIN_POW_BITS`. */
+export const JOIN_POW_CHOICES: readonly number[] = [0, 12, 16, 20, 24];
+
+/** Words in a recovery phrase (core `identity::PHRASE_WORDS`). */
+export const PHRASE_WORDS = 24;
+
 /** Kind of a direct or group message Space (made by `dm_start`, shared only by its members). */
 export const DM_KIND = 'dm';
+
+/** Channel every DM Space opens with (the core's default channel); a story reply is posted here. */
+export const DM_CHANNEL = 'general';
 
 /** `channel_id` a post comment carries. The core files comments under the post, not in a channel, and ignores it. */
 export const POST_COMMENT_CHANNEL = '';
@@ -58,7 +83,10 @@ export const TIMING = {
 } as const;
 
 /** OS notification timing: reminder lead, how often due reminders are looked for, and how long after a notification a window focus counts as clicking it. */
-export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000 } as const;
+export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000, burstMax: 3 } as const; // burstMax: OS notifications per snapshot apply; the rest fold into one summary
+
+/** Arrivals: how far a peer's clock may trail ours before its message counts as pre-session backfill rather than live. */
+export const ARRIVALS = { clockSkewMs: 300_000 } as const;
 
 export const TOAST_MS = { standard: 3600, storyReply: 3000, profileSaved: 2600, postcard: 3200 } as const;
 
@@ -90,6 +118,11 @@ export const LAYOUT = {
 
 export const CAMERA = { zoomStep: 5, rotateStep: 0.45 } as const;
 
+/** Snapshot collections the UI renders (mirrors ALL_COLLECTIONS in src-tauri/src/ctx.rs); a `changed` event naming none of them does not trigger a re-read. */
+export const UI_COLLECTIONS: readonly string[] = [
+  'people', 'spaces', 'channels', 'messages', 'rooms', 'agenda', 'workboards', 'skein', 'feed', 'media', 'pinboards', 'docs', 'events', 'letters', 'inbox', 'desk', 'arcade', 'messaging',
+];
+
 export const LIMITS = {
   liveChat: 60,
   hearts: 8,
@@ -105,6 +138,8 @@ export const LIMITS = {
   paintSkein: 6,
   paletteResults: 9,
   searchHits: 12,
+  /** Results fetched for the full search page (the palette shows fewer). */
+  searchPageHits: 60,
   doorItems: 3,
   feedHintMax: 4,
   animStagger: 10,
@@ -174,5 +209,7 @@ export const PRESENCE = {
   everyMs: 20_000, // beacon refresh, well under ttlMs so one lost beacon does not flap the dot
   ttlMs: 60_000, // a peer unseen this long is offline (FEATURES P-001)
   idleMs: 300_000, // no input this long means away (FEATURES P-004)
+  refreshMs: 10_000, // an unchanged beacon inside this window is ignored (no store churn); must stay well under ttlMs
+  lastSeenMax: 500, // peers kept for "last seen"; the oldest are evicted past this
   inputEvents: ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const, // pointermove omitted: too frequent
 } as const;

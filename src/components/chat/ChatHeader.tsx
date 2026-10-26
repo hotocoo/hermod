@@ -1,37 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
 import type { VmProps } from '@/components/panel/types';
 import { Icon } from '@/components/ui/Icon';
 import { COPY } from '@/config/copy';
 import { MUTE_CHOICES, isMuted } from '@/state/slices/messaging/helpers';
 import { chatKey } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
+import { ThreadsMenu } from './ThreadsMenu';
+import { usePopover } from './usePopover';
 import { useChanCfg } from './useMsgView';
 import s from './chat.module.css';
 import x from './messaging.module.css';
-
-/** Click-away and Escape for a popover that lives next to its button. */
-function usePopover() {
-  const [open, setOpen] = useState(false); const root = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false); };
-    // stopPropagation: the Escape that closes the popover must not also reach the window ladder that leaves the building.
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } };
-    document.addEventListener('mousedown', away); document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
-  }, [open]);
-  return [root, open, setOpen] as const;
-}
+import { EmptyNote } from '@/components/panel/EmptyStates';
 
 function Pins({ vm }: VmProps) {
   const [popRef, popOpen, setPopOpen] = usePopover(); const key = useAppStore(chatKey);
-  const pinned = vm.messages.filter((m) => m.raw.pinned && !m.removed);
+  const pinned = vm.pinned;
   return (
     <span ref={popRef} style={{ position: 'relative' }}>
       <button type="button" className={s.search} aria-label={`Pinned messages (${pinned.length})`} aria-expanded={popOpen} title="Pinned messages" onClick={() => setPopOpen(!popOpen)}><Icon name="pin" size={16} /></button>
       {popOpen && (
         <ul className={x.menu} style={{ right: 0, top: '100%', width: 300 }} aria-label="Pinned messages">
-          {pinned.length === 0 && <li className={x.empty}>Nothing is pinned yet.</li>}
+          {pinned.length === 0 && <li><EmptyNote {...COPY.empty.chatPins} /></li>}
           {pinned.map((m) => (
             <li key={m.id}><button type="button" className={s.popItem} onClick={() => { useAppStore.setState({ jump: { key, id: m.id } }); setPopOpen(false); }}>
               <span className={x.grow}><strong>{m.name}</strong> {m.text.slice(0, 80) || 'Attachment'}</span></button></li>
@@ -87,6 +75,7 @@ export function ChatHeader({ vm, onToggleNav, navOpen }: VmProps & { onToggleNav
         <p className={s.topic}>{vm.chan.topic}{cfg && cfg.ttlSecs > 0 ? ` Disappearing messages: ${cfg.ttlSecs >= 86400 ? `${Math.round(cfg.ttlSecs / 86400)}d` : cfg.ttlSecs >= 3600 ? `${Math.round(cfg.ttlSecs / 3600)}h` : `${cfg.ttlSecs}s`}.` : ''}</p>
       </div>
       <VoiceButton vm={vm} kind={cfg?.kind} />
+      <ThreadsMenu />
       <Pins vm={vm} />
       <button type="button" onClick={vm.openPalette} aria-label="Search" className={s.search}>{vm.ic.search}</button>
       <ChatMenu vm={vm} />

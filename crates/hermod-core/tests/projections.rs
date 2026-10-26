@@ -682,7 +682,7 @@ fn hearth_agenda_and_meeting_summary() {
     let mut s2 = studio();
     let mut extra = Log::new();
     extra.push_at(&s2.ada, 10_000, NOW - 10 * MIN, EventBody::MeetingEnd {});
-    s2.inputs[1].events.extend(extra.events);
+    s2.inputs[1].events_mut().extend(extra.events);
     let snap = snapshot(&s2);
     let general = &snap.collections.messages[&format!("{}/general", s2.sid)];
     let summary = general
@@ -759,7 +759,7 @@ fn board_and_skein() {
             into: "main".into(),
         },
     );
-    s2.inputs[1].events.extend(extra.events);
+    s2.inputs[1].events_mut().extend(extra.events);
     let skein = &snapshot(&s2).collections.skein[&s2.sid.to_string()];
     assert_eq!(
         skein
@@ -1021,7 +1021,9 @@ fn fold_is_independent_of_event_arrival_order() {
         for input in &mut shuffled {
             let n = input.events.len();
             for i in (1..n).rev() {
-                input.events.swap(i, (next() % (i as u64 + 1)) as usize);
+                input
+                    .events_mut()
+                    .swap(i, (next() % (i as u64 + 1)) as usize);
             }
         }
         assert_eq!(
@@ -1046,7 +1048,7 @@ fn two_authors_with_equal_lamport_merge_deterministically() {
     l.push_at(&b, 10, NOW - 31 * MIN, post_msg("general", "mb", "from b"));
     let first = project(&ctx(me), &[l.input(sid, "Duo", "Team", false)]);
     let mut rev = l.input(sid, "Duo", "Team", false);
-    rev.events.reverse();
+    rev.events_mut().reverse();
     let second = project(&ctx(me), &[rev]);
     assert_eq!(first, second);
     let order: Vec<_> = first.collections.messages[&format!("{sid}/general")]
@@ -1188,6 +1190,14 @@ fn doc_block_update_and_delete_edit_an_existing_doc() {
     // Another member edits the first line in place and removes the second.
     l.push(&bea, t(26), block(DocOp::Update, "a", "", "final words"));
     l.push(&bea, t(25), block(DocOp::Delete, "b", "", ""));
+    // Comments hang on a live block; one on a missing block is dropped.
+    let comment = |id: &str, text: &str| EventBody::DocComment {
+        doc_id: "d".into(),
+        block_id: id.into(),
+        text: text.into(),
+    };
+    l.push(&bea, t(24), comment("c", "is this still true?"));
+    l.push(&me, t(23), comment("b", "on a deleted block"));
     let snap = project(&ctx(me), &[l.input(sid, "Kiln", "Team", false)]);
     let doc = &snap.collections.docs[0];
     assert_eq!(
@@ -1197,6 +1207,42 @@ fn doc_block_update_and_delete_edit_an_existing_doc() {
             .collect::<Vec<_>>(),
         vec![(Some("a"), "p", "final words"), (Some("c"), "p", "stays")],
         "update keeps the kind when none is given; delete removes only that block"
+    );
+
+    // V-025: the comment carries its block, author and the text it sits on.
+    assert_eq!(doc.comments.len(), 1);
+    let cm = &doc.comments[0];
+    assert_eq!(
+        (
+            cm.block_id.as_str(),
+            cm.by.as_str(),
+            cm.on.as_str(),
+            cm.text.as_str()
+        ),
+        (
+            "c",
+            bea.to_string().as_str(),
+            "stays",
+            "is this still true?"
+        )
+    );
+
+    // V-026: newest first; every version has its author and the blocks as they stood then.
+    let texts = |v: &hermod_core::projections::shapes::DocVersion| {
+        v.blocks.iter().map(|b| b.text.clone()).collect::<Vec<_>>()
+    };
+    assert_eq!(doc.versions.len(), 6, "create plus five edits");
+    assert_eq!(doc.versions[0].by, bea.to_string());
+    assert_eq!(texts(&doc.versions[0]), vec!["final words", "stays"]);
+    assert_eq!(
+        texts(&doc.versions[1]),
+        vec!["final words", "goes away", "stays"]
+    );
+    assert_eq!(texts(&doc.versions[3]), vec!["first draft", "goes away"]);
+    assert_eq!(doc.versions[5].by, me.to_string());
+    assert!(
+        doc.versions[5].blocks.is_empty(),
+        "the create version is empty"
     );
 }
 

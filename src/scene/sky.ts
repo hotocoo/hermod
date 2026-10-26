@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { COLORS, SKY_KEYFRAMES, type Rgb } from '@/config/scene';
+import { disposeTree } from './dispose';
 import { rng } from './rng';
 
 /** One sampled moment of the day (CSS colours for the page sky, rgb triples for the lights). */
@@ -31,5 +32,7 @@ export function createSkyBodies(scene: THREE.Scene, reduced: boolean) {
   }
   /** The post pipeline paints its own screen-space stars and moon; hide the 3D bodies then. */
   function setVisible(v: boolean) { stars.visible = moon.visible = halo.visible = v; }
-  return { update, setVisible };
+  /** Remove the bodies from the scene and free their geometry, materials and textures. */
+  function dispose() { for (const o of [stars, moon, halo]) { o.removeFromParent(); disposeTree(o); } }
+  return { update, setVisible, dispose };
 }

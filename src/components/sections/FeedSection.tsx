@@ -2,6 +2,8 @@
 import { useViewModel } from '@/state/useViewModel';
 import { FeedCard } from './feed/FeedCard';
 import s from './feed/feed.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 /** Feed section: tabs, composer entry and a three-column masonry of posts. */
 export function FeedSection() {
@@ -27,7 +29,7 @@ export function FeedSection() {
             <button type="button" className="btn btn-primary" onClick={vm.composePost}>Share the first post</button>
           </div>
         )}
-        {vm.feedEmptyTab && <div className={s.empty}><p className={s.emptyLine}>Nothing here yet. Save posts with the bookmark, or follow people from their posts.</p></div>}
+        {vm.feedEmptyTab && <div className={s.empty}><EmptyNote {...COPY.empty.feedSaved} /></div>}
         <div className={s.cols}>
           {cols.map((col, ci) => (
             <div key={ci} className={s.col}>{col.map((p) => <FeedCard key={p.id} p={p} play={vm.icS.play} trash={vm.icS.trash} />)}</div>

@@ -10,7 +10,7 @@
   border-radius: 24px;
   background: var(--color-bg);
   box-shadow: var(--shadow-md);
-  font-size: 14px;
+  font-size: 0.875rem;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -19,7 +19,7 @@
 .glyph {
   font-family: var(--font-heading);
   font-style: italic;
-  font-size: 20px;
+  font-size: 1.25rem;
   line-height: 1;
   color: var(--color-accent-text);
 }

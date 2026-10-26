@@ -14,7 +14,7 @@
   border: 0;
   border-top: 1px solid var(--color-divider);
   background: transparent;
-  text-align: left;
+  text-align: start;
 }
 .item:hover {
   background: color-mix(in srgb,var(--color-text) 4%,transparent) !important;
@@ -28,7 +28,7 @@
   place-items: center;
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .body {
@@ -37,7 +37,7 @@
 
 .line {
   display: block;
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .from {
@@ -46,7 +46,7 @@
 
 .text {
   display: block;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.45;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
   text-wrap: pretty;
@@ -58,7 +58,7 @@
   border: 1px solid var(--color-divider);
   border-radius: 6px;
   background: transparent;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .markReadBtn:hover {
   border-color: var(--color-accent) !important;

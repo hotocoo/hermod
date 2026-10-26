@@ -1,7 +1,7 @@
 .root {
   position: absolute;
   top: 74px;
-  right: 24px;
+  inset-inline-end: 24px;
   width: 388px;
   max-height: calc(100vh - 110px);
   overflow: auto;
@@ -32,7 +32,7 @@
 
 .title {
   font-family: var(--font-heading);
-  font-size: 30px;
+  font-size: 1.875rem;
   line-height: 1.1;
 }
 

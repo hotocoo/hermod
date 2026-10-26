@@ -38,6 +38,7 @@ log = "0.4"
 tracing = { version = "0.1", features = ["log"] }
 futures = "0.3"
 hex = "0.4"
+zeroize = "1"
 infer = "0.22"
 reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 libp2p = { version = "0.57", default-features = false, features = ["ed25519"] }
@@ -54,6 +55,15 @@ tower-http = { version = "0.6", optional = true, features = ["cors"] }
 tokio-stream = { version = "0.1", optional = true, features = ["sync"] }
 clap = { version = "4", optional = true, features = ["derive"] }
 tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter"] }
+tauri-plugin-window-state = "2"
+
+# OS keychain for the identity key (E-013): one native backend per platform.
+[target.'cfg(target_os = "macos")'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["apple-native"] }
+[target.'cfg(windows)'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["windows-native"] }
+[target.'cfg(all(unix, not(target_os = "macos")))'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["sync-secret-service", "crypto-rust"] }
 
 [dev-dependencies]
 tempfile = "3"

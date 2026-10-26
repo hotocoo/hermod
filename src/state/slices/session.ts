@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { HOME_KIND, STORAGE_KEYS } from '../../config/app';
+import { CANCELLED_ERROR, HOME_KIND, KEY_UNAVAILABLE_PREFIX, LOCKED_ERROR, STORAGE_KEYS } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { errorMessage, getBridge, type IdentityInfo } from '../../lib/bridge';
 import { LEGAL_VERSION } from '../../lib/legal';
@@ -28,7 +28,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
   };
 
   return {
-    phase: 'boot', bootError: null, me: null, legal: null, node: null, syncPending: 0, blocked: {}, pendingCode: null,
+    phase: 'boot', bootError: null, me: null, legal: null, node: null, syncPending: 0, blocked: {}, pendingCode: null, joining: false,
 
     boot: async () => {
       try {
@@ -38,7 +38,12 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
         await proceed();
         const blocked = await bridge().blockList().catch(() => []);
         get().setBlocked(blocked.map((b) => b.user_id));
-      } catch (e) { set({ phase: 'failed', bootError: errorMessage(e) }); }
+      } catch (e) {
+        const msg = errorMessage(e);
+        if (msg === LOCKED_ERROR) set({ phase: 'locked', bootError: null });
+        else if (msg.startsWith(KEY_UNAVAILABLE_PREFIX)) set({ phase: 'locked', bootError: msg });
+        else set({ phase: 'failed', bootError: msg });
+      }
     },
 
     acceptLegal: async (shareResources) => {
@@ -69,6 +74,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
     },
 
     joinSpace: async (code) => {
+      set({ joining: true });
       try {
         const sp = await bridge().inviteAccept(code.trim());
         await get().refresh();
@@ -76,7 +82,15 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
         set({ space: sp.label, section: 'chat', pendingCode: null });
         get().showToast(COPY.joined(sp.name));
         return true;
-      } catch (e) { get().showToast(errorMessage(e), undefined, 'error'); return false; }
+      } catch (e) {
+        const msg = errorMessage(e);
+        if (msg !== CANCELLED_ERROR) get().showToast(msg, undefined, 'error');
+        return false;
+      } finally { set({ joining: false }); }
+    },
+
+    cancelJoin: async () => {
+      try { await bridge().inviteAcceptCancel(); } catch (e) { get().showToast(errorMessage(e), undefined, 'error'); }
     },
 
     leaveSpace: async (id) => {

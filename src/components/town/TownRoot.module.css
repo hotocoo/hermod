@@ -13,6 +13,6 @@
 /* HUD layout contract shared by Header, TopBar, SpaceRail and ListView so they never overlap:
    --hud-left is where the top bar may start (right of the header), --hud-clear is the y below header and top bar,
    --rail-clear is the x right of the space rail. Below 960px the header and top bar stack; below 640px the top bar can need a third row. */
-.root { --hud-left: 380px; --hud-clear: 176px; --rail-clear: 116px; }
-@media (max-width: 960px) { .root { --hud-left: 12px; --hud-clear: 176px; } }
-@media (max-width: 640px) { .root { --hud-clear: 236px; } }
+.root { --hud-left: calc(380px * var(--text-scale, 1)); --hud-clear: calc(176px * var(--text-scale, 1)); --rail-clear: calc(116px * var(--text-scale, 1)); }
+@media (max-width: 960px) { .root { --hud-left: 12px; --hud-clear: calc(176px * var(--text-scale, 1)); } }
+@media (max-width: 640px) { .root { --hud-clear: calc(236px * var(--text-scale, 1)); } }

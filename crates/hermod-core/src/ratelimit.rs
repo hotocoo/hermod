@@ -31,6 +31,10 @@ const PRUNE_EVERY: Duration = Duration::from_secs(60);
 /// A bucket idle this long is full again, so dropping it loses nothing.
 const PRUNE_AFTER: Duration = Duration::from_secs(600);
 
+/// Most buckets kept at once. Signature checks pass for any fresh keypair, so without a cap a
+/// stranger minting identities grows the map without bound; past it the stalest bucket goes.
+const MAX_BUCKETS: usize = 8192;
+
 pub struct Limiter {
     cfg: RateConfig,
     buckets: HashMap<(SpaceId, UserId), (f64, Instant)>,
@@ -59,6 +63,16 @@ impl Limiter {
                 .retain(|_, (_, at)| now.duration_since(*at) < PRUNE_AFTER);
         }
         let burst = f64::from(self.cfg.burst);
+        if self.buckets.len() >= MAX_BUCKETS && !self.buckets.contains_key(&(space, author)) {
+            let stalest = self
+                .buckets
+                .iter()
+                .min_by_key(|(_, (_, at))| *at)
+                .map(|(k, _)| *k);
+            if let Some(k) = stalest {
+                self.buckets.remove(&k);
+            }
+        }
         let (tokens, at) = self.buckets.entry((space, author)).or_insert((burst, now));
         let refill = now.saturating_duration_since(*at).as_secs_f64() * self.cfg.events_per_sec;
         *tokens = (*tokens + refill).min(burst);
@@ -119,5 +133,21 @@ mod tests {
             1,
             "idle buckets are swept once the interval passes"
         );
+    }
+
+    #[test]
+    fn bucket_map_is_bounded() {
+        let mut l = Limiter::new(RateConfig::default());
+        let t0 = Instant::now();
+        for i in 0..(MAX_BUCKETS + 50) {
+            let mut id = [0u8; 32];
+            id[..8].copy_from_slice(&(i as u64).to_le_bytes());
+            l.allow(
+                SpaceId([1; 32]),
+                UserId(id),
+                t0 + Duration::from_micros(i as u64),
+            );
+        }
+        assert_eq!(l.buckets.len(), MAX_BUCKETS);
     }
 }
