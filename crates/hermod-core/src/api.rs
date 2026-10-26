@@ -30,7 +30,7 @@ use crate::projections::{
 };
 use crate::ratelimit::RateConfig;
 use crate::search::SearchHit;
-use crate::store::{Ingested, Source, SpaceRow, Store};
+use crate::store::{Ingested, MAX_CLOCK, Source, SpaceRow, Store};
 
 pub use crate::projections::AuditEntry;
 
@@ -430,6 +430,9 @@ impl Inner {
             .max_lamport(space)?
             .max(self.store.lamport_floor(space)?)
             + 1;
+        if seq > MAX_CLOCK || lamport > MAX_CLOCK {
+            return Err(Error::invalid("event", "clock exhausted for this space"));
+        }
         let ev = SignedEvent::create(
             &self.identity,
             &row.key,
@@ -943,6 +946,15 @@ impl Core {
                 role: opts.role,
             },
         )?;
+        // Everything older than the current key, newest first, so the joiner can read history.
+        let history: Vec<(u32, SpaceKey)> = inner
+            .store
+            .all_keys(space)?
+            .into_iter()
+            .rev()
+            .flat_map(|(e, ks)| ks.into_iter().map(move |k| (e, k)))
+            .filter(|(e, k)| !(*e == row.epoch && *k == row.key))
+            .collect();
         let inv = InviteV1::new(
             id.clone(),
             row.id,
@@ -953,7 +965,8 @@ impl Core {
             self.user,
             opts.addrs,
             exp,
-        );
+        )
+        .with_keys(history);
         Ok((
             InviteOut {
                 id,
@@ -1037,6 +1050,9 @@ impl Core {
             inner
                 .store
                 .add_key(&inv.space_id, inv.epoch, &inv.space_key)?;
+            for (epoch, key) in &inv.keys {
+                inner.store.add_key(&inv.space_id, *epoch, key)?;
+            }
             inner.store.raise_lamport_floor(&inv.space_id, inv.lc)?;
             let join = EventBody::MemberJoin {
                 via_invite_from: Some(inv.inviter.to_string()),

@@ -27,6 +27,11 @@ pub const MAX_PENDING_PER_AUTHOR: i64 = 4096;
 /// `i64::MAX` would otherwise make every later local append overflow.
 pub const MAX_CLOCK: u64 = (1 << 53) - 1;
 
+/// Room kept below [`MAX_CLOCK`] for local appends: a peer event whose `seq` or `lamport` sits
+/// closer to the limit than this is refused, so one forged clock cannot leave the local user
+/// unable to write. Honest clocks grow by one per event and never get near it.
+pub const CLOCK_HEADROOM: u64 = 1 << 40;
+
 /// Largest key epoch accepted in an event or invite. Epochs rise one per rekey.
 pub const MAX_EPOCH: u32 = 1 << 20;
 
@@ -343,6 +348,11 @@ impl Store {
                 "seq and lamport must be in 1..=2^53-1 and epoch within bounds",
             ));
         }
+        if source != Source::Local
+            && (ev.seq > MAX_CLOCK - CLOCK_HEADROOM || ev.lamport > MAX_CLOCK - CLOCK_HEADROOM)
+        {
+            return Err(Error::invalid("event", "seq or lamport too close to the limit"));
+        }
         if ev.body.len() > MAX_BODY_BYTES {
             return Err(Error::invalid("event", "body too large"));
         }
@@ -590,11 +600,11 @@ impl Store {
     }
 
     /// Highest lamport among applied events. Buffered events do not count, nor does any row
-    /// above [`MAX_CLOCK`] that an older version accepted.
+    /// above [`MAX_CLOCK`] less [`CLOCK_HEADROOM`] that an older version accepted.
     pub fn max_lamport(&self, space: &SpaceId) -> Result<u64> {
         Ok(self.conn.query_row(
             "SELECT COALESCE(MAX(lamport), 0) FROM events WHERE space_id = ?1 AND pending = 0 AND lamport <= ?2",
-            params![&space.0[..], MAX_CLOCK as i64],
+            params![&space.0[..], (MAX_CLOCK - CLOCK_HEADROOM) as i64],
             |r| r.get::<_, i64>(0),
         )? as u64)
     }
