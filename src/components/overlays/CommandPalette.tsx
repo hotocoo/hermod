@@ -1,30 +1,9 @@
 import { Fragment, useEffect, useRef, type KeyboardEvent } from 'react';
 import type { ViewModel } from '@/state/viewModel';
+import { Hit } from '@/components/ui/Hit';
 import s from './CommandPalette.module.css';
 
 const FOCUSABLE = 'button:not([disabled]),input:not([disabled])';
-
-const HIT_OPEN = '\u0001';
-const HIT_CLOSE = '\u0002';
-const MARK_STYLE = { background: 'color-mix(in srgb, var(--color-accent) 28%, transparent)', color: 'inherit' } as const;
-
-/**
- * Text with matches highlighted. Search results carry core's HIT_OPEN/HIT_CLOSE markers around each match;
- * everything else falls back to highlighting the query. Only React text nodes are produced (never innerHTML).
- */
-function Hit({ text, q }: { text: string; q: string }) {
-  if (text.includes(HIT_OPEN)) {
-    return <>{text.split(HIT_OPEN).map((part, i) => {
-      if (i === 0) return part;
-      const [hit, ...rest] = part.split(HIT_CLOSE);
-      return <span key={i}><mark style={MARK_STYLE}>{hit}</mark>{rest.join(HIT_CLOSE)}</span>;
-    })}</>;
-  }
-  const needle = q.trim();
-  const i = needle ? text.toLowerCase().indexOf(needle.toLowerCase()) : -1;
-  if (i < 0) return <>{text}</>;
-  return <>{text.slice(0, i)}<mark style={MARK_STYLE}>{text.slice(i, i + needle.length)}</mark>{text.slice(i + needle.length)}</>;
-}
 
 export function CommandPalette({ vm }: { vm: ViewModel }) {
   const { closePalette, icL, noResults, onQ, palRef, palette, q, results, stop } = vm;

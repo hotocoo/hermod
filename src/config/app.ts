@@ -105,6 +105,8 @@ export const LIMITS = {
   paintSkein: 6,
   paletteResults: 9,
   searchHits: 12,
+  /** Results fetched for the full search page (the palette shows fewer). */
+  searchPageHits: 60,
   doorItems: 3,
   feedHintMax: 4,
   animStagger: 10,

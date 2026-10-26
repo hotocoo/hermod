@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand';
 import { LIMITS, SEARCH_MIN_CHARS, TOAST_MS, STORAGE_KEYS } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { errorMessage, getBridge, type SearchHit } from '../../lib/bridge';
+import { toggleKind } from '../../lib/searchHit';
 import { parseSearchQuery } from '../../lib/messaging/searchQuery';
 import { writeFlag } from '../../lib/storage';
 import { pickAndStore } from '../../lib/upload';
@@ -17,32 +18,39 @@ import type { AppStore, OverlaySlice } from '../types';
 
 const ONB_LAST = 3;
 
-export const createOverlaySlice: StateCreator<AppStore, [], [], OverlaySlice> = (set, get) => ({
-  drawer: null, palette: false, q: '', pi: 0, hits: [], toast: null,
+export const createOverlaySlice: StateCreator<AppStore, [], [], OverlaySlice> = (set, get) => {
+  const runSearch = () => {
+    const { q, searchSpace, searchKinds, modal } = get();
+    const text = q.trim();
+    if (text.length < SEARCH_MIN_CHARS) return;
+    const limit = modal?.kind === 'search' ? LIMITS.searchPageHits : LIMITS.searchHits;
+    const pq = parseSearchQuery(text);
+    const filtered = !!(pq.from || pq.in || pq.has || pq.before || pq.after);
+    // from:, in:, has:, before:, after: run over the message fold (docs/MESSAGING.md 3.20); plain text goes to full-text search.
+    (filtered
+      ? getBridge().messagesSearch(pq.q, { ...pq, limit }).then((r) => r.map((h): SearchHit => ({ kind: 'message', space_id: h.space_id, channel_id: h.channel_id, id: h.id, title: '', snippet: h.text, by: h.by, ts: h.ts })))
+      : getBridge().searchQuery(text, { limit, space: searchSpace || undefined, kinds: searchKinds.length ? searchKinds : undefined }))
+      .then((hits) => { if (get().q.trim() === text) set({ hits }); })
+      .catch(() => { if (get().q.trim() === text) set({ hits: [] }); });
+  };
+  return {
+  drawer: null, palette: false, q: '', pi: 0, hits: [], searchSpace: '', searchKinds: [], toast: null,
   profile: false, profEdit: false, prof: null, profTab: 'posts', onb: 0,
 
   toggleDrawer: (id) => set((s) => ({ drawer: s.drawer === id ? null : id })),
   closeDrawer: () => set({ drawer: null }),
 
-  openPalette: () => set({ palette: true, q: '', pi: 0 }),
+  openPalette: () => set({ palette: true, q: '', pi: 0, searchSpace: '', searchKinds: [] }),
   closePalette: () => set({ palette: false }),
   togglePalette: () => set((s) => ({ palette: !s.palette, q: '', pi: 0 })),
   setQ: (q) => {
     set({ q, pi: 0 });
-    const text = q.trim();
-    if (text.length < SEARCH_MIN_CHARS) { timer.clear('search'); set({ hits: [] }); return; }
+    if (q.trim().length < SEARCH_MIN_CHARS) { timer.clear('search'); set({ hits: [] }); return; }
     // Full-text search over decrypted content runs in the core (FTS5); debounced so typing stays smooth.
-    timer.after('search', TIMING.searchDebounceMs, () => {
-      const pq = parseSearchQuery(text);
-      const filtered = !!(pq.from || pq.in || pq.has || pq.before || pq.after);
-      // from:, in:, has:, before:, after: run over the message fold (docs/MESSAGING.md 3.20); plain text goes to full-text search.
-      (filtered
-        ? getBridge().messagesSearch(pq.q, { ...pq, limit: LIMITS.searchHits }).then((r) => r.map((h): SearchHit => ({ kind: 'message', space_id: h.space_id, channel_id: h.channel_id, id: h.id, title: '', snippet: h.text, by: h.by, ts: h.ts })))
-        : getBridge().searchQuery(text, { limit: LIMITS.searchHits }))
-        .then((hits) => { if (get().q.trim() === text) set({ hits }); })
-        .catch(() => { if (get().q.trim() === text) set({ hits: [] }); });
-    });
+    timer.after('search', TIMING.searchDebounceMs, runSearch);
   },
+  setSearchSpace: (searchSpace) => { set({ searchSpace }); runSearch(); },
+  toggleSearchKind: (k) => { set((s) => ({ searchKinds: toggleKind(s.searchKinds, k) })); runSearch(); },
   setPi: (pi) => set({ pi }),
   runResult: (i) => {
     const s = get(); const r = paletteResults(s, seedOf(get))[i];
@@ -104,4 +112,5 @@ export const createOverlaySlice: StateCreator<AppStore, [], [], OverlaySlice> = 
       .then(() => get().showToast(COPY.postcardSaved, TOAST_MS.postcard))
       .catch((e) => get().showToast(errorMessage(e), undefined, 'error'));
   },
-});
+};
+};
