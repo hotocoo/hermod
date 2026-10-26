@@ -36,9 +36,15 @@ export interface MessagingSlice {
   setNick(space: string, nick: string): Promise<void>;
   /** Prepends the next older page; resolves false when nothing more came back. */
   loadOlder(key: string): Promise<boolean>;
+  /** Re-requests the loaded older pages so edits, deletes and reactions in them show. */
+  refreshOlder(key: string): Promise<void>;
+  /** Pages older history in until message `id` is loaded; false when history ends first (or a page is already in flight). */
+  ensureLoaded(key: string, id: string): Promise<boolean>;
   jumpToMessage(space: string, channel: string, id: string): void;
   copyMessageLink(id: string): void; openMessageLink(href: string): boolean;
   pinMessage(id: string): Promise<void>;
+  /** Archive or reopen a thread root (M-042). */
+  setThreadState(space: string, msgId: string, archived: boolean): Promise<void>;
   startDm(users: string[], name?: string): Promise<void>; acceptDm(id: string): Promise<void>; declineDm(id: string): Promise<void>;
   openSaved(): Promise<void>; saveToNotes(m: Message): Promise<void>;
   sendRecording(r: import('../../../lib/messaging/recorder').NoteResult, kind: 'voice' | 'video_note'): Promise<void>;

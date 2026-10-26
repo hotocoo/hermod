@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { errorMessage, getBridge, type InviteRecord } from '@/lib/bridge';
 import { useAppStore } from '@/state/store';
 import f from '@/components/ui/form.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const when = (ms: number | null) => (ms ? new Date(ms * (ms < 1e12 ? 1000 : 1)).toLocaleString() : 'never');
 
@@ -23,7 +25,7 @@ export function InviteList({ space, refreshKey = 0, canRevoke = true }: { space:
 
   if (!list) return <p className={f.note}>Loading invites…</p>;
   const active = list.filter((i) => !i.revoked);
-  if (!active.length) return <p className={f.note}>No active invites.</p>;
+  if (!active.length) return <EmptyNote {...COPY.empty.invites} />;
   return (
     <div className={f.scroll}>
       <table className={f.table}>

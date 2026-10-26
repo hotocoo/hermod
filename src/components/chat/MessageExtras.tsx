@@ -7,7 +7,7 @@ import { isSafeHref } from '@/lib/messaging/markdown';
 import { getBridge, type BlobRef, type EventBody } from '@/lib/bridge';
 import type { Message } from '@/state/dataTypes';
 import { appendEvent } from '@/state/act';
-import { chatKey } from '@/state/selectors';
+import { chatKey, loadedMessages, mayHaveOlder } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
 import { arcadeOf } from '@/state/vm/arcade';
 import s from './messaging.module.css';
@@ -23,7 +23,7 @@ export function Forwarded({ m }: { m: Message }) {
 }
 
 export function QuoteCard({ m }: { m: Message }) {
-  const q = m.ext?.quote; const people = useAppStore((st) => st.seed?.people); const alive = useAppStore((st) => (st.msgs[chatKey(st)] ?? []).some((x) => x.id === q?.msg_id));
+  const q = m.ext?.quote; const people = useAppStore((st) => st.seed?.people); const alive = useAppStore((st) => loadedMessages(st, chatKey(st)).some((x) => x.id === q?.msg_id) || mayHaveOlder(st, chatKey(st))); // a target beyond the loaded pages is found by paging when jumped to
   const space = useAppStore((st) => st.space); const ch = useAppStore((st) => st.ch[st.space]); const jump = useAppStore((st) => st.openMessageLink);
   if (!q) return null;
   const go = () => { if (alive) jump(`hermod://msg/${space}/${ch}/${q.msg_id}`); };

@@ -1,6 +1,8 @@
 import type { VmProps } from '../types';
 import c from '../shared.module.css';
 import s from './stories.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 export function Stories({ vm }: VmProps) {
   return (
@@ -9,7 +11,7 @@ export function Stories({ vm }: VmProps) {
         <h2 className={s.heading}>Stories</h2>
         <button type="button" onClick={vm.composeStory} className={c.btnAccent}>{vm.icS.plus} New story</button>
       </div>
-      {vm.storyRing.length === 0 && <p className={`${s.note} ${c.muted}`}>No stories right now. Share a photo or clip and it stays up for a day.</p>}
+      {vm.storyRing.length === 0 && <EmptyNote {...COPY.empty.stories} />}
       <div className={s.rings}>
         {vm.storyRing.map((sr, i) => (
           <button type="button" key={`${sr.initials}-${i}`} onClick={sr.onClick} className={s.story} aria-label={`Watch ${sr.first}'s story`}>

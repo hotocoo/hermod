@@ -57,3 +57,21 @@ describe('last seen and offline packets (M-026)', () => {
     expect(lastSeenLabel(undefined, now)).toBeNull();
   });
 });
+
+describe('beacon churn', () => {
+  it('ignores an unchanged beacon inside the refresh window, refreshes after it or on a status change', () => {
+    const m = notePresence({}, 'u1', false, 1000);
+    expect(notePresence(m, 'u1', false, 1000 + PRESENCE.refreshMs - 1)).toBe(m);
+    expect(notePresence(m, 'u1', false, 1000 + PRESENCE.refreshMs)).not.toBe(m);
+    expect(notePresence(m, 'u1', true, 1001)).not.toBe(m);
+  });
+  it('skips an unchanged last seen inside the window', () => {
+    const s = noteSeen({}, 'u1', 1000);
+    expect(noteSeen(s, 'u1', 1001)).toBe(s);
+  });
+  it('caps last seen, evicting the oldest', () => {
+    let s: Record<string, number> = {};
+    for (let i = 0; i < 5; i += 1) s = noteSeen(s, `u${i}`, 1000 + i, 0, 3);
+    expect(Object.keys(s).sort()).toEqual(['u2', 'u3', 'u4']);
+  });
+});

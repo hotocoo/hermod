@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { COLORS, LIGHTS, SPRINGS, WEATHER_PARTICLES, WEATHER_TARGETS, type WeatherKind } from '@/config/scene';
+import { disposeTree } from './dispose';
 import { rng } from './rng';
 import { spring } from './spring';
 
@@ -62,5 +63,11 @@ export function createWeather({ scene, world, reduced, onFlash }: WeatherDeps) {
     if (wx.kind === 'storm' && !reduced) { wx.nextBolt -= dt; if (wx.nextBolt <= 0) { wx.flash = 1; wx.nextBolt = 3.5 + Math.random() * 6; bolt.position.set((Math.random() - 0.5) * 30, 22, (Math.random() - 0.5) * 30); onFlash?.(); } }
     wx.flash = Math.max(0, wx.flash - dt * 3.2); const fl = wx.flash > 0 ? (Math.sin(wx.flash * 40) > 0 ? wx.flash : wx.flash * 0.3) : 0; bolt.intensity = fl * 900; hemi.intensity += fl * 1.6;
   }
-  return { wx, setWeather, sample, update, lightning };
+  /** Remove every weather object from the scene and free its geometry, materials and textures (flake map included). */
+  function dispose() {
+    for (const o of [rain, snow, motes, ...stormClouds]) { o.removeFromParent(); disposeTree(o); }
+    splashes.splice(0).forEach((sp) => { sp.m.removeFromParent(); disposeTree(sp.m); });
+    splashGeo.dispose(); bolt.removeFromParent();
+  }
+  return { wx, setWeather, sample, update, lightning, dispose };
 }

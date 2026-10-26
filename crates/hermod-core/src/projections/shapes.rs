@@ -135,6 +135,9 @@ pub struct Message {
     /// watermark so events that land while a mark request waits are not swallowed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub arrival: Option<u64>,
+    /// When the author sent it (unix ms): lets the UI tell backfilled history from a live arrival.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ts: Option<i64>,
     /// Messaging fields (docs/MESSAGING.md 3.1).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ext: Option<super::messaging::MsgView>,

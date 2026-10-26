@@ -64,7 +64,10 @@ export const TIMING = {
 } as const;
 
 /** OS notification timing: reminder lead, how often due reminders are looked for, and how long after a notification a window focus counts as clicking it. */
-export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000 } as const;
+export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000, burstMax: 3 } as const; // burstMax: OS notifications per snapshot apply; the rest fold into one summary
+
+/** Arrivals: how far a peer's clock may trail ours before its message counts as pre-session backfill rather than live. */
+export const ARRIVALS = { clockSkewMs: 300_000 } as const;
 
 export const TOAST_MS = { standard: 3600, storyReply: 3000, profileSaved: 2600, postcard: 3200 } as const;
 
@@ -96,6 +99,11 @@ export const LAYOUT = {
 
 export const CAMERA = { zoomStep: 5, rotateStep: 0.45 } as const;
 
+/** Snapshot collections the UI renders (mirrors ALL_COLLECTIONS in src-tauri/src/ctx.rs); a `changed` event naming none of them does not trigger a re-read. */
+export const UI_COLLECTIONS: readonly string[] = [
+  'people', 'spaces', 'channels', 'messages', 'rooms', 'agenda', 'workboards', 'skein', 'feed', 'media', 'pinboards', 'docs', 'events', 'letters', 'inbox', 'desk', 'arcade', 'messaging',
+];
+
 export const LIMITS = {
   liveChat: 60,
   hearts: 8,
@@ -111,6 +119,8 @@ export const LIMITS = {
   paintSkein: 6,
   paletteResults: 9,
   searchHits: 12,
+  /** Results fetched for the full search page (the palette shows fewer). */
+  searchPageHits: 60,
   doorItems: 3,
   feedHintMax: 4,
   animStagger: 10,
@@ -180,5 +190,7 @@ export const PRESENCE = {
   everyMs: 20_000, // beacon refresh, well under ttlMs so one lost beacon does not flap the dot
   ttlMs: 60_000, // a peer unseen this long is offline (FEATURES P-001)
   idleMs: 300_000, // no input this long means away (FEATURES P-004)
+  refreshMs: 10_000, // an unchanged beacon inside this window is ignored (no store churn); must stay well under ttlMs
+  lastSeenMax: 500, // peers kept for "last seen"; the oldest are evicted past this
   inputEvents: ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const, // pointermove omitted: too frequent
 } as const;

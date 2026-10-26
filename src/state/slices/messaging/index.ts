@@ -6,18 +6,21 @@ import { urlsIn } from '../../../lib/messaging/markdown';
 import { appendEvent, guarded, uid } from '../../act';
 import type { Message } from '../../dataTypes';
 import { dropPresence, notePresence, noteSeen, sweepPresence } from '../../presence';
-import { channelsOf, chatKey, curSpace, isHomeSpace, meId } from '../../selectors';
+import { channelsOf, chatKey, curSpace, isHomeSpace, loadedMessages, mayHaveOlder, meId } from '../../selectors';
 import type { AppStore } from '../../types';
-import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey, toggleInFolder } from './helpers';
+import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, prependOlder, quoteOf, splitKey, toggleInFolder } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
 
 const EMPTY_COMPOSE: ComposeExtras = { quote: null, viewOnce: false, ttl: 0, preview: null, previewFor: '', previewOff: false };
 const TYPING_TTL_MS = 5000;
 const TYPING_EVERY_MS = 3000;
 const PAGE = 50;
+const MAX_PAGE = 200; // the core's page ceiling (MAX_PAGE in render_messaging.rs)
 const MAX_GIFS = 100;
 let lastTyping = 0;
 let probeSeq = 0;
+const loading = new Map<string, Promise<void>>(); // chats with an older page in flight, settled when it ends
+const startLoading = (key: string): (() => void) => { let done = () => undefined as void; loading.set(key, new Promise<void>((r) => { done = r; })); return () => { loading.delete(key); done(); }; };
 
 const chanOf = (s: AppStore) => s.ch[s.space];
 
@@ -96,7 +99,10 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       try {
         const p = await getBridge().linkPreview(url);
         if (seq === probeSeq) set((x) => ({ compose: { ...x.compose, preview: p } }));
-      } catch { /* a site that cannot be previewed just sends as a plain link */ }
+      } catch (e) {
+        // A site that cannot be previewed just sends as a plain link; previewFor stays set so it is not retried on every keystroke.
+        console.warn('link preview failed', errorMessage(e));
+      }
     },
 
     forwardMessage: async (m, targets) => {
@@ -188,17 +194,48 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     },
 
     channelSettings: async (space, patch) => { await appendEvent(get, space, { t: 'channel.settings', ...patch }); },
+    setThreadState: async (space, msgId, archived) => { await appendEvent(get, space, { t: 'thread.state', msg_id: msgId, archived }); },
     setNick: async (space, nick) => { await appendEvent(get, space, { t: 'member.nick', nick }); },
 
     loadOlder: async (key) => {
       const [space, channel] = splitKey(key);
       const have = [...(get().older[key] ?? []), ...(get().msgs[key] ?? [])];
       const first = have[0]?.ext?.lp;
-      if (!first) return false;
-      const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, first, PAGE));
-      if (!page) return false;
-      set((s) => ({ older: { ...s.older, [key]: [...page.messages, ...(s.older[key] ?? [])] }, olderMore: { ...s.olderMore, [key]: page.has_more && page.messages.length > 0 } }));
-      return page.messages.length > 0;
+      if (!first || loading.has(key)) return false; // one page per chat in flight: a second call would fetch the same page and double it
+      const end = startLoading(key);
+      try {
+        const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, first, PAGE));
+        if (!page) return false;
+        // Only this chat keeps pages: opening another one released the previous chat's.
+        set((s) => ({ older: { [key]: prependOlder(s.older[key] ?? [], page.messages) }, olderMore: { [key]: page.has_more && page.messages.length > 0 } }));
+        return page.messages.length > 0;
+      } finally { end(); }
+    },
+    refreshOlder: async (key) => {
+      const [space, channel] = splitKey(key);
+      const held = get().older[key]?.length ?? 0; const snapFirst = get().msgs[key]?.[0]?.ext?.lp;
+      if (!held || !snapFirst || loading.has(key)) return;
+      const end = startLoading(key);
+      try {
+        // Re-request the same range (the pages just above the snapshot window) so edits, deletes and reactions in loaded history show.
+        let before = snapFirst; let need = held; const fresh: Message[] = [];
+        while (need > 0) {
+          const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, before, Math.min(need, MAX_PAGE)));
+          if (!page) return; // failed (already toasted): keep what is shown
+          if (!page.messages.length) break;
+          fresh.unshift(...page.messages); need -= page.messages.length; before = page.first_lp;
+          if (!page.has_more) break;
+        }
+        set((s) => (s.older[key] ? { older: { ...s.older, [key]: fresh } } : s));
+      } finally { end(); }
+    },
+    ensureLoaded: async (key, id) => {
+      while (!loadedMessages(get(), key).some((m) => m.id === id)) {
+        const busy = loading.get(key);
+        if (busy) { await busy; continue; } // a scroll-triggered page is in flight: let it land, then look again
+        if (!mayHaveOlder(get(), key) || !(await get().loadOlder(key))) return false;
+      }
+      return true;
     },
     jumpToMessage: (space, channel, id) => { set({ jump: { key: `${space}/${channel}`, id } }); get().goChannel(space, channel); }, // jump first: the arrival scroll-to-bottom sees it and stays out of the way,
 
@@ -258,7 +295,10 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     notePresence: (from, away) => {
       if (!get().privacy.presence) return;
       const now = Date.now();
-      set((x) => ({ presence: notePresence(x.presence, from, away, now), lastSeen: noteSeen(x.lastSeen, from, now) }));
+      set((x) => {
+        const presence = notePresence(x.presence, from, away, now); const lastSeen = noteSeen(x.lastSeen, from, now);
+        return presence === x.presence && lastSeen === x.lastSeen ? x : { presence, lastSeen };
+      });
     },
     dropPresence: (from) => set((x) => ({ presence: dropPresence(x.presence, from) })), // M-026: offline packet, last seen is kept
     sweepPresence: () => { const p = get().presence; const n = sweepPresence(p, Date.now(), PRESENCE.ttlMs); if (n !== p) set({ presence: n }); },

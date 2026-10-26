@@ -20,6 +20,8 @@ export interface Message {
   ext?: MsgView; blocked?: boolean; history?: { t: string; text: string }[]; mentions?: string[];
   /** Device-local apply order of this message's event, fed back as the read watermark. */
   arrival?: number;
+  /** When the author sent it (unix ms); older than this session means backfilled history, not a live arrival. */
+  ts?: number;
 }
 export interface RoomMeeting { topic: string; at: number; notes: Note[] }
 export interface Room {

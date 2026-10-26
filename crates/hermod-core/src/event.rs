@@ -154,6 +154,21 @@ pub struct BlobRef {
     pub mime: String,
 }
 
+impl BlobRef {
+    /// Whether `hash` is a well-formed blob id (64 lowercase hex chars). Peer-supplied refs that are
+    /// rendered into URLs must pass this before they project.
+    pub fn has_valid_hash(&self) -> bool {
+        self.hash.len() == BLOB_HASH_LEN
+            && self
+                .hash
+                .bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+    }
+}
+
+/// Length of a blob id: hex BLAKE3, 32 bytes.
+const BLOB_HASH_LEN: usize = 64;
+
 /// Space role. Ordering is privilege: `Guest < Member < Admin < Owner`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -1056,6 +1071,19 @@ impl EventBody {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn blob_hash_must_be_64_lowercase_hex() {
+        let with = |h: &str| BlobRef {
+            hash: h.into(),
+            ..BlobRef::default()
+        };
+        assert!(with(&"ab".repeat(32)).has_valid_hash());
+        assert!(!with(&"AB".repeat(32)).has_valid_hash());
+        assert!(!with(&"ab".repeat(31)).has_valid_hash());
+        assert!(!with("x\") ; background:url(//e/p.png").has_valid_hash());
+        assert!(!with("").has_valid_hash());
+    }
 
     fn make(body: &EventBody) -> (Identity, SpaceKey, SignedEvent) {
         let id = Identity::generate();

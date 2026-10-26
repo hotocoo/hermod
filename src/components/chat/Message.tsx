@@ -2,6 +2,7 @@ import { memo, useState, type KeyboardEvent } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import type { Vm } from '@/components/panel/types';
 import { getBridge } from '@/lib/bridge';
+import { sameData } from '@/lib/sameData';
 import { forwardable } from '@/state/slices/messaging/helpers';
 import { chatKey } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
@@ -155,10 +156,7 @@ function MessageView({ m, icons, people }: Props) {
 }
 
 /** The view model hands a fresh object (and fresh handlers) per message on every rebuild: compare the drawn data, skip the handlers. Objects (reactions, receipts, quote) compare by value. */
-const same = (a: Msg, b: Msg): boolean => (Object.keys(a) as (keyof Msg)[]).every((k) => {
-  const v = a[k], w = b[k];
-  return typeof v === 'function' || v === w || (v !== null && typeof v === 'object' && JSON.stringify(v) === JSON.stringify(w));
-});
+const same = (a: Msg, b: Msg): boolean => sameData(a, b);
 
 export const Message = memo(MessageView, (a, b) => a.people === b.people && a.icons.ic === b.icons.ic && a.icons.icS === b.icons.icS && same(a.m, b.m));
 

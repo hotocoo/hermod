@@ -13,6 +13,9 @@ use crate::growth::{self, GrowthInput};
 use crate::ids::SpaceId;
 use crate::messaging::DM_DEFAULT_TITLE;
 
+/// Newest messages per channel carried in the snapshot. Mirrors `LIMITS.messageWindow` in
+/// `src/config/app.ts` (a test keeps the two equal); older history loads through `messages_page`.
+pub const MESSAGE_WINDOW: usize = 150;
 const ROOM_NAME: &str = "The Hearth";
 const SHORT_MAX_SECS: u32 = 60;
 const HOME_LABEL: &str = "home";
@@ -440,6 +443,7 @@ impl<'a> World<'a> {
             }),
             blocked: self.ctx.blocks.contains(&m.by).then_some(true),
             arrival: Some(m.arrival),
+            ts: Some(m.ts),
             ext: None,
         }
     }
@@ -455,10 +459,16 @@ impl<'a> World<'a> {
                 .chain(s.msgs.keys())
                 .collect();
             for ch in keys {
+                // Only the newest window rides in the snapshot; older history comes by `messages_page`.
                 let list = s
                     .msgs
                     .get(ch)
-                    .map(|l| l.iter().map(|m| self.message_in(s, ch, m)).collect())
+                    .map(|l| {
+                        l[l.len().saturating_sub(MESSAGE_WINDOW)..]
+                            .iter()
+                            .map(|m| self.message_in(s, ch, m))
+                            .collect()
+                    })
                     .unwrap_or_default();
                 out.insert(format!("{label}/{ch}"), list);
             }

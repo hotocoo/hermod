@@ -5,7 +5,7 @@ import { appendEvent, guarded } from '../act';
 import type { Arrival } from '../arrivals';
 import { withKey } from '../helpers';
 import { channelUnread, channelsOf, curSpace, personOf } from '../selectors';
-import { notifyArrival } from '../notify';
+import { notifyArrivals } from '../notify';
 import { isMuted, unmutedRook } from './messaging/helpers';
 import { getTown } from '../townPort';
 import { timer } from '../timers';
@@ -26,7 +26,7 @@ export const createRavenSlice: StateCreator<AppStore, [], [], RavenSlice> = (set
       fresh.forEach((a) => { const k = `${a.sp}/${a.ch}`; incoming[k] = (incoming[k] ?? 0) + 1; });
       return { incoming };
     });
-    fresh.forEach((a) => notifyArrival(get(), a));
+    notifyArrivals(get(), fresh);
     const s = get();
     const loud = fresh.filter((a) => !isMuted(s.prefs.muted, `${a.sp}/${a.ch}`)); // a muted chat sends no raven either
     if (!s.ravens || s.photo || s.onb || !loud.length) return;

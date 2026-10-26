@@ -1,5 +1,5 @@
 /** Store shape: one interface per slice (data + actions). AppStore is their intersection. */
-import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit } from '../lib/bridge/types';
+import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit, SearchKind } from '../lib/bridge/types';
 import type { Seed, Space, SectionId } from '../lib/data/types';
 import type { Theme, Palette } from '../lib/theme';
 import type { MotionMode } from '../lib/prefs';
@@ -39,7 +39,7 @@ export type Modal =
   | { kind: 'newSpace' } | { kind: 'join'; code?: string } | { kind: 'invite'; space: string } | { kind: 'spaceSettings'; space: string }
   | { kind: 'shortcuts' } | { kind: 'about' } | { kind: 'appSettings'; tab?: string } | { kind: 'search' }
   | { kind: 'lightbox'; blob: BlobRef } | { kind: 'composePost' } | { kind: 'composeStory' } | { kind: 'newSnapshot' }
-  | { kind: 'forward'; msg: Message } | { kind: 'gallery' } | { kind: 'channelSettings'; space: string; channel: string } | { kind: 'privacy' } | { kind: 'contacts' } | { kind: 'schedule' };
+  | { kind: 'forward'; msg: Message } | { kind: 'gallery' } | { kind: 'channelSettings'; space: string; channel: string } | { kind: 'privacy' } | { kind: 'contacts' } | { kind: 'schedule' } | { kind: 'letter' };
 
 export interface CoreSlice {
   seed: Seed | null;
@@ -110,6 +110,8 @@ export interface ChatSlice {
   editing: string | null; editDraft: string; snapRef: string | null;
   setSnapRef(id: string | null): void;
   seen: Record<string, boolean>; incoming: Record<string, number>;
+  /** How many messages beyond `LIMITS.messageWindow` the open chat shows ("show earlier"); belongs to one chat key and resets when another opens. */
+  chatWin: { key: string; extra: number }; widenChat(key: string, extra: number): void;
   setDraft(v: string): void; send(): Promise<void>; setTDraft(v: string): void; tsend(): Promise<void>;
   react(key: string, mid: string, l: string): Promise<void>;
   startEdit(id: string, text: string): void; setEditDraft(v: string): void; saveEdit(): Promise<void>; cancelEdit(): void;
@@ -190,10 +192,11 @@ export interface RavenSlice {
 }
 
 export interface OverlaySlice {
-  drawer: DrawerId | null; palette: boolean; q: string; pi: number; hits: SearchHit[]; toast: ToastState | null;
+  drawer: DrawerId | null; palette: boolean; q: string; pi: number; hits: SearchHit[]; searchSpace: string; searchKinds: SearchKind[]; toast: ToastState | null;
   profile: boolean; profEdit: boolean; prof: Profile | null; profTab: string; onb: number;
   toggleDrawer(id: DrawerId): void; closeDrawer(): void;
   openPalette(): void; closePalette(): void; togglePalette(): void; setQ(v: string): void; setPi(i: number): void;
+  setSearchSpace(id: string): void; toggleSearchKind(k: SearchKind): void;
   runResult(i: number): void;
   showToast(text: string, ms?: number, kind?: ToastState['kind']): void;
   stepOnb(n: number): void; replayWelcome(): void;
