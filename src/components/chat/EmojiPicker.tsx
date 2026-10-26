@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getBridge } from '@/lib/bridge';
+import { EMOJI_NAME } from '@/config/app';
+import { useAppStore } from '@/state/store';
 import { useCustomEmoji } from './useMsgView';
 import s from './messaging.module.css';
 
@@ -9,6 +11,11 @@ const RECENT_KEY = 'hermodr.emoji.recent';
 const MAX_RECENT = 24;
 
 const readRecent = (): string[] => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]') as string[]; } catch { return []; } };
+/** A custom emoji name the core accepts, from a file name. */
+const emojiName = (file: string): string => {
+  const n = file.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9_]+/g, '_').slice(0, EMOJI_NAME.max);
+  return n.length >= EMOJI_NAME.min ? n : EMOJI_NAME.fallback;
+};
 const pushRecent = (e: string) => { try { localStorage.setItem(RECENT_KEY, JSON.stringify([e, ...readRecent().filter((x) => x !== e)].slice(0, MAX_RECENT))); } catch { /* recents are a convenience */ } };
 
 /** Emoji for reactions and the composer: Space custom emoji first, then the bundled set (loaded on first open). */
@@ -16,7 +23,7 @@ export function EmojiPicker({ onPick, onClose }: { onPick: (emoji: string) => vo
   const [groups, setGroups] = useState<Groups | null>(null);
   const [q, setQ] = useState(''); const [tab, setTab] = useState(0);
   const root = useRef<HTMLDivElement>(null);
-  const custom = useCustomEmoji();
+  const custom = useCustomEmoji(); const addEmoji = useAppStore((x) => x.addEmoji); const files = useRef<HTMLInputElement>(null);
   const recent = useMemo(() => readRecent(), []);
   useEffect(() => { let live = true; void import('@/lib/messaging/emojiData').then((m) => { if (live) setGroups(m.EMOJI_GROUPS); }); return () => { live = false; }; }, []);
   useEffect(() => {
@@ -43,7 +50,10 @@ export function EmojiPicker({ onPick, onClose }: { onPick: (emoji: string) => vo
               <img src={getBridge().blobUrl(e.blob.hash)} alt="" />
             </button>
           ))}
-          {!custom.length && <p className={s.empty}>This Space has no custom emoji yet. Add one from Space settings.</p>}
+          {!custom.length && <p className={s.empty}>This Space has no custom emoji yet.</p>}
+          <input ref={files} type="file" hidden multiple accept="image/png,image/webp,image/gif,image/jpeg" data-testid="emoji-file"
+            onChange={(e) => { const list = Array.from(e.target.files ?? []); e.target.value = ''; void (async () => { for (const f of list) await addEmoji(f, emojiName(f.name)); })(); }} />
+          <button type="button" className={s.tab} onClick={() => files.current?.click()}>Add emoji</button>
         </div>
       ) : (
         <div className={s.grid}>{list.map(([c, n]) => <button key={c + n} type="button" className={s.cell} title={n} aria-label={n} onClick={() => pick(c)}>{c}</button>)}{tab === 0 && !list.length && <p className={s.empty}>Emoji you use show up here</p>}</div>
