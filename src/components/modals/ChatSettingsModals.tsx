@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Dialog } from '@/components/ui/Dialog';
 import { Switch } from '@/components/ui/Switch';
-import { getBridge, type ChannelKind, type ChannelSettingsIn, type Role } from '@/lib/bridge';
+import { errorMessage, getBridge, type ChannelKind, type ChannelSettingsIn, type Role } from '@/lib/bridge';
 import type { AutoTrigger, LocalAiSettings as LocalAi } from '@/lib/bridge/messagingTypes';
 import { TTL_CHOICES } from '@/state/slices/messaging/helpers';
 import { uid, appendEvent } from '@/state/act';
@@ -33,6 +33,18 @@ export function ChannelSettingsModal({ space, channel }: { space: string; channe
     tags: (cfg?.tags ?? []).join(', '), archive: String(cfg?.autoArchiveSecs ?? 0),
   });
   const set = <K extends keyof typeof v>(k: K) => (val: (typeof v)[K]) => setV((p) => ({ ...p, [k]: val }));
+  // E-014: a one-to-one DM Space has no per-channel `dm` marker; its other member is the peer the safety number is shared with.
+  const dmSpace = st.spaces.find((x) => x.id === space);
+  const [peerId, setPeerId] = useState(chan?.dm);
+  const me = st.me?.user_id ?? '';
+  useEffect(() => {
+    if (chan?.dm || dmSpace?.kind !== 'dm' || dmSpace.group) return;
+    let live = true;
+    getBridge().spaceMembers(space)
+      .then((ms) => { if (live) setPeerId(ms.find((m) => m.user_id !== me && !m.removed)?.user_id); })
+      .catch((e: unknown) => { if (live) st.showToast(errorMessage(e), undefined, 'error'); });
+    return () => { live = false; };
+  }, [space, me, chan?.dm, dmSpace?.kind, dmSpace?.group]); // eslint-disable-line react-hooks/exhaustive-deps
   const [words, setWords] = useState(''); const [reply, setReply] = useState(''); const [ruleName, setRuleName] = useState('');
   const save = async () => {
     const patch: ChannelSettingsIn = {
@@ -51,7 +63,7 @@ export function ChannelSettingsModal({ space, channel }: { space: string; channe
       <div className={f.field} style={{ gap: 12 }}>
         <div className={f.field}><label className={f.label} htmlFor="cs-name">Name</label><input id="cs-name" className="input" value={v.name} onChange={(e) => set('name')(e.target.value)} /></div>
         <div className={f.field}><label className={f.label} htmlFor="cs-topic">Topic</label><input id="cs-topic" className="input" value={v.topic} onChange={(e) => set('topic')(e.target.value)} /></div>
-        {chan?.dm && <SafetyNumber peer={chan.dm} peerName={st.seed?.people[chan.dm]?.name ?? COPY.safetyOther} me={st.me?.user_id ?? ''} />}
+        {peerId && <SafetyNumber peer={peerId} peerName={st.seed?.people[peerId]?.name ?? COPY.safetyOther} me={me} />}
         <Sel id="cs-kind" label="Type (announcement: admins post; forum: titled posts with tags)" value={v.kind} opts={KINDS} set={set('kind')} />
         <div className={f.field}><label className={f.label} htmlFor="cs-cat">Category</label><input id="cs-cat" className="input" maxLength={32} value={v.category} onChange={(e) => set('category')(e.target.value)} /></div>
         <div className={f.field}><label className={f.label} htmlFor="cs-slow">Slowmode, seconds between messages for members (0 to 21600)</label><input id="cs-slow" className="input" inputMode="numeric" value={v.slowmode} onChange={(e) => set('slowmode')(e.target.value)} /></div>

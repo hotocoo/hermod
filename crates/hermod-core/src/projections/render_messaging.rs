@@ -127,7 +127,10 @@ impl<'a> World<'a> {
                     archived: cfg.is_some_and(|g| g.archived),
                     ttl_by: cfg.map(|g| g.ttl_by.clone()).unwrap_or_default(),
                     can_send: mine.is_some_and(|r| r >= send_min),
-                    can_manage: mine.is_some_and(|r| r >= Role::Admin || r >= manage_min),
+                    // Mirrors the channel.settings authorization in the fold: in a DM every member manages the chat.
+                    can_manage: mine.is_some_and(|r| {
+                        r >= Role::Admin || r >= manage_min || (s.kind == "dm" && r >= Role::Member)
+                    }),
                 };
                 (c.id.clone(), view)
             })

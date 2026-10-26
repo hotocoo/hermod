@@ -474,7 +474,10 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let files = blk(&live, move |c| c.snap_files(&sid, &sn).map_err(e)).await?;
             for b in files.iter().flatten().filter_map(|f| f.blob.as_ref()) {
                 if let Err(err) = blob::ensure_local(ctx, &b.hash).await {
-                    tracing::info!("snapshot file {} not fetched for the seal check: {err}", b.hash);
+                    tracing::info!(
+                        "snapshot file {} not fetched for the seal check: {err}",
+                        b.hash
+                    );
                 }
             }
             let v = blk(&live, move |c| c.snap_verify(&id, &snap).map_err(e)).await?;

@@ -541,6 +541,10 @@ test('a Space nickname shows on bylines for everyone in that Space (M-048)', asy
   await dlg.getByRole('button', { name: 'Save', exact: true }).click();
   await dlg.getByRole('button', { name: 'Close' }).click();
   const text = unique('nicked hello');
+  // Bylines show only where the author changes, so Bo speaks first and Ada's line opens a new group.
+  const filler = unique('over to you');
+  await say(b, filler);
+  await expect(msg(a, filler)).toBeVisible({ timeout: 45_000 });
   await say(a, text);
   const art = b.getByRole('article').filter({ hasText: text }).first();
   await expect(art).toBeVisible({ timeout: 45_000 });
@@ -555,12 +559,13 @@ test('a status and pronouns set in settings show in the member list (M-047)', as
   const pron = 'they/them';
   const dlg = a.getByRole('dialog');
   await a.getByRole('button', { name: 'Privacy and chat settings' }).click();
-  await dlg.getByLabel('Status').fill(status);
+  await dlg.getByLabel('Status', { exact: true }).fill(status);
   await dlg.getByLabel('Pronouns').fill(pron);
   await dlg.getByRole('button', { name: 'Save profile' }).click();
   await dlg.getByRole('button', { name: 'Close' }).click();
   const sd = await openSpaceSettings(b, 'Members');
-  const row = sd.getByRole('row', { name: /Ada Tester/ });
+  // Ada's row carries her Space nickname from M-048 above, so it is found by what she just set.
+  const row = sd.getByRole('row').filter({ hasText: status });
   await expect(row.getByText(status)).toBeVisible({ timeout: 45_000 });
   await expect(row.getByText(pron)).toBeVisible();
   await sd.getByRole('button', { name: 'Close' }).click();
@@ -572,10 +577,11 @@ test('both DM peers see the same safety number (E-014)', async () => {
   for (const p of [a, b]) {
     // The nav is only interactive inside a building; walk in first, then open the DM.
     await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
-    await p.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'Direct message' }).first().click();
+    // A 1:1 DM is its own Space on the rail, named for the other person.
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: p === a ? 'Bo Tester' : 'Ada Tester' }).click();
     await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
     await p.getByRole('button', { name: 'Chat options' }).click();
-    await p.getByRole('menu', { name: 'Chat options' }).getByRole('menuitem', { name: 'Channel settings' }).click();
+    await p.getByRole('menu', { name: 'Chat options' }).getByRole('button', { name: 'Channel settings' }).click();
   }
   const num = /^\d{5}( \d{5}){5}$/;
   const aNum = await a.getByText(num).textContent();
