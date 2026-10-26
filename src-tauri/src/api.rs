@@ -471,10 +471,6 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         "snap_export" => {
             let (id, _) = space_of(&live, a).await?;
             let snap = str_arg(a, "snapId")?;
-            let shell = ctx
-                .shell
-                .clone()
-                .ok_or("saving is only available in the desktop app")?;
             let (sid, sn) = (id, snap.clone());
             let files = blk(&live, move |c| {
                 c.snap_files(&sid, &sn)
@@ -482,11 +478,7 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                     .ok_or_else(|| "snapshot not found".to_string())
             })
             .await?;
-            let suggested = clean_name(&snap);
-            let Some(dest) = tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
-                .await
-                .map_err(e)??
-            else {
+            let Some(dest) = export_target(ctx, a, &clean_name(&snap)).await? else {
                 return Ok(Value::Null);
             };
             for b in files.iter().filter_map(|f| f.blob.as_ref()) {
@@ -681,7 +673,8 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         }
         "space_export" => {
             let (id, label) = space_of(&live, a).await?;
-            let Some(dest) = export_target(ctx, a, &label).await? else {
+            let suggested = clean_name(&format!("{EXPORT_FOLDER_PREFIX}{label}"));
+            let Some(dest) = export_target(ctx, a, &suggested).await? else {
                 return Ok(Value::Null);
             };
             let out = json!(dest.to_string_lossy());
@@ -1061,7 +1054,7 @@ async fn backup_target(ctx: &Arc<Ctx>, a: &Value) -> Res<Option<PathBuf>> {
 
 /// Where a space export goes: the app asks with the save dialog (the person names a new folder
 /// there); the devhost and tests may pass an absolute path. The export refuses a non-empty folder.
-async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<PathBuf>> {
+async fn export_target(ctx: &Arc<Ctx>, a: &Value, suggested: &str) -> Res<Option<PathBuf>> {
     let Some(shell) = ctx.shell.clone() else {
         let path = PathBuf::from(str_arg(a, "path")?);
         if !path.is_absolute() || path.parent().is_none_or(|p| !p.is_dir()) {
@@ -1069,7 +1062,7 @@ async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<Pat
         }
         return Ok(Some(path));
     };
-    let suggested = clean_name(&format!("{EXPORT_FOLDER_PREFIX}{label}"));
+    let suggested = suggested.to_string();
     tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
         .await
         .map_err(e)?
