@@ -46,7 +46,7 @@ export default defineConfig({
   ],
   webServer: {
     // Devhost transport baked in; each page picks its peer with ?devhost=<url>.
-    command: `E2E_DIST=${SITE} NEXT_PUBLIC_HERMOD_DEVHOST=1 npx next build && npx serve ${SITE} -l ${PORT} --no-clipboard`,
+    command: `node scripts/gen-licenses.mjs && E2E_DIST=${SITE} NEXT_PUBLIC_HERMOD_DEVHOST=1 npx next build && npx serve ${SITE} -l ${PORT} --no-clipboard`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: REUSE,
     timeout: 300_000,

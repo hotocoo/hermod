@@ -72,7 +72,7 @@ export function JoinForm({ initial, onDone, focus }: { initial?: string; onDone:
         <label className={s.label} htmlFor={`${id}-c`}>Invite link or code</label>
         <input id={`${id}-c`} ref={ref} className="input" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" spellCheck={false} />
       </div>
-      <p className={s.note}>Hermod has no public directory. A Space can only be joined with an invite from one of its members.</p>
+      <p className={s.note}>{COPY.joinNoDirectory}</p>
       {joining && <p role="status" className={s.note}>{COPY.joinWorking}</p>}
       <div className={s.actions}>
         {joining && <button type="button" className="btn btn-secondary" onClick={() => void cancel()}>{COPY.joinCancel}</button>}

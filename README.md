@@ -29,6 +29,7 @@ Hermod checks GitHub for signed updates.
 - Each install has its own identity key. Each space has a random key held only by its members.
 - Every change is a signed, encrypted event. Members sync events directly with each other.
 - Peers find each other on the local network, through public IPFS bootstrap nodes, and through addresses inside invite codes. Peers that are publicly reachable can relay encrypted traffic for others. Relays cannot read it.
+- There is no public directory or search for spaces: you join one only with an invite from a member.
 - Invite links look like `https://hotocoo.github.io/hermod/join#<code>`. The code is in the fragment, so it never leaves your browser, and the page opens `hermod://join/<code>` in the app.
 
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

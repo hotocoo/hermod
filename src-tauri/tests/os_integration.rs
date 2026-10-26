@@ -165,3 +165,66 @@ async fn a_file_over_the_upload_cap_is_rejected_with_a_message() {
         .unwrap_err();
     assert_eq!(err, "that file is too large");
 }
+
+/// D-006: the Tauri command path (save dialog, then export) produces a folder readable without Hermod.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn space_export_writes_plain_json_into_the_chosen_folder() {
+    let dir = tempfile::tempdir().unwrap();
+    let (c, rec) = open(dir.path(), None).await;
+    let sp = call(
+        &c,
+        "space_create",
+        json!({"name": "Forge", "tagline": "t", "kind": "Team"}),
+    )
+    .await
+    .unwrap();
+    let space = sp["space_id"].as_str().unwrap().to_string();
+    call(&c, "event_append", json!({"spaceId": space, "body": {
+        "t": "message.post", "channel_id": "general", "msg_id": "m1", "text": "plain words", "attachments": []}}))
+    .await
+    .unwrap();
+
+    let args = json!({"spaceId": space});
+    let cancelled = call(&c, "space_export", args.clone()).await.unwrap();
+    assert!(cancelled.is_null(), "cancelled dialog exports nothing");
+    let dest = dir.path().join("export");
+    *rec.save_to.lock().unwrap() = Some(dest.clone());
+    let out = call(&c, "space_export", args).await.unwrap();
+    assert_eq!(out["messages"], 1);
+    let raw = std::fs::read_to_string(dest.join("messages.json")).unwrap();
+    let msgs: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(msgs["general"][0]["text"], "plain words");
+}
+
+/// E-009: through the command the UI calls, the last owner cannot be demoted.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn the_last_owner_cannot_be_demoted_through_the_command() {
+    let dir = tempfile::tempdir().unwrap();
+    let (c, _) = open(dir.path(), None).await;
+    let sp = call(
+        &c,
+        "space_create",
+        json!({"name": "Forge", "tagline": "t", "kind": "Team"}),
+    )
+    .await
+    .unwrap();
+    let space = sp["space_id"].as_str().unwrap();
+    let me = call(&c, "identity_get", json!({})).await.unwrap()["user_id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    for role in ["admin", "member", "guest"] {
+        let err = call(
+            &c,
+            "member_set_role",
+            json!({"spaceId": space, "user": me, "role": role}),
+        )
+        .await
+        .unwrap_err();
+        assert!(!err.is_empty(), "demotion to {role} refused");
+    }
+    let members = call(&c, "space_members", json!({"spaceId": space}))
+        .await
+        .unwrap();
+    assert_eq!(members[0]["role"], "owner", "still the owner");
+}

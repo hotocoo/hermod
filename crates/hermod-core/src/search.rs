@@ -182,6 +182,52 @@ mod tests {
             .unwrap();
     }
 
+    /// S-001: a query over 50k indexed items answers in under 100 ms.
+    #[test]
+    fn query_over_fifty_thousand_items_is_under_a_hundred_ms() {
+        const ITEMS: usize = 50_000;
+        const BUDGET: std::time::Duration = std::time::Duration::from_millis(100);
+        const KILN_EVERY: usize = 500;
+        let mut conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE VIRTUAL TABLE search USING fts5(
+               text, kind UNINDEXED, space_id UNINDEXED, ref UNINDEXED, author UNINDEXED, ts UNINDEXED,
+               channel UNINDEXED, tokenize = 'unicode61 remove_diacritics 2');
+             CREATE TABLE search_state(space_id BLOB PRIMARY KEY, stamp INTEGER NOT NULL);",
+        )
+        .unwrap();
+        let space = SpaceId([7; 32]);
+        let items: Vec<SearchItem> = (0..ITEMS)
+            .map(|i| SearchItem {
+                kind: "message",
+                id: format!("m{i}"),
+                author: "u".into(),
+                ts: i as i64,
+                channel: "general".into(),
+                text: if i % KILN_EVERY == 0 {
+                    format!("the kiln is warm number {i}")
+                } else {
+                    format!("ordinary chatter about glaze and clay number {i}")
+                },
+            })
+            .collect();
+        reindex(&mut conn, &space, &items, 1).unwrap();
+        let start = std::time::Instant::now();
+        let hits = query(
+            &conn,
+            "kiln",
+            &[space],
+            &[],
+            &BTreeSet::new(),
+            ITEMS / KILN_EVERY,
+        )
+        .unwrap();
+        let took = start.elapsed();
+        assert_eq!(hits.len(), ITEMS / KILN_EVERY);
+        assert!(hits[0].snippet.contains(HIT_OPEN), "match is highlighted");
+        assert!(took < BUDGET, "query took {took:?}");
+    }
+
     #[test]
     fn match_expression_is_safe() {
         assert_eq!(

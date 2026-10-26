@@ -311,6 +311,8 @@ struct PendingLink {
 
 /// Start of `Error::KeyUnavailable`'s text; the UI matches it too.
 const KEY_UNAVAILABLE_PREFIX: &str = "identity key unavailable";
+/// A damaged database comes up limited, like a locked key: the UI shows its Could-not-start screen with this text instead of the app dying at startup (D-008).
+const DAMAGED_PREFIX: &str = "your data file is damaged: ";
 
 const BUSY_MSG: &str = "Hermod is still busy with your data, try again in a moment";
 
@@ -331,7 +333,9 @@ async fn release(live: Arc<Live>) -> Result<(), Arc<Live>> {
 /// Open failures that leave the app running in a limited state (recovery screen) instead of
 /// failing to start: the key cannot be read, but backup restore and reset still work.
 fn is_limited(msg: &str) -> bool {
-    msg == hermod_core::Error::Locked.to_string() || msg.starts_with(KEY_UNAVAILABLE_PREFIX)
+    msg == hermod_core::Error::Locked.to_string()
+        || msg.starts_with(KEY_UNAVAILABLE_PREFIX)
+        || msg.starts_with(DAMAGED_PREFIX)
 }
 
 fn open_live(dir: &Path, unlock: &Unlock) -> Result<Arc<Live>, String> {
@@ -342,6 +346,7 @@ fn open_live(dir: &Path, unlock: &Unlock) -> Result<Arc<Live>, String> {
     let core = Core::open_with(dir, cfg).map_err(|e| match e {
         // Passed through bare: the UI matches them to show the recovery screen.
         hermod_core::Error::Locked | hermod_core::Error::KeyUnavailable(_) => e.to_string(),
+        hermod_core::Error::Corrupt(_) => format!("{DAMAGED_PREFIX}{e}"),
         _ => format!("cannot open your data: {e}"),
     })?;
     let unsent = core

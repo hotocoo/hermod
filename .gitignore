@@ -19,6 +19,7 @@
 
 # production
 /build
+/public/licenses.json
 
 # misc
 .DS_Store
