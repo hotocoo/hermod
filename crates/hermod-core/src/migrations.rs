@@ -51,6 +51,8 @@ const MIGRATIONS: &[&str] = &[
      CREATE TRIGGER events_arrival_apply AFTER UPDATE OF pending ON events WHEN NEW.pending = 0 AND OLD.pending <> 0 BEGIN
        UPDATE events SET arrival = (SELECT COALESCE(MAX(arrival), 0) + 1 FROM events) WHERE id = NEW.id;
      END;",
+    // 6: the pending-state lookups (gap buffer size, promote, applied max) filter on author and pending
+    "CREATE INDEX events_pending ON events(space_id, author, pending, seq);",
 ];
 
 /// Schema version this build produces.

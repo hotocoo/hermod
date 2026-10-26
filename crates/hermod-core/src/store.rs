@@ -118,20 +118,6 @@ fn blob_arr<const N: usize>(row: &Row, idx: usize) -> Result<[u8; N]> {
 
 const EVENT_COLS: &str = "space_id, author, seq, lamport, ts, epoch, nonce, body, sig";
 
-fn event_from_row(row: &Row) -> Result<SignedEvent> {
-    Ok(SignedEvent {
-        space_id: SpaceId(blob_arr(row, 0)?),
-        author: UserId(blob_arr(row, 1)?),
-        seq: row.get::<_, i64>(2)? as u64,
-        lamport: row.get::<_, i64>(3)? as u64,
-        ts: row.get(4)?,
-        epoch: row.get::<_, i64>(5)? as u32,
-        nonce: blob_arr(row, 6)?,
-        body: row.get(7)?,
-        sig: blob_arr(row, 8)?,
-    })
-}
-
 const SPACE_COLS: &str = "s.space_id, s.space_key, s.name, s.kind, s.is_home, s.joined_at, s.left";
 
 fn space_from_row(row: &Row) -> Result<SpaceRow> {
@@ -504,7 +490,7 @@ impl Store {
             .query_row(
                 &format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"),
                 [id],
-                |r| Ok(event_from_row(r)),
+                |r| Ok(event_from_row_at(r, 0)),
             )
             .optional()?
             .transpose()
@@ -524,7 +510,7 @@ impl Store {
         let mut st = self.conn.prepare(&format!(
             "SELECT {EVENT_COLS} FROM events WHERE space_id = ?1 AND {tail}"
         ))?;
-        st.query_map([&space.0[..]], |r| Ok(event_from_row(r)))?
+        st.query_map([&space.0[..]], |r| Ok(event_from_row_at(r, 0)))?
             .map(|r| r?)
             .collect()
     }
@@ -555,7 +541,8 @@ impl Store {
             if room == 0 {
                 break;
             }
-            let seen = vector.get(&a).copied().unwrap_or(0) as i64;
+            // A peer-sent value above i64::MAX would wrap negative and read as "has nothing".
+            let seen = vector.get(&a).copied().unwrap_or(0).min(i64::MAX as u64) as i64;
             let rows = st.query_map(
                 params![
                     &space.0[..],
@@ -563,7 +550,7 @@ impl Store {
                     seen,
                     room.min(i64::MAX as usize) as i64
                 ],
-                |r| Ok(event_from_row(r)),
+                |r| Ok(event_from_row_at(r, 0)),
             )?;
             for r in rows {
                 out.push(r??);
@@ -755,28 +742,18 @@ impl Store {
 
     /// Arrival each read marker covers; this, not the lamport, decides what is unread.
     pub fn read_arrivals(&self) -> Result<BTreeMap<(SpaceId, String), u64>> {
-        let mut st = self
-            .conn
-            .prepare("SELECT space_id, channel_id, arrival FROM read_markers")?;
-        let rows = st.query_map([], |r| {
-            Ok((
-                blob_arr::<32>(r, 0),
-                r.get::<_, String>(1)?,
-                r.get::<_, i64>(2)?,
-            ))
-        })?;
-        let mut out = BTreeMap::new();
-        for r in rows {
-            let (s, c, a) = r?;
-            out.insert((SpaceId(s?), c), a as u64);
-        }
-        Ok(out)
+        self.marker_column("arrival")
     }
 
     pub fn read_markers(&self) -> Result<BTreeMap<(SpaceId, String), u64>> {
+        self.marker_column("lamport")
+    }
+
+    /// `col` is one of the two fixed column names above, never caller input.
+    fn marker_column(&self, col: &str) -> Result<BTreeMap<(SpaceId, String), u64>> {
         let mut st = self
             .conn
-            .prepare("SELECT space_id, channel_id, lamport FROM read_markers")?;
+            .prepare(&format!("SELECT space_id, channel_id, {col} FROM read_markers"))?;
         let rows = st.query_map([], |r| {
             Ok((
                 blob_arr::<32>(r, 0),
@@ -786,8 +763,8 @@ impl Store {
         })?;
         let mut out = BTreeMap::new();
         for r in rows {
-            let (s, c, l) = r?;
-            out.insert((SpaceId(s?), c), l as u64);
+            let (s, c, v) = r?;
+            out.insert((SpaceId(s?), c), v as u64);
         }
         Ok(out)
     }

@@ -249,11 +249,6 @@ impl BlobStore {
         Ok(out)
     }
 
-    /// True when every chunk of `m` is on disk.
-    pub fn has_all_chunks(&self, m: &Manifest) -> bool {
-        m.chunks.iter().all(|h| self.has_chunk(h))
-    }
-
     pub fn read_all(&self, id: &str) -> Result<Vec<u8>> {
         self.read_range(id, 0, u64::MAX)
     }

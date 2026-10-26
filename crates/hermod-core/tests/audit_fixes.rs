@@ -245,3 +245,15 @@ fn undecodable_signed_body_leaves_no_seq_hole() {
     // The folded views still build.
     let _ = a.space_report(&s).unwrap();
 }
+
+#[test]
+fn a_vector_value_above_i64_max_means_seen_everything_not_nothing() {
+    let (_d, a) = core();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    a.append(&s, post_msg("general", "m", "x")).unwrap();
+    let mut v = a.vector(&s).unwrap();
+    for n in v.values_mut() {
+        *n = u64::MAX;
+    }
+    assert!(a.missing_since(&s, &v).unwrap().is_empty());
+}
