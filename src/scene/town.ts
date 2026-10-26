@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAMERA, COLORS, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_DETECT, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
+import { CAMERA, COLORS, FIGURE, DIRECTOR, ENV, GAMES_HALL, GI, GROWTH, LIGHTS, MATERIAL_BASE, NIGHT, PLOTS, QUALITY, QUALITY_DETECT, QUALITY_ORDER, RENDER, CLOUDS, SECTION_ORDER, SPRINGS, THEME_HOURS, TIMING, CLOCK, ISLAND, ROOM_RESIDENCY, STILL, WATER, type BuildingLevel, type MatSpec, type PlotPos, type QualitySpec, type QualityTier } from '@/config/scene';
 import type { SectionId } from '@/lib/data/types';
 import { createInteriors, type InteriorRoom } from './interiors';
 import { createOverlay } from './overlay';
@@ -582,7 +582,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (hints.board && plots.board && plots.board.built && plots.board.g.userData.smoke && !reduced && Math.random() < dt * 2.6 && shopSmoke.length < 12) { const m = new THREE.Object3D(); const wp = plots.board.g.localToWorld(plots.board.g.userData.smoke.clone()); island.worldToLocal(wp); m.position.copy(wp); shopSmoke.push({ m, life: 0 }); }
     shopSmoke = shopSmoke.filter((s2) => { s2.life += dt / 3; if (s2.life >= 1) { return false; } s2.m.position.y += dt * 0.6; s2.m.position.x += dt * (0.2 + wx.wind.x * 0.6); s2.m.scale.setScalar((0.5 + s2.life * 2) * 0.18); s2.m.userData.o = Math.sin(s2.life * Math.PI) * 0.5; return true; }); puffs.sync(fx.smoke, shopSmoke);
     visitors.forEach((v, i) => { v.s.t = v.on ? 1 : 0; v.s.step(dt); v.g.scale.setScalar(Math.max(0.0001, v.s.x) * 0.55); v.g.visible = v.s.x > 0.01; if (!reduced && v.on) { v.g.rotation.y = v.yaw + Math.sin(t * 0.7 + i * 2) * 0.25; const ar = v.g.userData.arms; if (ar && i % 2 === 0) ar[1].rotation.x = -1.2 - Math.sin(t * 1.5 + i) * 0.15; } });
-    if (fx.seats) fx.seats.forEach((st, i) => { st.s.t = st.on ? 1 : 0; st.s.step(dt); st.fig.scale.setScalar(Math.max(0.0001, st.s.x)); if (st.on && !reduced) st.fig.children[0].position.y = 0.44 + Math.sin(t * 2 + i * 1.7) * 0.01; });
+    if (fx.seats) fx.seats.forEach((st, i) => { st.s.t = st.on ? 1 : 0; st.s.step(dt); st.fig.scale.setScalar(Math.max(0.0001, st.s.x)); if (st.on && !reduced) st.fig.children[0].position.y = st.fig.userData.bodyY + Math.sin(t * 2 + i * 1.7) * FIGURE.seatBreath; });
     const ents = SECTION_ORDER.filter((id) => id !== 'hearth' && plots[id] && plots[id].built);
     const fcA = anchorOf('fire'); const fcx = fcA ? fcA.x : 0, fcz = fcA ? fcA.z : 0;
     people.forEach((p) => {
@@ -591,7 +591,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
       if (p.t >= 1) { if (!p.to.lengthSq()) { const a0 = p.R() * Math.PI * 2; p.to.set(fcx + Math.cos(a0) * 3.2, 0, fcz + Math.sin(a0) * 3.2); } p.from.copy(p.to); const atPlaza = Math.hypot(p.from.x - fcx, p.from.z - fcz) < 3.9; if (atPlaza && ents.length) { const id = ents[Math.floor(p.R() * ents.length)]; const q0 = anchorOf(id)!; const qx = q0.x - fcx, qz = q0.z - fcz; const d = Math.hypot(qx, qz) || 1; const r = d - 2.1; const side = (p.R() - 0.5) * 0.5; p.to.set(fcx + (qx / d) * r + (qz / d) * side, 0, fcz + (qz / d) * r - (qx / d) * side); } else { const a = p.R() * Math.PI * 2, r = 2.95 + p.R() * 0.6; p.to.set(fcx + Math.cos(a) * r, 0, fcz + Math.sin(a) * r); } p.t = 0; p.dur = Math.max(1, p.from.distanceTo(p.to) / 0.9); p.wait = reduced ? 3 : p.R() * 2.5; p.g.position.copy(p.from); p.g.rotation.y = Math.atan2(p.to.x - p.from.x, p.to.z - p.from.z); return; }
       if (reduced) { p.t = 1; p.g.position.copy(p.to); return; }
       p.t = Math.min(1, p.t + dt / p.dur); const e = p.t < 0.5 ? 2 * p.t * p.t : 1 - Math.pow(-2 * p.t + 2, 2) / 2;
-      p.g.position.lerpVectors(p.from, p.to, e); p.g.position.y = siteH(p.g.position.x, p.g.position.z) + Math.abs(Math.sin(p.t * p.dur * 9)) * 0.02; const Lg = p.g.userData.legs, Ar = p.g.userData.arms; if (Lg) { const sw = Math.sin(p.t * p.dur * 9) * 0.55 * Math.min(1, Math.sin(p.t * Math.PI) * 4); Lg[0].rotation.x = sw; Lg[1].rotation.x = -sw; if (Ar) { Ar[0].rotation.x = -sw * 0.8; Ar[1].rotation.x = sw * 0.8; } }
+      p.g.position.lerpVectors(p.from, p.to, e); p.g.position.y = siteH(p.g.position.x, p.g.position.z) + Math.abs(Math.sin(p.t * p.dur * 9)) * 0.02; const Lg = p.g.userData.legs, Ar = p.g.userData.arms; if (Lg) { const sw = Math.sin(p.t * p.dur * 9) * 0.55 * Math.min(1, Math.sin(p.t * Math.PI) * 4); Lg[0].rotation.x = sw; Lg[1].rotation.x = -sw; const Sh = p.g.userData.shins; if (Sh) { Sh[0].rotation.x = Math.max(0, sw) * FIGURE.kneeFlex; Sh[1].rotation.x = Math.max(0, -sw) * FIGURE.kneeFlex; } if (Ar) { Ar[0].rotation.x = -sw * 0.8; Ar[1].rotation.x = sw * 0.8; } }
     });
 
     const WS = weather.sample(dt);
