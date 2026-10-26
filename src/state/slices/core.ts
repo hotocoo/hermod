@@ -24,6 +24,16 @@ export function pickSpace(spaces: Space[], current: string): string {
   return (spaces.find(isHomeSpace) ?? spaces[0])?.id ?? '';
 }
 
+/** Local "seen" marks stay until the snapshot itself shows unread 0 for that chat, so a re-read racing the read mark cannot flash the count back. */
+export function keepSeen(seen: Record<string, boolean>, seed: Seed): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  for (const key of Object.keys(seen)) {
+    const i = key.indexOf('/');
+    if (channelsOf(seed, key.slice(0, i)).some((c) => c.id === key.slice(i + 1) && (c.unread ?? 0) > 0)) out[key] = true;
+  }
+  return out;
+}
+
 /** Per-Space selections, kept while they still exist in the new snapshot. */
 function selections(seed: Seed, s: AppStore) {
   const ch: Record<string, string> = {}; const snap: Record<string, string> = {}; const line: Record<string, string> = {};
@@ -53,7 +63,7 @@ export const createCoreSlice: StateCreator<AppStore, [], [], CoreSlice> = (set, 
     set({
       seed, ready: true, spaces: seed.spaces, space,
       section: s.seed ? s.section : 'chat',
-      ch: sel.ch, snap: sel.snap, line: sel.line, seen: {},
+      ch: sel.ch, snap: sel.snap, line: sel.line, seen: keepSeen(s.seen, seed),
       msgs: coll(seed, 'messages'), board: coll(seed, 'workboards'), skein: coll(seed, 'skein'),
       rook: coll(seed, 'inbox'), events: coll(seed, 'events'), pinboards: boards,
       boardSel: boards.some((b) => b.id === s.boardSel) ? s.boardSel : (boards[0]?.id ?? ''),

@@ -112,7 +112,11 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   markSeen: (key, uptoArrival) => {
     const s = get(); const i = key.indexOf('/'); const sp = key.slice(0, i); const ch = key.slice(i + 1);
     set((x) => ({ seen: withKey(x.seen, key, true) }));
-    getBridge().readMark(sp, ch, uptoArrival).then(() => get().refresh()).catch((e) => s.showToast(errorMessage(e), undefined, 'error'));
+    // Success: the snapshot now speaks for itself, so drop the local mark. Failure: roll it back, the count is still real.
+    getBridge().readMark(sp, ch, uptoArrival)
+      .then(() => get().refresh())
+      .then(() => set((x) => ({ seen: omitKey(x.seen, key) })))
+      .catch((e) => { set((x) => ({ seen: omitKey(x.seen, key) })); s.showToast(errorMessage(e), undefined, 'error'); });
   },
   clearIncoming: (key) => set((s) => {
     const rest = { ...s.incoming };
