@@ -22,6 +22,7 @@ use crate::growth::GrowthConfig;
 use crate::identity::{self, Identity};
 use crate::ids::{SpaceId, UserId, hex_encode};
 use crate::invite::InviteV1;
+use crate::keyguard::{KeyMode, Unlock};
 use crate::keywrap;
 use crate::projections::{
     InviteInfo, MemberInfo, ProjectionConfig, ProjectionCtx, ReportInfo, SpaceInput, SpaceReport,
@@ -35,6 +36,15 @@ pub use crate::projections::AuditEntry;
 
 /// Database file name inside the app data dir.
 pub const DB_FILE: &str = "hermod.db";
+/// Everything in a data dir that is this install's data: identity, database (with its journal
+/// files) and blobs. Wiping and restoring touch exactly these.
+pub const DATA_ENTRIES: [&str; 5] = [
+    identity::KEY_FILE,
+    DB_FILE,
+    "hermod.db-wal",
+    "hermod.db-shm",
+    "blobs",
+];
 /// Scratch directory inside the data dir where a backup is unpacked before being moved into place.
 const RESTORE_DIR: &str = ".restore";
 /// Label the UI uses for the home space.
@@ -48,13 +58,13 @@ const DEFAULT_CHANNEL: &str = "general";
 const PROFILE_KEY: &str = "profile";
 /// Local record `creator:<space id>` of the only author whose `space.create` counts for a space.
 const CREATOR_PIN_PREFIX: &str = "creator:";
-const SETTING_PREFIX: &str = "setting.";
+pub(crate) const SETTING_PREFIX: &str = "setting.";
 const TZ_SETTING: &str = "tz_offset_secs";
 const RECEIPTS_SETTING: &str = "read_receipts";
 const MAX_SETTING_KEY: usize = 64;
 const MAX_SETTING_VALUE: usize = 4096;
 const MAX_VERSION_LEN: usize = 32;
-const CACHE_GRACE: Duration = Duration::from_secs(3600);
+pub(crate) const CACHE_GRACE: Duration = Duration::from_secs(3600);
 const SEARCH_LIMIT_MAX: usize = 200;
 
 /// Tunables that default sensibly and are only overridden by tests or advanced builds.
@@ -64,6 +74,8 @@ pub struct CoreConfig {
     pub growth: GrowthConfig,
     pub rate: RateConfig,
     pub backup_kdf: KdfParams,
+    /// Keychain entry and passphrase needed to read a protected identity key.
+    pub unlock: Unlock,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +87,8 @@ pub struct IdentityInfo {
     pub initials: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<BlobRef>,
+    /// Where the secret key is kept at rest.
+    pub key_mode: KeyMode,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -349,6 +363,7 @@ impl Inner {
         ctx.follows = self.store.follows()?;
         ctx.hidden = crate::messaging::hidden_set(&self.store)?;
         ctx.muted = crate::messaging::muted_map(&self.store)?;
+        ctx.retention_cutoffs = crate::retention::cutoffs(&self.store, now)?;
         ctx.config = cfg.projection.clone();
         ctx.growth = cfg.growth.clone();
         Ok(ctx)
@@ -553,10 +568,12 @@ impl Core {
         Self::open_with(dir, CoreConfig::default())
     }
 
-    pub fn open_with(dir: impl AsRef<Path>, config: CoreConfig) -> Result<Self> {
+    pub fn open_with(dir: impl AsRef<Path>, mut config: CoreConfig) -> Result<Self> {
         let dir = dir.as_ref().to_path_buf();
         fs::create_dir_all(&dir)?;
-        let identity = Identity::load_or_create(&dir)?;
+        let identity = Identity::load_or_create_with(&dir, &config.unlock)?;
+        // The passphrase is only for reading the key file; do not keep it for the Core's lifetime.
+        config.unlock.passphrase = None;
         let store = Store::open_with(&dir.join(DB_FILE), config.rate.clone())?;
         let blobs = BlobStore::open(&dir)?;
         let user = identity.user_id();
@@ -615,7 +632,26 @@ impl Core {
             bio: p.bio,
             initials: p.initials,
             avatar: p.avatar,
+            key_mode: Identity::mode_in(&self.dir)?.unwrap_or(KeyMode::File),
         })
+    }
+
+    /// The 32 byte identity seed the node derives its libp2p keypair from.
+    pub fn identity_seed(&self) -> [u8; 32] {
+        self.lock().identity.seed()
+    }
+
+    /// Moves the identity key to `mode` (see [`Identity::protect`]). `passphrase` is required for
+    /// the passphrase mode and ignored otherwise. Under one lock so no append races the swap.
+    pub fn identity_protect(&self, mode: KeyMode, passphrase: Option<&str>) -> Result<()> {
+        let unlock = Unlock {
+            store: self.config.unlock.store.clone(),
+            passphrase: passphrase.map(|p| zeroize::Zeroizing::new(p.to_string())),
+            legacy_account: None,
+        };
+        self.lock()
+            .identity
+            .protect(&self.dir, mode, &unlock, self.config.backup_kdf)
     }
 
     /// Stores the profile locally and publishes `profile.set` into every joined space.
@@ -1225,9 +1261,12 @@ impl Core {
             }
         }
         let ids: Vec<SpaceId> = rows.iter().map(|r| r.id).collect();
-        inner
+        let hits = inner
             .store
-            .search_query(q, &ids, kinds, limit.clamp(1, SEARCH_LIMIT_MAX))
+            .search_query(q, &ids, kinds, limit.clamp(1, SEARCH_LIMIT_MAX))?;
+        // Past-retention messages stay indexed (the index follows the log) but never surface.
+        let cuts = crate::retention::cutoffs(&inner.store, now_ms())?;
+        Ok(crate::retention::visible_hits(hits, &cuts))
     }
 
     // ---- skein seals ----
@@ -1528,23 +1567,20 @@ impl Core {
 
     /// Deletes this install's data (identity, database, blobs). Irreversible without a backup.
     pub fn wipe_data(dir: &Path) -> Result<()> {
-        for name in [
-            identity::KEY_FILE,
-            DB_FILE,
-            "hermod.db-wal",
-            "hermod.db-shm",
-        ] {
-            match fs::remove_file(dir.join(name)) {
+        for name in DATA_ENTRIES {
+            let p = dir.join(name);
+            let r = if p.is_dir() {
+                fs::remove_dir_all(&p)
+            } else {
+                fs::remove_file(&p)
+            };
+            match r {
                 Ok(()) => {}
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                 Err(e) => return Err(e.into()),
             }
         }
-        match fs::remove_dir_all(dir.join("blobs")) {
-            Ok(()) => Ok(()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(e.into()),
-        }
+        Ok(())
     }
 
     // ---- local settings and legal ----
