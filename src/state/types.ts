@@ -23,7 +23,7 @@ export type DrawerId = 'sky' | 'rook' | 'set' | 'net';
 export type RookRef = Pick<RookEntry, 'sp' | 'ch'>;
 
 /** Boot phases: the gates the user passes before the town. */
-export type Phase = 'boot' | 'legal' | 'declined' | 'profile' | 'welcome' | 'app' | 'failed';
+export type Phase = 'boot' | 'legal' | 'declined' | 'profile' | 'welcome' | 'app' | 'failed' | 'locked';
 
 /** An attachment waiting in the composer (already stored as a blob). */
 export interface Attached { blob: BlobRef; local: string }

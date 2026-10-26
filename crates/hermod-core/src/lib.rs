@@ -16,6 +16,7 @@ pub mod growth;
 pub mod identity;
 pub mod ids;
 pub mod invite;
+pub mod keyguard;
 pub mod keywrap;
 pub mod messaging;
 pub mod migrations;

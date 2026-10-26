@@ -5,6 +5,19 @@ const base = (extra: Partial<Transport>): Transport => ({
   kind: 'tauri', call: vi.fn(async () => ({}) as never), listen: () => () => {}, blobUrl: (h) => h, ...extra,
 });
 
+describe('key protection', () => {
+  it('sends the mode and passphrase to identity_protect and unlock to identity_unlock', async () => {
+    const t = base({});
+    const b = createBridge(t);
+    await b.identityProtect('passphrase', 'correct horse');
+    expect(t.call).toHaveBeenCalledWith('identity_protect', { mode: 'passphrase', passphrase: 'correct horse' });
+    await b.identityProtect('keychain');
+    expect(t.call).toHaveBeenCalledWith('identity_protect', { mode: 'keychain', passphrase: null });
+    await b.identityUnlock('correct horse');
+    expect(t.call).toHaveBeenCalledWith('identity_unlock', { passphrase: 'correct horse' });
+  });
+});
+
 describe('binary uploads', () => {
   it('send the raw body when the transport supports it', async () => {
     const callRaw = vi.fn(async () => ({}) as never);

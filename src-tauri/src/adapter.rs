@@ -6,7 +6,6 @@
 
 use crate::ctx::{Touched, collections_for};
 use std::collections::BTreeMap;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use hermod_core::api::DB_FILE;
@@ -237,11 +236,10 @@ impl NodeStore for CoreStore {
     }
 }
 
-/// Persistent identity seed for the libp2p keypair, read from the same key file `Core` owns.
-pub fn identity_seed(dir: &Path) -> Result<[u8; 32], String> {
-    hermod_core::identity::Identity::load(&dir.join(hermod_core::identity::KEY_FILE))
-        .map(|i| i.seed())
-        .map_err(|e| format!("cannot read identity key: {e}"))
+/// Persistent identity seed for the libp2p keypair, taken from the open `Core` so it works in
+/// every key storage mode (file, keychain, passphrase).
+pub fn identity_seed(core: &hermod_core::Core) -> [u8; 32] {
+    core.identity_seed()
 }
 
 /// libp2p peer id of a user (their ed25519 key).
