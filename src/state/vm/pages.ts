@@ -54,14 +54,21 @@ function docsVm(x: Ctx) {
     docsList: docs.map((d) => ({ title: d.title, bg: d.id === doc?.id ? mixAccent(11) : 'transparent', fg: fgOf(d.id === doc?.id), onClick: () => s.selectDoc(d.id) })),
   };
   if (!doc) return { ...base, docOutline: [], doc: null, addDocBlock: () => undefined };
+  const live = new Set(doc.blocks.map((b) => b.id));
   return {
     ...base,
     docOutline: doc.blocks.filter((b) => b.k === 'h').map((b) => ({ text: b.text })),
     doc: {
       id: doc.id, title: doc.title, kicker: doc.kicker, edited: doc.edited,
       people: doc.people.map((p, i) => ({ i: P(p).i, name: P(p).name, ring: i === 0 ? ACCENT : DIVIDER })),
-      comments: doc.comments.map((c) => ({ name: firstName(P(c.by).name), on: c.on, text: c.text })), versions: doc.versions,
+      comments: doc.comments.filter((c) => !live.has(c.block_id)).map((c) => ({ name: firstName(P(c.by).name), on: c.on, text: c.text })),
+      versions: doc.versions.map((v) => ({
+        t: v.t, seal: v.seal, by: firstName(P(v.by).name), blocks: v.blocks.map((b) => ({ id: b.id ?? '', text: b.text, isH: b.k === 'h', isQ: b.k === 'q', isTodo: b.k === 't', done: !!b.done })),
+        onRestore: () => { void s.restoreDocVersion(doc.id, v.seal); },
+      })),
       blocks: doc.blocks.map((b) => ({
+        notes: doc.comments.filter((c) => c.block_id === b.id).map((c) => ({ name: firstName(P(c.by).name), text: c.text })),
+        onComment: () => { void s.commentDocBlock(doc.id, b.id ?? ''); },
         id: b.id ?? '', text: b.text, isH: b.k === 'h', isP: b.k === 'p', isQ: b.k === 'q', isTodo: b.k === 't', mark: b.done ? icS.check : null,
         bd: b.done ? ACCENT : DIVIDER, bg: b.done ? ACCENT : 'transparent', strike: b.done ? 'line-through' : 'none',
         onToggle: () => { void s.toggleDocBlock(doc.id, b.id ?? ''); },

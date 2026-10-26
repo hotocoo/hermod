@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::shapes::*;
-use super::state::{BoardSt, Msg, PostSt, SpaceState};
+use super::state::{BlockSt, BoardSt, Msg, PostSt, SpaceState};
 #[path = "render_messaging.rs"]
 pub(super) mod render_messaging;
 use super::time::{ago_long, ago_short, msg_time, snap_time};
@@ -23,6 +23,15 @@ pub struct World<'a> {
     people: BTreeMap<String, Person>,
     labels: HashMap<SpaceId, String>,
     me: String,
+}
+
+fn doc_block(b: &BlockSt) -> DocBlock {
+    DocBlock {
+        id: Some(b.id.clone()),
+        k: b.k.clone(),
+        text: b.text.clone(),
+        done: (b.k == "t").then_some(b.done),
+    }
 }
 
 fn within(ts: i64, now: i64, window: i64) -> bool {
@@ -1066,9 +1075,11 @@ impl<'a> World<'a> {
                     .iter()
                     .rev()
                     .take(self.ctx.config.versions_max)
-                    .map(|(ts, id)| DocVersion {
-                        t: snap_time(*ts, now, tz),
-                        seal: id.chars().take(7).collect(),
+                    .map(|v| DocVersion {
+                        t: snap_time(v.ts, now, tz),
+                        seal: v.id.chars().take(7).collect(),
+                        by: v.by.clone(),
+                        blocks: v.blocks.iter().map(doc_block).collect(),
                     })
                     .collect();
                 docs.push((
@@ -1084,21 +1095,13 @@ impl<'a> World<'a> {
                             self.first_name(&d.last_edit.1)
                         ),
                         people: d.editors.clone(),
-                        blocks: d
-                            .blocks
-                            .iter()
-                            .map(|b| DocBlock {
-                                id: Some(b.id.clone()),
-                                k: b.k.clone(),
-                                text: b.text.clone(),
-                                done: (b.k == "t").then_some(b.done),
-                            })
-                            .collect(),
+                        blocks: d.blocks.iter().map(doc_block).collect(),
                         comments: d
                             .comments
                             .iter()
                             .map(|c| DocComment {
                                 by: c.by.clone(),
+                                block_id: c.block_id.clone(),
                                 on: c.on.clone(),
                                 text: c.text.clone(),
                             })

@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
+import { COPY } from '@/config/copy';
 import type { VmProps } from '../types';
 import s from './docs.module.css';
 
@@ -16,6 +17,7 @@ export function DocBlock({ bk }: { bk: Block }) {
   const label = bk.isH ? 'Heading' : bk.isQ ? 'Quote' : bk.isTodo ? 'To-do' : 'Paragraph';
   const commit = () => { if (text !== bk.text) bk.onCommit(text); };
   return (
+    <div className={s.blockWrap}>
     <div className={s.block}>
       {bk.isTodo && (
         <button type="button" role="checkbox" aria-checked={bk.strike === 'line-through'} onClick={bk.onToggle} aria-label={`Toggle ${bk.text || 'to-do'}`}
@@ -25,6 +27,13 @@ export function DocBlock({ bk }: { bk: Block }) {
         onChange={(e) => { setText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${e.target.scrollHeight}px`; }}
         onBlur={commit} />
       <button type="button" className={s.rm} onClick={bk.onRemove} aria-label={`Remove ${label.toLowerCase()}`}><Icon name="trash" size={13} /></button>
+      <button type="button" className={s.rm} onClick={bk.onComment} aria-label={COPY.docs.commentOn(label)}><Icon name="chat" size={13} /></button>
+    </div>
+    {bk.notes.length > 0 && (
+      <ul className={s.margin} aria-label={`Comments on ${label.toLowerCase()}`}>
+        {bk.notes.map((n, i) => <li key={i}><b className={s.strong}>{n.name}</b> {n.text}</li>)}
+      </ul>
+    )}
     </div>
   );
 }

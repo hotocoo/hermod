@@ -35,3 +35,9 @@
 .rm { margin-top: 4px; width: 24px; height: 24px; border: 0; border-radius: 50%; background: transparent; display: grid; place-items: center; opacity: 0; color: var(--color-text); }
 .block:hover .rm, .rm:focus-visible { opacity: 1; }
 .addRow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.blockWrap { display: block; }
+.margin { margin: 0 0 8px 28px; padding: 4px 0 4px 10px; border-left: 2px solid var(--color-accent); list-style: none; font-size: 12px; line-height: 1.5; color: var(--color-muted, inherit); }
+.versionBtn { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 6px 0; border: 0; background: transparent; color: var(--color-text); font-size: 12px; text-align: left; }
+.versionBtn[aria-pressed='true'] { color: var(--color-accent); }
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; padding: 8px 10px; border: 1px solid var(--color-divider); border-radius: 6px; font-size: 12px; }
+.readonly { margin: 0 0 8px; font-size: 15px; line-height: 1.6; }

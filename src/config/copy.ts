@@ -9,6 +9,13 @@ export const COPY = {
     length: (h: number) => ({ 0.5: '30 minutes', 1: '1 hour', 2: '2 hours' } as Record<number, string>)[h] ?? `${h} hours`,
     outsideGrid: 'That meeting runs past the end of the calendar day. Pick an earlier start or a shorter length.',
   },
+  docs: {
+    commentTitle: 'Comment on this line', commentSubmit: 'Post comment', commentLabel: 'Comment', commentOn: (label: string) => `Comment on ${label.toLowerCase()}`,
+    viewing: (t: string, by: string) => `Viewing the version from ${t} by ${by}. Nothing changes until you restore it.`,
+    view: (t: string) => `View version from ${t}`, back: 'Back to the latest', restore: 'Restore this version',
+    restored: 'Version restored as new edits. The earlier history is kept.', nothingToRestore: 'The doc already matches that version.',
+    emptyVersion: 'This version is empty.',
+  },
   comments: {
     toggle: (n: number) => (n ? `${n} ${n === 1 ? 'comment' : 'comments'}` : 'Comment'),
     list: 'Comments',

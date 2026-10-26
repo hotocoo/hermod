@@ -445,6 +445,7 @@ pub struct DocBlock {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DocComment {
     pub by: String,
+    pub block_id: String,
     pub on: String,
     pub text: String,
 }
@@ -453,6 +454,10 @@ pub struct DocComment {
 pub struct DocVersion {
     pub t: String,
     pub seal: String,
+    /// Author of the edit that made this version.
+    pub by: String,
+    /// The doc's blocks as they stood after that edit, so a version can be viewed and restored.
+    pub blocks: Vec<DocBlock>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

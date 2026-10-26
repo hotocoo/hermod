@@ -19,6 +19,9 @@ export const HOME_ID = 'home';
 /** Kind of a direct or group message Space (made by `dm_start`, shared only by its members). */
 export const DM_KIND = 'dm';
 
+/** Channel every DM Space opens with (the core's default channel); a story reply is posted here. */
+export const DM_CHANNEL = 'general';
+
 /** `channel_id` a post comment carries. The core files comments under the post, not in a channel, and ignores it. */
 export const POST_COMMENT_CHANNEL = '';
 

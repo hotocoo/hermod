@@ -158,6 +158,10 @@ export interface WorkSlice {
   newLine(): Promise<void>;
   selectDoc(id: string): void; toggleDocBlock(docId: string, blockId: string): Promise<void>; addDocBlock(docId: string, kind: DocBlock['k']): Promise<void>;
   updateDocBlock(docId: string, blockId: string, text: string): Promise<void>; deleteDocBlock(docId: string, blockId: string): Promise<void>;
+  /** Comment on one line of a doc (V-025). */
+  commentDocBlock(docId: string, blockId: string): Promise<void>;
+  /** Restore a version as new doc.block edits (V-026); resolves false when nothing could be restored. */
+  restoreDocVersion(docId: string, seal: string): Promise<boolean>;
   newDoc(): Promise<void>;
   selectEvent(id: string): void; newEvent(): Promise<void>; rsvp(): Promise<void>; cancelEvent(): Promise<void>; editEvent(): Promise<void>; joinEvent(): Promise<void>;
   selectBoard(id: string): void; newBoard(): Promise<void>; addPin(): Promise<void>;
