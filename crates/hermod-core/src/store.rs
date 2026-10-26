@@ -6,8 +6,9 @@
 //! (`pending = 1`) or ahead of their epoch key (`pending = 2`) are kept and promoted once the gap
 //! fills or `unlock` installs the key; projections only ever see applied events (`pending = 0`).
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use rusqlite::{Connection, OptionalExtension, Row, params};
@@ -108,9 +109,19 @@ pub struct Opened {
     pub body: EventBody,
 }
 
+/// Per-space change counter and the decrypted events valid for it.
+#[derive(Default)]
+struct SpaceCache {
+    version: u64,
+    opened: Option<Arc<Vec<Opened>>>,
+}
+
 pub struct Store {
     conn: Connection,
     limiter: Limiter,
+    /// Decrypting and decoding a whole space is the dominant cost of every action, so the result is
+    /// kept until something that feeds it (events, keys, space row) changes. See [`Store::bump`].
+    cache: Mutex<HashMap<SpaceId, SpaceCache>>,
 }
 
 fn blob_arr<const N: usize>(row: &Row, idx: usize) -> Result<[u8; N]> {
@@ -171,7 +182,71 @@ impl Store {
         Ok(Store {
             conn,
             limiter: Limiter::new(rate),
+            cache: Mutex::new(HashMap::new()),
         })
+    }
+
+    fn cache(&self) -> std::sync::MutexGuard<'_, HashMap<SpaceId, SpaceCache>> {
+        self.cache.lock().unwrap_or_else(|p| p.into_inner())
+    }
+
+    /// Marks everything derived from `space`'s events, keys or row as stale. Called before every
+    /// write that can change what [`Store::load_opened`] returns.
+    fn bump(&self, space: &SpaceId) {
+        let mut cache = self.cache();
+        let c = cache.entry(*space).or_default();
+        c.version += 1;
+        c.opened = None;
+    }
+
+    /// Bumps the version and hands back the cached decrypted log, if any.
+    fn take_opened(&self, space: &SpaceId) -> Option<Arc<Vec<Opened>>> {
+        let mut cache = self.cache();
+        let c = cache.entry(*space).or_default();
+        c.version += 1;
+        c.opened.take()
+    }
+
+    /// Puts `prior` back with `ev` (just applied, alone) added. Any failure to decode leaves the
+    /// cache empty, so the next read decrypts from the stored rows.
+    fn append_opened(
+        &self,
+        space: &SpaceId,
+        prior: Option<Arc<Vec<Opened>>>,
+        ev: &SignedEvent,
+        id: &str,
+    ) {
+        let Some(mut log) = prior else { return };
+        let Ok(keys) = self.all_keys(space) else {
+            return;
+        };
+        let Some(plain) = keys.get(&ev.epoch).and_then(|k| ev.decrypt_any(k).ok()) else {
+            return;
+        };
+        let arrival = self
+            .conn
+            .query_row("SELECT arrival FROM events WHERE id = ?1", [id], |r| {
+                r.get::<_, i64>(0)
+            });
+        let Ok(arrival) = arrival else { return };
+        Arc::make_mut(&mut log).push(Opened {
+            id: id.to_string(),
+            author: ev.author,
+            seq: ev.seq,
+            lamport: ev.lamport,
+            ts: ev.ts,
+            arrival: arrival as u64,
+            body: decode_body(&plain).map_or(EventBody::Unknown, |d| d.body),
+        });
+        if let Some(c) = self.cache().get_mut(space) {
+            c.opened = Some(log);
+        }
+    }
+
+    /// Counter that changes whenever [`Store::bump`] ran for `space`; a derived value computed at
+    /// the same version is still valid.
+    pub fn version(&self, space: &SpaceId) -> u64 {
+        self.cache().get(space).map_or(0, |c| c.version)
     }
 
     /// Schema version of the open database.
@@ -188,6 +263,7 @@ impl Store {
 
     /// Inserts a space and its first key. Returns false if the space already existed.
     pub fn add_space(&self, row: &SpaceRow) -> Result<bool> {
+        self.bump(&row.id);
         let tx = self.conn.unchecked_transaction()?;
         let n = self.conn.execute(
             "INSERT OR IGNORE INTO spaces(space_id, space_key, name, kind, is_home, joined_at, left)
@@ -236,6 +312,7 @@ impl Store {
     }
 
     pub fn mark_left(&self, id: &SpaceId) -> Result<()> {
+        self.bump(id);
         self.conn.execute(
             "UPDATE spaces SET left = 1 WHERE space_id = ?1 AND is_home = 0",
             [&id.0[..]],
@@ -245,6 +322,7 @@ impl Store {
 
     /// Removes a space and everything stored for it. Only for rolling back a join that failed.
     pub fn forget_space(&self, id: &SpaceId) -> Result<()> {
+        self.bump(id);
         let tx = self.conn.unchecked_transaction()?;
         for table in ["events", "space_keys", "spaces"] {
             self.conn.execute(
@@ -259,6 +337,7 @@ impl Store {
 
     /// Clears the `left` flag so a previously left space is tracked again.
     pub fn reopen_space(&self, id: &SpaceId) -> Result<()> {
+        self.bump(id);
         self.conn.execute(
             "UPDATE spaces SET left = 0 WHERE space_id = ?1",
             [&id.0[..]],
@@ -269,6 +348,7 @@ impl Store {
     /// Records a key for an epoch. Several keys per epoch may exist (concurrent rekeys); decryption
     /// tries them all. Returns true if the key was new.
     pub fn add_key(&self, space: &SpaceId, epoch: u32, key: &SpaceKey) -> Result<bool> {
+        self.bump(space);
         let n = self.conn.execute(
             "INSERT OR IGNORE INTO space_keys(space_id, epoch, key_id, key) VALUES (?1, ?2, ?3, ?4)",
             params![&space.0[..], epoch as i64, key_id(key), &key.0[..]],
@@ -340,7 +420,10 @@ impl Store {
         if source != Source::Local
             && (ev.seq > MAX_CLOCK - CLOCK_HEADROOM || ev.lamport > MAX_CLOCK - CLOCK_HEADROOM)
         {
-            return Err(Error::invalid("event", "seq or lamport too close to the limit"));
+            return Err(Error::invalid(
+                "event",
+                "seq or lamport too close to the limit",
+            ));
         }
         if ev.body.len() > MAX_BODY_BYTES {
             return Err(Error::invalid("event", "body too large"));
@@ -380,6 +463,9 @@ impl Store {
             ev.decrypt_any(&keys)?;
         }
 
+        // The decrypted log is taken out (the bump would drop it) so a single applied event can be
+        // appended to it below instead of decrypting the whole space again.
+        let prior = self.take_opened(&ev.space_id);
         let tx = self.conn.transaction()?;
         let author = &ev.author.0[..];
         let space_id = &ev.space_id.0[..];
@@ -475,6 +561,9 @@ impl Store {
             applied.extend(promote(&tx, space_id, author)?);
         }
         tx.commit()?;
+        if applied.len() == 1 && applied[0] == id {
+            self.append_opened(&ev.space_id, prior, ev, &id);
+        }
         let status = if in_order {
             IngestStatus::Applied
         } else {
@@ -501,6 +590,7 @@ impl Store {
             .map(|r| r?)
             .collect::<Result<_>>()?
         };
+        self.bump(space);
         let tx = self.conn.transaction()?;
         let mut authors = BTreeSet::new();
         for (id, ev) in &locked {
@@ -599,7 +689,9 @@ impl Store {
         let mut forks = self.conn.prepare(
             "SELECT event FROM equivocations WHERE space_id = ?1 ORDER BY event_id LIMIT ?2",
         )?;
-        for raw in forks.query_map(params![&space.0[..], MAX_FORK_RESEND], |r| r.get::<_, Vec<u8>>(0))? {
+        for raw in forks.query_map(params![&space.0[..], MAX_FORK_RESEND], |r| {
+            r.get::<_, Vec<u8>>(0)
+        })? {
             out.push(SignedEvent::from_bytes(&raw?)?);
         }
         Ok(out)
@@ -692,7 +784,27 @@ impl Store {
     }
 
     /// Applied events decrypted and decoded, in fold order. Rows that no longer decode are skipped.
-    pub fn load_opened(&self, space: &SpaceRow) -> Result<Vec<Opened>> {
+    pub fn load_opened(&self, space: &SpaceRow) -> Result<Arc<Vec<Opened>>> {
+        let version = {
+            let cache = self.cache();
+            let c = cache.get(&space.id);
+            if let Some(hit) = c.and_then(|c| c.opened.clone()) {
+                return Ok(hit);
+            }
+            c.map_or(0, |c| c.version)
+        };
+        let opened = self.load_opened_uncached(space)?;
+        let mut cache = self.cache();
+        let c = cache.entry(space.id).or_default();
+        // A write between the read above and here would have bumped the version: then do not keep it.
+        if c.version == version {
+            c.opened = Some(opened.clone());
+        }
+        Ok(opened)
+    }
+
+    /// [`Store::load_opened`] without the cache: decrypts and decodes every applied event.
+    pub fn load_opened_uncached(&self, space: &SpaceRow) -> Result<Arc<Vec<Opened>>> {
         let keys = self.all_keys(&space.id)?;
         let arrivals = self.arrivals(&space.id)?;
         Ok(self
@@ -713,7 +825,8 @@ impl Store {
                     body,
                 })
             })
-            .collect())
+            .collect::<Vec<_>>()
+            .into())
     }
 
     /// `(event count, ciphertext bytes)` stored for a space, any state.
@@ -807,9 +920,9 @@ impl Store {
 
     /// `col` is one of the two fixed column names above, never caller input.
     fn marker_column(&self, col: &str) -> Result<BTreeMap<(SpaceId, String), u64>> {
-        let mut st = self
-            .conn
-            .prepare(&format!("SELECT space_id, channel_id, {col} FROM read_markers"))?;
+        let mut st = self.conn.prepare(&format!(
+            "SELECT space_id, channel_id, {col} FROM read_markers"
+        ))?;
         let rows = st.query_map([], |r| {
             Ok((
                 blob_arr::<32>(r, 0),

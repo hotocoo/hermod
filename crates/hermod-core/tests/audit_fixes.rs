@@ -4,12 +4,12 @@ mod common;
 use common::*;
 use hermod_core::crypto::seal;
 use hermod_core::event::{EventBody, Role, SignedEvent};
-use hermod_core::store::IngestStatus;
 use hermod_core::identity::Identity;
 use hermod_core::ids::{SpaceId, UserId};
 use hermod_core::invite::InviteV1;
 use hermod_core::projections::report;
 use hermod_core::projections::shapes::Snapshot;
+use hermod_core::store::IngestStatus;
 use hermod_core::store::{CLOCK_HEADROOM, MAX_CLOCK};
 use hermod_core::{Core, Error};
 
@@ -43,10 +43,12 @@ fn invite_after_rekey_reads_history_and_can_post() {
     let (_d1, a) = core();
     let (_d2, c) = core();
     let s = a.space_create("Team", "", "Team").unwrap().id;
-    a.append(&s, post_msg("general", "m0", "epoch zero")).unwrap();
+    a.append(&s, post_msg("general", "m0", "epoch zero"))
+        .unwrap();
     a.rekey(&s).unwrap();
     a.rekey(&s).unwrap();
-    a.append(&s, post_msg("general", "m1", "epoch two")).unwrap();
+    a.append(&s, post_msg("general", "m1", "epoch two"))
+        .unwrap();
     let inv = a.invite_create(&s, None, vec![]).unwrap();
     assert!(!InviteV1::parse(&inv.code).unwrap().keys.is_empty());
     c.invite_accept(&inv.code).unwrap();
@@ -54,7 +56,8 @@ fn invite_after_rekey_reads_history_and_can_post() {
     assert_eq!(c.pending(&s).unwrap(), (0, 0));
     assert_eq!(texts(&c, &s), ["epoch zero", "epoch two"]);
     assert!(c.space_report(&s).unwrap().my_role.is_some());
-    c.append(&s, post_msg("general", "c1", "hello from c")).unwrap();
+    c.append(&s, post_msg("general", "c1", "hello from c"))
+        .unwrap();
     sync(&c, &a, &s);
     assert!(texts(&a, &s).contains(&"hello from c".to_string()));
 }
@@ -159,8 +162,15 @@ fn demoted_admin_cannot_backdate_a_rekey_but_keeps_member_rights() {
     // Their member-level events after the demotion still count.
     let mut l2 = l;
     l2.push_at(&admin, 20, NOW, post_msg("chat", "m", "still a member"));
-    let rep = report(&ctx(owner), &l2.input(SpaceId::random(), "S", "Team", false));
-    assert!(rep.members.iter().any(|m| m.user == admin.to_string() && m.role == Role::Member));
+    let rep = report(
+        &ctx(owner),
+        &l2.input(SpaceId::random(), "S", "Team", false),
+    );
+    assert!(
+        rep.members
+            .iter()
+            .any(|m| m.user == admin.to_string() && m.role == Role::Member)
+    );
 }
 
 #[test]
@@ -212,7 +222,12 @@ fn invite_expiry_is_judged_by_the_join_ts_which_the_joiner_signs() {
 }
 
 /// Signed event whose plaintext is not a decodable body.
-fn junk_event(who: &Identity, key: &hermod_core::crypto::SpaceKey, s: SpaceId, seq: u64) -> SignedEvent {
+fn junk_event(
+    who: &Identity,
+    key: &hermod_core::crypto::SpaceKey,
+    s: SpaceId,
+    seq: u64,
+) -> SignedEvent {
     let (nonce, body) = seal(key, b"\xffnot cbor at all").unwrap();
     let mut ev = SignedEvent {
         space_id: s,
@@ -239,7 +254,8 @@ fn undecodable_signed_body_leaves_no_seq_hole() {
     let who = Identity::generate();
     let first = a.ingest_sync(junk_event(&who, &key, s, 1)).unwrap();
     assert_eq!(first.status, IngestStatus::Applied);
-    let next = SignedEvent::create(&who, &key, 0, s, 2, 2, 1, &post_msg("general", "x", "ok")).unwrap();
+    let next =
+        SignedEvent::create(&who, &key, 0, s, 2, 2, 1, &post_msg("general", "x", "ok")).unwrap();
     assert_eq!(a.ingest_sync(next).unwrap().status, IngestStatus::Applied);
     assert_eq!(a.pending(&s).unwrap(), (0, 0));
     // The folded views still build.
@@ -277,7 +293,10 @@ fn member_fork(c: &Core, s: SpaceId) -> (SignedEvent, SignedEvent, SignedEvent) 
 
 /// Texts of the fork messages the fold shows (the winner only).
 fn fork_texts(c: &Core, s: &SpaceId) -> Vec<String> {
-    texts(c, s).into_iter().filter(|t| t.starts_with("fork")).collect()
+    texts(c, s)
+        .into_iter()
+        .filter(|t| t.starts_with("fork"))
+        .collect()
 }
 
 #[test]
@@ -285,13 +304,18 @@ fn equivocation_resolves_to_the_lowest_id_on_every_peer_and_is_surfaced() {
     let (_d1, a) = core();
     let (_d2, b) = core();
     let s = a.space_create("Team", "", "Team").unwrap().id;
-    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap();
     let (j, x, y) = member_fork(&a, s);
     a.ingest_sync(j.clone()).unwrap();
     b.ingest_sync(j).unwrap();
     sync(&a, &b, &s);
     let x_author = x.author.to_string();
-    let winner = if x.id() < y.id() { "fork one" } else { "fork two" };
+    let winner = if x.id() < y.id() {
+        "fork one"
+    } else {
+        "fork two"
+    };
     a.ingest_sync(x.clone()).unwrap();
     let _ = a.ingest_sync(y.clone());
     b.ingest_sync(y).unwrap();
@@ -306,7 +330,8 @@ fn sync_hands_out_both_forks_so_a_peer_holding_one_converges() {
     let (_d1, a) = core();
     let (_d2, b) = core();
     let s = a.space_create("Team", "", "Team").unwrap().id;
-    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap();
     let (j, x, y) = member_fork(&a, s);
     a.ingest_sync(j.clone()).unwrap();
     b.ingest_sync(j).unwrap();
@@ -327,18 +352,26 @@ fn restored_device_cannot_post_until_a_sync_round_released_the_hold() {
     let (_d1, a) = core();
     let (_d2, b) = core();
     let s = a.space_create("Team", "", "Team").unwrap().id;
-    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap();
     sync(&b, &a, &s);
     sync(&a, &b, &s);
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("b.bak");
-    b.backup_export(&file, "correct horse battery", false).unwrap();
+    b.backup_export(&file, "correct horse battery", false)
+        .unwrap();
     let fresh = tempfile::tempdir().unwrap();
     Core::backup_import(fresh.path(), &file, "correct horse battery").unwrap();
     let restored = Core::open(fresh.path()).unwrap();
-    assert!(restored.append(&s, post_msg("general", "r", "too early")).is_err());
+    assert!(
+        restored
+            .append(&s, post_msg("general", "r", "too early"))
+            .is_err()
+    );
     restored.release_own_seq_hold(&s).unwrap();
-    restored.append(&s, post_msg("general", "r", "now fine")).unwrap();
+    restored
+        .append(&s, post_msg("general", "r", "now fine"))
+        .unwrap();
 }
 
 #[test]
@@ -347,7 +380,8 @@ fn restored_solo_space_is_not_held() {
     let s = a.space_create("Solo", "", "Team").unwrap().id;
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("a.bak");
-    a.backup_export(&file, "correct horse battery", false).unwrap();
+    a.backup_export(&file, "correct horse battery", false)
+        .unwrap();
     let fresh = tempfile::tempdir().unwrap();
     Core::backup_import(fresh.path(), &file, "correct horse battery").unwrap();
     let restored = Core::open(fresh.path()).unwrap();
@@ -379,10 +413,16 @@ fn backup_with_too_many_attachment_bytes_is_refused_with_a_clear_error() {
     a.append(&s, body).unwrap();
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("a.bak");
-    let err = a.backup_export(&file, "correct horse battery", true).unwrap_err();
-    assert!(err.to_string().contains("export without attachments"), "{err}");
+    let err = a
+        .backup_export(&file, "correct horse battery", true)
+        .unwrap_err();
+    assert!(
+        err.to_string().contains("export without attachments"),
+        "{err}"
+    );
     assert!(!file.exists());
-    a.backup_export(&file, "correct horse battery", false).unwrap();
+    a.backup_export(&file, "correct horse battery", false)
+        .unwrap();
     assert!(file.exists());
 }
 
@@ -392,7 +432,8 @@ fn truncated_or_damaged_backups_are_refused_and_leave_the_data_dir_empty() {
     a.space_create("Team", "", "Team").unwrap();
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("a.bak");
-    a.backup_export(&file, "correct horse battery", false).unwrap();
+    a.backup_export(&file, "correct horse battery", false)
+        .unwrap();
     let whole = std::fs::read(&file).unwrap();
     let cut = out.path().join("cut.bak");
     for len in [0, 7, 40, whole.len() / 2, whole.len() - 1] {
@@ -404,7 +445,8 @@ fn truncated_or_damaged_backups_are_refused_and_leave_the_data_dir_empty() {
     }
     // A leftover temp file from a crashed export never replaces the real one.
     std::fs::write(out.path().join("a.tmp"), b"half written").unwrap();
-    a.backup_export(&file, "correct horse battery", false).unwrap();
+    a.backup_export(&file, "correct horse battery", false)
+        .unwrap();
     let fresh = tempfile::tempdir().unwrap();
     Core::backup_import(fresh.path(), &file, "correct horse battery").unwrap();
 }
@@ -415,7 +457,8 @@ fn replace_data_swaps_in_a_restore_and_open_sees_it() {
     let s = a.space_create("Kept", "", "Team").unwrap().id;
     let out = tempfile::tempdir().unwrap();
     let file = out.path().join("a.bak");
-    a.backup_export(&file, "correct horse battery", false).unwrap();
+    a.backup_export(&file, "correct horse battery", false)
+        .unwrap();
     let live = tempfile::tempdir().unwrap();
     drop(Core::open(live.path()).unwrap());
     let staged = tempfile::tempdir().unwrap();
@@ -434,7 +477,10 @@ fn open_refuses_a_database_whose_key_file_vanished() {
     drop(a);
     std::fs::remove_file(d.path().join("identity.key")).unwrap();
     assert!(Core::open(d.path()).is_err());
-    assert!(!d.path().join("identity.key").exists(), "no fresh identity was minted");
+    assert!(
+        !d.path().join("identity.key").exists(),
+        "no fresh identity was minted"
+    );
     let _ = id;
 }
 
@@ -469,6 +515,9 @@ fn concurrent_rekeys_to_the_same_epoch_converge_and_both_sides_keep_reading() {
     for c in [&a, &b] {
         assert_eq!(c.pending(&s).unwrap(), (0, 0));
         let t = texts(c, &s);
-        assert!(t.contains(&"from a".to_string()) && t.contains(&"from b".to_string()), "{t:?}");
+        assert!(
+            t.contains(&"from a".to_string()) && t.contains(&"from b".to_string()),
+            "{t:?}"
+        );
     }
 }

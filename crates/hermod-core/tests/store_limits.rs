@@ -7,8 +7,9 @@ use hermod_core::crypto::SpaceKey;
 use hermod_core::event::{MAX_BODY_BYTES, SignedEvent};
 use hermod_core::identity::Identity;
 use hermod_core::ids::SpaceId;
-use hermod_core::store::{CLOCK_HEADROOM, 
-    MAX_CLOCK, MAX_EPOCH_AHEAD, MAX_LOCKED_BYTES_PER_SPACE, MAX_LOCKED_PER_SPACE, Source, SpaceRow, Store,
+use hermod_core::store::{
+    CLOCK_HEADROOM, MAX_CLOCK, MAX_EPOCH_AHEAD, MAX_LOCKED_BYTES_PER_SPACE, MAX_LOCKED_PER_SPACE,
+    Source, SpaceRow, Store,
 };
 use hermod_core::{Core, Error};
 
@@ -145,8 +146,14 @@ fn keyless_bytes_are_capped_per_space_oldest_first() {
     assert!(kept < sent, "oldest rows were evicted");
     let (_, bytes) = store.space_usage(&row.id).unwrap();
     assert!(bytes as i64 <= MAX_LOCKED_BYTES_PER_SPACE + 4096);
-    assert!(store.event_by_id(ids.last().unwrap()).unwrap().is_some(), "newest row survives");
-    assert!(store.event_by_id(&ids[0]).unwrap().is_none(), "oldest row is gone");
+    assert!(
+        store.event_by_id(ids.last().unwrap()).unwrap().is_some(),
+        "newest row survives"
+    );
+    assert!(
+        store.event_by_id(&ids[0]).unwrap().is_none(),
+        "oldest row is gone"
+    );
 }
 
 #[test]

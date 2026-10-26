@@ -227,6 +227,8 @@ pub(crate) struct Inner {
     /// Who the local user is in every space: the identity this install acts for. Equals the
     /// signing key unless this install was linked as a device of another identity.
     pub(crate) owner: UserId,
+    /// Folded governance view per space, valid while the store's version for it is unchanged.
+    reports: std::cell::RefCell<std::collections::HashMap<SpaceId, (u64, SpaceReport)>>,
 }
 
 pub struct Core {
@@ -401,7 +403,24 @@ impl Inner {
         Ok(ctx)
     }
 
+    /// Governance view of one space. Folding the whole log is the cost of every action, so the
+    /// result is kept until the space's events, keys or row change (see `Store::version`).
     fn report(&self, cfg: &CoreConfig, space: &SpaceId) -> Result<SpaceReport> {
+        let version = self.store.version(space);
+        if let Some((v, rep)) = self.reports.borrow().get(space)
+            && *v == version
+        {
+            return Ok(rep.clone());
+        }
+        let rep = self.report_uncached(cfg, space)?;
+        self.reports
+            .borrow_mut()
+            .insert(*space, (version, rep.clone()));
+        Ok(rep)
+    }
+
+    /// [`Inner::report`] folding from the stored log every time.
+    pub(crate) fn report_uncached(&self, cfg: &CoreConfig, space: &SpaceId) -> Result<SpaceReport> {
         let row = self.row(space)?;
         let mut rep = report(&self.ctx(cfg, now_ms())?, &self.input(&row)?);
         rep.equivocating = self
@@ -446,7 +465,8 @@ impl Inner {
             .is_some()
         {
             return Err(Error::Forbidden(
-                "restored from a backup: waiting to sync with other members before you can post".into(),
+                "restored from a backup: waiting to sync with other members before you can post"
+                    .into(),
             ));
         }
         let me = self.identity.user_id();
@@ -503,11 +523,7 @@ impl Inner {
     fn sync_keys(&mut self, space: &SpaceId) -> Result<Vec<String>> {
         let mut applied = Vec::new();
         loop {
-            let row = self.row(space)?;
-            let rep = report(
-                &self.ctx(&CoreConfig::default(), now_ms())?,
-                &self.input(&row)?,
-            );
+            let rep = self.report(&CoreConfig::default(), space)?;
             let me = self.identity.user_id().to_string();
             let mut installed = false;
             for entry in rep.audit.iter().filter(|a| a.kind == "space.rekey") {
@@ -647,6 +663,7 @@ impl Core {
             store,
             identity,
             owner,
+            reports: Default::default(),
         };
         if inner.store.home()?.is_none() {
             inner.new_space(HOME_NAME, HOME_TAGLINE, HOME_KIND, &["chat", "feed"], true)?;
@@ -1524,15 +1541,15 @@ impl Core {
         let inner = self.lock();
         let row = inner.row(space)?;
         let mut files = Vec::new();
-        for ev in inner.store.load_opened(&row)? {
+        for ev in inner.store.load_opened(&row)?.iter() {
             if let EventBody::SnapCreate {
                 snap_id: id,
                 files: f,
                 ..
-            } = ev.body
+            } = &ev.body
                 && id == snap_id
             {
-                files = f;
+                files = f.clone();
                 break;
             }
         }
@@ -1574,7 +1591,7 @@ impl Core {
         for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
             let (events, event_bytes) = inner.store.space_usage(&row.id)?;
             let mut seen: BTreeMap<String, u64> = BTreeMap::new();
-            for ev in inner.store.load_opened(&row)? {
+            for ev in inner.store.load_opened(&row)?.iter() {
                 for b in ev.body.blob_refs() {
                     seen.insert(b.hash.clone(), b.size);
                 }
@@ -1642,7 +1659,7 @@ impl Core {
         let inner = self.lock();
         let mut keep = HashSet::new();
         for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
-            for ev in inner.store.load_opened(&row)? {
+            for ev in inner.store.load_opened(&row)?.iter() {
                 keep.extend(ev.body.blob_refs().into_iter().map(|b| b.hash.clone()));
             }
         }
@@ -1659,7 +1676,7 @@ impl Core {
             let events = inner.store.all_events(&row.id)?;
             let keys = inner.store.all_keys(&row.id)?;
             if include_blobs {
-                for ev in inner.store.load_opened(&row)? {
+                for ev in inner.store.load_opened(&row)?.iter() {
                     blob_ids.extend(ev.body.blob_refs().into_iter().map(|b| b.hash.clone()));
                 }
             }

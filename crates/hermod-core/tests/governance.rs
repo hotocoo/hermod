@@ -294,7 +294,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
     assert_eq!(rep.invites.len(), 2, "member could not create an invite");
     assert_eq!(rep.my_role, Some(Role::Owner));
     let mut shuffled = input.clone();
-    shuffled.events.reverse();
+    shuffled.events_mut().reverse();
     assert_eq!(
         serde_json::to_string(&project(&ctx(owner), &[shuffled])).unwrap(),
         serde_json::to_string(&snap).unwrap()

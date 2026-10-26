@@ -19,13 +19,8 @@ pub(crate) const REPLACED_DIR: &str = ".replaced";
 pub(crate) const OLD_MOVED: &str = "old-moved";
 /// An install's files in the order a swap moves them. The key is last: while it is absent the
 /// install counts as not yet swapped in.
-pub(crate) const DATA_FILES: [&str; 5] = [
-    "blobs",
-    DB_FILE,
-    "hermod.db-wal",
-    "hermod.db-shm",
-    KEY_FILE,
-];
+pub(crate) const DATA_FILES: [&str; 5] =
+    ["blobs", DB_FILE, "hermod.db-wal", "hermod.db-shm", KEY_FILE];
 
 fn missing_ok(r: std::io::Result<()>) -> Result<()> {
     match r {
@@ -123,7 +118,10 @@ mod tests {
         install(d.path(), "old");
         install(s.path(), "new");
         replace(d.path(), s.path()).unwrap();
-        assert_eq!((read(d.path(), DB_FILE), read(d.path(), KEY_FILE)), ("new".into(), "new".into()));
+        assert_eq!(
+            (read(d.path(), DB_FILE), read(d.path(), KEY_FILE)),
+            ("new".into(), "new".into())
+        );
         assert!(!d.path().join(REPLACED_DIR).exists());
     }
 
@@ -140,7 +138,10 @@ mod tests {
         fs::rename(s.path().join(DB_FILE), d.path().join(DB_FILE)).unwrap();
         assert!(check_key_present(d.path()).is_err());
         recover(d.path()).unwrap();
-        assert_eq!((read(d.path(), DB_FILE), read(d.path(), KEY_FILE)), ("old".into(), "old".into()));
+        assert_eq!(
+            (read(d.path(), DB_FILE), read(d.path(), KEY_FILE)),
+            ("old".into(), "old".into())
+        );
         assert!(!aside.exists());
     }
 
@@ -167,7 +168,10 @@ mod tests {
         fs::write(aside.join(OLD_MOVED), "").unwrap();
         move_files(s.path(), d.path()).unwrap();
         recover(d.path()).unwrap();
-        assert_eq!((read(d.path(), DB_FILE), read(d.path(), KEY_FILE)), ("new".into(), "new".into()));
+        assert_eq!(
+            (read(d.path(), DB_FILE), read(d.path(), KEY_FILE)),
+            ("new".into(), "new".into())
+        );
         assert!(!aside.exists());
     }
 

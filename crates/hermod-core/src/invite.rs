@@ -229,7 +229,12 @@ mod tests {
         assert_eq!(back.keys.len(), 2);
         assert!(back.keys[0].1 == k);
         // A code without the field (made before it existed) decodes to no extra keys.
-        assert!(InviteV1::decode(&sample(None).encode().unwrap()).unwrap().keys.is_empty());
+        assert!(
+            InviteV1::decode(&sample(None).encode().unwrap())
+                .unwrap()
+                .keys
+                .is_empty()
+        );
         let many = sample(None).with_keys(vec![(0, SpaceKey::random()); MAX_INVITE_KEYS + 5]);
         assert_eq!(many.keys.len(), MAX_INVITE_KEYS);
         assert!(many.encode().unwrap().len() <= MAX_CODE_CHARS);

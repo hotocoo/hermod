@@ -64,7 +64,11 @@ impl Limiter {
         }
         let burst = f64::from(self.cfg.burst);
         if self.buckets.len() >= MAX_BUCKETS && !self.buckets.contains_key(&(space, author)) {
-            let stalest = self.buckets.iter().min_by_key(|(_, (_, at))| *at).map(|(k, _)| *k);
+            let stalest = self
+                .buckets
+                .iter()
+                .min_by_key(|(_, (_, at))| *at)
+                .map(|(k, _)| *k);
             if let Some(k) = stalest {
                 self.buckets.remove(&k);
             }
@@ -138,7 +142,11 @@ mod tests {
         for i in 0..(MAX_BUCKETS + 50) {
             let mut id = [0u8; 32];
             id[..8].copy_from_slice(&(i as u64).to_le_bytes());
-            l.allow(SpaceId([1; 32]), UserId(id), t0 + Duration::from_micros(i as u64));
+            l.allow(
+                SpaceId([1; 32]),
+                UserId(id),
+                t0 + Duration::from_micros(i as u64),
+            );
         }
         assert_eq!(l.buckets.len(), MAX_BUCKETS);
     }
