@@ -153,6 +153,10 @@ fn appendable(body: &EventBody) -> Res<()> {
 }
 
 async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
+    // Read once at boot; needs no open data, so it answers even while Hermod restarts.
+    if name == "deeplink_pending" {
+        return Ok(json!(ctx.take_pending_link()));
+    }
     let live = ctx.live().await?;
     match name {
         // ---- legal, identity ----
