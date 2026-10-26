@@ -1,5 +1,10 @@
 /** User-facing strings the state layer writes (toasts, labels). */
 export const COPY = {
+  fileDiff: {
+    loading: 'Loading changes…', binary: 'This file is not text, so there is no line diff. Download it to compare.',
+    tooLarge: 'This file is too large to compare here. Download it to compare.', unchanged: 'No line changes.',
+    failed: (why: string) => `Could not load the changes. ${why}`, retry: 'Try again', hunk: (n: number) => `Change ${n}`,
+  },
   card: {
     unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.',
     editTitle: 'Edit card', assignedTo: 'Assigned to', dueLabel: 'Due', due: (d: string) => `Due ${d}`,

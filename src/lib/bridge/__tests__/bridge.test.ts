@@ -5,6 +5,15 @@ const base = (extra: Partial<Transport>): Transport => ({
   kind: 'tauri', call: vi.fn(async () => ({}) as never), listen: () => () => {}, blobUrl: (h) => h, ...extra,
 });
 
+describe('diffBlobs', () => {
+  it('invokes diff_blobs with both hashes and returns the result untouched', async () => {
+    const diff = { state: 'text', hunks: [] };
+    const t = base({ call: vi.fn(async () => diff as never) });
+    await expect(createBridge(t).diffBlobs('a', null)).resolves.toBe(diff);
+    expect(t.call).toHaveBeenCalledWith('diff_blobs', { from: 'a', to: null });
+  });
+});
+
 describe('binary uploads', () => {
   it('send the raw body when the transport supports it', async () => {
     const callRaw = vi.fn(async () => ({}) as never);
