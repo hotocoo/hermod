@@ -112,8 +112,8 @@ export function chatVm(x: Ctx) {
     snapRefTitle: snapChoices.find((q) => q.id === s.snapRef)?.title ?? '', isHome: spaceHome,
     sendFgOn: ACCENT, sendFgOff: mixText(35),
     placeholder: chan.isDm ? `Message ${chan.name.split(' ')[0]}` : `Write to #${chan.name}`,
-    threadOpen: !!threadMsg, thread: threadMsg, closeThread: s.closeThread, tdraft: s.tdraft, onTDraft: (e: InputEvt) => s.setTDraft(e.target.value),
+    threadOpen: !!s.thread, threadFound: !!threadMsg, thread: threadMsg, closeThread: s.closeThread, tdraft: s.tdraft, onTDraft: (e: InputEvt) => s.setTDraft(e.target.value),
     onTSend: () => { void s.tsend(); }, onTKey: enterToSend(() => { void s.tsend(); }),
-    threadX: threadMsg ? '0%' : '104%', threadOp: threadMsg ? '1' : '0', threadEvents: threadMsg ? 'auto' : 'none',
+    threadX: s.thread ? '0%' : '104%', threadOp: s.thread ? '1' : '0', threadEvents: s.thread ? 'auto' : 'none',
   };
 }

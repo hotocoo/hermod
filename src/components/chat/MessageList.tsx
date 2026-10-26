@@ -27,6 +27,7 @@ export function MessageList({ vm }: VmProps) {
   const [open, setOpen] = useState({ key, unread: unreadNow });
   if (open.key !== key) setOpen({ key, unread: unreadNow });
   const widen = useAppStore((st) => st.widenChat);
+  const thread = useAppStore((st) => st.thread); const ensureLoaded = useAppStore((st) => st.ensureLoaded);
   const typing = useTyping(key, vm.people);
 
   // The view model already cut the list to the window (and stretched it to a loaded jump target).
@@ -71,6 +72,8 @@ export function MessageList({ vm }: VmProps) {
     return () => clearTimeout(t);
   }, [jump, key, total, jumpIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // An open thread whose root sits above the loaded history: page it in (the pane stays open meanwhile).
+  useEffect(() => { if (thread && !vm.threadFound) void ensureLoaded(key, thread); }, [thread, vm.threadFound, key]); // eslint-disable-line react-hooks/exhaustive-deps
   const toUnread = () => document.getElementById('unread-sep')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   return (
     <div ref={msgRef} className={s.scroll} role="log" onScroll={(e) => { if (e.currentTarget.scrollTop < LAYOUT.olderTriggerPx) void older(); }} aria-label="Messages" style={{ position: 'relative' }}>

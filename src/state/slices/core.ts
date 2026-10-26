@@ -85,6 +85,8 @@ export const createCoreSlice: StateCreator<AppStore, [], [], CoreSlice> = (set, 
       deliverArcadeNotices(get(), diffArcadeNotices(prev, seed, get().me?.user_id ?? ''));
       deliverCalNotices(get(), diffMeetingNotices(prev, seed, get().me?.user_id ?? ''));
     }
+    const open = `${space}/${sel.ch[space]}`;
+    if (get().older[open]?.length) void get().refreshOlder(open); // history pages above the window are not in the snapshot: re-request them
     runArcadeAuto(get());
   },
 

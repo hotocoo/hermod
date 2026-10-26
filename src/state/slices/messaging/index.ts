@@ -6,7 +6,7 @@ import { urlsIn } from '../../../lib/messaging/markdown';
 import { appendEvent, guarded, uid } from '../../act';
 import type { Message } from '../../dataTypes';
 import { dropPresence, notePresence, noteSeen, sweepPresence } from '../../presence';
-import { channelsOf, chatKey, curSpace, isHomeSpace, meId } from '../../selectors';
+import { channelsOf, chatKey, curSpace, isHomeSpace, loadedMessages, mayHaveOlder, meId } from '../../selectors';
 import type { AppStore } from '../../types';
 import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, prependOlder, quoteOf, splitKey, toggleInFolder } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
@@ -15,6 +15,7 @@ const EMPTY_COMPOSE: ComposeExtras = { quote: null, viewOnce: false, ttl: 0, pre
 const TYPING_TTL_MS = 5000;
 const TYPING_EVERY_MS = 3000;
 const PAGE = 50;
+const MAX_PAGE = 200; // the core's page ceiling (MAX_PAGE in render_messaging.rs)
 const MAX_GIFS = 100;
 let lastTyping = 0;
 let probeSeq = 0;
@@ -208,6 +209,30 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
         set((s) => ({ older: { [key]: prependOlder(s.older[key] ?? [], page.messages) }, olderMore: { [key]: page.has_more && page.messages.length > 0 } }));
         return page.messages.length > 0;
       } finally { loading.delete(key); }
+    },
+    refreshOlder: async (key) => {
+      const [space, channel] = splitKey(key);
+      const held = get().older[key]?.length ?? 0; const snapFirst = get().msgs[key]?.[0]?.ext?.lp;
+      if (!held || !snapFirst || loading.has(key)) return;
+      loading.add(key);
+      try {
+        // Re-request the same range (the pages just above the snapshot window) so edits, deletes and reactions in loaded history show.
+        let before = snapFirst; let need = held; const fresh: Message[] = [];
+        while (need > 0) {
+          const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, before, Math.min(need, MAX_PAGE)));
+          if (!page) return; // failed (already toasted): keep what is shown
+          if (!page.messages.length) break;
+          fresh.unshift(...page.messages); need -= page.messages.length; before = page.first_lp;
+          if (!page.has_more) break;
+        }
+        set((s) => (s.older[key] ? { older: { ...s.older, [key]: fresh } } : s));
+      } finally { loading.delete(key); }
+    },
+    ensureLoaded: async (key, id) => {
+      while (!loadedMessages(get(), key).some((m) => m.id === id)) {
+        if (!mayHaveOlder(get(), key) || !(await get().loadOlder(key))) return false;
+      }
+      return true;
     },
     jumpToMessage: (space, channel, id) => { set({ jump: { key: `${space}/${channel}`, id } }); get().goChannel(space, channel); }, // jump first: the arrival scroll-to-bottom sees it and stays out of the way,
 
