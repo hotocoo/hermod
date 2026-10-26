@@ -34,7 +34,7 @@ pub struct PreviewOut {
 
 #[derive(Debug, Clone, Copy)]
 struct Opts {
-    /// Only the unit tests talk to a loopback server.
+    /// Unit tests and the devhost talk to a loopback server; production never does.
     allow_private: bool,
 }
 
@@ -440,7 +440,9 @@ async fn fetch_image(core: &Core, base: &Url, src: &str, opts: Opts) -> Option<B
 }
 
 /// Fetches a preview for `url`. Refuses unless the user turned previews on.
-pub async fn fetch(core: &Core, url: &str) -> Result<PreviewOut, String> {
+/// `allow_private` opens loopback and private addresses to the devhost only; production keeps the
+/// SSRF guard.
+pub async fn fetch(core: &Core, url: &str, allow_private: bool) -> Result<PreviewOut, String> {
     if core
         .setting_get("privacy.previews")
         .ok()
@@ -450,14 +452,7 @@ pub async fn fetch(core: &Core, url: &str) -> Result<PreviewOut, String> {
     {
         return Err("link previews are off, turn them on in privacy settings".into());
     }
-    fetch_inner(
-        core,
-        url,
-        Opts {
-            allow_private: false,
-        },
-    )
-    .await
+    fetch_inner(core, url, Opts { allow_private }).await
 }
 
 #[cfg(test)]
@@ -603,7 +598,7 @@ mod tests {
             "http://169.254.169.254/latest",
             "http://10.0.0.5/",
         ] {
-            let err = fetch(&core, u).await.unwrap_err();
+            let err = fetch(&core, u, false).await.unwrap_err();
             assert!(
                 err.contains("public internet") || err.contains("could not be found"),
                 "{u}: {err}"
@@ -611,7 +606,7 @@ mod tests {
         }
         core.setting_set("privacy.previews", "0").unwrap();
         assert!(
-            fetch(&core, "https://example.org")
+            fetch(&core, "https://example.org", false)
                 .await
                 .unwrap_err()
                 .contains("off")

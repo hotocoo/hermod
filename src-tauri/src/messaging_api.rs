@@ -229,7 +229,8 @@ async fn run(ctx: &Arc<Ctx>, live: &Arc<Live>, name: &str, a: &Value) -> Res<Val
         }
         "link_preview" => {
             let url = str_arg(a, "url")?;
-            to_json(preview::fetch(&live.core, &url).await?)
+            let allow_private = ctx.opts.preview_allow_private;
+            to_json(preview::fetch(&live.core, &url, allow_private).await?)
         }
         "privacy_get" => blk(live, privacy).await,
         "privacy_set" => {

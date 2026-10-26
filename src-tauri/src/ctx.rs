@@ -88,6 +88,9 @@ pub struct Options {
     pub node_tweak: Option<NodeTweak>,
     /// Allow `blob_put` for any path. The app only accepts paths its own picker returned.
     pub unrestricted_paths: bool,
+    /// Let link previews fetch loopback and private addresses. Production refuses them (SSRF);
+    /// the devhost allows them so local pages and test servers can be previewed.
+    pub preview_allow_private: bool,
     /// Log file `log_tail` reads.
     pub log_file: Option<PathBuf>,
 }
@@ -97,6 +100,7 @@ impl Options {
         Options {
             node_tweak: None,
             unrestricted_paths: false,
+            preview_allow_private: false,
             log_file,
         }
     }
@@ -120,6 +124,7 @@ impl Options {
         Options {
             node_tweak: Some(tweak),
             unrestricted_paths: true,
+            preview_allow_private: true,
             log_file,
         }
     }
