@@ -827,7 +827,7 @@ fn backup_round_trip_restores_identity_state_and_blobs() {
         .unwrap();
     a.setting_set("theme", "dusk").unwrap();
     a.block_user(&b.user_id()).unwrap();
-    a.mark_read(&s, "general").unwrap();
+    a.mark_read(&s, "general", None).unwrap();
     let before = a.snapshot_at(common::NOW).unwrap();
 
     let file = d1.path().join("backup.hbk");

@@ -439,6 +439,7 @@ impl<'a> World<'a> {
                 image: image.clone(),
             }),
             blocked: self.ctx.blocks.contains(&m.by).then_some(true),
+            arrival: Some(m.arrival),
             ext: None,
         }
     }

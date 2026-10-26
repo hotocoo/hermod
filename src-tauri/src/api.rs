@@ -436,7 +436,8 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         "read_mark" => {
             let (id, label) = space_of(&live, a).await?;
             let ch = str_arg(a, "channelId")?;
-            let receipt = blk(&live, move |c| c.mark_read(&id, &ch).map_err(e)).await?;
+            let upto = opt_u64(a, "uptoArrival");
+            let receipt = blk(&live, move |c| c.mark_read(&id, &ch, upto).map_err(e)).await?;
             if let Some(ev) = receipt {
                 ctx.publish(&id, &[ev]).await;
             }

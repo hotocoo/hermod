@@ -46,7 +46,7 @@ export interface Bridge {
   gameLegalMoves(kind: string, gameId: string, options: unknown, moves: { seat: number; move: unknown }[]): Promise<unknown[]>;
   arcadeTool<T = unknown>(op: 'commit' | 'quiz_commit' | 'feedback' | 'layout' | 'shot', args: Record<string, unknown>): Promise<T>;
 
-  readMark(spaceId: string, channelId: string): Promise<void>;
+  readMark(spaceId: string, channelId: string, uptoArrival?: number): Promise<void>;
   blockUser(userId: string): Promise<void>;
   unblockUser(userId: string): Promise<void>;
   blockList(): Promise<BlockedUser[]>;
@@ -155,7 +155,7 @@ export function createBridge(t: Transport): Bridge {
     sendEphemeral: (spaceId, kind, payload) => none('send_ephemeral', { spaceId, kind, payload }),
     gameLegalMoves: (kind, gameId, options, moves) => call('game_legal_moves', { kind, gameId, options, moves }),
     arcadeTool: (op, args) => call('arcade_tool', { op, args }),
-    readMark: (spaceId, channelId) => none('read_mark', { spaceId, channelId }),
+    readMark: (spaceId, channelId, uptoArrival) => none('read_mark', { spaceId, channelId, uptoArrival }),
     blockUser: (userId) => none('block_user', { userId }),
     unblockUser: (userId) => none('unblock_user', { userId }),
     blockList: () => call('block_list'),

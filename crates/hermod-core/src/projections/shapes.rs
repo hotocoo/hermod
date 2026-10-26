@@ -131,6 +131,10 @@ pub struct Message {
     /// Author is blocked on this device: the UI collapses the message.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub blocked: Option<bool>,
+    /// Device-local apply order of this message's event: the UI feeds it back as the read
+    /// watermark so events that land while a mark request waits are not swallowed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub arrival: Option<u64>,
     /// Messaging fields (docs/MESSAGING.md 3.1).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ext: Option<super::messaging::MsgView>,

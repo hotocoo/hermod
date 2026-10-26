@@ -1426,12 +1426,12 @@ fn mark_read_hands_back_the_receipt_only_when_receipts_are_on_so_the_host_can_go
     .unwrap();
     sync(&a, &b, &sid);
     assert!(
-        b.mark_read(&sid, "general").unwrap().is_none(),
+        b.mark_read(&sid, "general", None).unwrap().is_none(),
         "receipts are opt in: nothing is published"
     );
     b.setting_set("read_receipts", "1").unwrap();
     let receipt = b
-        .mark_read(&sid, "general")
+        .mark_read(&sid, "general", None)
         .unwrap()
         .expect("with receipts on the read.mark event is returned for publishing");
     assert!(seen_by(&a, "a1").is_empty(), "A has not received it yet");

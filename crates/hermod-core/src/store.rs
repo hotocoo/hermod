@@ -694,16 +694,37 @@ impl Store {
     // ---- read markers, blocks, follows (device-local, never in the log) ----
 
     /// Records that everything up to `lamport` in a channel has been seen (never moves backwards).
-    pub fn set_read_marker(&self, space: &SpaceId, channel: &str, lamport: u64) -> Result<()> {
-        // The arrival it covers: the newest applied event at or below `lamport`. A concurrent event that
-        // arrives later gets a higher arrival, so it stays unread even when its lamport is below the marker.
-        self.conn.execute(
-            "INSERT INTO read_markers(space_id, channel_id, lamport, arrival) VALUES (?1, ?2, ?3,
-               COALESCE((SELECT MAX(arrival) FROM events WHERE space_id = ?1 AND lamport <= ?3), 0))
+    /// `upto_arrival` is the device-local watermark the viewer had actually loaded: when given,
+    /// the marker covers only events applied by then, so a message that landed while the mark
+    /// timer waited stays unread. Without it the watermark is "everything applied so far".
+    pub fn set_read_marker(
+        &self,
+        space: &SpaceId,
+        channel: &str,
+        lamport: u64,
+        upto_arrival: Option<u64>,
+    ) -> Result<()> {
+        const INSERT_TAIL: &str = "
              ON CONFLICT(space_id, channel_id) DO UPDATE SET
-               lamport = MAX(lamport, excluded.lamport), arrival = MAX(arrival, excluded.arrival)",
-            params![&space.0[..], channel, lamport as i64],
-        )?;
+               lamport = MAX(lamport, excluded.lamport), arrival = MAX(arrival, excluded.arrival)";
+        match upto_arrival {
+            // The viewer had loaded up to arrival `?4`: only events applied by then are covered.
+            Some(a) => self.conn.execute(
+                &format!(
+                    "INSERT INTO read_markers(space_id, channel_id, lamport, arrival) VALUES (?1, ?2, ?3,
+                       COALESCE((SELECT MAX(arrival) FROM events WHERE space_id = ?1 AND arrival <= ?4), 0)){INSERT_TAIL}"
+                ),
+                params![&space.0[..], channel, lamport as i64, a as i64],
+            ),
+            // No watermark: everything applied so far in this space is covered.
+            None => self.conn.execute(
+                &format!(
+                    "INSERT INTO read_markers(space_id, channel_id, lamport, arrival) VALUES (?1, ?2, ?3,
+                       COALESCE((SELECT MAX(arrival) FROM events WHERE space_id = ?1), 0)){INSERT_TAIL}"
+                ),
+                params![&space.0[..], channel, lamport as i64],
+            ),
+        }?;
         Ok(())
     }
 

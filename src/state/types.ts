@@ -113,7 +113,7 @@ export interface ChatSlice {
   attachFiles(files: File[]): Promise<void>; attachNative(): Promise<void>; detach(hash: string): void;
   newChannel(): Promise<void>;
   toggleThread(id: string): void; closeThread(): void;
-  markSeen(key: string): void; clearIncoming(key: string): void;
+  markSeen(key: string, uptoArrival?: number): void; clearIncoming(key: string): void;
 }
 
 export interface CallSlice {

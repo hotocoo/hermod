@@ -18,6 +18,8 @@ export interface Message {
   edited?: boolean; removed?: 'author' | 'admin'; pinned?: boolean;
   /** Messaging extras (quote, forward, voice, receipts, expiry, preview). */
   ext?: MsgView; blocked?: boolean; history?: { t: string; text: string }[]; mentions?: string[];
+  /** Device-local apply order of this message's event, fed back as the read watermark. */
+  arrival?: number;
 }
 export interface RoomMeeting { topic: string; at: number; notes: Note[] }
 export interface Room {

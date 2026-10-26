@@ -107,10 +107,12 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   toggleThread: (id) => set((s) => ({ thread: s.thread === id ? null : id, tdraft: '' })),
   closeThread: () => set({ thread: null }),
 
-  markSeen: (key) => {
+  // `uptoArrival` is the watermark captured when the mark was scheduled (not when it runs):
+  // a message that lands in between must stay unread, or a slow timer swallows it.
+  markSeen: (key, uptoArrival) => {
     const s = get(); const i = key.indexOf('/'); const sp = key.slice(0, i); const ch = key.slice(i + 1);
     set((x) => ({ seen: withKey(x.seen, key, true) }));
-    getBridge().readMark(sp, ch).then(() => get().refresh()).catch((e) => s.showToast(errorMessage(e), undefined, 'error'));
+    getBridge().readMark(sp, ch, uptoArrival).then(() => get().refresh()).catch((e) => s.showToast(errorMessage(e), undefined, 'error'));
   },
   clearIncoming: (key) => set((s) => {
     const rest = { ...s.incoming };

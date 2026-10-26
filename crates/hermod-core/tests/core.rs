@@ -197,7 +197,18 @@ fn two_peers_join_by_invite_and_converge() {
 
     let (sa, sb) = (snap(&a), snap(&b));
     let key = format!("{sid}/general");
-    assert_eq!(sa.collections.messages[&key], sb.collections.messages[&key]);
+    // `arrival` is device-local apply order, not part of what converges between peers.
+    let shared_msgs = |s: &Snapshot| {
+        s.collections.messages[&key]
+            .iter()
+            .map(|m| {
+                let mut m = m.clone();
+                m.arrival = None;
+                m
+            })
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(shared_msgs(&sa), shared_msgs(&sb));
     assert_eq!(
         sa.collections.messages[&key]
             .iter()
@@ -229,7 +240,7 @@ fn two_peers_join_by_invite_and_converge() {
     assert_eq!(sb.spaces[1].name, "Shared");
     let unread = sb.collections.channels[&sid.to_string()][0].unread;
     assert_eq!(unread, Some(1), "a1 is unread for b");
-    b.mark_read(&sid, "general").unwrap();
+    b.mark_read(&sid, "general", None).unwrap();
     assert_eq!(
         snap(&b).collections.channels[&sid.to_string()][0].unread,
         None
@@ -254,7 +265,7 @@ fn concurrent_peer_message_arriving_after_mark_read_stays_unread() {
     }
     let late = say(&b, &sid, "b1", "written while a was typing");
 
-    a.mark_read(&sid, "general").unwrap();
+    a.mark_read(&sid, "general", None).unwrap();
     assert!(
         late.lamport < a.read_markers().unwrap()[&format!("{sid}/general")],
         "b1 is concurrent: its lamport is below what a has already seen"
@@ -262,7 +273,7 @@ fn concurrent_peer_message_arriving_after_mark_read_stays_unread() {
     assert_eq!(unread(&a), None);
     sync(&b, &a, &sid);
     assert_eq!(unread(&a), Some(1), "b1 arrived after the marker");
-    a.mark_read(&sid, "general").unwrap();
+    a.mark_read(&sid, "general", None).unwrap();
     assert_eq!(unread(&a), None, "reading again covers it");
     assert!(
         snap(&a)
@@ -465,11 +476,16 @@ fn shuffled_ingest_converges_in_the_store() {
             creator: None,
             events: store.load_opened(&row).unwrap(),
         };
-        let snap = project(&ProjectionCtx::new(ia.user_id(), common::NOW), &[input]);
+        let mut snap = project(&ProjectionCtx::new(ia.user_id(), common::NOW), &[input]);
         assert_eq!(
             snap.collections.messages[&format!("{sid}/general")].len(),
             10
         );
+        // `arrival` is the device-local apply order: by design it differs between ingest orders,
+        // so convergence is about everything else.
+        for m in snap.collections.messages.values_mut().flatten() {
+            m.arrival = None;
+        }
         serde_json::to_string(&snap).unwrap()
     };
     let forward: Vec<usize> = (0..events.len()).collect();
@@ -709,4 +725,120 @@ fn missing_page_is_bounded_ordered_and_respects_the_vector() {
             .unwrap()
             .is_empty()
     );
+}
+
+/// The rookery counts inbox entries by their `read` flag, read back from the store after a
+/// mark_read. A message that arrives after the marker must flip an existing entry back to
+/// unread, or the rookery shows 0 new while the channel still reports unread.
+#[test]
+fn inbox_entry_turns_unread_again_for_a_message_after_mark_read() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let sid = a.space_create("Rookery", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&sid, None, vec![]).unwrap().code)
+        .unwrap();
+    sync(&a, &b, &sid);
+    sync(&b, &a, &sid);
+
+    say(&b, &sid, "b1", "first arrival");
+    sync(&b, &a, &sid);
+    let inbox = snap(&a).collections.inbox;
+    assert_eq!(inbox.len(), 1, "the arrival lands in the inbox");
+    assert!(!inbox[0].read, "and starts unread");
+
+    a.mark_read(&sid, "general", None).unwrap();
+    let inbox = snap(&a).collections.inbox;
+    assert!(inbox[0].read, "mark_read marks the entry read");
+    assert_eq!(
+        snap(&a).collections.channels[&sid.to_string()][0].unread,
+        None,
+        "the channel agrees"
+    );
+
+    say(&b, &sid, "b2", "later arrival");
+    sync(&b, &a, &sid);
+    let inbox = snap(&a).collections.inbox;
+    let latest = inbox.iter().find(|e| e.text == "later arrival").unwrap();
+    assert!(!latest.read, "a message after the marker is unread again");
+    assert_eq!(
+        snap(&a).collections.channels[&sid.to_string()][0].unread,
+        Some(1),
+        "the channel counts it too"
+    );
+}
+
+/// A peer composing offline stamps a lamport below what this device has already seen. If the
+/// message reaches this device after a mark_read, covering the marker by lamport range swallows
+/// it as read; the marker must cover only what had actually arrived when it was set.
+#[test]
+fn offline_composed_message_arriving_after_mark_read_stays_unread() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let sid = a.space_create("Lamport", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&sid, None, vec![]).unwrap().code)
+        .unwrap();
+    sync(&a, &b, &sid);
+    sync(&b, &a, &sid);
+
+    for i in 1..=6 {
+        say(&a, &sid, &format!("a{i}"), "ahead of b's clock");
+    }
+    // B never syncs: its next lamport trails everything a has seen.
+    say(&b, &sid, "b1", "written offline");
+    a.mark_read(&sid, "general", None).unwrap();
+    sync(&b, &a, &sid);
+
+    assert_eq!(
+        snap(&a).collections.channels[&sid.to_string()][0].unread,
+        Some(1),
+        "the offline-composed message arrived after the mark: unread"
+    );
+    let snapshot = snap(&a);
+    let entry = snapshot
+        .collections
+        .inbox
+        .iter()
+        .find(|e| e.text == "written offline")
+        .unwrap();
+    assert!(!entry.read, "and the rookery agrees");
+}
+
+/// The UI passes the arrival watermark it had loaded when the mark was scheduled. Events that
+/// landed afterwards (while the delayed mark waited) must stay unread even though they are
+/// already in the store when the mark runs.
+#[test]
+fn mark_read_with_a_watermark_leaves_later_arrivals_unread() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let sid = a.space_create("Watermark", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&sid, None, vec![]).unwrap().code)
+        .unwrap();
+    sync(&a, &b, &sid);
+    sync(&b, &a, &sid);
+
+    say(&b, &sid, "b1", "seen by the viewer");
+    sync(&b, &a, &sid);
+    let watermark = snap(&a).collections.messages[&format!("{sid}/general")]
+        .iter()
+        .filter_map(|m| m.arrival)
+        .max()
+        .unwrap();
+
+    say(&b, &sid, "b2", "landed while the mark waited");
+    sync(&b, &a, &sid);
+
+    a.mark_read(&sid, "general", Some(watermark)).unwrap();
+    assert_eq!(
+        snap(&a).collections.channels[&sid.to_string()][0].unread,
+        Some(1),
+        "the watermark covers only what the viewer had loaded"
+    );
+    let snapshot = snap(&a);
+    let late = snapshot
+        .collections
+        .inbox
+        .iter()
+        .find(|e| e.text == "landed while the mark waited")
+        .unwrap();
+    assert!(!late.read, "and the rookery agrees");
 }

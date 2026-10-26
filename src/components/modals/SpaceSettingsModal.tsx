@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorMessage, getBridge, type AuditRow, type Member, type Role } from '@/lib/bridge';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
@@ -23,7 +23,10 @@ export function SpaceSettingsModal({ space }: { space: string }) {
   const toast = s.showToast;
   const [members, setMembers] = useState<Member[] | null>(null);
   const load = useCallback(() => { getBridge().spaceMembers(space).then(setMembers).catch((e) => { setMembers([]); toast(errorMessage(e), undefined, 'error'); }); }, [space, toast]);
-  useEffect(() => { load(); return getBridge().on('changed', load); }, [load]);
+  // `off` is exposed so the leave flow can stop polling first: the core answers 400 for a
+  // space it stopped tracking, and a `changed` landing mid-leave would ask for it again.
+  const off = useRef<() => void>(() => undefined);
+  useEffect(() => { load(); off.current = getBridge().on('changed', load); return () => off.current(); }, [load]);
   // The core is the authority: the store role trails it by a snapshot debounce, and invite_list answers 400 for a non-admin.
   const role = members ? members.find((m) => m.user_id === me && !m.removed)?.role : sp.role;
   const admin = role === 'owner' || role === 'admin';
@@ -35,7 +38,7 @@ export function SpaceSettingsModal({ space }: { space: string }) {
             style={tab === id ? { color: 'var(--color-accent-700)', boxShadow: 'inset 0 0 0 1px var(--color-accent)' } : undefined}>{label}</button>
         ))}
       </div>
-      {tab === 'general' && <General space={space} admin={admin} home={isHome} />}
+      {tab === 'general' && <General space={space} admin={admin} home={isHome} stopPolling={() => off.current()} />}
       {tab === 'members' && <Members space={space} list={members} reload={load} admin={admin} owner={role === 'owner'} />}
       {tab === 'invites' && (!members ? <p className={f.note}>Loading invites…</p> : admin ? <InviteList space={space} /> : <p className={f.note}>Only admins manage invites.</p>)}
       {tab === 'safety' && <Safety space={space} admin={!!members && admin} />}
@@ -43,7 +46,7 @@ export function SpaceSettingsModal({ space }: { space: string }) {
   );
 }
 
-function General({ space, admin, home }: { space: string; admin: boolean; home: boolean }) {
+function General({ space, admin, home, stopPolling }: { space: string; admin: boolean; home: boolean; stopPolling: () => void }) {
   const get = useAppStore.getState;
   const sp = useAppStore((s) => spaceOf(s.spaces, space));
   const leave = useAppStore((s) => s.leaveSpace);
@@ -54,7 +57,11 @@ function General({ space, admin, home }: { space: string; admin: boolean; home: 
   const dirty = name.trim() !== sp.name || tag.trim() !== sp.tagline;
   const save = async () => { if (name.trim() && await appendEvent(get, space, { t: 'space.update', name: name.trim(), tagline: tag.trim() })) get().showToast('Saved'); };
   const doLeave = async () => {
-    if (await confirm({ title: `Leave ${sp.name}?`, body: 'You lose access on this device. You need a new invite to come back. Others keep what you shared.', confirm: 'Leave Space', danger: true }) && await leave(space)) close();
+    if (!(await confirm({ title: `Leave ${sp.name}?`, body: 'You lose access on this device. You need a new invite to come back. Others keep what you shared.', confirm: 'Leave Space', danger: true }))) return;
+    // Stop the members poll before the core stops tracking the space, or its next `changed`
+    // would ask for members of a space that now answers 400.
+    stopPolling();
+    if (await leave(space)) close();
   };
   return (
     <>

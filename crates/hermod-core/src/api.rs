@@ -1041,10 +1041,19 @@ impl Core {
 
     /// Marks everything currently in a channel as read. With receipts on, returns the `read.mark`
     /// event just appended; the caller must gossip it, or peers only see it on the next full sync.
-    pub fn mark_read(&self, space: &SpaceId, channel: &str) -> Result<Option<SignedEvent>> {
+    /// `upto_arrival` is the device-local watermark the viewer had loaded; events that arrived
+    /// after it (while the mark request waited) stay unread.
+    pub fn mark_read(
+        &self,
+        space: &SpaceId,
+        channel: &str,
+        upto_arrival: Option<u64>,
+    ) -> Result<Option<SignedEvent>> {
         let mut inner = self.lock();
         let lamport = inner.store.max_lamport(space)?;
-        inner.store.set_read_marker(space, channel, lamport)?;
+        inner
+            .store
+            .set_read_marker(space, channel, lamport, upto_arrival)?;
         let receipts = inner
             .store
             .kv_get(&format!("{SETTING_PREFIX}{RECEIPTS_SETTING}"))?
@@ -1498,7 +1507,7 @@ impl Core {
             store.kv_set(k, v)?;
         }
         for (s, c, l) in &payload.read_markers {
-            store.set_read_marker(s, c, *l)?;
+            store.set_read_marker(s, c, *l, None)?;
         }
         for u in &payload.blocks {
             store.block_user(u, 0)?;

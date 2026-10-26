@@ -50,7 +50,8 @@ test('a letter is dismissed, and the next one is read straight into its chat', a
   await letterOn(a).getByRole('button', { name: 'Read' }).click();
   await expect(letterOn(a)).toBeHidden();
   await expectInside(a);
-  await expect(panel(a).getByText(text)).toBeVisible({ timeout: 30_000 });
+  // The message itself, not the aria-live toast that announces it on arrival.
+  await expect(panel(a).getByRole('article').filter({ hasText: text })).toBeVisible({ timeout: 30_000 });
 });
 
 // R-004: the rookery button counts unread ravens, the drawer lists them, "Mark all as read" clears the count, an entry opens its chat.
@@ -75,5 +76,6 @@ test('the rookery lists what the ravens brought and marks it all read', async ()
   await entry.click();
   await expect(drawer).toBeHidden();
   await expectInside(a);
-  await expect(panel(a).getByText(text)).toBeVisible({ timeout: 30_000 });
+  // The message itself, not the aria-live toast that announces it on arrival.
+  await expect(panel(a).getByRole('article').filter({ hasText: text })).toBeVisible({ timeout: 30_000 });
 });

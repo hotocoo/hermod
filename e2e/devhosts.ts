@@ -1,5 +1,5 @@
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, openSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -26,7 +26,9 @@ async function stopAll(): Promise<void> {
       proc.kill('SIGKILL');
       await exited;
     }
-    rmSync(dir, { recursive: true, force: true });
+    if (process.env.E2E_DEVHOST_LOG) {
+      // Keep the data dir (and its hermod.log) for local debugging when E2E_DEVHOST_LOG is set.
+    } else rmSync(dir, { recursive: true, force: true });
   }
   running = [];
   killPorts();
@@ -46,7 +48,12 @@ function listening(proc: ChildProcess, port: number): Promise<void> {
 }
 
 function launch(port: number, dir: string): ChildProcess {
-  return spawn('target/debug/hermod-devhost', ['--data-dir', dir, '--port', String(port), '--listen', '/ip4/127.0.0.1/tcp/0'], { stdio: ['ignore', 'pipe', 'ignore'] });
+  // Local debugging only: E2E_DEVHOST_LOG=<dir> tees each devhost's stdout to a file.
+  const logDir = process.env.E2E_DEVHOST_LOG;
+  const stdio: NonNullable<Parameters<typeof spawn>[2]>['stdio'] = logDir
+    ? ['ignore', openSync(join(logDir, `devhost-${port}.log`), 'w'), 'ignore']
+    : ['ignore', 'pipe', 'ignore'];
+  return spawn('target/debug/hermod-devhost', ['--data-dir', dir, '--port', String(port), '--listen', '/ip4/127.0.0.1/tcp/0'], { stdio });
 }
 
 /**
