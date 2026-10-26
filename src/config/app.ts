@@ -14,6 +14,9 @@ export const STORAGE_KEYS = {
 /** Error text the core returns for every command while a passphrase-protected key is still locked (core `Error::Locked`). */
 export const LOCKED_ERROR = 'identity locked';
 
+/** Start of the error text while the OS keychain cannot return the identity key (core `Error::KeyUnavailable`). */
+export const KEY_UNAVAILABLE_PREFIX = 'identity key unavailable';
+
 /** Pseudo-author the core uses for system messages (meeting wrap-up, weave notices). Defined by the contract, not user data. */
 export const SYSTEM_ID = 'system';
 /** Kind of the personal Space and the id the core gives it. */

@@ -2476,6 +2476,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.21",
  "x25519-dalek",
+ "zeroize",
 ]
 
 [[package]]
@@ -2529,6 +2530,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "zeroize",
 ]
 
 [[package]]

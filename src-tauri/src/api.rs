@@ -162,6 +162,26 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         ctx.unlock(str_arg(a, "passphrase")?).await?;
         return Ok(Value::Null);
     }
+    // Recovery commands: they only need the closed data dir, so they work while the key cannot
+    // be read (passphrase forgotten, keychain entry gone).
+    match name {
+        "backup_import" => {
+            let path = PathBuf::from(str_arg(a, "path")?);
+            if !ctx.path_allowed(&path) {
+                return Err("choose the backup with the file picker first".into());
+            }
+            let pass = str_arg(a, "passphrase")?;
+            ctx.with_closed(move |dir| restore_backup(dir, &path, &pass))
+                .await?;
+            return Ok(Value::Null);
+        }
+        "app_reset" => {
+            ctx.with_closed(|dir| Core::wipe_data(dir).map_err(e))
+                .await?;
+            return Ok(Value::Null);
+        }
+        _ => {}
+    }
     let live = ctx.live().await?;
     match name {
         // ---- legal, identity ----
@@ -181,14 +201,13 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         "identity_get" => to_json(blk(&live, |c| c.identity().map_err(e)).await?),
         "identity_protect" => {
             let mode: hermod_core::keyguard::KeyMode = str_arg(a, "mode")?.parse().map_err(e)?;
-            let pass = opt_str(a, "passphrase");
-            let p = pass.clone();
+            let pass = opt_str(a, "passphrase").map(zeroize::Zeroizing::new);
             let info = blk(&live, move |c| {
-                c.identity_protect(mode, p.as_deref()).map_err(e)?;
+                c.identity_protect(mode, pass.as_ref().map(|p| p.as_str()))
+                    .map_err(e)?;
                 c.identity().map_err(e)
             })
             .await?;
-            ctx.set_passphrase(pass.filter(|_| mode == hermod_core::keyguard::KeyMode::Passphrase));
             to_json(info)
         }
         "profile_set" => {
@@ -584,23 +603,6 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             })
             .await?;
             Ok(out)
-        }
-        "backup_import" => {
-            let path = PathBuf::from(str_arg(a, "path")?);
-            if !ctx.path_allowed(&path) {
-                return Err("choose the backup with the file picker first".into());
-            }
-            let pass = str_arg(a, "passphrase")?;
-            drop(live);
-            ctx.with_closed(move |dir| restore_backup(dir, &path, &pass))
-                .await?;
-            Ok(Value::Null)
-        }
-        "app_reset" => {
-            drop(live);
-            ctx.with_closed(|dir| Core::wipe_data(dir).map_err(e))
-                .await?;
-            Ok(Value::Null)
         }
         "update_check" => {
             let shell = ctx

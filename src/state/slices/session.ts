@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { HOME_KIND, LOCKED_ERROR, STORAGE_KEYS } from '../../config/app';
+import { HOME_KIND, KEY_UNAVAILABLE_PREFIX, LOCKED_ERROR, STORAGE_KEYS } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { errorMessage, getBridge, type IdentityInfo } from '../../lib/bridge';
 import { LEGAL_VERSION } from '../../lib/legal';
@@ -41,6 +41,7 @@ export const createSessionSlice: StateCreator<AppStore, [], [], SessionSlice> = 
       } catch (e) {
         const msg = errorMessage(e);
         if (msg === LOCKED_ERROR) set({ phase: 'locked', bootError: null });
+        else if (msg.startsWith(KEY_UNAVAILABLE_PREFIX)) set({ phase: 'locked', bootError: msg });
         else set({ phase: 'failed', bootError: msg });
       }
     },

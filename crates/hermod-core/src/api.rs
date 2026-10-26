@@ -558,10 +558,12 @@ impl Core {
         Self::open_with(dir, CoreConfig::default())
     }
 
-    pub fn open_with(dir: impl AsRef<Path>, config: CoreConfig) -> Result<Self> {
+    pub fn open_with(dir: impl AsRef<Path>, mut config: CoreConfig) -> Result<Self> {
         let dir = dir.as_ref().to_path_buf();
         fs::create_dir_all(&dir)?;
         let identity = Identity::load_or_create_with(&dir, &config.unlock)?;
+        // The passphrase is only for reading the key file; do not keep it for the Core's lifetime.
+        config.unlock.passphrase = None;
         let store = Store::open_with(&dir.join(DB_FILE), config.rate.clone())?;
         let blobs = BlobStore::open(&dir)?;
         let user = identity.user_id();
@@ -634,7 +636,8 @@ impl Core {
     pub fn identity_protect(&self, mode: KeyMode, passphrase: Option<&str>) -> Result<()> {
         let unlock = Unlock {
             store: self.config.unlock.store.clone(),
-            passphrase: passphrase.map(str::to_string),
+            passphrase: passphrase.map(|p| zeroize::Zeroizing::new(p.to_string())),
+            legacy_account: None,
         };
         self.lock()
             .identity

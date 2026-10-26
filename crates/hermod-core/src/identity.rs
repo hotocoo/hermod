@@ -66,7 +66,13 @@ impl Identity {
         let raw = fs::read(path)?;
         let seed = keyguard::read_seed(&raw, unlock)?;
         restrict(path)?;
-        Ok(Self::from_seed(seed))
+        Ok(Self::from_seed(*seed))
+    }
+
+    /// Keychain account the key file at `dir` points at, if it is a keychain marker.
+    pub fn keychain_account_in(dir: &Path, unlock: &Unlock) -> Option<String> {
+        let raw = fs::read(dir.join(KEY_FILE)).ok()?;
+        keyguard::keychain_account(&raw, unlock)
     }
 
     /// Mode the key at `dir/identity.key` is stored in, or `None` before the first run.
@@ -80,7 +86,7 @@ impl Identity {
 
     /// Writes the key atomically with mode 0600 (unix).
     pub fn save(&self, path: &Path) -> Result<()> {
-        write_private(path, &self.seed())
+        write_private(path, &*zeroize::Zeroizing::new(self.seed()))
     }
 
     /// Moves the stored key to `mode`. The new store is written and read back first, and the old
@@ -94,15 +100,15 @@ impl Identity {
         kdf: KdfParams,
     ) -> Result<()> {
         let path = dir.join(KEY_FILE);
-        let was = Self::mode_in(dir)?;
-        let bytes = keyguard::encode(&self.seed(), mode, unlock, kdf)?;
+        let old_account = Self::keychain_account_in(dir, unlock);
+        let bytes = keyguard::encode(&zeroize::Zeroizing::new(self.seed()), mode, unlock, kdf)?;
         write_private(&path, &bytes)?;
-        // The file now points elsewhere or holds the sealed key; drop a keychain copy nothing uses.
-        if was == Some(KeyMode::Keychain)
-            && mode != KeyMode::Keychain
-            && let Some(store) = &unlock.store
+        // Only now, with the new file durable, drop the keychain copy nothing points at any more.
+        let new_account = keyguard::keychain_account(&bytes, unlock);
+        if let (Some(old), Some(store)) = (old_account, &unlock.store)
+            && Some(&old) != new_account.as_ref()
         {
-            let _ = store.delete();
+            store.delete(&old)?;
         }
         Ok(())
     }
@@ -132,6 +138,20 @@ fn write_private(path: &Path, bytes: &[u8]) -> Result<()> {
     f.sync_all()?;
     drop(f);
     fs::rename(&tmp, path)?;
+    sync_parent(path)
+}
+
+/// Makes the rename itself durable: without it a crash can bring back the old key file.
+#[cfg(unix)]
+fn sync_parent(path: &Path) -> Result<()> {
+    if let Some(dir) = path.parent() {
+        fs::File::open(dir)?.sync_all()?;
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn sync_parent(_path: &Path) -> Result<()> {
     Ok(())
 }
 
@@ -218,20 +238,45 @@ mod tests {
         assert!("not base58 !".parse::<UserId>().is_err());
     }
 
+    /// In-memory keychain that can be told to fail or lose entries.
     #[derive(Debug, Default)]
-    struct MemStore(std::sync::Mutex<Option<Vec<u8>>>);
+    struct MemStore {
+        map: std::sync::Mutex<std::collections::HashMap<String, Vec<u8>>>,
+        fail_set: std::sync::atomic::AtomicBool,
+        fail_get: std::sync::atomic::AtomicBool,
+    }
 
-    impl keyguard::SecretStore for MemStore {
-        fn get(&self) -> Result<Option<Vec<u8>>> {
-            Ok(self.0.lock().unwrap().clone())
+    impl SecretStore for MemStore {
+        fn get(&self, account: &str) -> Result<Option<Zeroizing<Vec<u8>>>> {
+            if self.fail_get.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(Error::Forbidden("access denied".into()));
+            }
+            Ok(self
+                .map
+                .lock()
+                .unwrap()
+                .get(account)
+                .map(|v| Zeroizing::new(v.clone())))
         }
-        fn set(&self, secret: &[u8]) -> Result<()> {
-            *self.0.lock().unwrap() = Some(secret.to_vec());
+        fn set(&self, account: &str, secret: &[u8]) -> Result<()> {
+            if self.fail_set.load(std::sync::atomic::Ordering::Relaxed) {
+                return Err(Error::Forbidden("access denied".into()));
+            }
+            self.map
+                .lock()
+                .unwrap()
+                .insert(account.to_string(), secret.to_vec());
             Ok(())
         }
-        fn delete(&self) -> Result<()> {
-            *self.0.lock().unwrap() = None;
+        fn delete(&self, account: &str) -> Result<()> {
+            self.map.lock().unwrap().remove(account);
             Ok(())
+        }
+    }
+
+    impl MemStore {
+        fn entries(&self) -> usize {
+            self.map.lock().unwrap().len()
         }
     }
 
@@ -244,12 +289,14 @@ mod tests {
     fn unlock(store: &Arc<MemStore>, pass: Option<&str>) -> Unlock {
         Unlock {
             store: Some(store.clone()),
-            passphrase: pass.map(str::to_string),
+            passphrase: pass.map(|p| Zeroizing::new(p.to_string())),
+            legacy_account: None,
         }
     }
 
     use crate::keyguard::SecretStore;
     use std::sync::Arc;
+    use zeroize::Zeroizing;
 
     #[test]
     fn every_mode_round_trips_and_migrates_without_loss() {
@@ -264,15 +311,43 @@ mod tests {
             KeyMode::Keychain,
             KeyMode::Passphrase,
             KeyMode::Keychain,
+            KeyMode::Keychain,
             KeyMode::File,
         ] {
             id.protect(dir.path(), mode, &u, FAST_KDF).unwrap();
             assert_eq!(Identity::mode_in(dir.path()).unwrap(), Some(mode));
             let back = Identity::load_or_create_with(dir.path(), &u).unwrap();
             assert_eq!(back.user_id(), want);
+            // Never more than the one live keychain entry, and none once off the keychain.
+            assert_eq!(store.entries(), usize::from(mode == KeyMode::Keychain));
         }
-        // Back on a plain file the unused keychain copy is gone.
-        assert!(store.get().unwrap().is_none());
+    }
+
+    #[test]
+    fn keychain_key_survives_moving_the_data_dir() {
+        let a = tempfile::tempdir().unwrap();
+        let b = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemStore::default());
+        let id = Identity::load_or_create(a.path()).unwrap();
+        id.protect(a.path(), KeyMode::Keychain, &unlock(&store, None), FAST_KDF)
+            .unwrap();
+        fs::copy(a.path().join(KEY_FILE), b.path().join(KEY_FILE)).unwrap();
+        let moved = Identity::load_or_create_with(b.path(), &unlock(&store, None)).unwrap();
+        assert_eq!(moved.user_id(), id.user_id());
+    }
+
+    #[test]
+    fn legacy_keychain_marker_reads_through_the_old_account() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemStore::default());
+        let id = Identity::generate();
+        store.set("old-dir-hash", &id.seed()).unwrap();
+        fs::write(dir.path().join(KEY_FILE), b"HRMDKC1\0").unwrap();
+        let mut u = unlock(&store, None);
+        assert!(Identity::load_or_create_with(dir.path(), &u).is_err());
+        u.legacy_account = Some("old-dir-hash".into());
+        let back = Identity::load_or_create_with(dir.path(), &u).unwrap();
+        assert_eq!(back.user_id(), id.user_id());
     }
 
     #[test]
@@ -297,21 +372,88 @@ mod tests {
     }
 
     #[test]
+    fn truncated_or_garbled_sealed_file_is_refused_not_a_panic() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemStore::default());
+        let u = unlock(&store, Some("correct horse"));
+        let id = Identity::load_or_create(dir.path()).unwrap();
+        id.protect(dir.path(), KeyMode::Passphrase, &u, FAST_KDF)
+            .unwrap();
+        let path = dir.path().join(KEY_FILE);
+        let good = fs::read(&path).unwrap();
+        let mut cases: Vec<Vec<u8>> = (8..good.len())
+            .step_by(7)
+            .map(|n| good[..n].to_vec())
+            .collect();
+        let mut flipped = good.clone();
+        *flipped.last_mut().unwrap() ^= 1;
+        cases.push(flipped);
+        let mut huge_cost = good.clone();
+        huge_cost[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
+        cases.push(huge_cost);
+        for bad in cases {
+            fs::write(&path, &bad).unwrap();
+            assert!(
+                Identity::load_with(&path, &u).is_err(),
+                "{} bytes",
+                bad.len()
+            );
+        }
+        fs::write(&path, &good).unwrap();
+        assert_eq!(
+            Identity::load_with(&path, &u).unwrap().user_id(),
+            id.user_id()
+        );
+    }
+
+    #[test]
     fn failed_migration_keeps_the_old_key_readable() {
         let dir = tempfile::tempdir().unwrap();
         let id = Identity::load_or_create(dir.path()).unwrap();
-        // No keychain available, and a passphrase that is too short.
-        for (mode, pass) in [
-            (KeyMode::Keychain, None),
-            (KeyMode::Passphrase, Some("short")),
-        ] {
-            let u = Unlock {
-                store: None,
-                passphrase: pass.map(str::to_string),
-            };
-            assert!(id.protect(dir.path(), mode, &u, FAST_KDF).is_err());
-            let still = Identity::load_or_create(dir.path()).unwrap();
-            assert_eq!(still.user_id(), id.user_id());
+        let before = fs::read(dir.path().join(KEY_FILE)).unwrap();
+        let store = Arc::new(MemStore::default());
+        store
+            .fail_set
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let cases = [
+            (Unlock::default(), KeyMode::Keychain),
+            (unlock(&store, Some("short")), KeyMode::Passphrase),
+            (unlock(&store, None), KeyMode::Keychain),
+        ];
+        for (u, mode) in &cases {
+            assert!(id.protect(dir.path(), *mode, u, FAST_KDF).is_err());
+            assert_eq!(fs::read(dir.path().join(KEY_FILE)).unwrap(), before);
         }
+    }
+
+    #[test]
+    fn keychain_entry_gone_is_reported_as_key_unavailable() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Arc::new(MemStore::default());
+        let id = Identity::load_or_create(dir.path()).unwrap();
+        id.protect(
+            dir.path(),
+            KeyMode::Keychain,
+            &unlock(&store, None),
+            FAST_KDF,
+        )
+        .unwrap();
+        let empty = Arc::new(MemStore::default());
+        let path = dir.path().join(KEY_FILE);
+        assert!(matches!(
+            Identity::load_with(&path, &unlock(&empty, None)),
+            Err(Error::KeyUnavailable(_))
+        ));
+        store
+            .fail_get
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        assert!(matches!(
+            Identity::load_with(&path, &unlock(&store, None)),
+            Err(Error::KeyUnavailable(_))
+        ));
+        assert!(matches!(
+            Identity::load_with(&path, &Unlock::default()),
+            Err(Error::KeyUnavailable(_))
+        ));
     }
 }

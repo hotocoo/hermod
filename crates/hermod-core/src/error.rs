@@ -16,6 +16,10 @@ pub enum Error {
     /// Display text is matched by the UI (`LOCKED_ERROR` in src/config/app.ts).
     #[error("identity locked")]
     Locked,
+    /// The keychain cannot give the key back. Text starts with the prefix the UI matches
+    /// (`KEY_UNAVAILABLE_PREFIX` in src/config/app.ts).
+    #[error("identity key unavailable: {0}")]
+    KeyUnavailable(String),
     #[error("decryption failed")]
     Decrypt,
     #[error("bad signature")]

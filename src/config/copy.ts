@@ -72,6 +72,11 @@ export const COPY = {
   keyApply: 'Apply', keyChanged: 'Key storage changed', keyPassMismatch: 'The passphrases do not match.',
   unlockKicker: 'Locked', unlockTitle: 'Enter your passphrase', unlockLead: 'Your secret key is sealed with a passphrase. Hermod opens once you enter it.',
   unlockLabel: 'Passphrase', unlockSubmit: 'Unlock',
+  recoverTitle: 'Your secret key cannot be read', recoverLead: 'The system keychain did not give the key back. Restore a backup to continue as yourself, or start over with a new identity.',
+  recoverRestore: 'Restore from backup', recoverRestorePass: 'Backup passphrase', recoverRestorePath: 'Backup file path',
+  recoverReset: 'Start over', recoverResetTitle: 'Delete everything and start over?',
+  recoverResetBody: 'This removes your identity key, every space and every file on this device, and creates a new identity. Without a backup it cannot be undone.',
+  recoverResetConfirm: 'Delete everything', recoverResetTyped: 'DELETE',
   safetyNumber: 'Safety number', safetyComputing: 'Computing', safetyOther: 'the other person',
   safetyNote: (peer: string) => `Read it out to ${peer}. It matches when both devices hold the same keys.`,
 } as const;
