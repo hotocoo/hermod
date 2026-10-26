@@ -667,8 +667,9 @@ impl SpaceState {
                 pronouns,
             } => {
                 let p = self.msgx.profiles.entry(by.to_string()).or_default();
-                if banner.is_some() {
-                    p.banner = banner.clone();
+                // A malformed hash from a peer never projects (it is rendered into URLs).
+                if let Some(b) = banner.as_ref().filter(|b| b.has_valid_hash()) {
+                    p.banner = Some(b.clone());
                 }
                 if let Some(s) = status {
                     p.status = clip(s.trim(), MAX_STATUS);

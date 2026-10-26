@@ -3,6 +3,7 @@ import { useTrap } from '@/components/ui/useTrap';
 import type { ViewModel } from '@/state/viewModel';
 import s from './Profile.module.css';
 import { Face } from '@/components/ui/Face';
+import { cssUrl } from '@/lib/blobHash';
 import { blobUrl } from '@/lib/upload';
 
 export function Profile({ vm }: { vm: ViewModel }) {
@@ -15,7 +16,7 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
   return (
     <div className={s.backdrop} onClick={closeProfile}>
       <div ref={trapRef} onKeyDown={trapKeys} className={s.dialog} onClick={stop} role="dialog" aria-modal="true" aria-label="Profile">
-        <div className={s.cover} style={prof.ext?.banner ? { backgroundImage: `url(${blobUrl(prof.ext.banner.hash)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+        <div className={s.cover} style={prof.ext?.banner ? { backgroundImage: cssUrl(blobUrl(prof.ext.banner.hash)), backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
           <button className={s.closeBtn} onClick={closeProfile} aria-label="Close">{icS.x}</button>
         </div>
         <div className={s.body}>
@@ -65,7 +66,7 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
           {profEmpty ? <p className={s.bio}>Nothing here yet.</p> : null}
           <div className={s.grid}>
             {profGrid.map((pg, i) => (
-              <div className={s.tile} style={{ aspectRatio: pg.ar, animation: pg.anim, backgroundImage: pg.url ? `url(${pg.url})` : undefined, backgroundSize: 'cover' }} key={i}>
+              <div className={s.tile} style={{ aspectRatio: pg.ar, animation: pg.anim, backgroundImage: cssUrl(pg.url), backgroundSize: 'cover' }} key={i}>
                 {pg.url ? null : <span className={s.tileLabel}>{pg.label}</span>}
               </div>
             ))}

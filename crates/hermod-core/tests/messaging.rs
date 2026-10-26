@@ -831,6 +831,31 @@ fn nicknames_and_profile_extras() {
 }
 
 #[test]
+fn profile_ext_banner_with_a_malformed_hash_never_projects() {
+    let mut w = world();
+    let mut bad = blob("b.png", "image/png");
+    bad.hash = "x\") ; background:url(https://evil.example/p.png".into();
+    w.log.push(
+        &w.bea,
+        NOW - MIN,
+        EventBody::ProfileExt {
+            banner: Some(bad),
+            status: Some("hi".into()),
+            status_emoji: None,
+            status_until: None,
+            pronouns: None,
+        },
+    );
+    let v = &w.snap_for(w.ada, NOW).collections.messaging.spaces[&w.sid.to_string()];
+    let p = &v.profiles[&w.bea.to_string()];
+    assert!(
+        p.banner.is_none(),
+        "a hostile hash must not become a banner"
+    );
+    assert_eq!(p.status, "hi", "the rest of the event still applies");
+}
+
+#[test]
 fn dm_requests_show_only_to_the_addressee_until_joined_and_skip_blocked() {
     let mut w = world();
     let dm = SpaceId::random();

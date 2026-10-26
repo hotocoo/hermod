@@ -765,7 +765,8 @@ impl SpaceState {
                         name: name.clone(),
                         bio: bio.clone(),
                         initials: initials.clone(),
-                        avatar: avatar.clone(),
+                        // A malformed hash from a peer never projects (it is rendered into URLs).
+                        avatar: avatar.clone().filter(BlobRef::has_valid_hash),
                         ord: (ev.lamport, ev.seq),
                     },
                 );

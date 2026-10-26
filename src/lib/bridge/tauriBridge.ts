@@ -1,3 +1,4 @@
+import { isBlobHash } from '../blobHash';
 import { BridgeError, createBridge, type Transport } from './bridge';
 
 const asError = (command: string, e: unknown) => new BridgeError(command, typeof e === 'string' ? e : e instanceof Error ? e.message : JSON.stringify(e));
@@ -23,7 +24,7 @@ const tauriTransport: Transport = {
       .catch((e) => console.error(`listen ${event} failed`, e));
     return () => { dead = true; off?.(); };
   },
-  blobUrl: (hash) => `hermod-blob://${hash}`,
+  blobUrl: (hash) => (isBlobHash(hash) ? `hermod-blob://${hash}` : ''),
 };
 
 export const tauriBridge = createBridge(tauriTransport);
