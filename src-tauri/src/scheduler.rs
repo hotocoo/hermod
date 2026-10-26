@@ -282,4 +282,70 @@ mod tests {
         d.note(&ev(CHANGED_EVENT, json!({})));
         assert!(d.all);
     }
+
+    use crate::ctx::Options;
+    use serde_json::Value;
+
+    async fn call(c: &Arc<Ctx>, name: &str, args: Value) -> Value {
+        crate::api::handle(c, name, args)
+            .await
+            .unwrap_or_else(|e| panic!("{name}: {e}"))
+    }
+
+    fn post(space: &str, msg_id: &str, text: &str) -> Value {
+        json!({"spaceId": space, "body": {
+            "t": "message.post", "channel_id": "general", "msg_id": msg_id, "text": text, "attachments": []}})
+    }
+
+    /// M-052: a keyword rule authored by this user answers a matching message once, and not a
+    /// message that does not match.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn keyword_rule_fires_a_reply_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let c = Ctx::open(
+            dir.path().to_path_buf(),
+            Options::localhost(None, vec![]),
+            None,
+        )
+        .await
+        .unwrap();
+        let sp = call(
+            &c,
+            "space_create",
+            json!({"name": "Bots", "tagline": "t", "kind": "Team"}),
+        )
+        .await;
+        let space = sp["space_id"].as_str().unwrap().to_string();
+        call(&c, "event_append", json!({"spaceId": space, "body": {
+            "t": "automation.set", "id": "r1", "name": "Kiln alerts", "enabled": true,
+            "trigger": {"kind": "keyword", "channel": "general", "words": ["kiln"]},
+            "action": {"kind": "post_message", "channel": "general", "text": "Ticket noted: {{text}}"}}})).await;
+        // A rule only answers events newer than itself.
+        tokio::time::sleep(Duration::from_millis(5)).await;
+        call(&c, "event_append", post(&space, "m1", "the kiln is hot")).await;
+        call(&c, "event_append", post(&space, "m2", "lunch?")).await;
+
+        let mut fired = HashMap::new();
+        run_automation(&c, &mut fired).await;
+        let page = |c: Arc<Ctx>, space: String| async move {
+            call(
+                &c,
+                "messages_page",
+                json!({"spaceId": space, "channelId": "general"}),
+            )
+            .await
+            .to_string()
+        };
+        let after = page(c.clone(), space.clone()).await;
+        assert_eq!(
+            after.matches("Ticket noted: the kiln is hot").count(),
+            1,
+            "{after}"
+        );
+        assert!(!after.contains("Ticket noted: lunch?"));
+
+        run_automation(&c, &mut fired).await;
+        let again = page(c.clone(), space.clone()).await;
+        assert_eq!(again.matches("Ticket noted:").count(), 1, "answered once");
+    }
 }

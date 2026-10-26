@@ -11,6 +11,7 @@ import type {
   ArcadeHints, BaseMats, ClockMode, Fx, Hints, HouseActor, MiniIsle, PersonActor, PickId, Plot, Plots, RavenSource, RingFn, RingFx, SpaceInfo, ThreadActor, TownApi, TownMode, TownOptions, Visitor,
 } from './types';
 import { isMesh } from './util';
+import { capFps, savedFrameCap, tooSoon } from './frameLimit';
 import { createWeather } from './weather';
 import { disposeTree, sharedOf } from './dispose';
 import { createWorld } from './world';
@@ -482,7 +483,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
  
  let last = performance.now(); let raf = 0; const t0 = last;
   /** CPU rasteriser only: while the camera rests, GPU work (every pass) drops to a slow heartbeat; the simulation still steps each allowed frame, so springs and timers keep real time. True = skip this frame's draw. */
-  let lastSoftDraw = 0;
+  let lastSoftDraw = 0; let fpsCap = capFps(savedFrameCap());
   const softHold = (now: number, settled: boolean) => { if (!soft || gating > 0 || !settled || now - lastSoftDraw >= 1000 / QUALITY_DETECT.softwareIdleFps) { lastSoftDraw = now; return false; } return true; };
   let errLogged = false;
   let lastProg = 0, lastTex = 0;
@@ -495,6 +496,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
   function frame(now: number) { const t0f = performance.now(); try { frameInner(now); } catch (e) { if (!errLogged) { errLogged = true; console.error('Town frame: ' + ((e as Error) && (e as Error).stack || e)); } }  const ms = performance.now() - t0f; gi.noteFrame(ms); if (ms > 40 && gating === 0) { const mi = renderer.info; const progs = mi.programs?.length ?? 0; console.info(`[spike] frame ${ms.toFixed(0)} ms | programs ${progs} (+${progs - lastProg}) textures ${mi.memory.textures} (+${mi.memory.textures - lastTex}) geometries ${mi.memory.geometries} calls ${mi.render.calls} tris ${mi.render.triangles} | mode ${mode} tier ${tier} still ${still.engaged ? 'on' : 'off'} gi ${gi.progress.toFixed(2)}`); } lastProg = renderer.info.programs?.length ?? 0; lastTex = renderer.info.memory.textures; }
   function frameInner(now: number) {
     if (!alive) return; raf = requestAnimationFrame(frame);
+    if (tooSoon(now, last, fpsCap)) return; // user frame cap / low-power mode (T-018)
     if (soft && now - last < 1000 / QUALITY_DETECT.softwareFps) return; // software GL: capped rate; 'last' only moves on drawn frames, so adaptive sees real frame times
     if (idle > DIRECTOR.idleThrottleAfter && mode === 'island' && !focusId && !down && (++skipTick & 1)) { adaptive.reset(); return; } // a throttled frame is not a slow one: rawDt would span two frames // ambient motion only: half rate
     const rawDt = (now - last) / 1000; if (autoQ && !soft && rawDt > 0 && !warming && gating === 0) adaptive.push(rawDt); else if (warming || gating > 0) adaptive.reset(); const dt = Math.max(0, Math.min(0.05, rawDt)); last = Math.max(last, now); const t = (now - t0) / 1000;
@@ -687,6 +689,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     setPhoto(on) { photo = !!on; photoK.t = on ? 1 : 0; idle = 0; },
     snapshotStill: (samples) => still.capture(samples),
     snapshot() { pipeline.render(0); return renderer.domElement.toDataURL('image/png'); },
+    setFrameCap(id) { fpsCap = capFps(id); adaptive.reset(); },
     setQuality(t) { if (t === 'auto') { autoQ = true; try { window.localStorage.removeItem('hermod.quality'); } catch { /* storage blocked */ } applyQuality(autoTier()); } else { autoQ = false; try { window.localStorage.setItem('hermod.quality', t); } catch { /* storage blocked */ } applyQuality(t); } adaptive.reset(); },
     setMapStyle(st) { if (st === 'default') { setLocalMapStyle(null); switchStyle(resolveMapStyle(spaceStyle, null)); } else { setLocalMapStyle(st); switchStyle(st); } },
     getMapStyle: () => ({ style: styleId, local: getLocalMapStyle() !== null }),

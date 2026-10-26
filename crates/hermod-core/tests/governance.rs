@@ -807,13 +807,56 @@ fn search_finds_across_types_and_honours_removal_and_blocks() {
         },
     )
     .unwrap();
+    a.append(
+        &s,
+        EventBody::BoardCreate {
+            board_id: "bd".into(),
+            name: "Studio".into(),
+            due: String::new(),
+            cols: vec![],
+        },
+    )
+    .unwrap();
+    a.append(
+        &s,
+        EventBody::ColumnCreate {
+            board_id: "bd".into(),
+            col_id: "todo".into(),
+            name: "Todo".into(),
+        },
+    )
+    .unwrap();
+    a.append(
+        &s,
+        EventBody::CardCreate {
+            board_id: "bd".into(),
+            card_id: "cd".into(),
+            col_id: "todo".into(),
+            title: "Reline the kiln".into(),
+            tag: String::new(),
+            snap: None,
+        },
+    )
+    .unwrap();
+    a.append(
+        &s,
+        EventBody::SnapCreate {
+            snap_id: "sn".into(),
+            line_id: "ln".into(),
+            title: "Kiln schedule".into(),
+            kind: "Code".into(),
+            files: vec![],
+            parent: None,
+        },
+    )
+    .unwrap();
     b.append(&s, post_msg("general", "k2", "glazes for the kiln"))
         .unwrap();
     sync(&a, &b, &s);
     sync(&b, &a, &s);
     let hits = a.search_query("kil", None, &[], 20).unwrap();
     let kinds: Vec<_> = hits.iter().map(|h| h.kind.as_str()).collect();
-    for k in ["message", "post", "doc", "event"] {
+    for k in ["message", "post", "doc", "event", "card", "snap"] {
         assert!(kinds.contains(&k), "{k} in {kinds:?}");
     }
     assert!(hits[0].snippet.contains('\u{1}'), "match is highlighted");
@@ -995,13 +1038,38 @@ fn storage_usage_counts_events_and_referenced_blobs() {
 fn migrations_upgrade_old_schema_and_report_corruption() {
     use hermod_core::migrations;
     let d = tempfile::tempdir().unwrap();
-    let path = d.path().join("old.db");
+    let db = d.path().join(hermod_core::api::DB_FILE);
     {
-        let mut conn = rusqlite::Connection::open(&path).unwrap();
+        let mut conn = rusqlite::Connection::open(&db).unwrap();
         migrations::migrate_to(&mut conn, 1).unwrap();
         assert_eq!(migrations::version(&conn).unwrap(), 1);
-        conn.execute("INSERT INTO spaces(space_id, space_key, name, kind, joined_at) VALUES (x'01', x'0202', 'Old', 'Team', 1)", []).unwrap();
+        conn.execute("INSERT INTO spaces(space_id, space_key, name, kind, joined_at) VALUES (zeroblob(32), zeroblob(32), 'Old', 'Team', 1)", []).unwrap();
     }
+    // Reopen the v1 database with current code: it migrates and the old row survives.
+    let c = Core::open(d.path()).unwrap();
+    assert_eq!(c.schema_version().unwrap(), migrations::LATEST);
+    c.integrity_check().unwrap();
+    drop(c);
+    let conn = rusqlite::Connection::open(&db).unwrap();
+    let name: String = conn
+        .query_row(
+            "SELECT name FROM spaces WHERE space_id = zeroblob(32)",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(name, "Old");
+    let epoch_keys: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM space_keys WHERE space_id = zeroblob(32)",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(epoch_keys, 1, "the v2 migration backfilled the genesis key");
+    drop(conn);
+
+    // A corrupt database is reported, never a panic.
     let bad = d.path().join("bad.db");
     std::fs::write(
         &bad,
@@ -1012,9 +1080,9 @@ fn migrations_upgrade_old_schema_and_report_corruption() {
         hermod_core::store::Store::open(&bad),
         Err(Error::Corrupt(_))
     ));
-    let c = Core::open(tempfile::tempdir().unwrap().path()).unwrap();
-    assert_eq!(c.schema_version().unwrap(), migrations::LATEST);
-    c.integrity_check().unwrap();
+    let bad_dir = tempfile::tempdir().unwrap();
+    std::fs::copy(&bad, bad_dir.path().join(hermod_core::api::DB_FILE)).unwrap();
+    assert!(matches!(Core::open(bad_dir.path()), Err(Error::Corrupt(_))));
 }
 
 #[test]

@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   /** Appearance overrides (text size multiplier, motion: system | reduce). */
   textScale: 'hermodr.textScale',
   motion: 'hermodr.motion',
+  /** Render frame cap / low-power mode: an id from FRAME_LIMIT.options (config/scene.ts). */
+  fpsCap: 'hermodr.fpsCap',
 } as const;
 
 /** Error text the core returns for every command while a passphrase-protected key is still locked (core `Error::Locked`). */

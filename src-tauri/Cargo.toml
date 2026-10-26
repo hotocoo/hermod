@@ -55,6 +55,7 @@ tower-http = { version = "0.6", optional = true, features = ["cors"] }
 tokio-stream = { version = "0.1", optional = true, features = ["sync"] }
 clap = { version = "4", optional = true, features = ["derive"] }
 tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter"] }
+tauri-plugin-window-state = "2"
 
 # OS keychain for the identity key (E-013): one native backend per platform.
 [target.'cfg(target_os = "macos")'.dependencies]
