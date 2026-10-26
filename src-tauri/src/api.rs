@@ -902,15 +902,14 @@ async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<Pat
 /// and decrypting the backup happens once; the live data is set aside and deleted only after
 /// every staged file is in place.
 fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> Res<()> {
-    let probe = dir.with_extension("restore-check");
+    let probe = crate::restore::staged_path(dir);
     let _ = std::fs::remove_dir_all(&probe);
     if let Err(x) = Core::backup_import(&probe, file, pass) {
         let _ = std::fs::remove_dir_all(&probe);
         return Err(format!("cannot restore this backup: {x}"));
     }
-    let aside = dir.with_extension("restore-old");
     // On a failed swap the old data is back in place and the staged copy stays in `probe`.
-    crate::restore::swap_data(dir, &probe, &aside, &|a, b| std::fs::rename(a, b))?;
+    crate::restore::swap_data(dir, &|a, b| std::fs::rename(a, b), &|_| {})?;
     if let Err(x) = std::fs::remove_dir_all(&probe) {
         tracing::warn!("could not remove the restore scratch folder: {x}");
     }
