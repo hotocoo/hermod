@@ -42,7 +42,7 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13px;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 .south {

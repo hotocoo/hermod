@@ -50,7 +50,7 @@
   font-family: var(--font-heading);
   font-size: 20px;
   line-height: 1;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
 }
 .compassBtn:hover {
   background: color-mix(in srgb,var(--color-text) 7%,transparent) !important;

@@ -1,7 +1,7 @@
 .head { display: flex; align-items: flex-end; gap: 18px; padding: 24px 40px 16px; border-bottom: 1px solid var(--color-divider); animation: hm-fade 300ms ease both; }
 .headMain { flex: 1; min-width: 0; }
 .name { margin: 0; font-family: var(--font-heading); font-weight: 400; font-size: 30px; line-height: 1.1; display: flex; align-items: baseline; gap: 6px; }
-.hash { color: var(--color-accent); font-style: italic; }
+.hash { color: var(--color-accent-text); font-style: italic; }
 .topic { margin: 4px 0 0; font-size: 13px; font-style: italic; color: color-mix(in srgb, var(--color-text) 62%, transparent); }
 .drop {
   display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 1px solid var(--color-accent); border-radius: 6px; background: transparent;
@@ -17,7 +17,7 @@
 .today { display: flex; align-items: center; gap: 14px; margin: 0 0 14px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--color-text) 50%, transparent); }
 .rule { flex: 1; height: 1px; background: var(--color-divider); }
 .quiet { padding: 80px 20px; text-align: center; animation: hm-rise 500ms cubic-bezier(.22,1,.36,1) both; }
-.eth { font-family: var(--font-heading); font-style: italic; font-size: 64px; line-height: 1; color: var(--color-accent); }
+.eth { font-family: var(--font-heading); font-style: italic; font-size: 64px; line-height: 1; color: var(--color-accent-text); }
 .quietTitle { margin: 14px 0 6px; font-family: var(--font-heading); font-weight: 400; font-size: 28px; }
 .quietLine { margin: 0 auto; max-width: 360px; font-size: 14px; color: color-mix(in srgb, var(--color-text) 64%, transparent); text-wrap: pretty; }
 
@@ -42,7 +42,7 @@
   border: 1px solid var(--color-divider); border-radius: 8px; background: transparent; transition: border-color 220ms ease, transform 300ms cubic-bezier(.22,1,.36,1);
 }
 .snap:hover { border-color: var(--color-accent); transform: translateY(-1px); }
-.snapIcon { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--color-accent); display: grid; place-items: center; color: var(--color-accent); flex: none; }
+.snapIcon { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--color-accent); display: grid; place-items: center; color: var(--color-accent-text); flex: none; }
 .snapBody { flex: 1; min-width: 0; }
 .snapKick { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-accent-700); }
 .snapTitle { display: block; font-family: var(--font-heading); font-weight: 600; font-size: 17px; line-height: 1.25; }
@@ -70,7 +70,7 @@
 .box { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 8px; border: 1px solid var(--color-divider); border-radius: 10px; transition: border-color 200ms ease; }
 .box:focus-within, .tbox:focus-within { border-color: var(--color-accent); }
 .tool { width: 34px; height: 34px; border: 0; border-radius: 6px; background: transparent; display: grid; place-items: center; color: color-mix(in srgb, var(--color-text) 60%, transparent); }
-.tool:hover { color: var(--color-accent); }
+.tool:hover { color: var(--color-accent-text); }
 .input { flex: 1; min-width: 0; height: 36px; border: 0; outline: none; background: transparent; font-family: var(--font-body); font-size: 15px; color: var(--color-text); caret-color: var(--color-accent); }
 .send { width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--color-divider); background: transparent; display: grid; place-items: center; transition: color 200ms ease, border-color 200ms ease; }
 .send:hover { border-color: var(--color-accent); }
@@ -102,7 +102,7 @@
 .tComposer { padding: 12px 22px 20px; }
 .tbox { display: flex; gap: 6px; padding: 5px 5px 5px 12px; border: 1px solid var(--color-divider); border-radius: 10px; }
 .tInput { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-family: var(--font-body); font-size: 14px; color: var(--color-text); }
-.tSend { width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--color-divider); background: transparent; display: grid; place-items: center; color: var(--color-accent); }
+.tSend { width: 34px; height: 34px; border-radius: 7px; border: 1px solid var(--color-divider); background: transparent; display: grid; place-items: center; color: var(--color-accent-text); }
 
 /* layout: channel list + main column */
 .layout { position: relative; flex: 1; min-height: 0; display: flex; }

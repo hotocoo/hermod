@@ -11,7 +11,7 @@
 .fresh { max-width: 420px; }
 .plotIcon {
   width: 84px; height: 84px; margin: 0 auto 18px; border: 1px dashed var(--color-accent); border-radius: 8px;
-  display: grid; place-items: center; color: var(--color-accent);
+  display: grid; place-items: center; color: var(--color-accent-text);
 }
 .plotTitle { margin: 8px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 34px; line-height: 1.1; }
 .plotLine { margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
@@ -21,7 +21,7 @@
 }
 .raise:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .raise:active { transform: scale(.97); }
-.eth { font-family: var(--font-heading); font-style: italic; font-size: 64px; line-height: 1; color: var(--color-accent); }
+.eth { font-family: var(--font-heading); font-style: italic; font-size: 64px; line-height: 1; color: var(--color-accent-text); }
 .freshTitle { margin: 10px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 32px; }
 .freshLine { margin: 0; font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
 .head { display: flex; align-items: center; gap: 14px; padding: 16px 20px 14px; border-bottom: 1px solid var(--color-divider); }

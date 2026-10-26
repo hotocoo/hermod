@@ -83,7 +83,7 @@
 }
 .newBtn:hover {
   border-color: var(--color-accent) !important;
-  color: var(--color-accent) !important;
+  color: var(--color-accent-text) !important;
 }
 
 /* Phones: stop above the bottom bar (46px bar + 24px inset + gap) so the rail never covers it; it scrolls inside. */

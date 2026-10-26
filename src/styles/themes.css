@@ -4,6 +4,9 @@
   --color-surface: #eae9e9;
   --color-text: #201f1d;
   --color-accent: #b68235;
+  /* X-005: accent as normal-size text must clear AA 4.5:1; the raw accent (3.0:1) stays for
+     borders, fills and large text. Dark's accent already clears AA, so it maps to itself. */
+  --color-accent-text: var(--color-accent-700);
   --color-divider: color-mix(in srgb, #201f1d 16%, transparent);
   --color-neutral-100: #f8f4f4;
   --color-neutral-200: #eae7e7;

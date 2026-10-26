@@ -21,7 +21,7 @@
   font-family: var(--font-heading);
   font-style: italic;
   font-size: 32px;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   background: color-mix(in srgb,var(--color-bg) 80%,transparent);
   backdrop-filter: blur(8px);
 }

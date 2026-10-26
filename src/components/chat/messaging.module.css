@@ -22,7 +22,7 @@
 .quoteText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: color-mix(in srgb, var(--color-text) 72%, transparent); }
 .fwd { display: inline-flex; align-items: center; gap: 5px; margin-top: 4px; font-size: 12px; font-style: italic; color: color-mix(in srgb, var(--color-text) 62%, transparent); }
 .voice { display: flex; align-items: center; gap: 10px; max-width: 360px; padding: 8px 12px; border: 1px solid var(--color-divider); border-radius: 22px; }
-.playBtn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--color-accent); background: transparent; color: var(--color-accent); display: grid; place-items: center; flex: none; }
+.playBtn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--color-accent); background: transparent; color: var(--color-accent-text); display: grid; place-items: center; flex: none; }
 .playBtn:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .wave { flex: 1; min-width: 0; display: flex; align-items: center; gap: 2px; height: 30px; cursor: pointer; }
 .bar { flex: 1; min-width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--color-text) 30%, transparent); }
@@ -42,7 +42,7 @@
 .previewUrl { font-size: 11px; color: var(--color-accent-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .meta { display: inline-flex; align-items: center; gap: 8px; margin-left: 8px; font-size: 11px; color: color-mix(in srgb, var(--color-text) 52%, transparent); }
 .tick { letter-spacing: -3px; }
-.tickRead { color: var(--color-accent); }
+.tickRead { color: var(--color-accent-text); }
 .badge { display: inline-block; padding: 0 7px; border: 1px solid var(--color-divider); border-radius: 10px; font-size: 11px; line-height: 18px; }
 .badgeOn { border-color: var(--color-accent); color: var(--color-accent-700); }
 .sep { display: flex; align-items: center; gap: 12px; margin: 10px 0; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #b3392b; }
@@ -54,7 +54,7 @@
 .replyBar, .infoBar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid var(--color-divider); }
 .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tools { display: flex; align-items: center; gap: 2px; padding: 0 4px; }
-.toolOn { color: var(--color-accent) !important; }
+.toolOn { color: var(--color-accent-text) !important; }
 .panel { position: absolute; bottom: 100%; left: 0; margin-bottom: 6px; z-index: 6; width: min(360px, 92vw); max-height: 340px; display: flex; flex-direction: column; border: 1px solid var(--color-divider); border-radius: 10px; background: var(--color-bg); box-shadow: var(--shadow-lg); }
 .panelHead { display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid var(--color-divider); overflow-x: auto; }
 .tab { border: 0; border-radius: 6px; background: transparent; padding: 4px 9px; font-size: 12px; white-space: nowrap; }

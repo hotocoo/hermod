@@ -16,7 +16,7 @@
   font-style: italic;
   font-size: 72px;
   line-height: 1;
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   animation: hm-breathe 1.8s ease-in-out infinite;
 }
 
