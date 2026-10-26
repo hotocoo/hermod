@@ -22,6 +22,12 @@ export const SYSTEM_ID = 'system';
 /** Kind of the personal Space and the id the core gives it. */
 export const HOME_KIND = 'Personal';
 export const HOME_ID = 'home';
+/** Join proof-of-work choices in leading zero bits (0 = off). Keep the top in step with core `pow::MAX_JOIN_POW_BITS`. */
+export const JOIN_POW_CHOICES: readonly number[] = [0, 12, 16, 20, 24];
+
+/** Words in a recovery phrase (core `identity::PHRASE_WORDS`). */
+export const PHRASE_WORDS = 24;
+
 /** Kind of a direct or group message Space (made by `dm_start`, shared only by its members). */
 export const DM_KIND = 'dm';
 

@@ -5,6 +5,17 @@ const base = (extra: Partial<Transport>): Transport => ({
   kind: 'tauri', call: vi.fn(async () => ({}) as never), listen: () => () => {}, blobUrl: (h) => h, ...extra,
 });
 
+describe('recovery phrase', () => {
+  it('asks for the phrase with an explicit confirm and restores through identity_restore_phrase', async () => {
+    const t = base({});
+    const b = createBridge(t);
+    await b.identityPhrase(true);
+    expect(t.call).toHaveBeenCalledWith('identity_phrase', { confirm: true });
+    await b.identityRestorePhrase('one two');
+    expect(t.call).toHaveBeenCalledWith('identity_restore_phrase', { phrase: 'one two' });
+  });
+});
+
 describe('key protection', () => {
   it('sends the mode and passphrase to identity_protect and unlock to identity_unlock', async () => {
     const t = base({});

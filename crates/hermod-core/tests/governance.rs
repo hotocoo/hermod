@@ -147,6 +147,7 @@ fn role_table_every_event_type_is_gated() {
                 tagline: None,
                 sections: None,
                 map_style: None,
+                join_pow_bits: None,
             },
             Role::Admin,
         ),
@@ -198,6 +199,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberJoin {
             via_invite_from: None,
+            pow: None,
             invite: Some("m".into()),
         },
     );
@@ -206,6 +208,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         NOW,
         EventBody::MemberJoin {
             via_invite_from: None,
+            pow: None,
             invite: Some("g".into()),
         },
     );
@@ -348,6 +351,7 @@ fn invites_expire_cap_uses_and_revoke() {
     );
     let j = |i: &str| EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some(i.into()),
     };
     l.push(&a, NOW, j("one"));
@@ -1014,6 +1018,7 @@ fn map_style_folds_validates_and_clears() {
         tagline: None,
         sections: None,
         map_style: m.map(String::from),
+        join_pow_bits: None,
     };
     let style = |c: &Core| {
         snap(c)
@@ -1128,6 +1133,7 @@ fn revoke_listing_joiners_rejects_backdated_joins() {
     );
     let join = || EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("i".into()),
     };
     l.push(&early, NOW, join());
@@ -1163,6 +1169,7 @@ fn removed_admin_cannot_backdate_events_past_the_removal() {
     l.push(&owner, NOW, invite("i", Role::Admin));
     let join = EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("i".into()),
     };
     l.push(&admin, NOW, join);
@@ -1175,4 +1182,73 @@ fn removed_admin_cannot_backdate_events_past_the_removal() {
     l.push_at(&admin, 4, NOW, invite("backdoor", Role::Member));
     let rep = report(&ctx(owner), &l.input(sid, "S", "Team", false));
     assert!(rep.invites.iter().all(|i| i.id != "backdoor"));
+}
+
+fn pow_joined(bits: u8, nonce: impl Fn(&str) -> Option<u64>) -> bool {
+    let (_, owner) = user();
+    let (_, joiner) = user();
+    let mut l = Log::new();
+    l.push(&owner, NOW, space_create("S", &["chat"]));
+    l.push(
+        &owner,
+        NOW,
+        EventBody::SpaceUpdate {
+            name: None,
+            tagline: None,
+            sections: None,
+            map_style: None,
+            join_pow_bits: Some(bits),
+        },
+    );
+    l.push(&owner, NOW, invite());
+    l.push(
+        &joiner,
+        NOW,
+        EventBody::MemberJoin {
+            via_invite_from: None,
+            invite: Some("inv".into()),
+            pow: nonce(&joiner.to_string()),
+        },
+    );
+    let rep = report(&ctx(owner), &l.input(SpaceId::random(), "S", "Team", false));
+    rep.members.iter().any(|m| m.user == joiner.to_string())
+}
+
+#[test]
+fn join_pow_admits_valid_nonce_and_rejects_missing_or_weak() {
+    use hermod_core::pow;
+    assert!(
+        pow_joined(10, |who| pow::mine("inv", who, 10).unwrap()),
+        "valid nonce admitted"
+    );
+    assert!(!pow_joined(10, |_| None), "missing nonce rejected");
+    let weak = |who: &str| (0..).find(|n| !pow::verify("inv", who, Some(*n), 10));
+    assert!(!pow_joined(10, weak), "insufficient nonce rejected");
+    assert!(pow_joined(0, |_| None), "0 bits needs no work");
+}
+
+#[test]
+fn join_pow_bits_cap_and_invite_carry() {
+    let (_d, a) = core();
+    let s = a.space_create("P", "", "Team").unwrap().id;
+    let upd = |b: u8| EventBody::SpaceUpdate {
+        name: None,
+        tagline: None,
+        sections: None,
+        map_style: None,
+        join_pow_bits: Some(b),
+    };
+    let over = hermod_core::pow::MAX_JOIN_POW_BITS + 1;
+    assert!(a.append(&s, upd(over)).is_err(), "above the cap refused");
+    a.append(&s, upd(4)).unwrap();
+    let bits = snap(&a)
+        .spaces
+        .iter()
+        .find(|x| x.name == "P")
+        .unwrap()
+        .join_pow_bits;
+    assert_eq!(bits, 4);
+    let out = a.invite_create(&s, None, vec![]).unwrap();
+    let inv = hermod_core::invite::InviteV1::parse(&out.code).unwrap();
+    assert_eq!(inv.pow_bits, 4, "invite carries the bits for the joiner");
 }

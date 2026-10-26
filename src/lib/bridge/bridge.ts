@@ -19,6 +19,10 @@ export interface Bridge {
   identityProtect(mode: KeyMode, passphrase?: string): Promise<IdentityInfo>;
   /** Opens a passphrase-protected install at startup. Rejects on a wrong passphrase. */
   identityUnlock(passphrase: string): Promise<void>;
+  /** The secret recovery phrase. `confirm` must be true; the UI asks the person first. */
+  identityPhrase(confirm: boolean): Promise<string>;
+  /** Replaces a fresh (or just reset) identity with the one a recovery phrase encodes. */
+  identityRestorePhrase(phrase: string): Promise<void>;
   profileSet(input: ProfileInput): Promise<IdentityInfo>;
   snapshot(): Promise<Snapshot>;
 
@@ -137,6 +141,8 @@ export function createBridge(t: Transport): Bridge {
     identityGet: () => call('identity_get'),
     identityProtect: (mode, passphrase) => call('identity_protect', { mode, passphrase: passphrase ?? null }),
     identityUnlock: (passphrase) => none('identity_unlock', { passphrase }),
+    identityPhrase: (confirm) => call('identity_phrase', { confirm }),
+    identityRestorePhrase: (phrase) => none('identity_restore_phrase', { phrase }),
     profileSet: (input) => call('profile_set', { ...input }),
     snapshot: () => call('snapshot'),
     spaceCreate: (name, tagline, kind) => call('space_create', { name, tagline, kind }),

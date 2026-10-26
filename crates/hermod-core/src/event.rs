@@ -379,6 +379,9 @@ pub enum EventBody {
         /// Space default map style (`village` or `sanctuary`); an empty string clears it. Absent leaves it unchanged.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         map_style: Option<String>,
+        /// Leading zero bits a join request must prove (`0` = off, capped by `pow::MAX_JOIN_POW_BITS`). Absent leaves it unchanged.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        join_pow_bits: Option<u8>,
     },
     #[serde(rename = "section.raise")]
     SectionRaise { section: String },
@@ -389,6 +392,9 @@ pub enum EventBody {
         /// Id of the `invite.create` this join redeems.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         invite: Option<String>,
+        /// Proof-of-work nonce when the space asks for one (see `pow`).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        pow: Option<u64>,
     },
     #[serde(rename = "member.leave")]
     MemberLeave {},

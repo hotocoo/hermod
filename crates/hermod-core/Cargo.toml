@@ -21,6 +21,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 zeroize = "1"
 x25519-dalek = { version = "3.0.0", features = ["static_secrets"] }
+bip39 = { version = "2", default-features = false, features = ["zeroize"] }
 
 [dev-dependencies]
 tempfile = "3.27.0"

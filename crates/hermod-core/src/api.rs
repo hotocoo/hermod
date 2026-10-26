@@ -390,6 +390,17 @@ impl Inner {
         {
             return Err(Error::invalid("map_style", "must be village or sanctuary"));
         }
+        if let EventBody::SpaceUpdate {
+            join_pow_bits: Some(b),
+            ..
+        } = body
+            && *b > crate::pow::MAX_JOIN_POW_BITS
+        {
+            return Err(Error::invalid(
+                "join_pow_bits",
+                format!("must be at most {}", crate::pow::MAX_JOIN_POW_BITS),
+            ));
+        }
         let row = self.row(space)?;
         let me = self.identity.user_id();
         let seq = self.store.vector(space)?.get(&me).copied().unwrap_or(0) + 1;
@@ -629,6 +640,32 @@ impl Core {
     /// The 32 byte identity seed the node derives its libp2p keypair from.
     pub fn identity_seed(&self) -> [u8; 32] {
         self.lock().identity.seed()
+    }
+
+    /// The 24 word recovery phrase for the identity (D-003). Secret: the caller must show it once
+    /// and never log or store it; the buffer zeroizes on drop.
+    pub fn identity_phrase(&self) -> Result<zeroize::Zeroizing<String>> {
+        self.lock().identity.phrase()
+    }
+
+    /// Replaces the identity of a data dir that holds nothing yet (only the empty home space, no
+    /// profile) with the one the phrase encodes. Call on a closed dir; the caller wipes first
+    /// (start over) when there is data. The key lands as a plain key file; protect it again after.
+    pub fn restore_from_phrase(dir: &Path, phrase: &str) -> Result<()> {
+        let id = Identity::from_phrase(phrase)?;
+        let db = dir.join(DB_FILE);
+        if db.exists() {
+            let store = Store::open(&db)?;
+            let spaces = store.spaces()?;
+            if spaces.iter().any(|s| !s.is_home) || store.kv_get(PROFILE_KEY)?.is_some() {
+                return Err(Error::invalid(
+                    "restore",
+                    "this device already holds data, start over first",
+                ));
+            }
+        }
+        Self::wipe_data(dir)?;
+        id.save(&dir.join(identity::KEY_FILE))
     }
 
     /// Moves the identity key to `mode` (see [`Identity::protect`]). `passphrase` is required for
@@ -895,7 +932,7 @@ impl Core {
                 role: opts.role,
             },
         )?;
-        let inv = InviteV1::new(
+        let mut inv = InviteV1::new(
             id.clone(),
             row.id,
             row.key,
@@ -906,6 +943,7 @@ impl Core {
             opts.addrs,
             exp,
         );
+        inv.pow_bits = rep.join_pow_bits;
         Ok((
             InviteOut {
                 id,
@@ -953,6 +991,8 @@ impl Core {
     pub fn invite_accept(&self, code: &str) -> Result<Joined> {
         let inv = InviteV1::parse(code)?;
         inv.check_expiry(now_secs())?;
+        // Mined before taking the lock: the work can take seconds.
+        let pow = crate::pow::mine(&inv.id, &self.user.to_string(), inv.pow_bits)?;
         let mut inner = self.lock();
         let mut joined = Joined {
             id: inv.space_id,
@@ -992,6 +1032,7 @@ impl Core {
             let join = EventBody::MemberJoin {
                 via_invite_from: Some(inv.inviter.to_string()),
                 invite: Some(inv.id.clone()),
+                pow,
             };
             let profile = inner.profile_body()?;
             Ok(vec![
@@ -1674,6 +1715,7 @@ mod tests {
         let join = EventBody::MemberJoin {
             via_invite_from: None,
             invite: None,
+            pow: None,
         };
         assert!(!changes_my_keys(&join, "me"));
         let rekey = |user: &str| EventBody::SpaceRekey {

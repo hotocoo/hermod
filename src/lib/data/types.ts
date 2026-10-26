@@ -12,6 +12,8 @@ export interface Space {
   meetingChannel?: string;
   /** Space default map style set by an admin; a device override wins. */
   mapStyle?: string;
+  /** Leading zero bits a join request must prove; 0 or absent = off. */
+  joinPowBits?: number;
   /** Island growth, computed by the core from the log. */
   growth?: SpaceGrowth;
   /** The signed-in user's role in this Space (absent for Home). */

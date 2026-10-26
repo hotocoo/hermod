@@ -34,6 +34,9 @@ pub struct Space {
     /// Space default map style chosen by an admin (`village` or `sanctuary`); a device override wins.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub map_style: Option<String>,
+    /// Proof-of-work bits a join request must carry (0 = off).
+    #[serde(default)]
+    pub join_pow_bits: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub default_channel: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

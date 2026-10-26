@@ -32,6 +32,7 @@ fn invite_member() -> EventBody {
 fn join_m() -> EventBody {
     EventBody::MemberJoin {
         via_invite_from: None,
+        pow: None,
         invite: Some("m".into()),
     }
 }
