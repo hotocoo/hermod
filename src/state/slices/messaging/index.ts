@@ -8,7 +8,7 @@ import type { Message } from '../../dataTypes';
 import { dropPresence, notePresence, noteSeen, sweepPresence } from '../../presence';
 import { channelsOf, chatKey, curSpace, isHomeSpace, meId } from '../../selectors';
 import type { AppStore } from '../../types';
-import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey, toggleInFolder } from './helpers';
+import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, prependOlder, quoteOf, splitKey, toggleInFolder } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
 
 const EMPTY_COMPOSE: ComposeExtras = { quote: null, viewOnce: false, ttl: 0, preview: null, previewFor: '', previewOff: false };
@@ -18,6 +18,7 @@ const PAGE = 50;
 const MAX_GIFS = 100;
 let lastTyping = 0;
 let probeSeq = 0;
+const loading = new Set<string>(); // chats with an older page in flight
 
 const chanOf = (s: AppStore) => s.ch[s.space];
 
@@ -198,11 +199,15 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       const [space, channel] = splitKey(key);
       const have = [...(get().older[key] ?? []), ...(get().msgs[key] ?? [])];
       const first = have[0]?.ext?.lp;
-      if (!first) return false;
-      const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, first, PAGE));
-      if (!page) return false;
-      set((s) => ({ older: { ...s.older, [key]: [...page.messages, ...(s.older[key] ?? [])] }, olderMore: { ...s.olderMore, [key]: page.has_more && page.messages.length > 0 } }));
-      return page.messages.length > 0;
+      if (!first || loading.has(key)) return false; // one page per chat in flight: a second call would fetch the same page and double it
+      loading.add(key);
+      try {
+        const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, first, PAGE));
+        if (!page) return false;
+        // Only this chat keeps pages: opening another one released the previous chat's.
+        set((s) => ({ older: { [key]: prependOlder(s.older[key] ?? [], page.messages) }, olderMore: { [key]: page.has_more && page.messages.length > 0 } }));
+        return page.messages.length > 0;
+      } finally { loading.delete(key); }
     },
     jumpToMessage: (space, channel, id) => { set({ jump: { key: `${space}/${channel}`, id } }); get().goChannel(space, channel); }, // jump first: the arrival scroll-to-bottom sees it and stays out of the way,
 

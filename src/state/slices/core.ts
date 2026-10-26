@@ -12,6 +12,7 @@ import { deliverArcadeNotices, diffArcadeNotices } from '../arcadeNotify';
 import { deliverCalNotices, diffMeetingNotices } from '../calendarNotify';
 import { deliverDeskNotices, diffDeskNotices } from '../deskNotify';
 import { channelsOf, isHomeSpace } from '../selectors';
+import { pruneOlder } from './messaging/helpers';
 import { timer } from '../timers';
 import type { AppStore, CoreSlice } from '../types';
 
@@ -68,6 +69,7 @@ export const createCoreSlice: StateCreator<AppStore, [], [], CoreSlice> = (set, 
       rook: coll(seed, 'inbox'), events: coll(seed, 'events'), pinboards: boards,
       boardSel: boards.some((b) => b.id === s.boardSel) ? s.boardSel : (boards[0]?.id ?? ''),
       docSel: docs.some((d) => d.id === s.docSel) ? s.docSel : (docs[0]?.id ?? ''),
+      ...pruneOlder(s.older, s.olderMore, coll(seed, 'messages'), `${space}/${sel.ch[space]}`),
       now: Date.now(),
     });
     if (prev) {
