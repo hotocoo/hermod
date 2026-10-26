@@ -21,6 +21,8 @@ const RULE_BURST: usize = 5;
 const RULE_WINDOW: Duration = Duration::from_secs(60);
 /// How often the cache kept for others is checked against the `blob_cache_bytes` setting.
 const CACHE_TRIM_EVERY: Duration = Duration::from_secs(60);
+/// How often per-space retention windows (D-004) are applied; a window passing needs no finer grain.
+const RETENTION_PRUNE_EVERY: Duration = Duration::from_secs(3600);
 
 fn now_ms() -> i64 {
     hermod_core::api::now_ms()
@@ -31,11 +33,16 @@ pub async fn run(ctx: Arc<Ctx>) {
     let mut fired: HashMap<String, Vec<Instant>> = HashMap::new();
     let mut dirty = true;
     let mut last_trim: Option<Instant> = None;
+    let mut last_prune: Option<Instant> = None;
     loop {
         run_schedule(&ctx).await;
         if last_trim.is_none_or(|t| t.elapsed() >= CACHE_TRIM_EVERY) {
             last_trim = Some(Instant::now());
             trim_cache(&ctx).await;
+        }
+        if last_prune.is_none_or(|t| t.elapsed() >= RETENTION_PRUNE_EVERY) {
+            last_prune = Some(Instant::now());
+            prune_retention(&ctx).await;
         }
         if dirty {
             dirty = false;
@@ -74,6 +81,41 @@ async fn trim_cache(ctx: &Arc<Ctx>) {
         }
         Ok(Err(e)) => tracing::warn!("cache trim failed: {e}"),
         Err(e) => tracing::warn!("cache trim task failed: {e}"),
+    }
+}
+
+/// Apply every space's retention window: hide old messages and free their unreferenced blobs.
+async fn prune_retention(ctx: &Arc<Ctx>) {
+    let Ok(live) = ctx.live().await else { return };
+    let l = live.clone();
+    let done = tokio::task::spawn_blocking(move || {
+        let freed = l.core.retention_prune().map_err(|e| e.to_string())?;
+        let mut labels = Vec::new();
+        for s in l.core.spaces().map_err(|e| e.to_string())? {
+            let id = l.core.resolve_space(&s.label).map_err(|e| e.to_string())?;
+            if l.core
+                .retention_get(&id)
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
+                labels.push(s.label);
+            }
+        }
+        Ok::<_, String>((freed, labels))
+    })
+    .await;
+    match done {
+        Ok(Ok((freed, labels))) => {
+            if freed > 0 {
+                tracing::info!("retention: freed {freed} bytes");
+                live.forget_blob_info();
+            }
+            for label in labels {
+                ctx.changed(&label, crate::ctx::ALL_COLLECTIONS);
+            }
+        }
+        Ok(Err(e)) => tracing::warn!("retention prune failed: {e}"),
+        Err(e) => tracing::warn!("retention prune task failed: {e}"),
     }
 }
 

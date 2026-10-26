@@ -9,11 +9,11 @@ import { useAppStore } from '@/state/store';
 import { PresenceDot } from '@/components/ui/PresenceDot';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
+import { COPY } from '@/config/copy';
 import { InviteList } from './InviteList';
 
 const TABS = [['general', 'General'], ['members', 'Members'], ['invites', 'Invites'], ['safety', 'Safety']] as const;
 const ROLES: Role[] = ['owner', 'admin', 'member', 'guest'];
-const RETENTION = [{ v: '', l: 'Keep everything' }, { v: '30', l: '30 days' }, { v: '90', l: '90 days' }, { v: '365', l: '1 year' }];
 
 /** Space settings: rename, members and roles, invites, safety (U-013, U-014, E-004, E-007). */
 export function SpaceSettingsModal({ space }: { space: string }) {
@@ -146,19 +146,37 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
   const toast = useAppStore((s) => s.showToast);
   const [rows, setRows] = useState<AuditRow[] | null>(null);
   const [days, setDays] = useState('');
+  useEffect(() => {
+    let live = true;
+    getBridge().retentionGet(space).then((d) => { if (live) setDays(d == null ? '' : String(d)); }).catch((e) => toast(errorMessage(e), undefined, 'error'));
+    return () => { live = false; };
+  }, [space, toast]);
+  const [exporting, setExporting] = useState(false);
+  const exportSpace = async () => {
+    setExporting(true);
+    try {
+      const r = await getBridge().spaceExport(space);
+      if (r) toast(COPY.exportDone(r.messages, r.files, r.missing));
+    } catch (e) { toast(errorMessage(e), undefined, 'error'); } finally { setExporting(false); }
+  };
   useEffect(() => { if (admin) getBridge().auditList(space).then(setRows).catch((e) => { setRows([]); toast(errorMessage(e), undefined, 'error'); }); }, [admin, space, toast]);
   const setRetention = async (v: string) => {
     setDays(v);
-    try { await getBridge().retentionSet(space, v ? Number(v) : null); toast('Saved'); } catch (e) { toast(errorMessage(e), undefined, 'error'); }
+    try { await getBridge().retentionSet(space, v ? Number(v) : null); toast('Saved'); } catch (e) { toast(errorMessage(e), undefined, 'error'); getBridge().retentionGet(space).then((d) => setDays(d == null ? '' : String(d))).catch(() => undefined); }
   };
   return (
     <>
       <div className={f.field}>
-        <label className={f.label} htmlFor="ss-ret">Delete my copy of messages older than</label>
+        <label className={f.label} htmlFor="ss-ret">{COPY.retentionLabel}</label>
         <select id="ss-ret" className="input" value={days} onChange={(e) => setRetention(e.target.value)}>
-          {RETENTION.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
+          {COPY.retentionOptions.map((r) => <option key={r.v} value={r.v}>{r.l}</option>)}
         </select>
-        <p className={f.note}>Applies to this device only.</p>
+        <p className={f.note}>{COPY.retentionNote}</p>
+      </div>
+      <div className={f.field}>
+        <span className={f.label} id="ss-export-label">{COPY.exportLabel}</span>
+        <button type="button" className="btn btn-secondary" disabled={exporting} onClick={exportSpace}>{COPY.exportButton}</button>
+        <p className={f.note}>{COPY.exportNote}</p>
       </div>
       {admin && (
         <div className={f.scroll}>

@@ -84,6 +84,9 @@ pub struct ProjectionCtx {
     pub hidden: BTreeSet<(SpaceId, String)>,
     /// Chat mute map `space/channel -> until` (0 = forever): muted chats raise no inbox entry (M-035).
     pub muted: BTreeMap<String, i64>,
+    /// Per-space retention cutoff (unix ms, D-004): messages older than it are hidden locally.
+    /// The signed log is never edited, so sync and verification are unaffected.
+    pub retention_cutoffs: BTreeMap<SpaceId, i64>,
     pub config: ProjectionConfig,
     pub growth: GrowthConfig,
 }
@@ -99,6 +102,7 @@ impl ProjectionCtx {
             follows: BTreeSet::new(),
             hidden: BTreeSet::new(),
             muted: BTreeMap::new(),
+            retention_cutoffs: BTreeMap::new(),
             config: ProjectionConfig::default(),
             growth: GrowthConfig::default(),
         }
@@ -200,7 +204,11 @@ fn fold_pruned(ctx: &ProjectionCtx, inp: &SpaceInput) -> state::SpaceState {
         .filter(|(sp, _)| *sp == inp.id)
         .map(|(_, m)| m.clone())
         .collect();
-    st.prune(ctx.now_ms, &hidden);
+    st.prune(
+        ctx.now_ms,
+        &hidden,
+        ctx.retention_cutoffs.get(&inp.id).copied(),
+    );
     st
 }
 

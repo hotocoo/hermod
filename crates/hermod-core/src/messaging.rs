@@ -300,7 +300,7 @@ impl Core {
 
     // ---- scheduled queue ----
 
-    fn sched_load(store: &Store) -> Result<Vec<Scheduled>> {
+    pub(crate) fn sched_load(store: &Store) -> Result<Vec<Scheduled>> {
         Ok(store
             .kv_get(SCHED_KEY)?
             .and_then(|r| serde_json::from_str(&r).ok())

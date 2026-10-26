@@ -11,6 +11,7 @@ pub mod crypto;
 pub mod device;
 pub mod error;
 pub mod event;
+pub mod export;
 pub mod games;
 pub mod growth;
 pub mod identity;
@@ -22,6 +23,7 @@ pub mod migrations;
 pub mod msgext;
 pub mod projections;
 pub mod ratelimit;
+pub mod retention;
 pub mod search;
 pub mod store;
 

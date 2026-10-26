@@ -65,7 +65,9 @@ export interface UpdateInfo { available: boolean; version?: string; notes?: stri
 export interface DeviceInfo { device_pub: string; name: string; added_at: number; this_device: boolean; revoked: boolean }
 export interface DeviceLink { code: string }
 export interface PickOptions { multiple?: boolean; accept?: string[] }
-export interface RetentionSetting { space_id: string; days: number | null }
+export interface RetentionSetting { days: number | null }
+/** Result of `space_export`; the command resolves null when the person cancels the dialog. */
+export interface SpaceExportResult { path: string; messages: number; files: number; missing: number }
 
 // Events, Rust to UI.
 export interface ChangedEvent { space_id: string; collections: string[] }

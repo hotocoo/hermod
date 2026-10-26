@@ -1,5 +1,5 @@
 //! Device-local settings (never in the event log): node resource caps, notification rules,
-//! blocked users, retention. Stored as small JSON values in `Core`'s settings table.
+//! blocked users. Stored as small JSON values in `Core`'s settings table.
 
 use hermod_core::Core;
 use hermod_core::event::MAX_BODY_BYTES;
@@ -23,7 +23,6 @@ const MIN_EVENT_BYTES: u64 = 1024;
 
 const NODE_KEY: &str = "node_settings";
 const NOTIFY_KEY: &str = "notify_settings";
-const RETENTION_PREFIX: &str = "retention.";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NodeSettings {
@@ -303,12 +302,6 @@ pub fn notify_settings_set(
     core.setting_set(NOTIFY_KEY, &json)
         .map_err(|e| e.to_string())?;
     Ok(next)
-}
-
-pub fn retention_set(core: &Core, space_hex: &str, days: Option<u32>) -> Result<(), String> {
-    let v = days.map(|d| d.to_string()).unwrap_or_default();
-    core.setting_set(&format!("{RETENTION_PREFIX}{space_hex}"), &v)
-        .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
