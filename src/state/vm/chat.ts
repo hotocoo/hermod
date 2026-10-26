@@ -1,5 +1,6 @@
 import { LIMITS } from '../../config/app';
 import { ROMAN } from '../../config/ui';
+import { mentionsName } from '../../lib/messaging/mentions';
 import { anim } from '../../lib/format';
 import type { Message } from '../dataTypes';
 import { channelUnread, channelsOf, chatKey, displayName, findSnap, isHomeSpace, meId, personOf, spaceUnread, roomOf, withNicks } from '../selectors';
@@ -22,7 +23,7 @@ function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
     editDraft: s.editDraft, onEditDraft: (e: InputEvt) => s.setEditDraft(e.target.value), saveEdit: s.saveEdit, cancelEdit: s.cancelEdit,
     startEdit: () => s.startEdit(m.id, m.text), onDelete: () => { void s.deleteMessage(m.id); },
     canTicket: x.sp.sections.includes('desk') && !m.removed && m.by !== 'system' && !!m.text, onTicket: () => { void s.deskTicketFromMessage(m.id); },
-    mentionsMe: !!me && !!seed.people[me] && m.text.includes(`@${seed.people[me].name.split(' ')[0]}`),
+    mentionsMe: !!me && !!seed.people[me] && mentionsName(m.text, seed.people[me].name),
     att: (m.att ?? []).map((b) => ({ ...b, open: () => s.openModal({ kind: 'lightbox', blob: b }) })),
     showHead: !prev || prev.by !== m.by || !!m.meet, compact: !!prev && prev.by === m.by && !m.meet,
     hasImg: !!m.img, img: m.img, hasSnap: !!m.snap,

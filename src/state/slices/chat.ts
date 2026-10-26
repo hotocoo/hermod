@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand';
 import { UPLOAD } from '../../config/app';
 import { COPY } from '../../config/copy';
 import { errorMessage, getBridge, type BlobRef } from '../../lib/bridge';
+import { mentionsName } from '../../lib/messaging/mentions';
 import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
 import { omitKey, withKey } from '../helpers';
@@ -13,8 +14,7 @@ import { takeComposeExtras } from './messaging';
 export function mentionsIn(text: string, people: Record<string, { name: string }>): string[] {
   const ids: string[] = [];
   Object.keys(people).forEach((id) => {
-    const first = people[id].name.split(' ')[0];
-    if (first && new RegExp(`(^|\\s)@${first.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\W|$)`, 'i').test(text)) ids.push(id);
+    if (mentionsName(text, people[id].name)) ids.push(id);
   });
   return ids;
 }

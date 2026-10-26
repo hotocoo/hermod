@@ -1,6 +1,7 @@
 /** What is new between two snapshots: messages from other people and raven letters. Pure; drives ravens and OS notifications. */
 import type { Seed } from '../lib/data/types';
 import { SYSTEM_ID } from '../config/app';
+import { mentionsName } from '../lib/messaging/mentions';
 import { coll } from './dataTypes';
 
 export interface Arrival { kind: 'message' | 'letter'; by: string; sp: string; ch: string; text: string; id: string; mentionsMe: boolean }
@@ -10,7 +11,7 @@ export function diffArrivals(prev: Seed, next: Seed, me: string, blocked: Record
   const known = new Set(prev.spaces.map((x) => x.id));
   const before = coll(prev, 'messages'); const after = coll(next, 'messages');
   const out: Arrival[] = [];
-  const myName = next.people[me]?.name.split(' ')[0] ?? '';
+  const myName = next.people[me]?.name ?? '';
   for (const key of Object.keys(after)) {
     const sp = key.slice(0, key.indexOf('/')); const ch = key.slice(key.indexOf('/') + 1);
     if (!known.has(sp)) continue;
@@ -19,7 +20,7 @@ export function diffArrivals(prev: Seed, next: Seed, me: string, blocked: Record
       if (seen.has(m.id) || blocked[m.by]) continue;
       // R-006: a scheduled send goes out on its own, so it flies a raven even though it is mine.
       if ((m.by === me || m.by === SYSTEM_ID) && !mine?.has(m.id)) continue;
-      out.push({ kind: 'message', by: m.by, sp, ch, text: m.text, id: m.id, mentionsMe: !!myName && m.text.includes(`@${myName}`) });
+      out.push({ kind: 'message', by: m.by, sp, ch, text: m.text, id: m.id, mentionsMe: mentionsName(m.text, myName) });
     }
   }
   const lb = coll(prev, 'letters'); const la = coll(next, 'letters');
