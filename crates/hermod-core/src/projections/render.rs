@@ -406,12 +406,20 @@ impl<'a> World<'a> {
         let snap = m
             .snap
             .as_ref()
-            .and_then(|id| s.snaps.iter().find(|x| &x.id == id))
-            .map(|x| SnapRef {
-                id: x.id.clone(),
-                title: x.title.clone(),
-                line: x.line.clone(),
-                files: x.files.len() as u32,
+            .map(|id| match s.snaps.iter().find(|x| &x.id == id) {
+                Some(x) => SnapRef {
+                    id: x.id.clone(),
+                    title: x.title.clone(),
+                    line: x.line.clone(),
+                    files: x.files.len() as u32,
+                },
+                // A snapshot this device does not hold (yet): an empty title marks the broken reference.
+                None => SnapRef {
+                    id: id.clone(),
+                    title: String::new(),
+                    line: String::new(),
+                    files: 0,
+                },
             });
         Message {
             id: m.id.clone(),

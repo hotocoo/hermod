@@ -140,7 +140,8 @@ export interface CallSlice {
 }
 
 export interface MediaSlice {
-  feedSeen: Record<string, boolean>;
+  /** Post ids per Space the person has had the Feed open on (F-006 badge). */
+  feedSeen: Record<string, string[]>;
   vid: string | null; speed: number; cc: boolean; theater: boolean; watched: Record<string, number>;
   liveDraft: string;
   story: StoryCursor | null; storySeen: Record<number, boolean>; storyDraft: string;

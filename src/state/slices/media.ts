@@ -44,7 +44,7 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
       get().showToast(COPY.comments.dropped, undefined, 'error');
       return false;
     },
-    markFeedSeen: (space) => set((s) => ({ feedSeen: withKey(s.feedSeen, space, true) })),
+    markFeedSeen: (space) => { const seed = get().seed; if (seed) set((s) => ({ feedSeen: withKey(s.feedSeen, space, (coll(seed, 'feed')[space] ?? []).map((p) => p.id)) })); },
 
     openVideo: (id) => set({ vid: id }),
     closeVid: () => set({ vid: null }),

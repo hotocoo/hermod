@@ -1,6 +1,6 @@
 import { WIDE_GALLERY_TABS, WIDE_SHOP_TABS, SIGNPOST, EMPTY_PLOT } from '../../config/ui';
 import { panelWidth, widePanelWidth } from '../geometry';
-import { buildingIds, hasSection, hereUnread, incomingAll, roomCount, roomOf, sectionTitle, spaceUnread } from '../selectors';
+import { buildingIds, feedNew, hasSection, hereUnread, incomingAll, roomCount, roomOf, sectionTitle, spaceUnread } from '../selectors';
 import type { Ctx } from './context';
 import type { boardVm } from './board';
 import type { chatVm } from './chat';
@@ -38,6 +38,7 @@ export function shellVm(x: Ctx, p: Parts) {
     if (id === 'chat') return unread || '';
     if (id === 'hearth') return hearthCount || '';
     if (id === 'skein') return (skein && skein.weavable.length) || '';
+    if (id === 'feed') return feedNew(s, seed, sp.id) || '';
     if (id === 'desk') return (deskN && deskN.overdue) || '';
     if (id === 'arcade') return arcadeOf(seed, sp.id)?.waiting || '';
     return '';
