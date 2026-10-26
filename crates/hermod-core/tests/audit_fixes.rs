@@ -280,10 +280,6 @@ fn fork_texts(c: &Core, s: &SpaceId) -> Vec<String> {
     texts(c, s).into_iter().filter(|t| t.starts_with("fork")).collect()
 }
 
-fn space_key(c: &Core, s: &SpaceId) -> hermod_core::crypto::SpaceKey {
-    InviteV1::parse(&c.invite_create(s, None, vec![]).unwrap().code).unwrap().space_key
-}
-
 #[test]
 fn equivocation_resolves_to_the_lowest_id_on_every_peer_and_is_surfaced() {
     let (_d1, a) = core();
@@ -440,4 +436,39 @@ fn open_refuses_a_database_whose_key_file_vanished() {
     assert!(Core::open(d.path()).is_err());
     assert!(!d.path().join("identity.key").exists(), "no fresh identity was minted");
     let _ = id;
+}
+
+#[test]
+fn concurrent_rekeys_to_the_same_epoch_converge_and_both_sides_keep_reading() {
+    let (_d1, a) = core();
+    let (_d2, b) = core();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    let inv = a
+        .invite_create_with(
+            &s,
+            hermod_core::api::InviteOptions {
+                role: Role::Admin,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+    b.invite_accept(&inv.code).unwrap();
+    sync(&a, &b, &s);
+    sync(&b, &a, &s);
+    // Both rekey offline from epoch 0: two different epoch-1 keys exist.
+    a.rekey(&s).unwrap();
+    b.rekey(&s).unwrap();
+    sync(&a, &b, &s);
+    sync(&b, &a, &s);
+    sync(&a, &b, &s);
+    a.append(&s, post_msg("general", "ma", "from a")).unwrap();
+    b.append(&s, post_msg("general", "mb", "from b")).unwrap();
+    sync(&a, &b, &s);
+    sync(&b, &a, &s);
+    sync(&a, &b, &s);
+    for c in [&a, &b] {
+        assert_eq!(c.pending(&s).unwrap(), (0, 0));
+        let t = texts(c, &s);
+        assert!(t.contains(&"from a".to_string()) && t.contains(&"from b".to_string()), "{t:?}");
+    }
 }
