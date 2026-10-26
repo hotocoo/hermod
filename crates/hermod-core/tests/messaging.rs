@@ -7,7 +7,9 @@ use hermod_core::event::*;
 use hermod_core::ids::{SpaceId, UserId};
 use hermod_core::msgext::{AutoAction, AutoRef, AutoTrigger, Forward, MsgExt, QuoteRef, VoiceMeta};
 use hermod_core::projections::shapes::{Message, Snapshot};
-use hermod_core::projections::{self, ProjectionCtx, SearchFilters, SpaceInput, project};
+use hermod_core::projections::{
+    self, MESSAGE_WINDOW, ProjectionCtx, SearchFilters, SpaceInput, project,
+};
 use hermod_core::{Core, ProfileInput, Role as CoreRole};
 
 fn blob(name: &str, mime: &str) -> BlobRef {
@@ -983,6 +985,59 @@ fn automations_plan_idempotent_actions_authored_by_the_rule_owner() {
         "automation output never retriggers a rule"
     );
     assert!(msg_id.starts_with("auto-"));
+}
+
+#[test]
+fn snapshot_carries_only_the_newest_window_and_older_pages_follow() {
+    let mut w = world();
+    let extra = 30;
+    let total = MESSAGE_WINDOW + extra;
+    for i in 0..total {
+        w.log.push(
+            &w.bea,
+            NOW - DAY / 2 + i as i64 * MIN,
+            post("general", &format!("w{i}"), "hello", None, vec![]),
+        );
+    }
+    let ids = w.ids(w.ada, "general");
+    assert_eq!(ids.len(), MESSAGE_WINDOW, "the snapshot is capped");
+    assert_eq!(ids.last().unwrap(), &format!("w{}", total - 1));
+    assert_eq!(
+        ids[0],
+        format!("w{extra}"),
+        "the oldest are the ones left out"
+    );
+    let first_lp = w.msgs(w.ada, "general")[0].ext.as_ref().unwrap().lp;
+    let mut c = ctx(w.ada);
+    c.now_ms = NOW;
+    let older = projections::messages_page(&c, &w.input(), "general", Some(first_lp), 200);
+    assert_eq!(
+        older.messages.len(),
+        extra,
+        "what the cap dropped is one page away"
+    );
+    assert!(!older.has_more);
+}
+
+#[test]
+fn message_window_matches_the_ui_limit() {
+    let src = std::fs::read_to_string(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../src/config/app.ts"
+    ))
+    .expect("src/config/app.ts");
+    let line = src
+        .lines()
+        .find(|l| l.trim_start().starts_with("messageWindow:"))
+        .expect("LIMITS.messageWindow");
+    let n: usize = line
+        .trim_start()
+        .trim_start_matches("messageWindow:")
+        .trim()
+        .trim_end_matches(',')
+        .parse()
+        .expect("a number");
+    assert_eq!(n, MESSAGE_WINDOW);
 }
 
 #[test]

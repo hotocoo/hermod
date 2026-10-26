@@ -90,6 +90,11 @@ export const LAYOUT = {
 
 export const CAMERA = { zoomStep: 5, rotateStep: 0.45 } as const;
 
+/** Snapshot collections the UI renders (mirrors ALL_COLLECTIONS in src-tauri/src/ctx.rs); a `changed` event naming none of them does not trigger a re-read. */
+export const UI_COLLECTIONS: readonly string[] = [
+  'people', 'spaces', 'channels', 'messages', 'rooms', 'agenda', 'workboards', 'skein', 'feed', 'media', 'pinboards', 'docs', 'events', 'letters', 'inbox', 'desk', 'arcade', 'messaging',
+];
+
 export const LIMITS = {
   liveChat: 60,
   hearts: 8,

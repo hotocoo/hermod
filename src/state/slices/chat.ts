@@ -6,7 +6,7 @@ import { mentionsName } from '../../lib/messaging/mentions';
 import { pickAndStore } from '../../lib/upload';
 import { appendEvent, guarded, uid } from '../act';
 import { omitKey, withKey } from '../helpers';
-import { chatKey, curSpace } from '../selectors';
+import { chatKey, curSpace, loadedMessages } from '../selectors';
 import type { AppStore, Attached, ChatSlice } from '../types';
 import { takeComposeExtras } from './messaging';
 
@@ -66,7 +66,7 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, 
   },
   deleteMessage: async (id) => {
     const s = get();
-    const mine = (s.msgs[chatKey(s)] ?? []).find((m) => m.id === id)?.by === s.me?.user_id;
+    const mine = loadedMessages(s, chatKey(s)).find((m) => m.id === id)?.by === s.me?.user_id;
     const ok = await s.confirmAction({ title: mine ? 'Delete this message?' : 'Remove this message?', body: 'It is removed for everyone in this Space. Copies other people already received may remain on their devices.', confirm: mine ? 'Delete' : 'Remove', danger: true });
     if (ok) await appendEvent(get, s.space, mine ? { t: 'message.delete', msg_id: id } : { t: 'content.remove', target_id: id });
   },

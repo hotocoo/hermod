@@ -205,6 +205,7 @@ fn fold_pruned(ctx: &ProjectionCtx, inp: &SpaceInput) -> state::SpaceState {
 }
 
 pub use messaging::{MessagingView, Planned};
+pub use render::MESSAGE_WINDOW;
 pub use render::render_messaging::{Gallery, GalleryItem, MessagePage, MsgHit, SearchFilters};
 
 /// Newest page of one channel (see docs/MESSAGING.md 3.23).
