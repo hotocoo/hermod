@@ -12,7 +12,7 @@ use super::messaging::MsgState;
 use super::shapes::MeetSummary;
 use crate::crypto::blake3_hash;
 use crate::event::{BlobRef, DocBlockIn, DocOp, EventBody, Role, valid_map_style};
-use crate::ids::{SpaceId, hex_decode_array, hex_encode};
+use crate::ids::{SpaceId, UserId, hex_decode_array, hex_encode};
 use crate::store::Opened;
 
 /// Fold order key: `(lamport, author bytes, seq)`.
@@ -340,6 +340,8 @@ pub struct SpaceState {
     pub audit: Vec<AuditEntry>,
     pub reports: Vec<ReportSt>,
     pub devices: BTreeMap<String, BTreeSet<String>>,
+    /// Reverse of `devices`: linked device key to the identity whose events it signs.
+    device_owner: BTreeMap<String, String>,
     pub max_epoch: u32,
     pub authors: BTreeSet<String>,
     pub last_seen: BTreeMap<String, i64>,
@@ -390,6 +392,13 @@ pub fn blob_label(b: &BlobRef) -> String {
     } else {
         b.hash.chars().take(8).collect()
     }
+}
+
+/// Fold key (base58 user id, as `by` is written) of a hex device key; `None` when malformed.
+fn device_key(device_pub_hex: &str) -> Option<String> {
+    crate::ids::hex_decode_array::<32>(device_pub_hex)
+        .ok()
+        .map(|k| UserId(k).to_string())
 }
 
 /// Lowest role allowed to author each event type. `member.join` and `space.create` have their
@@ -465,6 +474,7 @@ impl SpaceState {
             audit: Vec::new(),
             reports: Vec::new(),
             devices: BTreeMap::new(),
+            device_owner: BTreeMap::new(),
             max_epoch: 0,
             authors: BTreeSet::new(),
             last_seen: BTreeMap::new(),
@@ -528,7 +538,9 @@ impl SpaceState {
         // An id bound to its creator beats any pin or fold order.
         self.creator = derived_author(&self.id, events.iter().copied()).or(self.creator.take());
         for ev in events {
-            let by = ev.author.to_string();
+            let raw = ev.author.to_string();
+            // A linked device acts as its identity; ord keeps the signing key so ties stay unique.
+            let by = self.device_owner.get(&raw).cloned().unwrap_or(raw);
             let ord: Ord3 = (ev.lamport, ev.author.0, ev.seq);
             if !self.authorize(ev, &by) {
                 continue;
@@ -564,11 +576,16 @@ impl SpaceState {
 
     fn authorize(&self, ev: &Opened, by: &str) -> bool {
         let ts = ev.ts;
-        if self.prior.caps.get(by).is_some_and(|cap| ev.seq > *cap) {
+        // Caps are keyed by the identity and by the signing key (a revoked device has no identity left to resolve to).
+        let signer = ev.author.to_string();
+        let capped = |who: &str| self.prior.caps.get(who).is_some_and(|cap| ev.seq > *cap);
+        if capped(by) || capped(&signer) {
             return false;
         }
         match &ev.body {
             EventBody::Unknown => false,
+            // Linking and revoking are the identity's own acts; a device never manages devices.
+            EventBody::DeviceLink { .. } | EventBody::DeviceRevoke { .. } if signer != by => false,
             EventBody::SpaceCreate { .. } => {
                 !self.created && self.creator.as_deref().is_none_or(|c| c == by)
             }
@@ -1492,21 +1509,45 @@ impl SpaceState {
                     ts,
                 });
             }
-            EventBody::DeviceLink { device_pub, cert } => {
-                if crate::device::verify_cert(&ev.author, device_pub, cert) {
+            EventBody::DeviceLink {
+                device_pub,
+                cert,
+                proof,
+            } => {
+                // A key already acting for someone, or holding a seat of its own, cannot be linked.
+                let key = device_key(device_pub).unwrap_or_default();
+                let taken = self.device_owner.contains_key(&key)
+                    || self.roles.contains_key(&key)
+                    || self.banned.contains(&key);
+                if !key.is_empty()
+                    && !taken
+                    && crate::device::verify_cert(&ev.author, device_pub, cert)
+                    && crate::device::verify_proof(&ev.author, device_pub, proof)
+                {
                     self.devices
                         .entry(by.to_string())
                         .or_default()
                         .insert(device_pub.clone());
+                    self.device_owner.insert(key, by.to_string());
                     self.audit(ev, by, "device.link", Some(device_pub), String::new());
                 }
             }
-            EventBody::DeviceRevoke { device_pub } => {
+            EventBody::DeviceRevoke {
+                device_pub,
+                last_seq,
+            } => {
                 if self
                     .devices
                     .get_mut(by)
                     .is_some_and(|d| d.remove(device_pub))
                 {
+                    let key = device_key(device_pub).unwrap_or_default();
+                    self.device_owner.remove(&key);
+                    // The cap makes the cut-off position-independent: a revoked key cannot backdate a lamport past it.
+                    if let Some(seq) = last_seq {
+                        let cap = self.found.caps.entry(key).or_insert(*seq);
+                        *cap = (*cap).min(*seq);
+                    }
                     self.audit(ev, by, "device.revoke", Some(device_pub), String::new());
                 }
             }

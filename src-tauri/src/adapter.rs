@@ -65,7 +65,7 @@ impl CoreStore {
     }
 
     fn announce(&self, ev: &SignedEvent) {
-        if ev.author == self.core.user_id() {
+        if self.core.is_own_author(&ev.author) {
             return;
         }
         let guard = self.reader.lock().unwrap_or_else(|e| e.into_inner());

@@ -50,6 +50,8 @@ pub struct SpaceReport {
     pub invites: Vec<InviteInfo>,
     pub audit: Vec<AuditEntry>,
     pub reports: Vec<ReportInfo>,
+    /// Linked devices per identity (hex device keys), revoked ones removed.
+    pub devices: std::collections::BTreeMap<String, Vec<String>>,
 }
 
 fn fold(input: &SpaceInput) -> SpaceState {
@@ -113,6 +115,11 @@ pub fn report(ctx: &ProjectionCtx, input: &SpaceInput) -> SpaceReport {
                 reason: r.reason.clone(),
                 ts: r.ts,
             })
+            .collect(),
+        devices: s
+            .devices
+            .iter()
+            .map(|(user, set)| (user.clone(), set.iter().cloned().collect()))
             .collect(),
     }
 }

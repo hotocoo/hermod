@@ -27,8 +27,8 @@ pub mod search;
 pub mod store;
 
 pub use api::{
-    Core, CoreConfig, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput, SpaceCreated,
-    SpaceSummary,
+    Core, CoreConfig, DeviceRow, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput,
+    SpaceCreated, SpaceSummary,
 };
 pub use error::{Error, Result};
 pub use event::{BlobRef, EventBody, Role, SignedEvent};

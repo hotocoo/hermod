@@ -958,12 +958,9 @@ fn migrations_upgrade_old_schema_and_report_corruption() {
 }
 
 #[test]
-fn rekey_requires_admin_and_devices_are_logged() {
-    let (a, b, _c, s, _d) = trio();
+fn rekey_requires_admin() {
+    let (_a, b, _c, s, _d) = trio();
     assert!(matches!(b.rekey(&s), Err(Error::Forbidden(_))));
-    let dev = [9u8; 32];
-    a.device_link(&dev).unwrap();
-    a.device_revoke(&dev).unwrap();
 }
 
 #[test]

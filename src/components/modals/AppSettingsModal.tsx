@@ -19,6 +19,7 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Switch } from '@/components/ui/Switch';
 import f from '@/components/ui/form.module.css';
 import { CopyField } from './CopyField';
+import { LinkedDevices } from './LinkedDevices';
 
 const TABS = [
   ['notifications', 'Notifications'], ['appearance', 'Appearance'], ['devices', 'Audio and video'], ['storage', 'Storage'], ['backup', 'Backup'],
@@ -384,6 +385,7 @@ function Identity(): ReactNode {
       <CopyField id="id-user" label="User id" value={me.user_id} />
       <p className={f.note}>Your user id is public to the spaces you join. The secret key never leaves this device.</p>
       <KeyStorage />
+      <LinkedDevices />
     </>
   );
 }

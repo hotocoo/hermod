@@ -720,9 +720,21 @@ pub enum EventBody {
     #[serde(rename = "read.mark")]
     ReadMark { channel_id: String, upto: u64 },
     #[serde(rename = "device.link")]
-    DeviceLink { device_pub: String, cert: String },
+    DeviceLink {
+        device_pub: String,
+        /// The identity's signature over `device_pub`.
+        cert: String,
+        /// The device's own signature over the identity; links without it never take effect.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        proof: String,
+    },
     #[serde(rename = "device.revoke")]
-    DeviceRevoke { device_pub: String },
+    DeviceRevoke {
+        device_pub: String,
+        /// Highest `seq` the identity saw from the device. Later seqs are rejected whatever lamport they claim.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "desk.config")]
     DeskConfig {
         queues: Vec<DeskQueueIn>,

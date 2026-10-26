@@ -239,7 +239,7 @@ Relaying pauses when on battery (when detectable) or when the user switches it o
 - Two users behind symmetric NATs with no reachable Hermod peer online may fail to connect until such a peer exists.
 - Public IPFS bootstrap nodes and public STUN servers are third-party services.
 - Removal and re-keying protect future events only; anything a removed member already received stays readable to them.
-- Linked devices (`device.link`) are certified and audited, but a device cannot yet sign on behalf of the identity (FEATURES D-001).
+- Linked devices (D-001): a second device holds its own key and signs its own events; `device.link` (identity cert plus the device's proof of possession) is appended to every space, so every peer's fold attributes the device's events to the identity, and `device.revoke { last_seq }` ends that position-independently. The one-time link code (10 minutes, never stored or logged) carries the device seed and space keys; only the first device can link, revoke, create or join spaces.
 
 ## 8. Legal gate
 
