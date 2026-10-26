@@ -66,9 +66,6 @@ export const TTL_CHOICES: { label: string; secs: number }[] = [
   { label: 'Off', secs: 0 }, { label: '1 hour', secs: 3600 }, { label: '1 day', secs: 86_400 }, { label: '7 days', secs: 604_800 }, { label: '30 days', secs: 2_592_000 },
 ];
 
-/** Messages still alive at `now` (the core already drops expired ones at render time; this keeps an open chat in step between snapshots). */
-export const alive = (list: Message[], now: number): Message[] => list.filter((m) => !m.ext?.expires || m.ext.expires > now);
-
 /** Archived chats stay out of the list; a new message brings one back unless the chat is muted (MESSAGING 3.16). */
 export const hiddenAsArchived = (archived: boolean, showArchived: boolean, unread: boolean, muted: boolean): boolean => archived && !showArchived && !(unread && !muted);
 
