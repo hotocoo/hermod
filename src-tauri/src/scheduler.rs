@@ -326,7 +326,7 @@ mod tests {
         call(&c, "event_append", post(&space, "m2", "lunch?")).await;
 
         let mut fired = HashMap::new();
-        run_automation(&c, &mut fired).await;
+        run_automation(&c, &mut fired, &Dirty::everything()).await;
         let page = |c: Arc<Ctx>, space: String| async move {
             call(
                 &c,
@@ -344,7 +344,7 @@ mod tests {
         );
         assert!(!after.contains("Ticket noted: lunch?"));
 
-        run_automation(&c, &mut fired).await;
+        run_automation(&c, &mut fired, &Dirty::everything()).await;
         let again = page(c.clone(), space.clone()).await;
         assert_eq!(again.matches("Ticket noted:").count(), 1, "answered once");
     }

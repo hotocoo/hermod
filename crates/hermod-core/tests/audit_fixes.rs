@@ -104,6 +104,7 @@ fn join_via(id: &str) -> EventBody {
     EventBody::MemberJoin {
         via_invite_from: None,
         invite: Some(id.into()),
+        pow: None,
     }
 }
 

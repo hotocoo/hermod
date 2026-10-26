@@ -30,6 +30,7 @@ fn fill(c: &Core, s: SpaceId, n: u64) {
     let join = EventBody::MemberJoin {
         via_invite_from: None,
         invite: Some(inv.id.clone()),
+        pow: None,
     };
     let mk = |seq: u64, body: &EventBody| {
         SignedEvent::create(&who, &inv.space_key, 0, s, seq, inv.lc + seq, 1, body).unwrap()

@@ -1605,11 +1605,11 @@ impl Core {
         Ok(inner
             .store
             .load_opened(&row)?
-            .into_iter()
-            .find_map(|ev| match ev.body {
+            .iter()
+            .find_map(|ev| match &ev.body {
                 EventBody::SnapCreate {
                     snap_id: id, files, ..
-                } if id == snap_id => Some(files),
+                } if id == snap_id => Some(files.clone()),
                 _ => None,
             }))
     }

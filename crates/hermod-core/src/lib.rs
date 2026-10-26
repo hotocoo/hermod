@@ -29,8 +29,8 @@ pub mod retention;
 pub mod search;
 pub mod snapdir;
 pub mod store;
-pub mod textdiff;
 mod swap;
+pub mod textdiff;
 
 pub use api::{
     Core, CoreConfig, DeviceRow, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput,

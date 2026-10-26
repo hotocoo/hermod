@@ -119,7 +119,7 @@ impl Core {
             let mut live: HashSet<String> = HashSet::new();
             for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
                 let cut = cuts.get(&row.id).copied();
-                for ev in inner.store.load_opened(&row)? {
+                for ev in inner.store.load_opened(&row)?.iter() {
                     let past = cut.is_some_and(|c| ev.ts < c)
                         && matches!(ev.body, EventBody::MessagePost { .. });
                     let hashes = ev.body.blob_refs().into_iter().map(|b| b.hash.clone());
