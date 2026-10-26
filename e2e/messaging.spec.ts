@@ -672,6 +672,8 @@ test('a member below the mention floor cannot ping @admins; an owner can (M-036)
   const sd = await openSpaceSettings(a, 'Members');
   await sd.getByLabel('Role of Bo Tester').selectOption('admin');
   await sd.getByRole('button', { name: 'Close' }).click();
+  // Space settings open from the island, so walk back into the chat before Ada speaks.
+  await expect(async () => { await enterSection(a, 'chat'); }).toPass({ timeout: 90_000 });
   const allowed = unique('hello @admins');
   await say(a, allowed);
   await expect(msg(b, allowed).first()).toBeVisible({ timeout: 45_000 });
