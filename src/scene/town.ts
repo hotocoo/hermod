@@ -478,6 +478,9 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
  const SHADOW_EVERY = 3;
  
  let last = performance.now(); let raf = 0; const t0 = last;
+  /** CPU rasteriser only: while the camera rests, GPU work (every pass) drops to a slow heartbeat; the simulation still steps each allowed frame, so springs and timers keep real time. True = skip this frame's draw. */
+  let lastSoftDraw = 0;
+  const softHold = (now: number, settled: boolean) => { if (!soft || gating > 0 || !settled || now - lastSoftDraw >= 1000 / QUALITY_DETECT.softwareIdleFps) { lastSoftDraw = now; return false; } return true; };
   let errLogged = false;
   let lastProg = 0, lastTex = 0;
   /** Resets stats and draws the frame through the post pipeline, unless a warm-up gate is holding the canvas. */
@@ -495,7 +498,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     if (mode === 'inside' && insideAt) { rig.az.t = insideAt.az; rig.el.t = insideAt.el; } else if (!focusId) rig.az.t = userAz;
     if (!focusId && !(down && down.moved)) rig.el.t = home.el;
     if (!down && !reduced) { look.x.t = mouse.x; look.y.t = mouse.y; } else if (!down) { look.x.t = 0; look.y.t = 0; } look.x.step(dt); look.y.step(dt);
-    idle += dt; if (idle > CAMERA.idleAfter && !focusId && !hovered && !reduced && !still.engaged) { userAz += dt * CAMERA.idleSpin; }
+    idle += dt; if (idle > CAMERA.idleAfter && !focusId && !hovered && !reduced && !soft && !still.engaged) { userAz += dt * CAMERA.idleSpin; }
     if (photo && !reduced && !still.engaged && photoK.x < 0.99) userAz += dt * CAMERA.photoSpin;
     if (!focusId) { rig.tx.t = userTx * (1 - archiK.t); rig.tz.t = userTz * (1 - archiK.t); }
     if (!down && !focusId && mode === 'island') {
@@ -507,7 +510,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     Object.values(rig).forEach((s) => s.step(dt)); { const sp = director.update(dt); if (sp) { const p = sp.pose; setX(rig.az, p.az); setX(rig.el, p.el); setX(rig.dist, p.dist); setX(rig.tx, p.tx); setX(rig.ty, p.ty); setX(rig.tz, p.tz); fov.x = p.fov; fov.v = 0; } } islandY.step(dt); cloudOp.t = focusId ? 0 : Math.max(0.94, ferry.x); cloudOp.step(dt); M.cloud.opacity = Math.max(0, cloudOp.x); clouds.forEach((c) => { c.visible = cloudOp.x > 0.02; });
     world.position.y = islandY.x;
     const tg = tgV.set(rig.tx.x, rig.ty.x, rig.tz.x);
-    driftK.t = !reduced && !focusId && mode === 'island' && idle > CAMERA.idleAfter && !still.engaged ? 1 : 0; driftK.step(dt); hhK.t = !reduced && mode === 'inside' ? 1 : 0; hhK.step(dt); const dk = driftK.x, hk = hhK.x;
+    driftK.t = !reduced && !soft && !focusId && mode === 'island' && idle > CAMERA.idleAfter && !still.engaged ? 1 : 0; driftK.step(dt); hhK.t = !reduced && mode === 'inside' ? 1 : 0; hhK.step(dt); const dk = driftK.x, hk = hhK.x;
     const D = (rig.dist.x + ferry.x * 34 + archiK.x * 108 - photoK.x * 8) * (1 + Math.sin(t * DIRECTOR.drift.speed) * DIRECTOR.drift.dist * dk), E = Math.min(1.42, rig.el.x + ferry.x * 0.32 + archiK.x * 0.28 - photoK.x * 0.26 + Math.sin(t * DIRECTOR.drift.speed * 1.3 + 1) * DIRECTOR.drift.el * dk);
     const crane = Math.sin(Math.PI * Math.min(1, Math.max(0, archiK.x))), azC = rig.az.x + crane * DIRECTOR.crane.swing, EC = Math.min(1.45, E + crane * DIRECTOR.crane.lift);
     camera.position.set(tg.x + Math.sin(azC) * Math.cos(EC) * D, tg.y + Math.sin(EC) * D, tg.z + Math.cos(azC) * Math.cos(EC) * D);
@@ -537,7 +540,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
       { const w = window as unknown as { __prof?: Record<string, number> }; if (w.__prof) { w.__prof.paused = pauseN; w.__prof.shadowNeeds = renderer.shadowMap.needsUpdate ? 1 : 0; } }
       const WP = weather.sample(dt); hemi.intensity *= 1 - WP.ok * 0.35; sun.intensity *= (1 - WP.ok * 0.75) * (0.85 + WP.sunK * 0.3);
       fog.density = 0; sun.intensity *= 0.18; hemi.intensity = Math.max(0.3, hemi.intensity * 0.5); IN.tick(t, camera);
-      if (!(covered && performance.now() - coveredAt > COVERED_RENDER_MS)) drawFrame(dt, now);
+      if (!(covered && performance.now() - coveredAt > COVERED_RENDER_MS) && !softHold(now, true)) drawFrame(dt, now);
       overlayUi?.update(now); return;
     }
     if (now - skyScan > 90) { skyScan = now; const r2 = document.documentElement.style; r2.setProperty('--h-sky-top', S.top); r2.setProperty('--h-sky-bot', S.bot); r2.setProperty('--h-sky-glow', S.glow); const name = S.name; if (name !== lastPeriod || Math.abs(hr - lastHr) > 0.12) { lastPeriod = name; lastHr = hr; opts.onSky?.({ hour: hr, period: name, night: k }); } }
@@ -615,7 +618,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     // inside a room the scene is static (figures do not cast): refresh shadows only for a short settle window after entering, not every 3rd frame
     if (!outside) { if (insideFrames++ < 12) renderer.shadowMap.needsUpdate = true; } else { insideFrames = 0; if (++shadowTick % SHADOW_EVERY === 0 || (mode !== 'island' && world.visible)) renderer.shadowMap.needsUpdate = true; } // shadow maps are the costliest pass: refresh at 1/SHADOW_EVERY rate
     // path traced still: camera unchanged for STILL.idleMs (photo mode, or the ultra tier) -> progressive refine, cancelled the frame the camera moves
-    { const me = camera.matrixWorld.elements; let moved = camera.fov !== sigFov || W !== sigW || H !== sigH || Math.abs(hr - sigHr) > 0.0008 || mode === 'inside' !== sigIn; for (let i = 0; i < 16; i++) if (Math.abs(me[i] - sigM[i]) > 1e-6) { moved = true; sigM[i] = me[i]; }
+    { const me = camera.matrixWorld.elements; let moved = (soft ? Math.abs(camera.fov - sigFov) > QUALITY_DETECT.softwareFovEps : camera.fov !== sigFov) || W !== sigW || H !== sigH || Math.abs(hr - sigHr) > 0.0008 || mode === 'inside' !== sigIn; for (let i = 0; i < 16; i++) if (Math.abs(me[i] - sigM[i]) > 1e-6) { moved = true; sigM[i] = me[i]; }
       if (Math.abs(hr - sigHr) > 0.0008) still.invalidate(); sigFov = camera.fov; sigW = W; sigH = H; sigHr = hr; sigIn = mode === 'inside'; if (moved) stableMs = 0; else stableMs += dt * 1000;
       if (still.exporting) { still.step(); return; }
       if (tier === STILL.idleTier && !still.engaged && stableMs > 300 && stableMs < STILL.idleMs && !panelOpen && !focusId && mode === 'island') { if (still.prewarm() && stableMs > 700) void still.prepare(); } // textures first, then BVH and tables, both before the 2 s idle trigger
@@ -624,6 +627,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
       if (ok) { if (!still.engaged) void still.engage(photo ? STILL.photoSamples : STILL.idleSamples, photo ? STILL.tilesPhoto : STILL.tilesIdle); } else if (still.engaged) still.cancel();
       if (still.engaged) { still.step(); return; } }
     if (covered && performance.now() - coveredAt > COVERED_RENDER_MS) { overlayUi?.update(now); return; }
+    if (softHold(now, stableMs > QUALITY_DETECT.softwareSettleMs)) { overlayUi?.update(now); return; }
     if (mode !== 'inside') {
       // GI treats only a real camera move (fast pan, orbit, zoom: relative speed above GI.busySpeed per second) as busy: the slow idle spin (CAMERA.idleSpin), drift and handheld sway must not pin the bake to one probe per frame
       const dts = Math.max(dt, 0.001); const fast = camera.position.distanceTo(giPos) / dts / Math.max(1, camera.position.length()) > GI.busySpeed || camera.quaternion.angleTo(giQuat) / dts > GI.busyTurn || Math.abs(camera.fov - giFov) > 0.02; giPos.copy(camera.position); giQuat.copy(camera.quaternion); giFov = camera.fov; giBusyMs = fast ? 0 : giBusyMs + dt * 1000;

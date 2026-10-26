@@ -95,9 +95,13 @@ export const QUALITY_DETECT = {
   /** CPU rasterisers: every shader link and frame costs seconds, so boot skips the idle warm-ups (room prebuild, higher-tier shader precompile) that only help real GPUs. */
   softwareGpu: /swiftshader|llvmpipe|software/i,
   /** Render scale on a CPU rasteriser (also drops canvas MSAA and shadow maps, which add depth programs and a pass to every shader link and frame): fill rate is the frame cost there, and the island stays readable at this scale. */
-  softwareScale: 0.6,
+  softwareScale: 0.4,
   /** Frame cap on a CPU rasteriser: every frame is CPU time taken from the UI and from other apps (the island animates gently, so motion stays smooth enough). */
-  softwareFps: 20,
+  softwareFps: 10,
+  /** Draw rate on a CPU rasteriser once the camera has rested for `softwareSettleMs`: a slow heartbeat so ambient change (weather, a raised building) still shows, at a small share of the GPU time. Idle spin and drift are off there, so a resting camera stays at rest. */
+  softwareIdleFps: 0.5, softwareSettleMs: 600,
+  /** The fov spring only decays toward its target (it never lands exactly), so on a CPU rasteriser a per-frame change below this (degrees) counts as resting. */
+  softwareFovEps: 1e-3,
   lowGpu: /swiftshader|llvmpipe|software|mali|powervr|videocore|adreno \(tm\) [1-5]\d\d|intel.*(hd|uhd|iris)(?!.*xe)/i,
   midGpu: /adreno|intel|iris xe|apple a\d|apple gpu(?! m)/i,
   ultraGpu: /rtx|radeon rx [6-9]|geforce gtx 1[06]|nvidia.*(quadro|titan)/i,
