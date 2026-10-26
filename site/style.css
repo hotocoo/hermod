@@ -28,9 +28,11 @@ section h2{font-size:clamp(2rem,4vw,2.8rem);margin:0 0 1rem}
 @media(max-width:46rem){.split{grid-template-columns:1fr}}
 .list{padding:0;list-style:none;display:grid;gap:1rem;margin:0}
 .list li{border-left:3px solid var(--accent);padding-left:1rem}
-.shots{display:grid;grid-template-columns:2fr 1fr;gap:1rem}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem 1rem}
 @media(max-width:46rem){.shots{grid-template-columns:1fr}}
-.shot{aspect-ratio:16/10;border:1.5px dashed var(--line);border-radius:.5rem;display:grid;place-items:center;color:var(--muted);background:var(--card);text-align:center;padding:1rem}
+.shot{margin:0}
+.shot img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border:1px solid var(--line);border-radius:.5rem}
+.shot figcaption{color:var(--muted);font-size:.95rem;margin-top:.5rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:1.5rem}
 .small{color:var(--muted);font-size:.95rem}
 footer{border-top:1px solid var(--line);padding-block:2rem;color:var(--muted);font-size:.95rem}

@@ -6,7 +6,13 @@ Built with Tauri v2, Next.js and Rust (libp2p). Licensed under Apache-2.0.
 
 Website and downloads: https://hotocoo.github.io/hermod/
 
-![A new Hermod space: the island town with its buildings and empty plots](docs/screenshots/town.png)
+![The island town of a Space called Lantern Makers, with the Commons, Gallery and Workshop raised](docs/screenshots/town.jpg)
+
+| Chat | Board | All your Spaces |
+|---|---|---|
+| ![Chat in the Commons between two members, with a heart reaction](docs/screenshots/chat.jpg) | ![A task board in the Workshop with cards in To do and Doing](docs/screenshots/board.jpg) | ![The archipelago view with a shared island and a personal Home island](docs/screenshots/islands.jpg) |
+
+Screenshots are taken headless from the real app (two local peers, content typed through the UI) with `npm run shots`.
 
 ## Install
 
@@ -31,7 +37,7 @@ Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 - Two users behind symmetric NATs may fail to connect until a reachable Hermod peer is online.
 - Public IPFS bootstrap nodes and public STUN servers are third-party services.
-- No member removal or re-keying in v1. Invite codes cannot be revoked.
+- A removed member keeps whatever they had already synced before the removal.
 
 ## Resource sharing
 

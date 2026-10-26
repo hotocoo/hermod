@@ -39,7 +39,7 @@ export function paletteItems(s: AppStore, seed: Seed): PaletteItem[] {
     const forum = kind === 'forum';
     const msgs = (seed.collections.messages as Record<string, { t: string }[]> | undefined)?.[`${sp}/${ch.id}`] ?? [];
     const last = msgs[msgs.length - 1];
-    const bits = [space(sp).name, ch.topic];
+    const bits = [space(sp).name, ch.topic].filter(Boolean);
     if (ch.unread) bits.push(`${ch.unread} unread`);
     if (last) bits.push(last.t);
     items.push({

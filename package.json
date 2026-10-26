@@ -9,6 +9,7 @@
     "lint": "eslint",
     "build:devhost": "cargo build -p hermodr --features devhost --bin hermod-devhost",
     "test:e2e": "npm run build:devhost && playwright test",
+    "shots": "npm run build:devhost && SHOTS=1 playwright test e2e/shots.spec.ts",
     "test:unit": "vitest run",
     "perf:scene": "node scripts/perf-scene.mjs",
     "perf:hidden": "node scripts/hidden-cpu.mjs",

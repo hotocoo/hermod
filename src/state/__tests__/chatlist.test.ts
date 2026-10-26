@@ -113,4 +113,9 @@ describe('M-046 palette Explore', () => {
     expect(ideas?.sub).toContain('Quay');
     expect(ideas?.sub).not.toContain('unread');
   });
+
+  it('skips an empty topic instead of leaving a double separator', () => {
+    const bare = { ...seed, collections: { ...seed.collections, channels: { s1: [{ id: 'c3', name: 'quiet', topic: '' }] } } } as unknown as Seed;
+    expect(paletteItems(s, bare).find((i) => i.label === '#quiet')?.sub).toBe('Quay');
+  });
 });
