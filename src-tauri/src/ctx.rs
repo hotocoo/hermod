@@ -73,6 +73,8 @@ pub trait Shell: Send + Sync {
     /// Blocking native file picker.
     fn pick_files(&self, multiple: bool, accept: &[String])
     -> Result<Option<Vec<PathBuf>>, String>;
+    /// Blocking native folder picker.
+    fn pick_folder(&self) -> Result<Option<PathBuf>, String>;
     /// Blocking native save dialog.
     fn save_dialog(&self, suggested: &str) -> Result<Option<PathBuf>, String>;
     fn update_check(&self) -> BoxFut<Result<Value, String>>;

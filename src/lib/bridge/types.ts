@@ -90,6 +90,12 @@ export interface AgendaItemIn { text: string; who: string }
 export interface ColumnIn { col_id: string; name: string }
 export interface DocBlockIn { k: 'h' | 'p' | 'q' | 't'; text: string; done?: boolean }
 export interface SnapFileIn { path: string; blob?: BlobRef; adds: number; dels: number }
+/** `snap_verify` result: files whose blob is not fully local, and files whose stored bytes no longer match their hash. */
+export interface SnapVerify { ok: boolean; missing: string[]; corrupt: string[] }
+/** `snap_scan_folder` result: the files for `snap.create` (removed files carry no blob) and the change counts against the parent. */
+export interface SnapPlan { files: SnapFileIn[]; added: number; removed: number; changed: number }
+/** `snap_export` result: the folder written and how many files it holds. */
+export interface SnapExported { path: string; files: number }
 export type DocOp = 'insert' | 'update' | 'delete' | 'toggle';
 
 export type EventBody =

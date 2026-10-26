@@ -5,6 +5,20 @@ export const COPY = {
     tooLarge: 'This file is too large to compare here. Download it to compare.', unchanged: 'No line changes.',
     failed: (why: string) => `Could not load the changes. ${why}`, retry: 'Try again', hunk: (n: number) => `Change ${n}`,
   },
+  snapSeal: {
+    checking: 'Checking the seal…', verified: 'Seal verified: every file matches.',
+    tampered: (files: string[]) => `This snapshot does not match its seal. Changed or damaged: ${files.join(', ')}. Do not trust these files.`,
+    partial: (n: number) => `${n} ${n === 1 ? 'file is' : 'files are'} not downloaded yet, so the seal cannot be fully checked.`,
+    failed: (why: string) => `Could not check the seal. ${why}`,
+  },
+  snapExport: {
+    button: 'Download all files', busy: 'Saving…',
+    done: (n: number, path: string) => `Saved ${n} ${n === 1 ? 'file' : 'files'} to ${path}.`,
+  },
+  snapFolder: {
+    choose: 'Choose folder', label: 'Folder',
+    summary: (added: number, removed: number, changed: number) => `${added} added, ${removed} removed, ${changed} changed since the last snapshot`,
+  },
   card: {
     unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.',
     editTitle: 'Edit card', assignedTo: 'Assigned to', dueLabel: 'Due', due: (d: string) => `Due ${d}`,

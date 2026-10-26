@@ -14,6 +14,23 @@ describe('diffBlobs', () => {
   });
 });
 
+describe('skein snapshots', () => {
+  it('maps verify, export, folder pick and scan onto their commands', async () => {
+    const t = base({ call: vi.fn(async () => null as never) });
+    const b = createBridge(t);
+    await b.snapVerify('sp', 's1');
+    await b.snapExport('sp', 's1');
+    await b.pickFolder();
+    await b.snapScanFolder('sp', '/d', 's0');
+    await b.snapScanFolder('sp', '/d');
+    expect(t.call).toHaveBeenNthCalledWith(1, 'snap_verify', { spaceId: 'sp', snapId: 's1' });
+    expect(t.call).toHaveBeenNthCalledWith(2, 'snap_export', { spaceId: 'sp', snapId: 's1' });
+    expect(t.call).toHaveBeenNthCalledWith(3, 'pick_folder', undefined);
+    expect(t.call).toHaveBeenNthCalledWith(4, 'snap_scan_folder', { spaceId: 'sp', path: '/d', parent: 's0' });
+    expect(t.call).toHaveBeenNthCalledWith(5, 'snap_scan_folder', { spaceId: 'sp', path: '/d', parent: null });
+  });
+});
+
 describe('binary uploads', () => {
   it('send the raw body when the transport supports it', async () => {
     const callRaw = vi.fn(async () => ({}) as never);

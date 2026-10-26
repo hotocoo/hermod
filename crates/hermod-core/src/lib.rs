@@ -23,6 +23,7 @@ pub mod msgext;
 pub mod projections;
 pub mod ratelimit;
 pub mod search;
+pub mod snapdir;
 pub mod store;
 pub mod textdiff;
 

@@ -396,6 +396,9 @@ test.describe('skein (K-001..K-003, K-006, K-007)', () => {
     await b.getByRole('button', { name: new RegExp(first) }).click();
     await expect(b.getByRole('heading', { name: first })).toBeVisible();
     await expect(b.getByText('palette.txt').first()).toBeVisible(); // named in the file list and again in the diff header
+    // K-002, K-009: opening the snapshot re-hashes its blobs and reports the seal as matching (no tamper warning).
+    await expect(b.getByText(/Seal verified: every file matches/)).toBeVisible(sync);
+    await expect(b.getByRole('alert').filter({ hasText: /does not match its seal/ })).toHaveCount(0);
   });
 
   test('A starts a line, snapshots on it, and weaves it into main; both ledgers show the weave', async () => {

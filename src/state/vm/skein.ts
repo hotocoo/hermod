@@ -43,7 +43,7 @@ export function skeinVm(x: Ctx) {
       onClick: () => s.openSnap(s.space, q.id), anim: anim(i),
     })),
     sel: sel ? {
-      title: sel.title, by: personOf(seed, sel.by).name, initials: personOf(seed, sel.by).i, when: sel.when, kind: sel.kind, line: sel.line,
+      id: sel.id, title: sel.title, by: personOf(seed, sel.by).name, initials: personOf(seed, sel.by).i, when: sel.when, kind: sel.kind, line: sel.line,
       seal: sel.seal, sealShort: sel.seal.slice(0, SKEIN_SEAL_SHORT.plain), parent: sel.parent, linked: sel.linked.label, hasLink: !!sel.linked.ch,
       isWeave: !!sel.weaveOf, weaveOf: sel.weaveOf,
       openLink: () => { if (sel.linked.ch) s.goChannel(s.space, sel.linked.ch); },
