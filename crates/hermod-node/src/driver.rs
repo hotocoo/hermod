@@ -1077,6 +1077,9 @@ impl Driver {
                 self.remember(space, peer);
             }
         }
+        // Identify usually lands after the peer joined the space, so this is when its address first
+        // becomes known: write it now, a crash before the maintenance tick must not lose it.
+        self.flush_book();
     }
 
     fn on_kad(&mut self, e: kad::Event) {
