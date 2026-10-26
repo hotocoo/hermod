@@ -17,6 +17,7 @@ test.describe('boot', () => {
   });
 
   test('buildings are one Tab stop, arrows cycle focus, Enter opens the door card, Esc goes back (X-002)', async ({ app }) => {
+    await app.getByRole('button', { name: 'New Space' }).click();
     await createSpace(app, unique('Keys'));
     const buttons = app.locator('[data-bld] > button');
     await expect(buttons.first()).toBeAttached();
