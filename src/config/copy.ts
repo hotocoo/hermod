@@ -62,4 +62,7 @@ export const COPY = {
   reminderTitle: (t: string) => t,
   folderAddChat: (folder: string) => `Add to ${folder}`,
   folderRemoveChat: (folder: string) => `Remove from ${folder}`,
+  removedFromSpace: (space: string) => `You were removed from ${space}. Its channels are read only.`,
+  safetyNumber: 'Safety number', safetyComputing: 'Computing', safetyOther: 'the other person',
+  safetyNote: (peer: string) => `Read it out to ${peer}. It matches when both devices hold the same keys.`,
 } as const;

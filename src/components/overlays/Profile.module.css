@@ -233,3 +233,7 @@
   font-size: 11px;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
+
+/* M-047: status line and pronouns in the identity block. */
+.status { margin-top: 6px; font-size: 14px; }
+.pronouns { margin-top: 2px; font-size: 12px; color: var(--color-accent-text); }

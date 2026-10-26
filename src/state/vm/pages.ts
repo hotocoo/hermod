@@ -6,7 +6,7 @@ import { appendEvent, uid } from '../act';
 import { coll } from '../dataTypes';
 import type { InputEvt } from '../types';
 import { effectiveProfile, profileStats } from '../profile';
-import { isAdminRole, meId, personOf, roleIn, todayIndex } from '../selectors';
+import { isAdminRole, meId, personOf, profilesIn, roleIn, todayIndex } from '../selectors';
 import type { AppStore } from '../types';
 import type { Ctx } from './context';
 import { ACCENT, DIVIDER, fgOf, mixAccent } from './css';
@@ -116,6 +116,8 @@ function profileVm(x: Ctx) {
     profOpen: s.profile, openProfile: s.openProfile, closeProfile: s.closeProfile,
     prof: {
       ...prof, role: prof.role || (s.me ? `@${s.me.handle}` : ''), initials: s.me?.initials ?? '', av: s.me?.avatar?.hash ?? '',
+      // M-047: banner, status and pronouns from this Space's profile extras (expired statuses are already blanked by the core).
+      ext: s.me ? profilesIn(seed, s.space)[s.me.user_id] : undefined,
       stats: [{ n: num(st.posts.length + st.videos.length), l: 'Posts' }, { n: num(st.snaps.length), l: 'Snapshots' }, { n: num(st.saved.length), l: 'Saved' }, { n: num(st.spaces), l: 'Spaces' }],
     },
     setAvatar: () => { void s.setAvatar(); },

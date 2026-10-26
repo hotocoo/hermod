@@ -52,7 +52,7 @@ export function ScheduleModal() {
       <div className={f.field}>
         <p className={f.note}>{draft ? <>Message: <strong>{draft.slice(0, 120)}</strong></> : 'Type a message in the box first, then open this again.'}</p>
         <label className={f.label} htmlFor="sched-at">Send at</label>
-        <input id="sched-at" className="input" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
+        <input id="sched-at" className="input" type="datetime-local" step="1" value={when} onChange={(e) => setWhen(e.target.value)} />
         {!valid && <p className={f.error} role="alert">Pick a time in the future, within a year.</p>}
         <div className={f.actions}>
           <button type="button" className="btn btn-secondary" onClick={st.closeModal}>Close</button>

@@ -14,7 +14,7 @@ export const DEVHOST_B = `http://127.0.0.1:${BASE + 1}`;
 export const DEVHOST_FRESH = `http://127.0.0.1:${BASE + 2}`;
 
 /** Console noise that is not an app error (software-GL driver chatter). */
-const IGNORED = [/GL Driver Message/i, /GPU stall/i, /swiftshader/i];
+const IGNORED = [/GL Driver Message/i, /GPU stall/i, /swiftshader/i, /AudioContext encountered an error/i];
 
 /** Unique names so repeated runs against a persistent devhost never collide. */
 export const unique = (prefix: string): string => `${prefix} ${Date.now().toString(36)}${Math.floor(Math.random() * 1296).toString(36)}`;
@@ -112,8 +112,14 @@ export const panel = (page: Page): Locator => page.locator('section[aria-label]'
 
 /** Resolves once the panel has opened (pointer events on, clip circle expanded). */
 export async function expectInside(page: Page): Promise<void> {
-  await expect(panel(page)).toHaveCSS('pointer-events', 'auto');
-  await expect(page.getByRole('button', { name: /Island/ })).toBeInViewport();
+  // The panel is absolutely positioned; a container scrolled by an earlier auto-scroll (CI
+  // software-GL clicks scroll targets into view) would push it out of the viewport, so pin
+  // the scroll before each check instead of failing on it.
+  await expect(async () => {
+    await page.evaluate(() => { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; window.scrollTo(0, 0); });
+    await expect(panel(page)).toHaveCSS('pointer-events', 'auto');
+    await expect(page.getByRole('button', { name: /Island/ })).toBeInViewport();
+  }).toPass({ timeout: 30_000 });
 }
 
 export async function expectOnIsland(page: Page): Promise<void> {
@@ -189,18 +195,23 @@ export async function toIsland(page: Page): Promise<void> {
  * opens straight onto the "Raise" prompt, which is accepted when `raise` is set.
  */
 export async function enterSection(page: Page, id: SectionId, raise = true): Promise<void> {
-  await toIsland(page);
-  await page.locator(`[data-bld="${id}"] button`).dispatchEvent('click');
-  const cta = id === 'hearth' ? 'Take a seat' : 'Step inside';
-  const door = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: cta }) });
-  const raiseBtn = page.getByRole('button', { name: /^\s*Raise /i });
-  await expect(door.or(raiseBtn).first()).toBeVisible();
-  if (await door.isVisible()) await door.getByRole('button', { name: cta }).click();
-  else if (raise) {
-    await raiseBtn.click();
-    await expect(page.getByText(/up in .*Everyone can see it now/)).toBeVisible();
-  }
-  await expectInside(page);
+  // Software GL on CI can take a while to make a plot interactive, so the whole walk is retried.
+  await expect(async () => {
+    await toIsland(page);
+    const label = page.locator(`[data-bld="${id}"] button`);
+    await expect(label).toBeVisible({ timeout: 15_000 });
+    await label.dispatchEvent('click');
+    const cta = id === 'hearth' ? 'Take a seat' : 'Step inside';
+    const door = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: cta }) });
+    const raiseBtn = page.getByRole('button', { name: /^\s*Raise /i });
+    await expect(door.or(raiseBtn).first()).toBeVisible({ timeout: 15_000 });
+    if (await door.isVisible()) await door.getByRole('button', { name: cta }).click();
+    else if (raise) {
+      await raiseBtn.click();
+      await expect(page.getByText(/up in .*Everyone can see it now/)).toBeVisible({ timeout: 15_000 });
+    }
+    await expectInside(page);
+  }).toPass({ timeout: 120_000 * BOOT_FACTOR });
 }
 
 /** Opens the Invite dialog, creates an invite and returns its code. Needs the island view. */

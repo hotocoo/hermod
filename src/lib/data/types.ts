@@ -18,6 +18,8 @@ export interface Space {
   role?: Role;
   /** For a dm Space: started as a group, fixed at creation. */
   group?: boolean;
+  /** The local user was removed from this Space by an admin (E-002); the core keeps it listed until they dismiss or leave. */
+  removed?: boolean;
 }
 export type SectionId = 'chat' | 'hearth' | 'feed' | 'board' | 'skein' | 'desk' | 'arcade';
 export interface Section { label: string; icon: string; blurb: string; place: string; kicker: string; plot: string; fresh: string }

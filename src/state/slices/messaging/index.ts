@@ -5,8 +5,8 @@ import { copyText } from '../../../lib/clipboard';
 import { urlsIn } from '../../../lib/messaging/markdown';
 import { appendEvent, guarded, uid } from '../../act';
 import type { Message } from '../../dataTypes';
-import { notePresence, sweepPresence } from '../../presence';
-import { channelsOf, chatKey, curSpace, meId } from '../../selectors';
+import { dropPresence, notePresence, noteSeen, sweepPresence } from '../../presence';
+import { channelsOf, chatKey, curSpace, isHomeSpace, meId } from '../../selectors';
 import type { AppStore } from '../../types';
 import { MUTE_FOREVER, forwardBody, forwardable, messageLink, noteBody, parseMessageLink, quoteOf, splitKey, toggleInFolder } from './helpers';
 import type { ComposeExtras, MessagingSlice } from './types';
@@ -43,7 +43,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
 
   return {
     prefs: {}, privacy: { receipts: false, previews: false, typing: true, presence: true }, scheduled: [],
-    typing: {}, presence: {}, compose: EMPTY_COMPOSE, older: {}, olderMore: {}, jump: null,
+    typing: {}, presence: {}, lastSeen: {}, compose: EMPTY_COMPOSE, older: {}, olderMore: {}, jump: null,
 
     loadMessaging: async () => {
       const b = getBridge();
@@ -55,8 +55,16 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       if (prefs) set({ prefs });
     },
     setPrivacy: async (patch) => {
+      const wasOn = get().privacy.presence;
       const privacy = await guarded(get, () => getBridge().privacySet(patch));
-      if (privacy) set({ privacy });
+      if (privacy) {
+        set({ privacy });
+        // M-026: switching presence off tells peers at once instead of leaving a stale dot for a ttl.
+        if (wasOn && !privacy.presence) {
+          const s = get();
+          s.spaces.filter((sp) => !isHomeSpace(sp)).forEach((sp) => { void getBridge().sendEphemeral(sp.id, 'presence', { away: false, offline: true }).catch(() => { /* best effort */ }); });
+        }
+      }
     },
     togglePinChat: async (key) => {
       const cur = get().prefs.pinned ?? [];
@@ -249,8 +257,10 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     },
     notePresence: (from, away) => {
       if (!get().privacy.presence) return;
-      set((x) => ({ presence: notePresence(x.presence, from, away, Date.now()) }));
+      const now = Date.now();
+      set((x) => ({ presence: notePresence(x.presence, from, away, now), lastSeen: noteSeen(x.lastSeen, from, now) }));
     },
+    dropPresence: (from) => set((x) => ({ presence: dropPresence(x.presence, from) })), // M-026: offline packet, last seen is kept
     sweepPresence: () => { const p = get().presence; const n = sweepPresence(p, Date.now(), PRESENCE.ttlMs); if (n !== p) set({ presence: n }); },
   };
 };

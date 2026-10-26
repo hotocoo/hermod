@@ -1,5 +1,6 @@
 import { MEDIA } from '../../config/app';
 import { fmtSec, firstName, aniOnce, aniPage, num } from '../../lib/format';
+import { isFollowing, toggleFollow } from '../../lib/follow';
 import { blobUrl } from '../../lib/upload';
 import { coll } from '../dataTypes';
 import { meId, personOf } from '../selectors';
@@ -45,6 +46,8 @@ export function mediaVm(x: Ctx) {
       id: live.id ?? '', space: live.spaceId ?? s.space, hostId: live.host,
       title: live.title, host: P(live.host).name, initials: P(live.host).i, mine: live.host === me,
       viewers: num(live.viewers), chat: lchat,
+      // V-014: follow the host straight from the live page (device-local, like the feed follow).
+      following: isFollowing(live.host), onFollow: () => { toggleFollow(live.host); s.forceUpdate(); },
     },
     liveDraft: s.liveDraft, onLiveDraft: (e: InputEvt) => s.setLiveDraft(e.target.value),
     onLiveKey: (e: KeyEvt) => { if (e.key === 'Enter') void s.sendLive(); }, goLive: () => { void s.goLive(); }, endLive: () => { void s.endLive(); },

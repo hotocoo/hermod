@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { errorMessage, getBridge, type AuditRow, type Member, type Role } from '@/lib/bridge';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
+import { nicksIn, profilesIn } from '@/state/selectors';
+import { lastSeenLabel, statusOf } from '@/state/presence';
 import { useAppStore } from '@/state/store';
 import { PresenceDot } from '@/components/ui/PresenceDot';
 import { Dialog } from '@/components/ui/Dialog';
@@ -81,6 +83,10 @@ function General({ space, admin, home, stopPolling }: { space: string; admin: bo
 
 function Members({ space, list, reload, admin, owner }: { space: string; list: Member[] | null; reload: () => void; admin: boolean; owner: boolean }) {
   const toast = useAppStore((s) => s.showToast);
+  const nicks = useAppStore((s) => (s.seed ? nicksIn(s.seed, space) : {}));
+  const profiles = useAppStore((s) => (s.seed ? profilesIn(s.seed, space) : {}));
+  const presence = useAppStore((s) => s.presence);
+  const lastSeen = useAppStore((s) => s.lastSeen);
   const confirm = useAppStore((s) => s.confirmAction);
   const blocked = useAppStore((s) => s.blocked);
   const me = useAppStore((s) => s.me?.user_id);
@@ -101,10 +107,16 @@ function Members({ space, list, reload, admin, owner }: { space: string; list: M
         <tbody>
           {active.map((m) => (
             <tr key={m.user_id}>
-              <td><PresenceDot id={m.user_id} inline fallbackOnline={m.online} />{m.name}{m.user_id === me ? ' (you)' : ''}</td>
+              <td>
+                <PresenceDot id={m.user_id} inline fallbackOnline={m.online} />{nicks[m.user_id] || m.name}{m.user_id === me ? ' (you)' : ''}
+                {(profiles[m.user_id]?.status || profiles[m.user_id]?.pronouns) && (
+                  <div className={f.note}>{profiles[m.user_id]?.statusEmoji} {profiles[m.user_id]?.status}{profiles[m.user_id]?.pronouns ? ` (${profiles[m.user_id]?.pronouns})` : ''}</div>
+                )}
+                {lastSeenLabel(lastSeen[m.user_id]) && !statusOf(presence, m.user_id) && <div className={f.note}>{lastSeenLabel(lastSeen[m.user_id])}</div>}
+              </td>
               <td>
                 {owner && m.user_id !== me ? (
-                  <select aria-label={`Role of ${m.name}`} className="input" value={m.role} onChange={(e) => run(() => getBridge().memberSetRole(space, m.user_id, e.target.value as Role))}>
+                  <select aria-label={`Role of ${nicks[m.user_id] || m.name}`} className="input" value={m.role} onChange={(e) => run(() => getBridge().memberSetRole(space, m.user_id, e.target.value as Role))}>
                     {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 ) : m.role}

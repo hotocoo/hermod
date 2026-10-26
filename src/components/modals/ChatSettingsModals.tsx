@@ -10,6 +10,8 @@ import { useAppStore } from '@/state/store';
 import { msgColl } from '@/components/chat/useMsgView';
 import { CopyField } from './CopyField';
 import { QrSvg } from './QrSvg';
+import { safetyNumber } from '@/lib/messaging/safety';
+import { COPY } from '@/config/copy';
 import f from '@/components/ui/form.module.css';
 import x from '@/components/chat/messaging.module.css';
 
@@ -24,7 +26,7 @@ function Sel<T extends string>({ id, label, value, opts, set }: { id: string; la
 /** Channel structure and permissions (docs/MESSAGING.md 3.18) plus keyword automations (3.22). */
 export function ChannelSettingsModal({ space, channel }: { space: string; channel: string }) {
   const st = useAppStore(); const view = msgColl(st)?.spaces?.[space]; const cfg = view?.channels?.[channel];
-  const chan = st.seed ? (st.seed.collections.channels as Record<string, { id: string; name: string; topic: string }[]>)[space]?.find((c) => c.id === channel) : undefined;
+  const chan = st.seed ? (st.seed.collections.channels as Record<string, { id: string; name: string; topic: string; dm?: string }[]>)[space]?.find((c) => c.id === channel) : undefined;
   const [v, setV] = useState({
     name: chan?.name ?? '', topic: chan?.topic ?? '', kind: (cfg?.kind ?? 'text') as ChannelKind, category: cfg?.category ?? '', slowmode: String(cfg?.slowmodeSecs ?? 0), ttl: String(cfg?.ttlSecs ?? 0),
     sendMin: (cfg?.sendMin ?? 'member') as Role, viewMin: (cfg?.viewMin ?? 'guest') as Role, manageMin: (cfg?.manageMin ?? 'owner') as Role, mentionMin: (cfg?.mentionMin ?? 'admin') as Role,
@@ -49,6 +51,7 @@ export function ChannelSettingsModal({ space, channel }: { space: string; channe
       <div className={f.field} style={{ gap: 12 }}>
         <div className={f.field}><label className={f.label} htmlFor="cs-name">Name</label><input id="cs-name" className="input" value={v.name} onChange={(e) => set('name')(e.target.value)} /></div>
         <div className={f.field}><label className={f.label} htmlFor="cs-topic">Topic</label><input id="cs-topic" className="input" value={v.topic} onChange={(e) => set('topic')(e.target.value)} /></div>
+        {chan?.dm && <SafetyNumber peer={chan.dm} peerName={st.seed?.people[chan.dm]?.name ?? COPY.safetyOther} me={st.me?.user_id ?? ''} />}
         <Sel id="cs-kind" label="Type (announcement: admins post; forum: titled posts with tags)" value={v.kind} opts={KINDS} set={set('kind')} />
         <div className={f.field}><label className={f.label} htmlFor="cs-cat">Category</label><input id="cs-cat" className="input" maxLength={32} value={v.category} onChange={(e) => set('category')(e.target.value)} /></div>
         <div className={f.field}><label className={f.label} htmlFor="cs-slow">Slowmode, seconds between messages for members (0 to 21600)</label><input id="cs-slow" className="input" inputMode="numeric" value={v.slowmode} onChange={(e) => set('slowmode')(e.target.value)} /></div>
@@ -190,5 +193,18 @@ export function ContactsModal() {
         </div>
       )}
     </Dialog>
+  );
+}
+
+/** E-014: both DM peers derive the same six groups of digits from their key pair. */
+function SafetyNumber({ peer, peerName, me }: { peer: string; peerName: string; me: string }) {
+  const [value, setValue] = useState('');
+  useEffect(() => { let live = true; void safetyNumber(me, peer).then((n) => { if (live) setValue(n); }); return () => { live = false; }; }, [me, peer]);
+  return (
+    <div className={f.field}>
+      <span className={f.label} id="safety-num-label">{COPY.safetyNumber}</span>
+      <code className={x.code} aria-labelledby="safety-num-label">{value || COPY.safetyComputing}</code>
+      <p className={f.note}>{COPY.safetyNote(peerName)}</p>
+    </div>
   );
 }

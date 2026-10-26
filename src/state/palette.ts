@@ -33,9 +33,19 @@ export function paletteItems(s: AppStore, seed: Seed): PaletteItem[] {
   const channels = coll(seed, 'channels');
   const rooms = coll(seed, 'rooms');
   s.spaces.forEach((sp) => items.push({ group: G.spaces, label: sp.name, sub: sp.tagline, icon: isHomeSpace(sp) ? 'home' : 'layers', go: () => s.goSpace(sp.id) }));
-  Object.keys(channels).forEach((sp) => channels[sp].forEach((ch) => items.push({
-    group: G.channels, label: ch.dm ? ch.name : `#${ch.name}`, sub: `${space(sp).name} · ${ch.topic}`, icon: ch.dm ? 'at' : 'hash', go: () => s.goChannel(sp, ch.id),
-  })));
+  // M-046: Explore lists channels and forums across joined Spaces with unread and last activity (docs 3.21).
+  Object.keys(channels).forEach((sp) => channels[sp].forEach((ch) => {
+    const kind = (seed.collections.messaging as { spaces?: Record<string, { channels?: Record<string, { kind?: string }> }> } | undefined)?.spaces?.[sp]?.channels?.[ch.id]?.kind;
+    const forum = kind === 'forum';
+    const msgs = (seed.collections.messages as Record<string, { t: string }[]> | undefined)?.[`${sp}/${ch.id}`] ?? [];
+    const last = msgs[msgs.length - 1];
+    const bits = [space(sp).name, ch.topic];
+    if (ch.unread) bits.push(`${ch.unread} unread`);
+    if (last) bits.push(last.t);
+    items.push({
+      group: G.channels, label: ch.dm ? ch.name : forum ? ch.name : `#${ch.name}`, sub: bits.join(' · '), icon: ch.dm ? 'at' : forum ? 'chat' : 'hash', go: () => s.goChannel(sp, ch.id),
+    });
+  }));
   Object.keys(rooms).forEach((sp) => {
     const room = roomOf(seed, sp); if (!room) return;
     items.push({

@@ -421,5 +421,12 @@ test.describe('skein (K-001..K-003, K-006, K-007)', () => {
     await expect(a.getByRole('button', { name: /Wove .* into main/ })).toBeVisible();
     await expect(b.getByRole('button', { name: /Wove .* into main/ })).toBeVisible(sync);
     await expect(b.getByText('Ready to Weave')).toBeHidden(sync);
+
+    // A-010: the weave also folds a system message into the channel, on both devices.
+    for (const p of [a, b]) {
+      await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+      await p.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'general' }).click();
+      await expect(p.getByRole('article').filter({ hasText: /Wove .* into main/ }).first()).toBeVisible(sync);
+    }
   });
 });

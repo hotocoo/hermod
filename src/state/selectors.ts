@@ -10,6 +10,24 @@ export const meId = (s: Pick<AppStore, 'me'>): string => s.me?.user_id ?? '';
 export const initialsOf = (name: string): string => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 /** A person from the snapshot; ids the core has not seen (yet) get their short handle. */
 export const personOf = (seed: Seed, id: string): Person => seed.people[id] ?? { name: id.slice(0, 8), i: initialsOf(id), role: '' };
+/** M-048: per-Space nicknames, `user id -> nick`, set in Privacy and chat settings. */
+export const nicksIn = (seed: Seed, spaceId: string): Record<string, string> =>
+  (seed.collections.messaging as { spaces?: Record<string, { nicks?: Record<string, string> }> } | undefined)?.spaces?.[spaceId]?.nicks ?? {};
+/** M-047: profile extras per Space, `user id -> banner/status/pronouns`; the core already blanks expired statuses. */
+export interface ProfileExt { banner?: { hash: string; mime: string }; status: string; statusEmoji: string; pronouns: string }
+export const profilesIn = (seed: Seed, spaceId: string): Record<string, ProfileExt> =>
+  (seed.collections.messaging as { spaces?: Record<string, { profiles?: Record<string, ProfileExt> }> } | undefined)?.spaces?.[spaceId]?.profiles ?? {};
+
+/** Display name for a person in a Space: their Space nickname when set, else their profile name. */
+export const displayName = (seed: Seed, spaceId: string, id: string): string => nicksIn(seed, spaceId)[id] || personOf(seed, id).name;
+/** People map with per-Space nicknames merged in (mention autocomplete and bylines). */
+export const withNicks = (seed: Seed, spaceId: string): Record<string, Person> => {
+  const nicks = nicksIn(seed, spaceId);
+  const out = { ...seed.people };
+  for (const [id, nick] of Object.entries(nicks)) if (out[id]) out[id] = { ...out[id], name: nick };
+  return out;
+};
+
 /** The signed-in user's role in a Space (undefined for Home and unknown Spaces). */
 export const roleIn = (s: Pick<AppStore, 'spaces'>, spaceId: string) => s.spaces.find((q) => q.id === spaceId)?.role;
 export const isAdminRole = (role?: string) => role === 'owner' || role === 'admin';

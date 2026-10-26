@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { PRESENCE } from '../../config/app';
-import { isIdle, notePresence, statusOf, sweepPresence } from '../presence';
+import { dropPresence, isIdle, lastSeenLabel, notePresence, noteSeen, statusOf, sweepPresence } from '../presence';
 
 const T = PRESENCE.ttlMs;
 
@@ -30,5 +30,30 @@ describe('presence reducers', () => {
   it('is idle only after idleMs without input', () => {
     expect(isIdle(0, PRESENCE.idleMs - 1, PRESENCE.idleMs)).toBe(false);
     expect(isIdle(0, PRESENCE.idleMs, PRESENCE.idleMs)).toBe(true);
+  });
+});
+
+describe('last seen and offline packets (M-026)', () => {
+  it('an offline packet drops the live entry', () => {
+    let m = notePresence({}, 'u1', false, 100);
+    expect(statusOf(m, 'u1')).toBe('online');
+    m = dropPresence(m, 'u1');
+    expect(statusOf(m, 'u1')).toBeNull();
+    expect(dropPresence(m, 'u1')).toBe(m); // no entry: same object, no re-render
+  });
+
+  it('keeps the last seen time past the ttl sweep', () => {
+    let seen = noteSeen({}, 'u1', 1000);
+    const live = sweepPresence(notePresence({}, 'u1', false, 1000), 1000 + T + 1, T);
+    expect(Object.keys(live)).toHaveLength(0);
+    seen = noteSeen(seen, 'u1', 1000);
+    expect(seen.u1).toBe(1000);
+  });
+
+  it('labels last seen as a time today and a date earlier', () => {
+    const now = new Date(2026, 9, 26, 14, 2, 0).getTime();
+    expect(lastSeenLabel(new Date(2026, 9, 26, 13, 40).getTime(), now)).toBe('Last seen 13:40');
+    expect(lastSeenLabel(new Date(2026, 9, 24, 9, 5).getTime(), now)).toBe('Last seen Oct 24');
+    expect(lastSeenLabel(undefined, now)).toBeNull();
   });
 });

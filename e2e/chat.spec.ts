@@ -231,7 +231,62 @@ test('channels: A creates one, B switches to it and messages sync inside it (A-0
   await expect(b.getByLabel('Message', { exact: true })).toHaveAttribute('placeholder', `Write to #${chan}`);
 });
 
+// G-008: unread rides the Space rail, clears when the channel is read, and the clear survives a reload.
+test('unread badges appear on the rail and clear on read, across reload', async () => {
+  await expect(async () => { await enterSection(a, 'chat'); }).toPass({ timeout: 90_000 });
+  await a.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'general' }).click();
+  // The rail badge marks spaces you are NOT in, so B waits on the Home island.
+  await b.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: 'Home' }).click();
+  // Precondition: the two nodes are actually connected, or the message cannot arrive.
+  await expect(async () => {
+    const st = await invoke<{ peers: number }>(DEVHOST_B, 'node_status');
+    expect(st.peers, 'B should see A as a peer').toBeGreaterThan(0);
+  }).toPass({ timeout: 60_000 });
+  const text = unique('badge me');
+  await say(a, text);
+  const railBtn = b.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space });
+  await expect(railBtn.locator('[class*=unreadBadge]')).toHaveText('1', { timeout: 45_000 });
+  // B reads the channel.
+  await railBtn.click();
+  await expect(async () => { await enterSection(b, 'chat'); }).toPass({ timeout: 90_000 });
+  await b.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'general' }).click();
+  // The core must hold the marker: general's unread drops to zero in B's own store.
+  await expect(async () => {
+    const snap = await invoke<{ spaces: { id: string; name: string }[]; collections: { channels: Record<string, { id: string; name: string; unread?: number }[]> } }>(DEVHOST_B, 'snapshot');
+    const sp = snap.spaces.find((x) => x.name === space)?.id ?? '';
+    const gen = snap.collections.channels[sp]?.find((c) => c.name === 'general');
+    // The seed omits `unread` when it is zero.
+    expect(gen ? (gen.unread ?? 0) : -1, 'general unread in B core').toBe(0);
+  }).toPass({ timeout: 20_000 });
+  // The badge hides while the Space is active, so verify the read from the Home island:
+  // the marker must be in the core, not just in the open view.
+  await b.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: 'Home' }).click();
+  await expect(railBtn.locator('[class*=unreadBadge]')).toHaveCount(0, { timeout: 45_000 });
+  // A reload must agree with the core: no badge returns.
+  await b.reload();
+  await expect(b.getByRole('navigation', { name: 'Spaces' })).toBeVisible({ timeout: 60_000 });
+  await b.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: 'Home' }).click();
+  await expect(railBtn.locator('[class*=unreadBadge]')).toHaveCount(0);
+});
+
+// A-018: the composer emoji picker is keyboard operable end to end.
+test('the emoji picker searches, inserts with the keyboard and closes on Escape', async () => {
+  await expect(async () => { await enterSection(a, 'chat'); }).toPass({ timeout: 90_000 });
+  await a.getByLabel('Message', { exact: true }).fill('');
+  await a.getByRole('button', { name: 'Emoji', exact: true }).click();
+  const picker = a.getByRole('dialog', { name: 'Emoji' });
+  await expect(picker.getByLabel('Search emoji')).toBeFocused();
+  await picker.getByLabel('Search emoji').fill('cat');
+  await a.keyboard.press('Tab'); // search to the first result cell
+  await a.keyboard.press('Enter'); // pick it into the draft
+  await expect(a.getByLabel('Message', { exact: true })).toHaveValue(/[\u{1F300}-\u{1FAFF}]/u);
+  await a.keyboard.press('Escape');
+  await expect(picker).toBeHidden();
+});
+
 test('block: B blocks A, A messages collapse for B, survives reload, since is recorded, unblock restores (E-007)', async () => {
+  // The unread test left B on the Home island; the member list to block from is the shared Space's.
+  await b.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
   const dlg = await openSpaceSettings(b, 'Members');
   await dlg.getByRole('row', { name: /Ada Tester/ }).getByRole('button', { name: 'Block' }).click();
   await expect(dlg.getByRole('row', { name: /Ada Tester/ }).getByRole('button', { name: 'Unblock' })).toBeVisible();
@@ -242,6 +297,8 @@ test('block: B blocks A, A messages collapse for B, survives reload, since is re
   expect(list[0].since).toBeGreaterThan(Date.now() / 1000 - 600);
 
   await enterSection(b, 'chat');
+  // A was left on the island by the unread test; the composer needs A inside.
+  await expect(async () => { await enterSection(a, 'chat'); }).toPass({ timeout: 90_000 });
   const hidden = unique('hidden-text');
   await say(a, hidden);
   await expect(b.getByRole('article', { name: 'Message from a blocked person, hidden' }).last()).toBeVisible({ timeout: 45_000 });
@@ -250,8 +307,8 @@ test('block: B blocks A, A messages collapse for B, survives reload, since is re
   await b.reload();
   await expect(b.getByRole('navigation', { name: 'Spaces' })).toBeVisible({ timeout: 60_000 });
   await b.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+  // The blocked message went to general (the default channel), so reopen the Space and stay there.
   await enterSection(b, 'chat');
-  await b.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: chanName }).click();
   await expect(b.getByRole('article', { name: 'Message from a blocked person, hidden' }).last()).toBeVisible({ timeout: 45_000 });
   await b.getByRole('button', { name: 'Show' }).last().click();
   await expect(b.locator('p.mdp', { hasText: hidden })).toBeVisible();

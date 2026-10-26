@@ -226,8 +226,15 @@ test.describe('hearth call', () => {
 test.describe('live', () => {
   test('host goes live, viewer sees real video, counts and hearts flow', async () => {
     const title = unique('Standup');
+    const noteTitle = unique('Live host note');
     await enterSection(a, 'feed', false);
     await enterSection(b, 'feed', false);
+    // V-014 needs a post by the host to find under Following afterwards.
+    await a.getByRole('button', { name: 'New post' }).click();
+    await a.getByRole('radiogroup', { name: 'Kind of post' }).getByText('Note', { exact: true }).click();
+    await a.getByLabel('Title (required)').fill(noteTitle);
+    await a.getByLabel('Note (required)').fill('posted before going live');
+    await a.getByRole('button', { name: 'Publish' }).click();
     await tab(a, 'Live');
     await a.getByRole('button', { name: /Go live/ }).click();
     await a.getByLabel(/^Title/).fill(title);
@@ -245,8 +252,15 @@ test.describe('live', () => {
     await b.getByRole('button', { name: 'Send a heart' }).click();
     await expect(a.locator('[aria-hidden="true"] span').filter({ hasText: '♥' }).first()).toBeVisible({ timeout: 30_000 });
 
+    // V-014: the viewer follows the host from the live byline, and the host's posts land under Following.
+    await expect(b.getByRole('button', { name: 'Follow', exact: true })).toHaveAttribute('aria-pressed', 'false');
+    await b.getByRole('button', { name: 'Follow', exact: true }).click();
+    await expect(b.getByRole('button', { name: 'Following', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
     await a.getByRole('button', { name: 'End live' }).click();
     await expect(b.getByRole('heading', { name: 'Nobody is live' })).toBeVisible({ timeout: 60_000 });
+    await tab(b, 'Following');
+    await expect(b.getByRole('article', { name: noteTitle })).toBeVisible({ timeout: 30_000 });
   });
 });
 

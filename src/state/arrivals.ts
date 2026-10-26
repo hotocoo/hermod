@@ -5,7 +5,7 @@ import { coll } from './dataTypes';
 
 export interface Arrival { kind: 'message' | 'letter'; by: string; sp: string; ch: string; text: string; id: string; mentionsMe: boolean }
 
-export function diffArrivals(prev: Seed, next: Seed, me: string, blocked: Record<string, true>): Arrival[] {
+export function diffArrivals(prev: Seed, next: Seed, me: string, blocked: Record<string, true>, mine?: Set<string>): Arrival[] {
   if (!me) return [];
   const known = new Set(prev.spaces.map((x) => x.id));
   const before = coll(prev, 'messages'); const after = coll(next, 'messages');
@@ -16,7 +16,9 @@ export function diffArrivals(prev: Seed, next: Seed, me: string, blocked: Record
     if (!known.has(sp)) continue;
     const seen = new Set((before[key] ?? []).map((m) => m.id));
     for (const m of after[key]) {
-      if (seen.has(m.id) || m.by === me || m.by === SYSTEM_ID || blocked[m.by]) continue;
+      if (seen.has(m.id) || blocked[m.by]) continue;
+      // R-006: a scheduled send goes out on its own, so it flies a raven even though it is mine.
+      if ((m.by === me || m.by === SYSTEM_ID) && !mine?.has(m.id)) continue;
       out.push({ kind: 'message', by: m.by, sp, ch, text: m.text, id: m.id, mentionsMe: !!myName && m.text.includes(`@${myName}`) });
     }
   }

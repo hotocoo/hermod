@@ -71,4 +71,4 @@ export const TILE_COLS = { one: '1fr', two: 'repeat(2, minmax(0,1fr))', three: '
 export const SIGNPOST = { id: 'search', name: 'The Signpost', kicker: 'Find', sub: 'Search everything · ⌘K', aria: 'Search everything' } as const;
 export const EMPTY_PLOT = { name: 'Empty plot', raise: 'Raise ' } as const;
 
-export const PALETTE_GROUPS = { spaces: 'Spaces', channels: 'Channels', rooms: 'Rooms', snapshots: 'Snapshots', tasks: 'Tasks', people: 'People', actions: 'Actions', matches: 'In your messages and documents' } as const;
+export const PALETTE_GROUPS = { spaces: 'Spaces', channels: 'Explore', rooms: 'Rooms', snapshots: 'Snapshots', tasks: 'Tasks', people: 'People', actions: 'Actions', matches: 'In your messages and documents' } as const;

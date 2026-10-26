@@ -3,6 +3,7 @@ import { useTrap } from '@/components/ui/useTrap';
 import type { ViewModel } from '@/state/viewModel';
 import s from './Profile.module.css';
 import { Face } from '@/components/ui/Face';
+import { blobUrl } from '@/lib/upload';
 
 export function Profile({ vm }: { vm: ViewModel }) {
   return vm.profOpen && vm.prof ? <ProfileDialog vm={vm} /> : null;
@@ -14,7 +15,7 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
   return (
     <div className={s.backdrop} onClick={closeProfile}>
       <div ref={trapRef} onKeyDown={trapKeys} className={s.dialog} onClick={stop} role="dialog" aria-modal="true" aria-label="Profile">
-        <div className={s.cover}>
+        <div className={s.cover} style={prof.ext?.banner ? { backgroundImage: `url(${blobUrl(prof.ext.banner.hash)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
           <button className={s.closeBtn} onClick={closeProfile} aria-label="Close">{icS.x}</button>
         </div>
         <div className={s.body}>
@@ -25,6 +26,8 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
                 <>
                   <h2 className={s.name}>{prof.name}</h2>
                   <div className={s.handle}>{prof.role}</div>
+                  {prof.ext?.status ? <div className={s.status}>{prof.ext.statusEmoji} {prof.ext.status}</div> : null}
+                  {prof.ext?.pronouns ? <div className={s.pronouns}>{prof.ext.pronouns}</div> : null}
                 </>
               ) : null}
             </div>

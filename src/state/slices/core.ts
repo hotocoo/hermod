@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import { STORAGE_KEYS, TIMING } from '../../config/app';
+import { COPY } from '../../config/copy';
 import { readString } from '../../lib/storage';
 import { repository } from '../../lib/data/repository';
 import type { Seed, Space } from '../../lib/data/types';
@@ -59,7 +60,14 @@ export const createCoreSlice: StateCreator<AppStore, [], [], CoreSlice> = (set, 
       now: Date.now(),
     });
     if (prev) {
-      get().receive(diffArrivals(prev, seed, get().me?.user_id ?? '', get().blocked));
+      // R-006: messages that a schedule timer just sent are mine but still fly a raven.
+      // E-002: an admin removing me here is announced once, when the flag first appears.
+      const wasRemoved = new Map(prev.spaces.map((x) => [x.id, !!x.removed]));
+      for (const x of seed.spaces) {
+        if (x.removed && !wasRemoved.get(x.id)) get().showToast(COPY.removedFromSpace(x.name));
+      }
+      const mine = new Set((get().scheduled ?? []).map((i) => (i.body as { msg_id?: string } | null)?.msg_id).filter((x): x is string => !!x));
+      get().receive(diffArrivals(prev, seed, get().me?.user_id ?? '', get().blocked, mine));
       deliverDeskNotices(get(), diffDeskNotices(prev, seed, get().me?.user_id ?? ''));
       deliverArcadeNotices(get(), diffArcadeNotices(prev, seed, get().me?.user_id ?? ''));
       deliverCalNotices(get(), diffMeetingNotices(prev, seed, get().me?.user_id ?? ''));

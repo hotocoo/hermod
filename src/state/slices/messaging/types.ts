@@ -10,6 +10,8 @@ export interface MessagingSlice {
   typing: Record<string, Record<string, number>>;
   /** user -> last beacon (ms) and whether they are idle; entries expire after PRESENCE.ttlMs. */
   presence: PresenceMap;
+  /** user -> last beacon or offline packet (ms), kept past the ttl for the last seen text (M-026). */
+  lastSeen: Record<string, number>;
   compose: ComposeExtras;
   /** Older pages loaded on demand, keyed by chat. */
   older: Record<string, Message[]>; olderMore: Record<string, boolean>;
@@ -45,5 +47,5 @@ export interface MessagingSlice {
   localAi(task: 'translate' | 'summarize', text: string): Promise<string | undefined>;
   forumPost(title: string, tags: string[], text: string): Promise<void>;
   setProfileExt(patch: { banner?: File; status?: string; status_emoji?: string; pronouns?: string }): Promise<void>;
-  typingPing(): void; noteTyping(from: string, space: string, channel: string): void; notePresence(from: string, away: boolean): void; sweepPresence(): void;
+  typingPing(): void; noteTyping(from: string, space: string, channel: string): void; notePresence(from: string, away: boolean): void; sweepPresence(): void; dropPresence(from: string): void;
 }

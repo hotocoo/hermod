@@ -161,3 +161,14 @@ describe('rookery mark all read (R-004)', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('scheduled sends fly a raven (R-006)', () => {
+  it('includes my own message only when its id was scheduled', () => {
+    const prev = seedWith({});
+    const next = seedWith({ 'sp/gen': [{ id: 'm1', by: ME, text: 'scheduled out' }, { id: 'm2', by: ME, text: 'typed now' }] });
+    expect(diffArrivals(prev, next, ME, {})).toHaveLength(0);
+    const arrivals = diffArrivals(prev, next, ME, {}, new Set(['m1']));
+    expect(arrivals).toHaveLength(1);
+    expect(arrivals[0]).toMatchObject({ kind: 'message', by: ME, id: 'm1' });
+  });
+});

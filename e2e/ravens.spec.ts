@@ -79,3 +79,20 @@ test('the rookery lists what the ravens brought and marks it all read', async ()
   // The message itself, not the aria-live toast that announces it on arrival.
   await expect(panel(a).getByRole('article').filter({ hasText: text })).toBeVisible({ timeout: 30_000 });
 });
+
+// R-006: the scheduler sends on its own, so the send flies a raven even though it is the sender's own message.
+test('a scheduled send flies a raven when it goes out (R-006)', async () => {
+  test.setTimeout(240_000);
+  await expect(async () => { await enterSection(a, 'chat'); }).toPass({ timeout: 90_000 });
+  const text = unique('scheduled raven');
+  await a.getByLabel('Message', { exact: true }).fill(text);
+  await a.getByRole('button', { name: 'Schedule message' }).click();
+  const dlg = a.getByRole('dialog', { name: 'Schedule message' });
+  const at = new Date(Date.now() + 15_000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  await dlg.locator('#sched-at').fill(`${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}T${pad(at.getHours())}:${pad(at.getMinutes())}:${pad(at.getSeconds())}`);
+  await dlg.getByRole('button', { name: 'Schedule', exact: true }).click();
+  // A waits on the island: the raven arrives when the message goes out.
+  await goHome(a);
+  await expect(letterOn(a)).toContainText(text, { timeout: 90_000 });
+});

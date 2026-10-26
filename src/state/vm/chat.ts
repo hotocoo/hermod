@@ -2,7 +2,7 @@ import { LIMITS } from '../../config/app';
 import { ROMAN } from '../../config/ui';
 import { anim } from '../../lib/format';
 import type { Message } from '../dataTypes';
-import { channelUnread, channelsOf, chatKey, findSnap, isHomeSpace, meId, personOf, spaceUnread, roomOf } from '../selectors';
+import { channelUnread, channelsOf, chatKey, displayName, findSnap, isHomeSpace, meId, personOf, spaceUnread, roomOf, withNicks } from '../selectors';
 import type { InputEvt, KeyEvt } from '../types';
 import type { Ctx } from './context';
 import { ACCENT, ACCENT_100, ACCENT_700, ACCENT_800, DIVIDER, TEXT, fgOf, mixAccent, mixText, ringOf } from './css';
@@ -17,7 +17,7 @@ function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
   const role = s.spaces.find((q) => q.id === s.space)?.role;
   const snapFull = m.snap ? findSnap(s, m.snap.id) : null;
   return {
-    raw: m, id: m.id, name: p.name, initials: p.i, av: p.av ?? '', t: m.t, text: m.text, isMe: m.by === me, isSystem: m.by === 'system', by: m.by,
+    raw: m, id: m.id, name: displayName(seed, s.space, m.by), initials: p.i, av: p.av ?? '', t: m.t, text: m.text, isMe: m.by === me, isSystem: m.by === 'system', by: m.by,
     blocked: !!s.blocked[m.by] && m.by !== me, removed: m.removed ?? null, edited: !!m.edited, canEdit: m.by === me && !m.removed, canRemove: m.by !== me && !m.removed && m.by !== 'system' && (role === 'owner' || role === 'admin'), editing: s.editing === m.id,
     editDraft: s.editDraft, onEditDraft: (e: InputEvt) => s.setEditDraft(e.target.value), saveEdit: s.saveEdit, cancelEdit: s.cancelEdit,
     startEdit: () => s.startEdit(m.id, m.text), onDelete: () => { void s.deleteMessage(m.id); },
@@ -96,7 +96,7 @@ export function chatVm(x: Ctx) {
     channels, chan, messages, hasMessages: messages.length > 0, noMessages: messages.length === 0, 
     emptyTitle: chan.name ? `It’s quiet in ${chan.isDm ? chan.name : `#${chan.name}`}` : 'No channel yet', emptyLine: 'Every good channel starts with one message. Say hi, share a link, or drop a file here.',
     onSend: () => { void s.send(); }, onDraftKey: enterToSend(() => { void s.send(); }),
-    attached: s.attached[key] ?? [], detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: seed.people, meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,
+    attached: s.attached[key] ?? [], detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: withNicks(seed, s.space), meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,
     snapRefTitle: snapChoices.find((q) => q.id === s.snapRef)?.title ?? '', isHome: spaceHome,
     sendFgOn: ACCENT, sendFgOff: mixText(35),
     placeholder: chan.isDm ? `Message ${chan.name.split(' ')[0]}` : `Write to #${chan.name}`,

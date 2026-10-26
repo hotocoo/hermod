@@ -90,6 +90,7 @@ export function Live({ vm }: VmProps) {
           <span className={`${s.face} ${c.avatar}`}>{live.initials}</span>
           <b className={s.strong}>{live.host}</b> is live
           <span className={s.grow} />
+          {!live.mine && <button type="button" className={c.btn} onClick={live.onFollow} aria-pressed={live.following}>{live.following ? 'Following' : 'Follow'}</button>}
           {live.mine && <button type="button" onClick={vm.endLive} className={c.btn}>End live</button>}
         </div>
         <p className={`${s.note} ${c.muted}`}>{COPY.liveNote}</p>

@@ -87,3 +87,30 @@ describe('M-035 mute keeps a chat out of the rookery', () => {
     expect(unmutedRook(rook, undefined)).toHaveLength(1);
   });
 });
+
+describe('M-046 palette Explore', () => {
+  const seed = {
+    people: { me: { name: 'Ada', i: 'A', role: '' } },
+    spaces: [{ id: 's1', name: 'Quay', kind: 'team', tagline: 'Team', sections: ['chat'] }],
+    collections: {
+      channels: { s1: [{ id: 'c1', name: 'general', topic: 'everything', unread: 3 }, { id: 'c2', name: 'ideas', topic: 'shaped in the forum' }] },
+      messages: { 's1/c1': [{ id: 'm1', by: 'me', t: '09:12', text: 'x' }], 's1/c2': [] },
+      messaging: { spaces: { s1: { channels: { c2: { kind: 'forum' } } } }, dmRequests: [] },
+      rooms: {},
+    },
+  } as unknown as Seed;
+  const s = { me: { user_id: 'me' }, spaces: seed.spaces, space: 's1', skein: {}, board: {}, theme: 'light' } as unknown as AppStore;
+
+  it('lists channels across Spaces with unread and last activity', () => {
+    const general = paletteItems(s, seed).find((i) => i.label === '#general');
+    expect(general?.group).toBe('Explore');
+    expect(general?.sub).toContain('3 unread');
+    expect(general?.sub).toContain('09:12');
+  });
+
+  it('marks a forum by name and omits unread when there is none', () => {
+    const ideas = paletteItems(s, seed).find((i) => i.label === 'ideas');
+    expect(ideas?.sub).toContain('Quay');
+    expect(ideas?.sub).not.toContain('unread');
+  });
+});

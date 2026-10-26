@@ -1,6 +1,8 @@
 import type { Page } from '@playwright/test';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { GL_ARGS } from './gpu';
-import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, pngBuffer, openPalette } from './fixtures';
+import { test, expect, twoUsers, sharedSpace, enterSection, say, unique, pngBuffer, openPalette, bootApp, createInviteCode, joinWithCode, openSpaceSettings, DEVHOST_FRESH, UI_URL } from './fixtures';
 import { freshDevhosts } from './devhosts';
 
 /** Every spec file starts on three empty devhosts, so no spec depends on state a former one left. */
@@ -355,4 +357,259 @@ test('pin, mute and archive a chat from its menu; folders filter the list (M-032
   await expect(dmRow).toHaveCount(0);
   await a.getByRole('button', { name: /Show archived/ }).click();
   await expect(dmRow).toBeVisible();
+});
+
+// M-050: the unread separator sits where new messages start and the jump button scrolls to it.
+test('new messages get a separator and a jump button that clears on read', async () => {
+  // The folders test left A inside a DM Space; come back to the shared one first.
+  for (const p of [a, b]) {
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+    await openChannel(p, 'general');
+  }
+  await newChannel(a, 'later');
+  // B keeps posting in general while A reads the new channel.
+  const texts = [0, 1, 2].map(() => unique('flood'));
+  for (const t of texts) await say(b, t);
+  const nav = a.getByRole('navigation', { name: 'Channels' });
+  await expect(nav.getByRole('button', { name: 'general' }).filter({ has: a.getByLabel('3 unread') })).toBeVisible({ timeout: 45_000 });
+  await openChannel(a, 'general');
+  const jump = a.getByRole('button', { name: 'Jump to 3 unread' });
+  await expect(jump).toBeVisible();
+  const sep = a.getByRole('separator', { name: 'New messages' });
+  await expect(sep).toBeVisible();
+  await jump.click();
+  await expect(sep).toBeInViewport();
+  // Reading clears it: the badge and the jump button are gone.
+  await expect(nav.getByRole('button', { name: 'general' }).filter({ has: a.getByLabel(/unread/) })).toHaveCount(0, { timeout: 45_000 });
+});
+
+// M-051: a copied message link pasted into chat becomes a button that jumps to the message.
+test('a copied message link jumps the peer to the message', async () => {
+  const text = unique('linkable');
+  await say(a, text);
+  await expect(msg(b, text)).toBeVisible({ timeout: 30_000 });
+  await act(a, text, 'Copy message link');
+  await expect(a.getByText('Link copied')).toBeVisible();
+  const link = await a.evaluate(() => navigator.clipboard.readText());
+  expect(link).toMatch(/^hermod:\/\/msg\//);
+  await say(a, link);
+  // The parser turns a pasted hermod://msg link into a 'message link' button. Exact name: every
+  // message also carries a 'Copy message link' hover button that substring matching would hit.
+  const linkBtn = b.getByRole('button', { name: 'message link', exact: true });
+  await expect(linkBtn).toBeVisible({ timeout: 30_000 });
+  await linkBtn.click();
+  // The jump scrolls the target into view and flashes it; no "not in that Space" toast.
+  await expect(msg(b, text)).toBeInViewport({ timeout: 30_000 });
+  await expect(b.getByText('You are not in that Space')).toHaveCount(0);
+});
+
+// M-014: a GIF added to My GIFs sends as a gif message the peer can see.
+test('a GIF from My GIFs reaches the other side', async () => {
+  const tinyGif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+  await a.getByRole('button', { name: 'Stickers and GIFs' }).click();
+  const panel = a.getByRole('dialog', { name: 'Stickers and GIFs' });
+  await panel.getByRole('tab', { name: 'My GIFs' }).click();
+  await panel.locator('input[type=file]').setInputFiles({ name: 'tiny.gif', mimeType: 'image/gif', buffer: tinyGif });
+  await panel.getByRole('button', { name: 'tiny.gif' }).click();
+  await expect(panel).toBeHidden();
+  await expect(b.getByRole('article').filter({ has: b.locator('img[alt="GIF"]') }).last()).toBeVisible({ timeout: 45_000 });
+});
+
+// M-016: the video note path records from the fake camera and the peer gets a round video.
+test('a video note records with the fake camera and plays on the other side', async () => {
+  await a.getByRole('button', { name: 'Video note' }).click();
+  await expect(a.getByRole('status').filter({ hasText: /Recording video note/ })).toBeVisible();
+  await a.waitForTimeout(1500);
+  await a.getByRole('status').filter({ hasText: /Recording video note/ }).getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(b.getByLabel('Video message')).toBeVisible({ timeout: 45_000 });
+});
+
+// M-020: a poll posted from the composer votes from either side and the creator closes it.
+test('a poll in chat: peer votes, counts sync, creator closes', async () => {
+  const question = unique('Poll lunch');
+  await a.getByRole('button', { name: 'Poll' }).click();
+  const dlg = a.getByRole('dialog', { name: 'New poll' });
+  await dlg.getByLabel(/^Question/).fill(question);
+  await dlg.getByLabel(/Options/).fill('Pizza\nSalad');
+  await dlg.getByRole('button', { name: 'Send poll' }).click();
+  const card = b.getByRole('group', { name: `Poll: ${question}` });
+  await expect(card).toBeVisible({ timeout: 45_000 });
+  await card.getByRole('button', { name: /Pizza/ }).click();
+  await expect(card.getByRole('button', { name: /Pizza/ })).toContainText('1');
+  await expect(a.getByRole('group', { name: `Poll: ${question}` }).getByRole('button', { name: /Pizza/ })).toContainText('1', { timeout: 45_000 });
+  await a.getByRole('group', { name: `Poll: ${question}` }).getByRole('button', { name: 'Close poll' }).click();
+  await expect(card).toContainText('closed', { timeout: 45_000 });
+});
+
+// M-031: Save to notes lands in the device-local Saved messages channel; the peer never sees it.
+test('save to notes lands in the local Saved messages channel', async () => {
+  const text = unique('keep this one');
+  await say(a, text);
+  await expect(msg(b, text)).toBeVisible({ timeout: 30_000 });
+  await act(a, text, 'Save to notes');
+  await a.getByRole('button', { name: 'Saved messages' }).click();
+  await expect(msg(a, text)).toBeVisible({ timeout: 45_000 });
+  // B opens its own Saved messages: the note is A's, not B's.
+  await b.getByRole('button', { name: 'Saved messages' }).click();
+  await expect(msg(b, text)).toHaveCount(0);
+  // Back to the shared Space for the tests that follow.
+  for (const p of [a, b]) {
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+    await openChannel(p, 'general');
+  }
+});
+
+// M-019: with previews on, the sender's fetch rides along and the peer renders the card.
+test('a sent link carries a preview card to the peer', async () => {
+  const server = http.createServer((_req, res) => {
+    res.setHeader('content-type', 'text/html');
+    res.end('<html><head><title>Quay Notes</title></head><body>hello from the test server</body></html>');
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = (server.address() as AddressInfo).port;
+  try {
+    await a.getByRole('button', { name: 'Privacy and chat settings' }).click();
+    const dlg = a.getByRole('dialog', { name: 'Privacy and chat settings' });
+    const previews = dlg.getByRole('switch', { name: /Fetch link previews/ });
+    if ((await previews.getAttribute('aria-checked')) !== 'true') await previews.click();
+    await dlg.getByRole('button', { name: 'Done' }).click();
+    await a.getByLabel('Message', { exact: true }).fill(`read this http://127.0.0.1:${port}/note`);
+    // The composer probes the URL first: the dismissible card proves the fetch happened.
+    await expect(a.getByRole('button', { name: 'Remove link preview' })).toBeVisible({ timeout: 20_000 });
+    await a.keyboard.press('Enter');
+    await expect(b.getByRole('link', { name: 'Link preview: Quay Notes' })).toBeVisible({ timeout: 45_000 });
+  } finally {
+    server.close();
+  }
+});
+
+// M-028: a group DM spans three people: requests show (group), accepts join, messages sync to all.
+test('a group DM with two people syncs to all three', async () => {
+  test.setTimeout(420_000);
+  const ctx = await (a.context()).browser()!.newContext({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 }, baseURL: UI_URL });
+  const c = await ctx.newPage();
+  await bootApp(c, DEVHOST_FRESH, 'Ci Tester', false, false);
+  await joinWithCode(c, await createInviteCode(a), space);
+  // The dialog, the requests region and the Accept buttons all live inside the chat panel,
+  // and the group belongs to the shared Space, so bring everyone back to it first.
+  for (const p of [a, b]) {
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+  }
+  const gname = unique('Trio');
+  await a.getByRole('button', { name: 'New message or contacts' }).click();
+  const dlg = a.getByRole('dialog', { name: 'Messages and contacts' });
+  await dlg.getByLabel(/Bo Tester/).check();
+  await dlg.getByLabel(/Ci Tester/).check();
+  await dlg.getByLabel(/^Group name/).fill(gname);
+  await dlg.getByRole('button', { name: 'Start group' }).click();
+  for (const p of [b, c]) {
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+    const requests = p.getByRole('region', { name: 'Message requests' });
+    await expect(requests).toContainText('(group)', { timeout: 60_000 });
+    await requests.getByRole('button', { name: 'Accept' }).click();
+    await expect(requests).toHaveCount(0, { timeout: 30_000 });
+  }
+  // Accepting (and starting) a group DM lands each page on the group's island, so walk into
+  // the chat building before reaching for the channel nav.
+  const row = (p: Page) => p.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: gname }).first();
+  await expect(async () => { await enterSection(a, 'chat'); }).toPass({ timeout: 90_000 });
+  await row(a).click();
+  const text = unique('group hello');
+  await say(a, text);
+  for (const p of [b, c]) {
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+    await row(p).click();
+    await expect(msg(p, text)).toBeVisible({ timeout: 45_000 });
+  }
+  await ctx.close();
+});
+
+// M-048: a Space nickname is a display-only override; everyone in that Space sees it.
+test('a Space nickname shows on bylines for everyone in that Space (M-048)', async () => {
+  test.setTimeout(300_000);
+  for (const p of [a, b]) {
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+  }
+  const nick = unique('Skipper');
+  const dlg = a.getByRole('dialog');
+  await a.getByRole('button', { name: 'Privacy and chat settings' }).click();
+  await dlg.getByLabel('Nickname').fill(nick);
+  await dlg.getByRole('button', { name: 'Save', exact: true }).click();
+  await dlg.getByRole('button', { name: 'Close' }).click();
+  const text = unique('nicked hello');
+  await say(a, text);
+  const art = b.getByRole('article').filter({ hasText: text }).first();
+  await expect(art).toBeVisible({ timeout: 45_000 });
+  await expect(art.getByText(nick)).toBeVisible();
+  await expect(a.getByRole('article').filter({ hasText: text }).first().getByText(nick)).toBeVisible();
+});
+
+// M-047: profile extras set in Privacy and chat settings show up in the Space's member list.
+test('a status and pronouns set in settings show in the member list (M-047)', async () => {
+  test.setTimeout(300_000);
+  const status = unique('shipping');
+  const pron = 'they/them';
+  const dlg = a.getByRole('dialog');
+  await a.getByRole('button', { name: 'Privacy and chat settings' }).click();
+  await dlg.getByLabel('Status').fill(status);
+  await dlg.getByLabel('Pronouns').fill(pron);
+  await dlg.getByRole('button', { name: 'Save profile' }).click();
+  await dlg.getByRole('button', { name: 'Close' }).click();
+  const sd = await openSpaceSettings(b, 'Members');
+  const row = sd.getByRole('row', { name: /Ada Tester/ });
+  await expect(row.getByText(status)).toBeVisible({ timeout: 45_000 });
+  await expect(row.getByText(pron)).toBeVisible();
+  await sd.getByRole('button', { name: 'Close' }).click();
+});
+
+// E-014: the safety number in DM settings is derived from the key pair, so both devices show the same one.
+test('both DM peers see the same safety number (E-014)', async () => {
+  test.setTimeout(420_000);
+  for (const p of [a, b]) {
+    // The nav is only interactive inside a building; walk in first, then open the DM.
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+    await p.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'Direct message' }).first().click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+    await p.getByRole('button', { name: 'Chat options' }).click();
+    await p.getByRole('menu', { name: 'Chat options' }).getByRole('menuitem', { name: 'Channel settings' }).click();
+  }
+  const num = /^\d{5}( \d{5}){5}$/;
+  const aNum = await a.getByText(num).textContent();
+  const bNum = await b.getByText(num).textContent();
+  expect(aNum).toMatch(num);
+  expect(bNum).toBe(aNum);
+});
+
+// M-026: switching presence off sends an offline packet at once, so the peer's dot goes out without waiting for the ttl.
+test('turning off presence sends an offline packet and dims the dot (M-026)', async () => {
+  test.setTimeout(300_000);
+  const dot = (p: Page) => p.getByRole('navigation', { name: 'Channels' }).getByRole('img').first();
+  await expect(dot(a)).toHaveAttribute('aria-label', /online|away/, { timeout: 30_000 });
+  const dlg = b.getByRole('dialog');
+  await b.getByRole('button', { name: 'Privacy and chat settings' }).click();
+  await dlg.getByRole('switch', { name: /Share online and last seen/ }).click();
+  await dlg.getByRole('button', { name: 'Close' }).click();
+  await expect(dot(a)).toHaveAttribute('aria-label', 'offline', { timeout: 30_000 });
+  // Symmetry: while B keeps presence private, B sees no live dots either (the ttl sweep clears the stale one).
+  await expect(b.getByRole('navigation', { name: 'Channels' }).getByRole('img', { name: /online|away/ })).toHaveCount(0, { timeout: 90_000 });
+  // Turn it back on so later tests see presence again.
+  await b.getByRole('button', { name: 'Privacy and chat settings' }).click();
+  await dlg.getByRole('switch', { name: /Share online and last seen/ }).click();
+  await dlg.getByRole('button', { name: 'Close' }).click();
+});
+
+// M-046: the palette Explore group lists channels across Spaces with their Space named, and Enter jumps there.
+test('the palette Explore group jumps to a channel in another Space (M-046)', async () => {
+  test.setTimeout(240_000);
+  await openPalette(a);
+  const input = a.getByPlaceholder(/Search people, channels/);
+  await input.fill('general');
+  const opt = a.getByRole('option', { name: /general/ }).filter({ hasText: space }).first();
+  await expect(opt).toBeVisible();
+  await input.press('Enter');
+  await expect(a.getByLabel('Message', { exact: true })).toHaveAttribute('placeholder', 'Write to #general', { timeout: 30_000 });
 });
