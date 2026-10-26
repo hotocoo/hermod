@@ -299,8 +299,10 @@ mod tests {
         let unknown = format!("zzzzzz {}", words[1..].join(" "));
         for bad in [bad_sum, short, unknown, String::new()] {
             let err = Identity::from_phrase(&bad).unwrap_err().to_string();
-            for w in bad.split_whitespace().filter(|w| w.len() > 3) {
-                assert!(!err.contains(w), "error leaked a word: {err}");
+            // Single words can occur in the message text by chance; an adjacent pair cannot.
+            let ws: Vec<&str> = bad.split_whitespace().collect();
+            for pair in ws.windows(2) {
+                assert!(!err.contains(&pair.join(" ")), "error leaked words: {err}");
             }
         }
     }

@@ -14,6 +14,9 @@ export const STORAGE_KEYS = {
 /** Error text the core returns for every command while a passphrase-protected key is still locked (core `Error::Locked`). */
 export const LOCKED_ERROR = 'identity locked';
 
+/** Error text of a join the person stopped (core `Error::Cancelled`); not shown as a failure. */
+export const CANCELLED_ERROR = 'cancelled';
+
 /** Start of the error text while the OS keychain cannot return the identity key (core `Error::KeyUnavailable`). */
 export const KEY_UNAVAILABLE_PREFIX = 'identity key unavailable';
 

@@ -38,6 +38,8 @@ pub enum Error {
     Corrupt(String),
     #[error("rate limit exceeded for author {0}")]
     RateLimited(String),
+    #[error("cancelled")]
+    Cancelled,
     #[error("not allowed: {0}")]
     Forbidden(String),
 }

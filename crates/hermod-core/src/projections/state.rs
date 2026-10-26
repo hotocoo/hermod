@@ -283,6 +283,9 @@ pub struct InviteSt {
     pub role: Role,
     pub exp: Option<u64>,
     pub max_uses: Option<u32>,
+    /// Space `join_pow_bits` at this invite's fold position: the work a join through it needs,
+    /// fixed at creation so a later change never strands an existing invite.
+    pub pow_bits: u8,
     pub uses: BTreeSet<String>,
     pub revoked: bool,
 }
@@ -553,7 +556,7 @@ impl SpaceState {
         let Some(inv) = invite.and_then(|id| self.invites.iter().find(|i| &i.id == id)) else {
             return false;
         };
-        if !crate::pow::verify(&inv.id, by, pow, self.join_pow_bits) {
+        if !crate::pow::verify(&inv.id, by, pow, inv.pow_bits) {
             return false;
         }
         // A revoke that names who had joined is position-independent; an older one applies by fold order.
@@ -746,6 +749,7 @@ impl SpaceState {
                     role: *role,
                     exp: *exp,
                     max_uses: *max_uses,
+                    pow_bits: self.join_pow_bits,
                     uses: BTreeSet::new(),
                     revoked: false,
                 });

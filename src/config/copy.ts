@@ -92,6 +92,7 @@ export const COPY = {
   powLabel: 'Work required to join', powOff: 'Off',
   powBits: (bits: number) => `${bits} bits`,
   powSaved: 'Join setting saved',
+  joinWorking: 'Working to join this Space. This space asks for a little computer work from new members.', joinCancel: 'Cancel',
   safetyNumber: 'Safety number', safetyComputing: 'Computing', safetyOther: 'the other person',
   safetyNote: (peer: string) => `Read it out to ${peer}. It matches when both devices hold the same keys.`,
 } as const;

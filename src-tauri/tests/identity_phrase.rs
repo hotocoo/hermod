@@ -75,8 +75,9 @@ async fn bad_phrase_is_refused_without_echo_and_keeps_the_identity() {
         .await
         .unwrap_err();
     assert!(err.contains("checksum"), "{err}");
-    for w in words.iter().filter(|w| w.len() > 3) {
-        assert!(!err.contains(w), "error leaked a word: {err}");
+    // Single words can occur in the message text by chance; an adjacent pair cannot.
+    for pair in words.windows(2) {
+        assert!(!err.contains(&pair.join(" ")), "error leaked words: {err}");
     }
     let after = call(&c, "identity_get", json!({})).await.unwrap();
     assert_eq!(

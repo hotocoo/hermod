@@ -6,6 +6,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -989,10 +990,16 @@ impl Core {
 
     /// Accepts a code, link or deep link. Idempotent for spaces already joined.
     pub fn invite_accept(&self, code: &str) -> Result<Joined> {
+        self.invite_accept_cancellable(code, &AtomicBool::new(false))
+    }
+
+    /// [`Core::invite_accept`] whose proof-of-work search stops with `Error::Cancelled` once
+    /// `cancel` is set. Nothing is stored on cancel.
+    pub fn invite_accept_cancellable(&self, code: &str, cancel: &AtomicBool) -> Result<Joined> {
         let inv = InviteV1::parse(code)?;
         inv.check_expiry(now_secs())?;
         // Mined before taking the lock: the work can take seconds.
-        let pow = crate::pow::mine(&inv.id, &self.user.to_string(), inv.pow_bits)?;
+        let pow = crate::pow::mine(&inv.id, &self.user.to_string(), inv.pow_bits, cancel)?;
         let mut inner = self.lock();
         let mut joined = Joined {
             id: inv.space_id,

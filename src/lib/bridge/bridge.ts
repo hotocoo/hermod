@@ -30,6 +30,8 @@ export interface Bridge {
   spaceLeave(spaceId: string): Promise<void>;
   inviteCreate(spaceId: string, opts?: InviteOptions): Promise<InviteOut>;
   inviteAccept(code: string): Promise<SpaceSummary>;
+  /** Stops a running `inviteAccept` (its proof-of-work search); that call then rejects with `cancelled`. */
+  inviteAcceptCancel(): Promise<void>;
   inviteList(spaceId: string): Promise<InviteRecord[]>;
   inviteRevoke(spaceId: string, id: string): Promise<void>;
   spaceMembers(spaceId: string): Promise<Member[]>;
@@ -149,6 +151,7 @@ export function createBridge(t: Transport): Bridge {
     spaceLeave: (spaceId) => none('space_leave', { spaceId }),
     inviteCreate: (spaceId, opts = {}) => call('invite_create', { spaceId, expiresIn: opts.expiresIn ?? null, maxUses: opts.maxUses ?? null, role: opts.role ?? 'member' }),
     inviteAccept: (code) => call('invite_accept', { code }),
+    inviteAcceptCancel: () => none('invite_accept_cancel'),
     inviteList: (spaceId) => call('invite_list', { spaceId }),
     inviteRevoke: (spaceId, id) => none('invite_revoke', { spaceId, id }),
     spaceMembers: (spaceId) => call('space_members', { spaceId }),

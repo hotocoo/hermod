@@ -54,12 +54,15 @@ export interface SessionSlice {
   node: NodeStatus | null; syncPending: number; blocked: Record<string, true>;
   /** Invite code received from a deep link while a gate was still open. */
   pendingCode: string | null;
+  /** A join is running (its proof-of-work search can take seconds); `cancelJoin` stops it. */
+  joining: boolean;
   boot(): Promise<void>;
   acceptLegal(shareResources: boolean): Promise<void>;
   declineLegal(): void;
   saveProfile(name: string, bio: string): Promise<boolean>;
   createSpace(name: string, tagline: string, kind: string): Promise<boolean>;
   joinSpace(code: string): Promise<boolean>;
+  cancelJoin(): Promise<void>;
   leaveSpace(id: string): Promise<boolean>;
   enterApp(): void;
   onDeeplink(code: string): void;
