@@ -9,7 +9,9 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
+use hermod_core::identity::Identity;
 use hermod_core::ids::{SpaceId, UserId};
+use hermod_core::keyguard::{SecretStore, Unlock};
 use hermod_core::{Core, SignedEvent};
 use hermod_node::config::NodeConfig;
 use hermod_node::store::FilePeerBook;
@@ -18,6 +20,7 @@ use serde_json::{Value, json};
 use tokio::sync::{RwLock, broadcast, mpsc};
 
 use crate::adapter::{self, CoreStore, Notice};
+use crate::keychain::{KeyringStore, legacy_account};
 use crate::{blob, notify, settings};
 
 const JOIN_LINK_PREFIX: &str = "hermod://join/";
@@ -93,6 +96,9 @@ pub struct Options {
     pub preview_allow_private: bool,
     /// Log file `log_tail` reads.
     pub log_file: Option<PathBuf>,
+    /// Keychain offered for the identity key. None for the devhost and tests, which must never
+    /// touch the developer's real keychain (tests pass an in-memory one).
+    pub keystore: Option<Arc<dyn SecretStore>>,
 }
 
 impl Options {
@@ -102,6 +108,7 @@ impl Options {
             unrestricted_paths: false,
             preview_allow_private: false,
             log_file,
+            keystore: Some(KeyringStore::shared()),
         }
     }
 
@@ -126,6 +133,7 @@ impl Options {
             unrestricted_paths: true,
             preview_allow_private: true,
             log_file,
+            keystore: None,
         }
     }
 }
@@ -274,6 +282,11 @@ pub struct Ctx {
     picked: Mutex<HashSet<PathBuf>>,
     background: AtomicBool,
     link: Mutex<PendingLink>,
+    /// The keychain (never a passphrase: that is used once to open and then dropped).
+    unlock: Mutex<Unlock>,
+    /// Why the data dir is not open (locked, or the keychain cannot return the key); the UI shows
+    /// its recovery screen for it.
+    limited: Mutex<Option<String>>,
 }
 
 /// A join link that arrived before the UI first asked for one (a cold start opens the app
@@ -286,8 +299,25 @@ struct PendingLink {
     read: bool,
 }
 
-fn open_live(dir: &Path) -> Result<Arc<Live>, String> {
-    let core = Core::open(dir).map_err(|e| format!("cannot open your data: {e}"))?;
+/// Start of `Error::KeyUnavailable`'s text; the UI matches it too.
+const KEY_UNAVAILABLE_PREFIX: &str = "identity key unavailable";
+
+/// Open failures that leave the app running in a limited state (recovery screen) instead of
+/// failing to start: the key cannot be read, but backup restore and reset still work.
+fn is_limited(msg: &str) -> bool {
+    msg == hermod_core::Error::Locked.to_string() || msg.starts_with(KEY_UNAVAILABLE_PREFIX)
+}
+
+fn open_live(dir: &Path, unlock: &Unlock) -> Result<Arc<Live>, String> {
+    let cfg = hermod_core::CoreConfig {
+        unlock: unlock.clone(),
+        ..Default::default()
+    };
+    let core = Core::open_with(dir, cfg).map_err(|e| match e {
+        // Passed through bare: the UI matches them to show the recovery screen.
+        hermod_core::Error::Locked | hermod_core::Error::KeyUnavailable(_) => e.to_string(),
+        _ => format!("cannot open your data: {e}"),
+    })?;
     let unsent = core
         .setting_get(UNSENT_KEY)
         .ok()
@@ -313,28 +343,72 @@ impl Ctx {
         opts: Options,
         shell: Option<Arc<dyn Shell>>,
     ) -> Result<Arc<Ctx>, String> {
-        let d = dir.clone();
-        let live = tokio::task::spawn_blocking(move || open_live(&d))
+        let unlock = Unlock {
+            store: opts.keystore.clone(),
+            passphrase: None,
+            legacy_account: Some(legacy_account(&dir)),
+        };
+        // A passphrase-sealed or unreadable key (keychain entry gone, access denied) must not
+        // stop the app starting: it comes up limited, with restore and reset still available.
+        let (d, u) = (dir.clone(), unlock.clone());
+        let opened = tokio::task::spawn_blocking(move || open_live(&d, &u))
             .await
-            .map_err(|e| e.to_string())??;
+            .map_err(|e| e.to_string())?;
+        let (live, limited) = match opened {
+            Ok(l) => (Some(l), None),
+            Err(msg) if is_limited(&msg) => (None, Some(msg)),
+            Err(msg) => return Err(msg),
+        };
+        let open = live.is_some();
         let (tx, _) = broadcast::channel(512);
         let ctx = Arc::new(Ctx {
             dir,
             opts,
             shell,
             tx,
-            live: RwLock::new(Some(live)),
+            live: RwLock::new(live),
             picked: Mutex::new(HashSet::new()),
             background: AtomicBool::new(false),
             link: Mutex::new(PendingLink::default()),
+            unlock: Mutex::new(unlock),
+            limited: Mutex::new(limited),
         });
-        ctx.refresh_background().await;
-        if ctx.legal_accepted().await
-            && let Err(e) = ctx.start_node().await
+        if open {
+            ctx.finish_open().await;
+        }
+        Ok(ctx)
+    }
+
+    /// Background mode and, when the Terms were accepted, the node.
+    async fn finish_open(self: &Arc<Self>) {
+        self.refresh_background().await;
+        if self.legal_accepted().await
+            && let Err(e) = self.start_node().await
         {
             tracing::error!("node did not start: {e}");
         }
-        Ok(ctx)
+    }
+
+    /// Opens the data dir with the typed passphrase. A wrong one leaves everything locked. The
+    /// passphrase is dropped (and wiped) as soon as the key file has been read.
+    pub async fn unlock(self: &Arc<Self>, passphrase: String) -> Result<(), String> {
+        let mut guard = self.live.write().await;
+        if guard.is_some() {
+            return Ok(());
+        }
+        let unlock = Unlock {
+            passphrase: Some(zeroize::Zeroizing::new(passphrase)),
+            ..lock(&self.unlock).clone()
+        };
+        let dir = self.dir.clone();
+        let live = tokio::task::spawn_blocking(move || open_live(&dir, &unlock))
+            .await
+            .map_err(|e| e.to_string())??;
+        *guard = Some(live);
+        drop(guard);
+        *lock(&self.limited) = None;
+        self.finish_open().await;
+        Ok(())
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<Emitted> {
@@ -356,11 +430,11 @@ impl Ctx {
     }
 
     pub async fn live(&self) -> Result<Arc<Live>, String> {
-        self.live
-            .read()
-            .await
-            .clone()
-            .ok_or_else(|| "Hermod is restarting, try again in a moment".to_string())
+        self.live.read().await.clone().ok_or_else(|| {
+            lock(&self.limited)
+                .clone()
+                .unwrap_or_else(|| "Hermod is restarting, try again in a moment".to_string())
+        })
     }
 
     pub async fn legal_accepted(&self) -> bool {
@@ -440,7 +514,7 @@ impl Ctx {
         }
         let s = settings::node_settings(&live.core)?;
         live.core.set_rate(s.rate());
-        let seed = adapter::identity_seed(live.core.dir())?;
+        let seed = adapter::identity_seed(&live.core);
         let (ntx, nrx) = mpsc::unbounded_channel::<Notice>();
         let store = Arc::new(CoreStore::new(live.core.clone(), ntx, live.touched.clone()));
         let mut cfg = NodeConfig {
@@ -518,15 +592,32 @@ impl Ctx {
             drop(live);
         }
         let dir = self.dir.clone();
+        let unlock = lock(&self.unlock).clone();
         let result = tokio::task::spawn_blocking(move || {
+            // A keychain entry the old key file pointed at is dead weight once `f` replaced it.
+            let stale = Identity::keychain_account_in(&dir, &unlock);
             let r = f(&dir);
+            if r.is_ok()
+                && let (Some(account), Some(store)) = (stale, &unlock.store)
+                && let Err(e) = store.delete(&account)
+            {
+                tracing::warn!("could not remove the old keychain entry: {e}");
+            }
             // Reopen even when `f` failed so the app keeps working on whatever is on disk.
-            open_live(&dir).map(|l| (r, l))
+            (r, open_live(&dir, &unlock))
         })
         .await
         .map_err(|e| e.to_string())?;
-        let (r, live) = result?;
-        *guard = Some(live);
+        let (r, opened) = result;
+        match opened {
+            Ok(live) => {
+                *guard = Some(live);
+                *lock(&self.limited) = None;
+            }
+            // Still sealed or unreadable (a failed restore left the old key): recovery screen.
+            Err(msg) if is_limited(&msg) => *lock(&self.limited) = Some(msg),
+            Err(msg) => return Err(msg),
+        }
         drop(guard);
         lock(&self.picked).clear();
         self.refresh_background().await;
