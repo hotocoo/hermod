@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import { STORAGE_KEYS, TIMING } from '../../config/app';
 import { COPY } from '../../config/copy';
+import { errorMessage } from '../../lib/bridge';
 import { readString } from '../../lib/storage';
 import { repository } from '../../lib/data/repository';
 import type { Seed, Space } from '../../lib/data/types';
@@ -89,5 +90,5 @@ export const createCoreSlice: StateCreator<AppStore, [], [], CoreSlice> = (set, 
     return inFlight;
   },
 
-  refreshSoon: () => timer.after('snapshot', TIMING.snapshotDebounceMs, () => { get().refresh().catch((e) => get().showToast(String(e), undefined, 'error')); }),
+  refreshSoon: () => timer.after('snapshot', TIMING.snapshotDebounceMs, () => { get().refresh().catch((e) => get().showToast(errorMessage(e), undefined, 'error')); }),
 });

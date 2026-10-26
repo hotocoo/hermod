@@ -31,7 +31,8 @@ export const createOverlaySlice: StateCreator<AppStore, [], [], OverlaySlice> = 
       ? getBridge().messagesSearch(pq.q, { ...pq, limit }).then((r) => r.map((h): SearchHit => ({ kind: 'message', space_id: h.space_id, channel_id: h.channel_id, id: h.id, title: '', snippet: h.text, by: h.by, ts: h.ts })))
       : getBridge().searchQuery(text, { limit, space: searchSpace || undefined, kinds: searchKinds.length ? searchKinds : undefined }))
       .then((hits) => { if (get().q.trim() === text) set({ hits }); })
-      .catch(() => { if (get().q.trim() === text) set({ hits: [] }); });
+      // A failed search is not "no matches": keep the last hits and say why, once, only for the query still on screen.
+      .catch((e) => { if (get().q.trim() === text) get().showToast(errorMessage(e), undefined, 'error'); });
   };
   return {
   drawer: null, palette: false, q: '', pi: 0, hits: [], searchSpace: '', searchKinds: [], toast: null,

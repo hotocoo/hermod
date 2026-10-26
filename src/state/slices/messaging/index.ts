@@ -96,7 +96,10 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       try {
         const p = await getBridge().linkPreview(url);
         if (seq === probeSeq) set((x) => ({ compose: { ...x.compose, preview: p } }));
-      } catch { /* a site that cannot be previewed just sends as a plain link */ }
+      } catch (e) {
+        // A site that cannot be previewed just sends as a plain link; previewFor stays set so it is not retried on every keystroke.
+        console.warn('link preview failed', errorMessage(e));
+      }
     },
 
     forwardMessage: async (m, targets) => {
