@@ -20,6 +20,10 @@ use hermod_node::store::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
+/// Events read from SQLite per step while filling a sync page, so the page's byte budget
+/// bounds memory (at most this many maximum-size events are in memory beyond the budget).
+const SYNC_READ_STEP: usize = 8;
+
 /// A remote event that applied, decrypted for notification and blob-metadata purposes.
 #[derive(Debug, Clone)]
 pub struct Notice {
@@ -153,18 +157,37 @@ impl NodeStore for CoreStore {
         space: &hermod_node::store::SpaceId,
         vector: &BTreeMap<Author, u64>,
         limit: usize,
+        max_bytes: usize,
     ) -> Vec<Vec<u8>> {
-        let remote: BTreeMap<UserId, u64> = vector
+        let mut remote: BTreeMap<UserId, u64> = vector
             .iter()
             .filter_map(|(a, n)| a.parse::<UserId>().ok().map(|u| (u, *n)))
             .collect();
-        // Paged in SQL, already in `(author, seq)` order: the receiver applies per author.
-        self.core
-            .missing_page(&SpaceId(*space), &remote, limit)
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|e| e.to_bytes().ok())
-            .collect()
+        let mut out: Vec<Vec<u8>> = Vec::new();
+        let mut total = 0usize;
+        // Small SQL pages in `(author, seq)` order (the receiver applies per author), each
+        // continuing from the last seq taken, so the byte budget stops the reading instead of
+        // a full page of maximum-size events being loaded and cut afterwards.
+        while out.len() < limit {
+            let room = (limit - out.len()).min(SYNC_READ_STEP);
+            let Ok(page) = self.core.missing_page(&SpaceId(*space), &remote, room) else {
+                break;
+            };
+            let got = page.len();
+            for e in page {
+                let Ok(bytes) = e.to_bytes() else { continue };
+                if !out.is_empty() && total + bytes.len() > max_bytes {
+                    return out;
+                }
+                total += bytes.len();
+                out.push(bytes);
+                remote.insert(e.author, e.seq);
+            }
+            if got < room {
+                break;
+            }
+        }
+        out
     }
 
     fn ingest(

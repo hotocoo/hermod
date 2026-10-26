@@ -68,6 +68,11 @@ pub const SYNC_REJECT_TOLERANCE: usize = 8;
 pub const INCOMING_CONN_PERCENT: u32 = 75;
 /// Connected share of `max_connections`, in percent, above which idle non-space peers are dropped.
 pub const EVICT_CONN_PERCENT: u32 = 90;
+/// Seconds a connection must last before its peer counts as settled: only settled peers enter
+/// the global peer book, and only settled non-space peers are evicted under connection pressure.
+pub const PEER_SETTLE_SECS: u64 = 120;
+/// Shortest gap between two immediate ban-list writes; later bans wait for the maintenance tick.
+pub const BAN_FLUSH_MIN_INTERVAL_SECS: u64 = 5;
 /// Provider dials started per rendezvous key between maintenance ticks.
 pub const KAD_PROVIDER_DIALS_PER_KEY: u32 = 8;
 /// Addresses remembered per peer (peer book, relay reservation targets).

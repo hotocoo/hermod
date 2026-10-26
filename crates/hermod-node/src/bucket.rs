@@ -49,11 +49,39 @@ impl TokenBucket {
         }
     }
 
-    pub async fn take(&self, n: u64) {
-        let wait = self.reserve(n);
+    /// Like [`TokenBucket::reserve`], but refuses (`None`, nothing reserved) when the wait
+    /// would exceed `max_wait`, so a backlog cannot queue unbounded sleepers.
+    pub fn try_reserve(&self, n: u64, max_wait: Duration) -> Option<Duration> {
+        let mut g = self.inner.lock().unwrap_or_else(|e| e.into_inner());
+        if g.rate == 0 {
+            return Some(Duration::ZERO);
+        }
+        let now = Instant::now();
+        let rate = g.rate as f64;
+        let tokens = (g.tokens + now.duration_since(g.last).as_secs_f64() * rate).min(rate);
+        let after = tokens - n as f64;
+        let wait = if after >= 0.0 {
+            Duration::ZERO
+        } else {
+            Duration::from_secs_f64(-after / rate)
+        };
+        if wait > max_wait {
+            return None;
+        }
+        g.tokens = after;
+        g.last = now;
+        Some(wait)
+    }
+
+    /// Waits for `n` bytes of budget; false (nothing taken) when that would take over `max_wait`.
+    pub async fn take_within(&self, n: u64, max_wait: Duration) -> bool {
+        let Some(wait) = self.try_reserve(n, max_wait) else {
+            return false;
+        };
         if !wait.is_zero() {
             tokio::time::sleep(wait).await;
         }
+        true
     }
 }
 
@@ -70,6 +98,33 @@ mod tests {
             w >= Duration::from_millis(400) && w <= Duration::from_millis(520),
             "{w:?}"
         );
+    }
+
+    #[test]
+    fn try_reserve_refuses_long_waits_without_reserving() {
+        let b = TokenBucket::new(1000);
+        assert_eq!(b.try_reserve(1000, Duration::ZERO), Some(Duration::ZERO));
+        assert_eq!(
+            b.try_reserve(5000, Duration::from_secs(1)),
+            None,
+            "5 s wait refused"
+        );
+        let w = b
+            .try_reserve(500, Duration::from_secs(1))
+            .expect("within budget");
+        assert!(
+            w <= Duration::from_millis(520),
+            "refusal reserved nothing: {w:?}"
+        );
+    }
+
+    #[tokio::test]
+    async fn take_within_refuses_instead_of_sleeping_past_the_cap() {
+        let b = TokenBucket::new(1000);
+        assert!(b.take_within(1000, Duration::from_secs(1)).await);
+        let t = Instant::now();
+        assert!(!b.take_within(60_000, Duration::from_secs(1)).await);
+        assert!(t.elapsed() < Duration::from_millis(200), "refused at once");
     }
 
     #[test]

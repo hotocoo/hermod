@@ -64,6 +64,8 @@ pub enum Internal {
         peer: PeerId,
         space: SpaceId,
         applied: usize,
+        /// Events of the page the store refused (bad signature, wrong space, malformed).
+        rejected: usize,
         more: bool,
     },
     BlobServed {
@@ -106,7 +108,12 @@ impl RateMap {
         let now = Instant::now();
         if self.m.len() >= RATE_MAP_MAX_KEYS && !self.m.contains_key(key) {
             // Rotating keys must not grow the map: drop the least recently seen one.
-            if let Some(old) = self.m.iter().min_by_key(|(_, v)| v.1).map(|(k, _)| k.clone()) {
+            if let Some(old) = self
+                .m
+                .iter()
+                .min_by_key(|(_, v)| v.1)
+                .map(|(k, _)| k.clone())
+            {
                 self.m.remove(&old);
             }
         }
@@ -165,6 +172,13 @@ pub struct Driver {
     pub book: HashMap<SpaceId, Vec<String>>,
     pub book_dirty: HashSet<SpaceId>,
     pub banned: HashMap<PeerId, Instant>,
+    /// Ban list changed since the last write (written on the maintenance tick).
+    pub bans_dirty: bool,
+    pub last_ban_flush: Option<Instant>,
+    /// When each connected peer's first connection opened.
+    pub connected_since: HashMap<PeerId, Instant>,
+    /// Provider dials started per rendezvous key since the last maintenance tick.
+    pub provider_dials: HashMap<Vec<u8>, u32>,
     pub strikes: HashMap<PeerId, u32>,
     pub event_rate: RateMap,
     /// Inbound gossip per relaying peer: the author header is unauthenticated, the peer is not.
@@ -177,6 +191,10 @@ pub struct Driver {
     pub signal_in_rate: RateMap,
     /// Blob requests currently being served, per requesting peer.
     pub serving: HashMap<PeerId, u32>,
+    /// Sync pages being served across all peers.
+    pub sync_serve_slots: Arc<Semaphore>,
+    /// Blob requests being served across all peers.
+    pub blob_serve_slots: Arc<Semaphore>,
     pub bytes_in: u64,
     pub bytes_out: u64,
     pub last_bytes: (u64, u64, Instant),
@@ -229,6 +247,10 @@ impl Driver {
             book: HashMap::new(),
             book_dirty: HashSet::new(),
             banned: HashMap::new(),
+            bans_dirty: false,
+            last_ban_flush: None,
+            connected_since: HashMap::new(),
+            provider_dials: HashMap::new(),
             strikes: HashMap::new(),
             event_rate: RateMap::new(EVENT_IN_RATE.0, EVENT_IN_RATE.1),
             peer_gossip_rate: RateMap::new(PEER_GOSSIP_IN_RATE.0, PEER_GOSSIP_IN_RATE.1),
@@ -238,6 +260,8 @@ impl Driver {
             sync_in_rate: RateMap::new(SYNC_IN_RATE.0, SYNC_IN_RATE.1),
             signal_in_rate: RateMap::new(SIGNAL_IN_RATE.0, SIGNAL_IN_RATE.1),
             serving: HashMap::new(),
+            sync_serve_slots: Arc::new(Semaphore::new(SYNC_SERVE_GLOBAL_MAX)),
+            blob_serve_slots: Arc::new(Semaphore::new(BLOB_SERVE_GLOBAL_MAX)),
             bytes_in: 0,
             bytes_out: 0,
             last_bytes: (0, 0, Instant::now()),
@@ -275,12 +299,12 @@ impl Driver {
                 ev = self.swarm.select_next_some() => self.on_swarm(ev),
                 cmd = cmds.recv() => match cmd {
                     Some(Command::Shutdown(done)) => {
-                        self.flush_book();
+                        self.flush_all();
                         let _ = done.send(());
                         return;
                     }
                     Some(c) => self.on_command(c),
-                    None => { self.flush_book(); return; }
+                    None => { self.flush_all(); return; }
                 },
                 Some(i) = internal.recv() => self.on_internal(i),
                 _ = tick.tick() => {
@@ -659,7 +683,7 @@ impl Driver {
             .cloned()
             .chain(self.relay_listen.iter().cloned())
             .chain(self.listen_addrs.iter().cloned())
-            .filter(|a| shareable(a, allow))
+            .filter(|a| shareable(a, allow) || self.cfg.external_addrs.contains(a))
             .map(|a| with_peer(a, self.local))
             .collect();
         v.sort_by_key(classify);
@@ -742,10 +766,13 @@ impl Driver {
             self.banned.remove(p);
             self.swarm.behaviour_mut().blocked.unblock_peer(*p);
         }
-        if !expired.is_empty() {
+        if !expired.is_empty() || self.bans_dirty {
             self.persist_bans();
         }
         self.strikes.clear();
+        self.provider_dials.clear();
+        self.promote_settled_peers();
+        self.evict_idle_peers();
         self.event_rate.gc();
         self.peer_gossip_rate.gc();
         self.eph_in_rate.gc();
@@ -770,7 +797,84 @@ impl Driver {
             list.drain(..list.len() - BOOK_CAP);
         }
         self.book_dirty.insert(space);
-        // Written at once, not on the next maintenance tick: a kill before it would forget the peer and the restart could not redial it.
+        // Written on the next maintenance tick (and at shutdown): never on the swarm loop.
+        // A peer that joined a space is worth redialling after a restart too.
+        self.remember_global(peer);
+    }
+
+    /// Adds the peer's shareable addresses to the global book (no-op when already all there).
+    fn remember_global(&mut self, peer: PeerId) {
+        let allow = self.cfg.allow_private_addrs;
+        let Some(addrs) = self.peer_addrs.get(&peer) else {
+            return;
+        };
+        let list = self.book.entry(GLOBAL_PEERS).or_default();
+        let fresh: Vec<String> = addrs
+            .iter()
+            .filter(|a| shareable(a, allow))
+            .map(|a| with_peer(a.clone(), peer).to_string())
+            .filter(|s| !list.contains(s))
+            .collect();
+        if fresh.is_empty() {
+            return;
+        }
+        list.extend(fresh);
+        if list.len() > BOOK_CAP {
+            list.drain(..list.len() - BOOK_CAP);
+        }
+        self.book_dirty.insert(GLOBAL_PEERS);
+    }
+
+    /// Peers that stayed connected past the settle time are remembered globally; a peer that
+    /// connects, says hello and leaves (or never joins a space) cannot seed the book.
+    fn promote_settled_peers(&mut self) {
+        let settle = Duration::from_secs(PEER_SETTLE_SECS);
+        let settled: Vec<PeerId> = self
+            .connected_since
+            .iter()
+            .filter(|(_, t)| t.elapsed() >= settle)
+            .map(|(p, _)| *p)
+            .collect();
+        for p in settled {
+            self.remember_global(p);
+        }
+    }
+
+    /// Under connection pressure, drop settled peers that share no space and are not relays
+    /// or blob sources, oldest first, so space peers and relays keep their slots.
+    fn evict_idle_peers(&mut self) {
+        let threshold = (self.limits.max_connections * EVICT_CONN_PERCENT / 100).max(1) as usize;
+        let connected = self.swarm.connected_peers().count();
+        if connected < threshold {
+            return;
+        }
+        let settle = Duration::from_secs(PEER_SETTLE_SECS);
+        let reserved: HashSet<PeerId> = self.reserved_on.iter().filter_map(peer_of).collect();
+        let busy: HashSet<PeerId> = self.blob_reqs.values().map(|(_, _, p)| *p).collect();
+        let mut idle: Vec<(Instant, PeerId)> = self
+            .connected_since
+            .iter()
+            .filter(|(p, t)| {
+                t.elapsed() >= settle
+                    && !self.relay_hops.contains(*p)
+                    && !reserved.contains(*p)
+                    && !busy.contains(*p)
+                    && !self.space_peers.values().any(|s| s.contains(*p))
+            })
+            .map(|(p, t)| (*t, *p))
+            .collect();
+        idle.sort();
+        for (_, p) in idle.into_iter().take(connected + 1 - threshold) {
+            tracing::debug!("evicting idle non-space peer {p} under connection pressure");
+            let _ = self.swarm.disconnect_peer_id(p);
+        }
+    }
+
+    /// Everything pending, for shutdown.
+    fn flush_all(&mut self) {
+        if self.bans_dirty {
+            self.persist_bans();
+        }
         self.flush_book();
     }
 
@@ -813,10 +917,10 @@ impl Driver {
                 if let Some(r) = self.pending_dials.remove(&connection_id) {
                     let _ = r.send(Ok(peer_id));
                 }
+                // No sync here: the peer's space membership is unknown until it subscribes,
+                // and the gossipsub `Subscribed` event starts the sync for each shared space.
                 if num_established.get() == 1 {
-                    for s in self.spaces.clone() {
-                        self.start_sync(peer_id, s);
-                    }
+                    self.connected_since.insert(peer_id, Instant::now());
                     self.pump_all_jobs();
                 }
             }
@@ -834,6 +938,7 @@ impl Driver {
                     }
                 }
                 self.sync_inflight.retain(|(p, _)| *p != peer_id);
+                self.connected_since.remove(&peer_id);
                 self.peer_addrs.remove(&peer_id);
                 self.relay_hops.remove(&peer_id);
                 self.report_sync();
@@ -927,11 +1032,14 @@ impl Driver {
 
     fn on_identify(&mut self, peer: PeerId, info: identify::Info) {
         let allow = self.cfg.allow_private_addrs;
+        // Only shareable addresses are kept, and only a few: a peer picks what it advertises.
         let addrs: Vec<Multiaddr> = info
             .listen_addrs
             .iter()
             .cloned()
             .map(without_peer)
+            .filter(|a| shareable(a, allow))
+            .take(MAX_ADDRS_PER_PEER)
             .collect();
         let proto = |name: &str| info.protocols.iter().any(|p| p.as_ref() == name);
         let b = self.swarm.behaviour_mut();
@@ -954,23 +1062,8 @@ impl Driver {
             }
         }
         self.peer_addrs.insert(peer, addrs);
-        // Remember the peer globally so a restart reconnects fast.
-        let list = self.book.entry(GLOBAL_PEERS).or_default();
-        let before = list.len();
-        for a in self.peer_addrs[&peer]
-            .iter()
-            .filter(|a| shareable(a, allow))
-        {
-            let s = with_peer(a.clone(), peer).to_string();
-            list.retain(|x| *x != s);
-            list.push(s);
-        }
-        if list.len() > BOOK_CAP {
-            list.drain(..list.len() - BOOK_CAP);
-        }
-        if list.len() != before || !self.peer_addrs[&peer].is_empty() {
-            self.book_dirty.insert(GLOBAL_PEERS);
-        }
+        // The global book is fed only by peers that join a space (`remember`) or stay
+        // connected (`promote_settled_peers`), not by whoever says hello.
         for (space, peers) in self.space_peers.clone() {
             if peers.contains(&peer) {
                 self.remember(space, peer);
@@ -982,15 +1075,24 @@ impl Driver {
         if let kad::Event::OutboundQueryProgressed {
             result:
                 kad::QueryResult::GetProviders(Ok(kad::GetProvidersOk::FoundProviders {
+                    key,
                     providers,
-                    ..
                 })),
             ..
         } = e
         {
+            // Anyone can announce as a provider of a key: cap the dials one key can cause.
+            let dials = self
+                .provider_dials
+                .entry(key.as_ref().to_vec())
+                .or_default();
             for p in providers {
+                if *dials >= KAD_PROVIDER_DIALS_PER_KEY {
+                    break;
+                }
                 if p != self.local && !self.swarm.is_connected(&p) && !self.banned.contains_key(&p)
                 {
+                    *dials += 1;
                     let _ = self.swarm.dial(DialOpts::peer_id(p).build());
                 }
             }
@@ -1012,10 +1114,19 @@ impl Driver {
         self.banned.insert(peer, Instant::now() + dur);
         self.swarm.behaviour_mut().blocked.block_peer(peer);
         let _ = self.swarm.disconnect_peer_id(peer);
-        self.persist_bans();
+        // The first ban in a burst is written at once; the rest wait for the maintenance tick,
+        // so a swarm of banned ids cannot turn into a stream of disk writes on the loop.
+        let gap = Duration::from_secs(BAN_FLUSH_MIN_INTERVAL_SECS);
+        if self.last_ban_flush.is_none_or(|t| t.elapsed() >= gap) {
+            self.persist_bans();
+        } else {
+            self.bans_dirty = true;
+        }
     }
 
-    fn persist_bans(&self) {
+    fn persist_bans(&mut self) {
+        self.bans_dirty = false;
+        self.last_ban_flush = Some(Instant::now());
         let now = Instant::now();
         let unix = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -1319,9 +1430,14 @@ impl Driver {
                 peer,
                 space,
                 applied,
+                rejected,
                 more,
             } => {
                 self.sync_inflight.remove(&(peer, space));
+                // An honest peer only relays events it verified; a page full of refusals is abuse.
+                for _ in SYNC_REJECT_TOLERANCE..rejected {
+                    self.strike(peer);
+                }
                 if applied > 0 {
                     self.emit(NodeEvent::EventsIngested {
                         space,
@@ -1380,7 +1496,11 @@ mod tests {
         for i in 0..RATE_MAP_MAX_KEYS + 100 {
             r.allow(&format!("k{i}"));
         }
-        assert_eq!(r.len(), RATE_MAP_MAX_KEYS, "rotating keys cannot grow the map");
+        assert_eq!(
+            r.len(),
+            RATE_MAP_MAX_KEYS,
+            "rotating keys cannot grow the map"
+        );
         let idle = Instant::now() - Duration::from_secs(RATE_MAP_IDLE_SECS + 5);
         for v in r.m.values_mut() {
             v.1 = idle;
