@@ -1,7 +1,7 @@
 import type {
   AuditRow, BlobDiff, BlobRef, SnapExported, SnapPlan, SnapVerify, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, KeyMode, InviteOptions,
   InviteOut, InviteRecord, LegalStatus, Member, NodeSettings, NodeSettingsView, NodeStatus, NotifySettings, OutboxStatus,
-  PickOptions, ProfileInput, RetentionSetting, Role, SearchHit, SearchOptions, SpaceExportResult, SpaceSummary, StorageUsage, UpdateInfo,
+  PickOptions, ProfileInput, ReportRow, RetentionSetting, Role, SearchHit, SearchOptions, SpaceExportResult, SpaceSummary, StorageUsage, UpdateInfo,
 } from './types';
 import type { Snapshot } from '../data/types';
 import type { LocalAiSettings, PrivacySettings, ChatPrefs, ContactCard, GalleryItem, GalleryKind, LinkPreviewOut, MsgHit, MsgSearchOptions, PageResult, Scheduled } from './messagingTypes';
@@ -86,6 +86,7 @@ export interface Bridge {
   storageUsage(): Promise<StorageUsage>;
   storageClearCache(): Promise<{ freed_bytes: number }>;
   auditList(spaceId: string): Promise<AuditRow[]>;
+  reportsList(spaceId: string): Promise<ReportRow[]>;
   logTail(lines: number): Promise<string[]>;
   outboxStatus(): Promise<OutboxStatus>;
   /** The desktop app opens its own save dialog; `path` is for the devhost only. Resolves to the saved path, or null when cancelled. */
@@ -204,6 +205,7 @@ export function createBridge(t: Transport): Bridge {
     storageUsage: () => call('storage_usage'),
     storageClearCache: () => call('storage_clear_cache'),
     auditList: (spaceId) => call('audit_list', { spaceId }),
+    reportsList: (spaceId) => call('reports_list', { spaceId }),
     logTail: (lines) => call('log_tail', { lines }),
     outboxStatus: () => call('outbox_status'),
     backupExport: (suggestedName, passphrase, includeBlobs, path) => call('backup_export', { suggestedName, passphrase, includeBlobs, path: path ?? null }),

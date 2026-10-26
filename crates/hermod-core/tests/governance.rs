@@ -153,6 +153,13 @@ fn role_table_every_event_type_is_gated() {
             Role::Admin,
         ),
         (
+            ReportResolve {
+                report_id: "r".into(),
+                outcome: "dismissed".into(),
+            },
+            Role::Admin,
+        ),
+        (
             MemberRole {
                 user: "u".into(),
                 role: Role::Admin,
@@ -601,6 +608,54 @@ fn size_cap_applies_to_gossip_but_not_to_local_or_sync() {
     b.ingest_sync(ev).unwrap();
     b.append(&s, post_msg("general", "mine", &big)).unwrap();
     assert!(texts(&b, &s).iter().any(|t| t.len() == big.len()));
+}
+
+#[test]
+fn report_resolve_is_admin_only_and_drops_the_report() {
+    let (a, b, _c, s, _d) = trio();
+    b.append(&s, post_msg("general", "bad", "spam text"))
+        .unwrap();
+    b.append(
+        &s,
+        EventBody::ContentReport {
+            target_id: "bad".into(),
+            reason: Some("rude".into()),
+        },
+    )
+    .unwrap();
+    sync(&b, &a, &s);
+    let q = a.reports_list(&s).unwrap();
+    assert_eq!(q.len(), 1);
+    assert_eq!(
+        (
+            q[0].target_kind.as_str(),
+            q[0].target_text.as_str(),
+            q[0].channel.as_str()
+        ),
+        ("message", "spam text", "general")
+    );
+    let id = q[0].id.clone();
+    let resolve = |outcome: &str| EventBody::ReportResolve {
+        report_id: id.clone(),
+        outcome: outcome.into(),
+    };
+    // A member's forged resolve, and an admin's unknown outcome, change nothing.
+    b.append(&s, resolve("dismissed")).unwrap();
+    sync(&b, &a, &s);
+    a.append(&s, resolve("whatever")).unwrap();
+    assert_eq!(
+        a.reports_list(&s).unwrap().len(),
+        1,
+        "forged or invalid resolve is ignored"
+    );
+    a.append(&s, resolve("dismissed")).unwrap();
+    assert!(a.reports_list(&s).unwrap().is_empty());
+    assert!(
+        a.audit_list(&s)
+            .unwrap()
+            .iter()
+            .any(|e| e.kind == "report.resolve" && e.detail == "dismissed")
+    );
 }
 
 #[test]

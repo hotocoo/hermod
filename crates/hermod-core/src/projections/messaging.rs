@@ -63,6 +63,9 @@ pub struct MsgExtra {
     pub expires: Option<i64>,
     pub everyone: bool,
     pub here: bool,
+    /// `@admins` / `@owners`, honoured only from authors who clear the channel's mention floor.
+    pub admins: bool,
+    pub owners: bool,
     pub viewed: BTreeSet<String>,
     pub preview_desc: String,
     pub preview_blob: Option<BlobRef>,
@@ -515,6 +518,8 @@ impl SpaceState {
                     expires: self.msgx.expiry(channel_id, ts, norm.ttl_secs),
                     everyone: allowed && has_mention(text, "everyone"),
                     here: allowed && has_mention(text, "here"),
+                    admins: allowed && has_mention(text, "admins"),
+                    owners: allowed && has_mention(text, "owners"),
                     viewed: BTreeSet::new(),
                     preview_desc: clip(
                         preview.as_ref().map_or("", |p| p.description.as_str()),
@@ -978,6 +983,13 @@ pub struct MsgView {
     pub everyone: bool,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub here: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub admins: bool,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub owners: bool,
+    /// A group mention (@everyone, @here, @admins, @owners) that reaches the local user.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pings_me: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub auto: Option<AutoRef>,
     /// `open` or `archived` for thread roots.

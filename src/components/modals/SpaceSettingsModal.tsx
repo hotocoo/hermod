@@ -1,11 +1,12 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { errorMessage, getBridge, type AuditRow, type Member, type Role } from '@/lib/bridge';
+import { errorMessage, getBridge, type AuditRow, type Member, type ReportOutcome, type ReportRow, type Role } from '@/lib/bridge';
 import { COPY } from '@/config/copy';
 import { JOIN_POW_CHOICES } from '@/config/app';
+import { exportRows, toCsv, toJson } from '@/lib/auditExport';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
-import { nicksIn, profilesIn } from '@/state/selectors';
+import { displayName, nicksIn, profilesIn } from '@/state/selectors';
 import { lastSeenLabel, statusOf } from '@/state/presence';
 import { useAppStore } from '@/state/store';
 import { PresenceDot } from '@/components/ui/PresenceDot';
@@ -178,6 +179,25 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
       if (r) toast(COPY.exportDone(r.messages, r.files, r.missing));
     } catch (e) { toast(errorMessage(e), undefined, 'error'); } finally { setExporting(false); }
   };
+  const seed = useAppStore((s) => s.seed);
+  const nameOf = (id: string) => (seed ? displayName(seed, space, id) : id.slice(0, 8));
+  const [reports, setReports] = useState<ReportRow[] | null>(null);
+  const loadReports = useCallback(() => { getBridge().reportsList(space).then(setReports).catch((e) => { setReports([]); toast(errorMessage(e), undefined, 'error'); }); }, [space, toast]);
+  useEffect(() => { if (admin) loadReports(); }, [admin, loadReports]);
+  const resolve = async (r: ReportRow, outcome: ReportOutcome) => { if (await useAppStore.getState().resolveReport(space, r, outcome)) loadReports(); };
+  const open = (r: ReportRow) => {
+    const st = useAppStore.getState();
+    st.closeModal();
+    if (r.target_kind === 'message') st.jumpToMessage(space, r.channel, r.target);
+    else { st.goSpace(space); st.goSection('feed'); }
+  };
+  const save = async (kind: 'csv' | 'json') => {
+    const data = exportRows(rows ?? [], nameOf);
+    try {
+      const saved = await getBridge().saveFile(COPY.audit.fileName(kind), new TextEncoder().encode(kind === 'csv' ? toCsv(data) : toJson(data)));
+      if (saved) toast(COPY.audit.exported);
+    } catch (e) { toast(errorMessage(e), undefined, 'error'); }
+  };
   useEffect(() => { if (admin) getBridge().auditList(space).then(setRows).catch((e) => { setRows([]); toast(errorMessage(e), undefined, 'error'); }); }, [admin, space, toast]);
   const setRetention = async (v: string) => {
     setDays(v);
@@ -199,11 +219,34 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
       </div>
       {admin && (
         <div className={f.scroll}>
+          <h3 style={{ fontSize: 18 }}>{COPY.report.queue}</h3>
+          {!reports ? <p className={f.note}>Loading…</p> : reports.length === 0 ? <p className={f.note}>{COPY.report.queueEmpty}</p> : (
+            <table className={f.table}>
+              <thead><tr>{(['when', 'by', 'what', 'reason', 'action'] as const).map((k) => <th key={k} scope="col">{COPY.report.cols[k]}</th>)}</tr></thead>
+              <tbody>{reports.map((r) => (
+                <tr key={r.id}>
+                  <td>{new Date(r.ts).toLocaleString()}</td><td>{nameOf(r.by)}</td>
+                  <td>{r.target_kind ? `${nameOf(r.target_by)}: ${r.target_text.slice(0, COPY.report.snippetMax)}` : COPY.report.gone}</td>
+                  <td>{r.reason || COPY.report.noReason}</td>
+                  <td>
+                    {r.target_kind && <button type="button" className="btn btn-secondary" aria-label={COPY.report.openLabel(nameOf(r.by))} onClick={() => open(r)}>{COPY.report.open}</button>}{' '}
+                    <button type="button" className="btn btn-secondary" aria-label={COPY.report.dismissLabel(nameOf(r.by))} onClick={() => { void resolve(r, 'dismissed'); }}>{COPY.report.dismiss}</button>{' '}
+                    {r.target_kind && <button type="button" className="btn btn-secondary" aria-label={COPY.report.removeLabel(nameOf(r.by))} onClick={() => { void resolve(r, 'removed'); }}>{COPY.report.remove}</button>}
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          )}
           <h3 style={{ fontSize: 18 }}>Audit log</h3>
+          <div>
+            <span className={f.note}>{COPY.audit.export}: </span>
+            <button type="button" className="btn btn-secondary" disabled={!rows?.length} aria-label={COPY.audit.exportLabel(COPY.audit.csv)} onClick={() => { void save('csv'); }}>{COPY.audit.csv}</button>{' '}
+            <button type="button" className="btn btn-secondary" disabled={!rows?.length} aria-label={COPY.audit.exportLabel(COPY.audit.json)} onClick={() => { void save('json'); }}>{COPY.audit.json}</button>
+          </div>
           {!rows ? <p className={f.note}>Loading…</p> : rows.length === 0 ? <p className={f.note}>Nothing recorded yet.</p> : (
             <table className={f.table}>
               <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">By</th></tr></thead>
-              <tbody>{rows.map((r, i) => <tr key={i}><td>{new Date(r.ts).toLocaleString()}</td><td>{r.kind}{r.detail ? `: ${r.detail}` : ''}</td><td>{r.by.slice(0, 8)}</td></tr>)}</tbody>
+              <tbody>{rows.map((r, i) => <tr key={i}><td>{new Date(r.ts).toLocaleString()}</td><td>{r.kind}{r.detail ? `: ${r.detail}` : ''}</td><td>{nameOf(r.by)}</td></tr>)}</tbody>
             </table>
           )}
         </div>

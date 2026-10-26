@@ -24,7 +24,7 @@ export function feedVm(x: Ctx) {
       canComment: roleIn(s, sp) !== 'guest',
       comments: (p.comments ?? []).filter((c) => !s.blocked[c.by]).map((c) => ({ name: personOf(seed, c.by).name, t: c.t, text: c.text })),
       onComment: (text: string) => s.commentPost(p.id, sp, text),
-      mine: p.by === me, onDelete: () => { void s.deletePost(p.id, sp); },
+      mine: p.by === me, onReport: () => { void s.reportContent(p.id, sp); }, onDelete: () => { void s.deletePost(p.id, sp); },
       following: isFollowing(p.by), onFollow: () => { toggleFollow(p.by); s.forceUpdate(); }, anim: anim(i),
     };
   });

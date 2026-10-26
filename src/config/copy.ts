@@ -19,6 +19,15 @@ export const COPY = {
     choose: 'Choose folder', label: 'Folder',
     summary: (added: number, removed: number, changed: number) => `${added} added, ${removed} removed, ${changed} changed since the last snapshot`,
   },
+  report: {
+    title: 'Report this to the admins?', submit: 'Send report', reasonLabel: 'What is wrong with it?', reasonPlaceholder: 'Optional. Only space admins see your report.',
+    sent: 'Reported to the space admins', action: 'Report to admins',
+    queue: 'Reports', queueEmpty: 'No reports.', removeConfirm: { title: 'Remove this content?', body: 'It is removed for everyone in this Space.', confirm: 'Remove' },
+    noReason: 'No reason given', gone: 'No longer available', snippetMax: 140,
+    open: 'Open', dismiss: 'Dismiss', remove: 'Remove content', cols: { when: 'When', by: 'Reported by', what: 'Reported', reason: 'Reason', action: 'Action' },
+    openLabel: (by: string) => `Open content reported by ${by}`, dismissLabel: (by: string) => `Dismiss report by ${by}`, removeLabel: (by: string) => `Remove content reported by ${by}`,
+  },
+  audit: { export: 'Export', csv: 'CSV', json: 'JSON', fileName: (ext: string) => `audit-log.${ext}`, exported: 'Audit log saved', exportLabel: (kind: string) => `Export audit log as ${kind}` },
   card: {
     unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.',
     editTitle: 'Edit card', assignedTo: 'Assigned to', dueLabel: 'Due', due: (d: string) => `Due ${d}`,

@@ -20,6 +20,8 @@ pub type Ord3 = (u64, [u8; 32], u64);
 
 /// Upper bound on fold passes while [`Prior`] settles; it normally does after one or two.
 pub const MAX_FOLD_PASSES: usize = 4;
+/// Outcomes an admin may record when closing a content report.
+pub const REPORT_OUTCOMES: [&str; 2] = ["dismissed", "removed"];
 
 // Calendar grid an event must sit in; mirrors CALENDAR in src/config/app.ts (Mon..Fri, 08:00 to 18:00).
 const EVENT_DAYS: u32 = 5;
@@ -296,6 +298,8 @@ pub struct ReportSt {
     pub target: String,
     pub reason: String,
     pub ts: i64,
+    /// `dismissed` or `removed` once an admin closed it.
+    pub resolved: Option<String>,
 }
 
 /// One admin-visible governance record.
@@ -424,6 +428,7 @@ pub fn min_role(body: &EventBody) -> Role {
         | InviteCreate { .. }
         | InviteRevoke { .. }
         | ContentRemove { .. }
+        | ReportResolve { .. }
         | AutomationSet { .. }
         | DeskConfig { .. } => Role::Admin,
         MemberRole { .. } => Role::Owner,
@@ -1507,7 +1512,21 @@ impl SpaceState {
                     target: target_id.clone(),
                     reason: reason.clone().unwrap_or_default(),
                     ts,
+                    resolved: None,
                 });
+            }
+            EventBody::ReportResolve { report_id, outcome } => {
+                // Authorization (admin) already passed; the outcome is peer input, so validate it.
+                if REPORT_OUTCOMES.contains(&outcome.as_str())
+                    && let Some(r) = self
+                        .reports
+                        .iter_mut()
+                        .find(|r| &r.id == report_id && r.resolved.is_none())
+                {
+                    r.resolved = Some(outcome.clone());
+                    let target = r.target.clone();
+                    self.audit(ev, by, "report.resolve", Some(&target), outcome.clone());
+                }
             }
             EventBody::DeviceLink { device_pub, cert } => {
                 if crate::device::verify_cert(&ev.author, device_pub, cert) {
@@ -1569,6 +1588,23 @@ impl SpaceState {
     pub fn msg_author(&self, id: &str) -> Option<&str> {
         let (ch, idx) = self.msg_index.get(id)?;
         self.msgs.get(ch)?.get(*idx).map(|m| m.by.as_str())
+    }
+
+    /// What a report points at: `(kind, author, text, channel)` for a live message or post.
+    pub fn report_target(&self, id: &str) -> Option<(&'static str, String, String, String)> {
+        if let Some((ch, idx)) = self.msg_index.get(id)
+            && let Some(m) = self.msgs.get(ch).and_then(|l| l.get(*idx))
+        {
+            return Some(("message", m.by.clone(), m.text.clone(), ch.clone()));
+        }
+        self.posts.iter().find(|p| p.id == id).map(|p| {
+            let text = p
+                .text
+                .clone()
+                .filter(|t| !t.is_empty())
+                .unwrap_or_else(|| p.title.clone());
+            ("post", p.by.clone(), text, String::new())
+        })
     }
 
     fn msg_mut(&mut self, id: &str) -> Option<&mut Msg> {

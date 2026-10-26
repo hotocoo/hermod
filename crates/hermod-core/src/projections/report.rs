@@ -36,6 +36,12 @@ pub struct ReportInfo {
     pub target: String,
     pub reason: String,
     pub ts: i64,
+    /// `message` or `post`; empty when the target is gone or unknown.
+    pub target_kind: String,
+    pub target_by: String,
+    pub target_text: String,
+    /// Channel of a reported message, for jumping to it.
+    pub channel: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,12 +115,20 @@ pub fn report(ctx: &ProjectionCtx, input: &SpaceInput) -> SpaceReport {
         reports: s
             .reports
             .iter()
-            .map(|r| ReportInfo {
-                id: r.id.clone(),
-                by: r.by.clone(),
-                target: r.target.clone(),
-                reason: r.reason.clone(),
-                ts: r.ts,
+            .filter(|r| r.resolved.is_none())
+            .map(|r| {
+                let (kind, by, text, channel) = s.report_target(&r.target).unwrap_or_default();
+                ReportInfo {
+                    id: r.id.clone(),
+                    by: r.by.clone(),
+                    target: r.target.clone(),
+                    reason: r.reason.clone(),
+                    ts: r.ts,
+                    target_kind: kind.to_string(),
+                    target_by: by,
+                    target_text: text,
+                    channel,
+                }
             })
             .collect(),
     }

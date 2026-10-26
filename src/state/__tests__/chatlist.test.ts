@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Seed } from '../../lib/data/types';
 import type { NotifySettings } from '../../lib/bridge';
-import type { Arrival } from '../arrivals';
+import { diffArrivals, type Arrival } from '../arrivals';
 import { arrivalKind } from '../notify';
 import { paletteItems } from '../palette';
 import { MUTE_FOREVER, hiddenAsArchived, inFolder, pinnedFirst, toggleInFolder, unmutedRook } from '../slices/messaging/helpers';
@@ -9,6 +9,15 @@ import type { AppStore } from '../types';
 
 const settings = { enabled: true, dm: true, mention: true, meeting: true, reminder: true, muted_spaces: [], muted_channels: [], dnd_until: 0, dnd_schedule: { enabled: false, from_hour: 0, to_hour: 0 } } as unknown as NotifySettings;
 const arrival = (o: Partial<Arrival> = {}): Arrival => ({ kind: 'message', by: 'u2', sp: 's1', ch: 'general', text: 'hi', id: 'm1', mentionsMe: false, ...o });
+
+describe('M-036 role mentions ping by the core-resolved flag', () => {
+  it('an arrival whose message pings me earns a mention notification even without my name in the text', () => {
+    const seed = (ping: boolean) => ({ people: { me: { name: 'Ada', i: 'A', role: '' } }, spaces: [{ id: 's1' }], collections: { letters: {}, messages: { 's1/general': [{ id: 'm1', by: 'u2', text: '@admins ship it', ext: { pingsMe: ping } }] } } }) as unknown as Seed;
+    const empty = { people: {}, spaces: [{ id: 's1' }], collections: { messages: {}, letters: {} } } as unknown as Seed;
+    expect(diffArrivals(empty, seed(true), 'me', {})[0].mentionsMe).toBe(true);
+    expect(diffArrivals(empty, seed(false), 'me', {})[0].mentionsMe).toBe(false);
+  });
+});
 
 describe('A-003 palette person starts a real DM', () => {
   it('runs startDm, so the chat syncs to the other person, not a local-only Home channel', () => {

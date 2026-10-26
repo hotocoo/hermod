@@ -60,7 +60,7 @@ export function ChannelSettingsModal({ space, channel }: { space: string; channe
         <Sel id="cs-send" label="Who can post (minimum role)" value={v.sendMin} opts={ROLES} set={set('sendMin')} />
         <Sel id="cs-view" label="Who sees this channel in the list (not a secret, see docs)" value={v.viewMin} opts={ROLES} set={set('viewMin')} />
         <Sel id="cs-manage" label="Who can manage it" value={v.manageMin} opts={ROLES} set={set('manageMin')} />
-        <Sel id="cs-mention" label="Who can use @everyone and @here" value={v.mentionMin} opts={ROLES} set={set('mentionMin')} />
+        <Sel id="cs-mention" label="Who can use @everyone, @here, @admins and @owners" value={v.mentionMin} opts={ROLES} set={set('mentionMin')} />
         {v.kind === 'forum' && <div className={f.field}><label className={f.label} htmlFor="cs-tags">Forum tags, comma separated</label><input id="cs-tags" className="input" value={v.tags} onChange={(e) => set('tags')(e.target.value)} /></div>}
         <div className={f.field}><label className={f.label} htmlFor="cs-arch">Auto-archive quiet threads after seconds (0 = never)</label><input id="cs-arch" className="input" inputMode="numeric" value={v.archive} onChange={(e) => set('archive')(e.target.value)} /></div>
         <div className={f.actions}><button type="button" className="btn btn-secondary" onClick={st.closeModal}>Cancel</button><button type="button" className="btn btn-primary" onClick={() => { void save(); }}>Save</button></div>

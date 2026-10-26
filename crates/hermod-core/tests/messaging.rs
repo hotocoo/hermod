@@ -751,6 +751,41 @@ fn everyone_mentions_need_the_right_role() {
 }
 
 #[test]
+fn role_mentions_follow_the_mention_floor_and_ping_by_role() {
+    let mut w = world();
+    w.log.push(
+        &w.bea,
+        NOW - 10 * MIN,
+        post("general", "m1", "hey @admins", None, vec![]),
+    );
+    w.log.push(
+        &w.ada,
+        NOW - 9 * MIN,
+        post("general", "m2", "@admins and @owners", None, vec![]),
+    );
+    let flags = |w: &World, who| {
+        w.msgs(who, "general")
+            .iter()
+            .map(|m| {
+                let x = m.ext.as_ref().unwrap();
+                (x.admins, x.owners, x.pings_me)
+            })
+            .collect::<Vec<_>>()
+    };
+    // Cai is a plain member: sees the flags on m2 but is not pinged by them.
+    assert_eq!(
+        flags(&w, w.cai),
+        vec![(false, false, false), (true, true, false)]
+    );
+    // Below the floor (Bea, a member) nobody sees a flag or a ping, whoever views.
+    for who in [w.ada, w.bea, w.cai] {
+        assert_eq!(flags(&w, who)[0], (false, false, false));
+    }
+    // Ada owns the space: pinged by both.
+    assert!(w.msgs(w.ada, "general")[1].ext.as_ref().unwrap().pings_me);
+}
+
+#[test]
 fn nicknames_and_profile_extras() {
     let mut w = world();
     w.log.push(

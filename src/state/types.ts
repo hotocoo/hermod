@@ -1,5 +1,5 @@
 /** Store shape: one interface per slice (data + actions). AppStore is their intersection. */
-import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit, SearchKind } from '../lib/bridge/types';
+import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, ReportOutcome, ReportRow, Role, SearchHit, SearchKind } from '../lib/bridge/types';
 import type { Seed, Space, SectionId } from '../lib/data/types';
 import type { Theme, Palette } from '../lib/theme';
 import type { MotionMode } from '../lib/prefs';
@@ -119,6 +119,10 @@ export interface ChatSlice {
   react(key: string, mid: string, l: string): Promise<void>;
   startEdit(id: string, text: string): void; setEditDraft(v: string): void; saveEdit(): Promise<void>; cancelEdit(): void;
   deleteMessage(id: string): Promise<void>;
+  /** E-006: ask for a reason, then send `content.report` for a message or post. */
+  reportContent(id: string, space: string): Promise<void>;
+  /** E-006: close a report. `removed` first removes the content (after a confirm); resolves true once the report is closed. */
+  resolveReport(space: string, report: ReportRow, outcome: ReportOutcome): Promise<boolean>;
   attachFiles(files: File[]): Promise<void>; attachNative(): Promise<void>; detach(hash: string): void;
   newChannel(): Promise<void>;
   toggleThread(id: string): void; closeThread(): void;
