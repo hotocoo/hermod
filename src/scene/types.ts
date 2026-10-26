@@ -48,7 +48,7 @@ export interface SpaceGrowth {
   members: number; active7d: number;
   /** Island size, 1..5. */
   tier: number;
-  /** Island radius in world units; when absent the config radius for the tier is used. */
+  /** Island radius as the core projection reports it; the scene maps it onto its renderable range (GROWTH.coreRadiusByTier). */
   radius: number;
   /** One cottage per member; `plot_index` picks the ring slot deterministically. */
   houses: readonly { user_id: string; plot_index: number }[];

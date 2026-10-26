@@ -315,6 +315,8 @@ export const INTERIOR = {
 export const GROWTH = {
   /** Base island radius (tier 1) and the radius for each tier 1..5 when the data carries no radius. */
   baseRadius: 12.6, radiusByTier: [12.6, 14.6, 16.8, 19.0, 21.4] as readonly number[], minRadius: 12.6, maxRadius: 26,
+  /** Radius per tier as the core projection reports it (hermod-core tier_radius); first..last is mapped linearly onto minRadius..maxRadius so every tier renders at its own size. */
+  coreRadiusByTier: [10, 14, 19, 26, 36] as readonly number[],
   /** Coastline wobble (fraction of radius), cliff and underside depth per tier. */
   shapeAmp: [0, 0.035, 0.055, 0.075, 0.095] as readonly number[], cliffDepth: [2.6, 2.9, 3.2, 3.5, 3.8] as readonly number[], underDepth: [7, 8, 9, 10, 11] as readonly number[],
   /** Trees: base count comes from ISLAND.treeCount, this many more per extra unit of area ratio. */
