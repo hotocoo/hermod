@@ -465,6 +465,15 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
         "snap_verify" => {
             let (id, _) = space_of(&live, a).await?;
             let snap = str_arg(a, "snapId")?;
+            // A snapshot seen on another device holds no files yet: ask peers for them first. A file no
+            // peer can serve stays missing, which `snap_verify` reports as "not downloaded", not as a failure.
+            let (sid, sn) = (id, snap.clone());
+            let files = blk(&live, move |c| c.snap_files(&sid, &sn).map_err(e)).await?;
+            for b in files.iter().flatten().filter_map(|f| f.blob.as_ref()) {
+                if let Err(err) = blob::ensure_local(ctx, &b.hash).await {
+                    tracing::info!("snapshot file {} not fetched for the seal check: {err}", b.hash);
+                }
+            }
             let v = blk(&live, move |c| c.snap_verify(&id, &snap).map_err(e)).await?;
             to_json(v)
         }
