@@ -13,7 +13,7 @@ import { EmptyNote } from '@/components/panel/EmptyStates';
 
 function Pins({ vm }: VmProps) {
   const [popRef, popOpen, setPopOpen] = usePopover(); const key = useAppStore(chatKey);
-  const pinned = vm.messages.filter((m) => m.raw.pinned && !m.removed);
+  const pinned = vm.pinned;
   return (
     <span ref={popRef} style={{ position: 'relative' }}>
       <button type="button" className={s.search} aria-label={`Pinned messages (${pinned.length})`} aria-expanded={popOpen} title="Pinned messages" onClick={() => setPopOpen(!popOpen)}><Icon name="pin" size={16} /></button>

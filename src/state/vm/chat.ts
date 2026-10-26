@@ -11,6 +11,11 @@ import { ACCENT, ACCENT_100, ACCENT_700, ACCENT_800, DIVIDER, TEXT, fgOf, mixAcc
 const REACTION_QUICK = '👍';
 const enterToSend = (fn: () => void) => (e: KeyEvt) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fn(); } };
 
+/** Index of the first message to map: the newest `messageWindow + extra`, stretched to include a loaded jump target (`jumpAt`, -1 when none). */
+export function windowStart(total: number, extra: number, jumpAt: number): number {
+  return Math.max(0, total - Math.max(LIMITS.messageWindow + extra, jumpAt < 0 ? 0 : total - jumpAt));
+}
+
 function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
   const { s, seed } = x; const me = meId(s); const P = (id: string) => personOf(seed, id);
   const p = P(m.by); const prev = arr[i - 1];
@@ -81,8 +86,14 @@ export function chatVm(x: Ctx) {
   const key = chatKey(s);
   const have = s.msgs[key] ?? []; const seen = new Set(have.map((m) => m.id));
   const raw = [...(s.older[key] ?? []).filter((m) => !seen.has(m.id)), ...have]; // pages loaded by loadOlder precede the snapshot's messages
-  const messages = raw.map((m, i, arr) => messageVm(x, m, i, arr, key));
-  const threadMsg = messages.find((m) => m.id === s.thread) ?? null;
+  // Only the visible window is mapped: the newest messageWindow plus what "show earlier" widened, and a jump target stretches it to include itself.
+  const extra = s.chatWin.key === key ? s.chatWin.extra : 0;
+  const jumpAt = s.jump?.key === key ? raw.findIndex((m) => m.id === s.jump?.id) : -1;
+  const start = windowStart(raw.length, extra, jumpAt);
+  const messages = raw.slice(start).map((m, i, arr) => messageVm(x, m, i, arr, key));
+  const root = s.thread ? raw.find((m) => m.id === s.thread) : undefined; // the open thread's root may sit above the window
+  const threadMsg = messages.find((m) => m.id === s.thread) ?? (root ? messageVm(x, root, 0, [root], key) : null);
+  const pinned = raw.filter((m) => m.pinned && !m.removed).map((m) => ({ id: m.id, name: displayName(seed, s.space, m.by), text: m.text }));
   const snapChoices = (s.skein[s.space]?.snaps ?? []).map((q) => ({ id: q.id, title: q.title, line: q.line }));
 
   return {
@@ -94,7 +105,7 @@ export function chatVm(x: Ctx) {
     sections, secIdx, secX: `${secIdx * 100}%`, section: s.section,
     isChat: secOn('chat'), isHearth: secOn('hearth'), isFeed: secOn('feed'), isBoard: secOn('board'), isSkein: secOn('skein'), isDesk: secOn('desk'), isArcade: secOn('arcade'),
     sectionLabel: seed.sections[s.section].label,
-    channels, chan, messages, hasMessages: messages.length > 0, noMessages: messages.length === 0, 
+    channels, chan, messages, hiddenMessages: start, pinned, hasMessages: raw.length > 0, noMessages: raw.length === 0,
     emptyTitle: chan.name ? `It’s quiet in ${chan.isDm ? chan.name : `#${chan.name}`}` : 'No channel yet', emptyLine: 'Every good channel starts with one message. Say hi, share a link, or drop a file here.',
     onSend: () => { void s.send(); }, onDraftKey: enterToSend(() => { void s.send(); }),
     attached: s.attached[key] ?? [], detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: withNicks(seed, s.space), meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,

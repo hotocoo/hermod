@@ -27,7 +27,8 @@ export function revokePreviews(list: readonly Attached[]): void {
 export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set, get) => ({
   msgs: {}, drafts: {}, tdraft: '', attached: {}, editing: null, editDraft: '', snapRef: null,
   setSnapRef: (snapRef) => set({ snapRef }),
-  seen: {}, incoming: {},
+  seen: {}, incoming: {}, chatWin: { key: '', extra: 0 },
+  widenChat: (key, extra) => set((s) => ({ chatWin: { key, extra: s.chatWin.key === key ? Math.max(s.chatWin.extra, extra) : extra } })),
 
   setDraft: (v) => set((s) => ({ drafts: withKey(s.drafts, chatKey(s), v) })),
 

@@ -110,6 +110,8 @@ export interface ChatSlice {
   editing: string | null; editDraft: string; snapRef: string | null;
   setSnapRef(id: string | null): void;
   seen: Record<string, boolean>; incoming: Record<string, number>;
+  /** How many messages beyond `LIMITS.messageWindow` the open chat shows ("show earlier"); belongs to one chat key and resets when another opens. */
+  chatWin: { key: string; extra: number }; widenChat(key: string, extra: number): void;
   setDraft(v: string): void; send(): Promise<void>; setTDraft(v: string): void; tsend(): Promise<void>;
   react(key: string, mid: string, l: string): Promise<void>;
   startEdit(id: string, text: string): void; setEditDraft(v: string): void; saveEdit(): Promise<void>; cancelEdit(): void;

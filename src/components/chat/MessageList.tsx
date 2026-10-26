@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LAYOUT, LIMITS, TIMING } from '@/config/app';
 import type { VmProps } from '@/components/panel/types';
 import { channelsOf, chatKey, meId } from '@/state/selectors';
@@ -24,28 +24,29 @@ export function MessageList({ vm }: VmProps) {
   const key = useAppStore(chatKey);
   const unreadNow = useAppStore((st) => (st.seed ? channelsOf(st.seed, st.space).find((c) => c.id === st.ch[st.space])?.unread ?? 0 : 0));
   const jump = useAppStore((st) => st.jump);
-  const [open, setOpen] = useState({ key, unread: unreadNow, extra: 0 });
-  if (open.key !== key) setOpen({ key, unread: unreadNow, extra: 0 });
+  const [open, setOpen] = useState({ key, unread: unreadNow });
+  if (open.key !== key) setOpen({ key, unread: unreadNow });
+  const widen = useAppStore((st) => st.widenChat);
   const typing = useTyping(key, vm.people);
 
-  const total = vm.messages.length;
-  const jumpIdx = jump && jump.key === key ? vm.messages.findIndex((m) => m.id === jump.id) : -1;
-  const shown = Math.min(total, WINDOW + Math.max(open.extra, jumpIdx < 0 ? 0 : total - jumpIdx - WINDOW)); // a jump target folded by the window widens it
-  const list = useMemo(() => vm.messages.slice(total - shown), [vm.messages, total, shown]);
+  // The view model already cut the list to the window (and stretched it to a loaded jump target).
+  const list = vm.messages; const total = list.length; const hidden = vm.hiddenMessages;
+  const jumpIdx = jump && jump.key === key ? list.findIndex((m) => m.id === jump.id) : -1;
+  const wider = Math.max(0, total - WINDOW) + WINDOW; // extra that shows one more window than now
   const sepAt = open.unread > 0 && open.unread < list.length ? list.length - open.unread : -1;
-  const last = vm.messages[total - 1];
+  const last = list[total - 1];
   const announce = last && !last.isMe && !last.isSystem ? `New message from ${last.name}: ${last.text}` : '';
 
   const olderMore = useAppStore((st) => st.olderMore[key]); const loadOlder = useAppStore((st) => st.loadOlder);
   // Older messages exist beyond the snapshot unless a page said otherwise; with a short chat there is nothing to probe.
-  const canLoad = olderMore ?? total >= WINDOW;
+  const canLoad = olderMore ?? total + hidden >= WINDOW;
   const busy = useRef(false); const anchor = useRef<{ h: number; t: number } | null>(null);
   const older = () => {
     const el = getMsgs();
-    if (shown < total) { if (el) anchor.current = { h: el.scrollHeight, t: el.scrollTop }; setOpen((o) => ({ ...o, extra: o.extra + WINDOW })); return Promise.resolve(true); }
+    if (hidden > 0) { if (el) anchor.current = { h: el.scrollHeight, t: el.scrollTop }; widen(key, wider); return Promise.resolve(true); }
     if (!canLoad || busy.current) return Promise.resolve(false);
     busy.current = true; if (el) anchor.current = { h: el.scrollHeight, t: el.scrollTop };
-    return loadOlder(key).then((ok) => { if (ok) setOpen((o) => ({ ...o, extra: o.extra + WINDOW })); return ok; }).finally(() => { busy.current = false; });
+    return loadOlder(key).then((ok) => { if (ok) widen(key, wider); return ok; }).finally(() => { busy.current = false; });
   };
   // Prepending moves content down; keep the same message under the viewport by adding the height that arrived.
   useLayoutEffect(() => {
@@ -64,7 +65,7 @@ export function MessageList({ vm }: VmProps) {
         // Rows above are laid out lazily (content-visibility), so the target keeps moving until they are measured: re-centre until it holds still.
         const go = () => { el.scrollIntoView({ block: 'center' }); const y = el.getBoundingClientRect().top; if (left-- > 0 && y !== prev) { prev = y; requestAnimationFrame(go); } };
         go(); el.animate([{ outline: '2px solid var(--color-accent)' }, { outline: '2px solid transparent' }], { duration: TIMING.jumpFlashMs }); }
-      setOpen((o) => ({ ...o, extra: Math.max(o.extra, total - jumpIdx - WINDOW) })); // keep the window wide once the jump is done
+      widen(key, Math.max(0, total - WINDOW)); // keep the window wide once the jump is done
       done();
     }, TIMING.jumpSettleMs);
     return () => clearTimeout(t);
@@ -75,7 +76,7 @@ export function MessageList({ vm }: VmProps) {
     <div ref={msgRef} className={s.scroll} role="log" onScroll={(e) => { if (e.currentTarget.scrollTop < LAYOUT.olderTriggerPx) void older(); }} aria-label="Messages" style={{ position: 'relative' }}>
       {sepAt > 0 && <button type="button" className={x.jump} onClick={toUnread}>Jump to {open.unread} unread</button>}
       <div className={s.inner}>
-        {(shown < total || canLoad) && <button type="button" className={`btn btn-secondary ${x.older}`} onClick={() => { void older(); }}>Show earlier messages{shown < total ? ` (${total - shown})` : ''}</button>}
+        {(hidden > 0 || canLoad) && <button type="button" className={`btn btn-secondary ${x.older}`} onClick={() => { void older(); }}>Show earlier messages{hidden > 0 ? ` (${hidden})` : ''}</button>}
         <div className={s.today}><span className={s.rule} />Messages<span className={s.rule} /></div>
         {vm.noMessages && (
           <div className={s.quiet}>
