@@ -10,6 +10,8 @@ import { PresenceDot } from '@/components/ui/PresenceDot';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
 import { InviteList } from './InviteList';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const TABS = [['general', 'General'], ['members', 'Members'], ['invites', 'Invites'], ['safety', 'Safety']] as const;
 const ROLES: Role[] = ['owner', 'admin', 'member', 'guest'];
@@ -98,7 +100,7 @@ function Members({ space, list, reload, admin, owner }: { space: string; list: M
   });
   if (!list) return <p className={f.note}>Loading members…</p>;
   const active = list.filter((m) => !m.removed);
-  if (!active.length) return <p className={f.note}>No members yet.</p>;
+  if (!active.length) return <EmptyNote {...COPY.empty.members} />;
   return (
     <div className={f.scroll}>
       <table className={f.table}>

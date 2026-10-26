@@ -6,6 +6,7 @@ import { useMediaRt } from '@/state/mediaRt';
 import type { VmProps } from '../types';
 import c from '../shared.module.css';
 import s from './live.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
 
 /** Plays a MediaStream (the stream element needs srcObject, which React cannot set as an attribute). */
 function StreamVideo({ stream, muted, label }: { stream: MediaStream | null; muted: boolean; label: string }) {
@@ -98,7 +99,7 @@ export function Live({ vm }: VmProps) {
       <aside className={s.chat} aria-label="Live chat">
         <div className={`${c.kicker} ${s.chatHead}`}>Live chat</div>
         <div ref={liveRef} className={s.log} role="log" aria-live="polite">
-          {live.chat.length === 0 && <p className={`${s.line} ${c.muted}`}>No messages yet.</p>}
+          {live.chat.length === 0 && <EmptyNote {...COPY.empty.liveChat} />}
           {live.chat.map((lc, i) => (
             <div key={i} className={s.line} style={{ animation: lc.anim }}><b className={s.strong} style={{ color: lc.fg }}>{lc.name}</b> {lc.text}</div>
           ))}

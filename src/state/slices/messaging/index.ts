@@ -188,6 +188,7 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     },
 
     channelSettings: async (space, patch) => { await appendEvent(get, space, { t: 'channel.settings', ...patch }); },
+    setThreadState: async (space, msgId, archived) => { await appendEvent(get, space, { t: 'thread.state', msg_id: msgId, archived }); },
     setNick: async (space, nick) => { await appendEvent(get, space, { t: 'member.nick', nick }); },
 
     loadOlder: async (key) => {

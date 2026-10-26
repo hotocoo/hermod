@@ -2,6 +2,8 @@ import type { VmProps } from '../types';
 import c from '../shared.module.css';
 import { DocBlock } from './DocBlock';
 import s from './docs.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const ADD: { k: 'h' | 'p' | 'q' | 't'; label: string }[] = [{ k: 'h', label: 'Heading' }, { k: 'p', label: 'Paragraph' }, { k: 'q', label: 'Quote' }, { k: 't', label: 'To-do' }];
 
@@ -21,8 +23,7 @@ export function Docs({ vm }: VmProps) {
       </nav>
       {!doc ? (
         <article className={s.article}>
-          <h2 className={s.h1}>No docs yet</h2>
-          <p className={c.muted}>Docs are shared pages the whole Space can edit. Start the first one.</p>
+          <EmptyNote {...COPY.empty.docs} />
           <button onClick={vm.newDoc} className={c.btnAccent}>{vm.icS.plus} Create a doc</button>
         </article>
       ) : (
@@ -42,12 +43,12 @@ export function Docs({ vm }: VmProps) {
           </article>
           <aside className={s.aside}>
             <div className={`${c.kicker} ${s.asideHead}`}>Comments</div>
-            {doc.comments.length === 0 && <p className={c.muted}>No comments yet.</p>}
+            {doc.comments.length === 0 && <EmptyNote {...COPY.empty.docComments} />}
             {doc.comments.map((cm2, i) => (
               <div key={i} className={s.comment}><b className={s.strong}>{cm2.name}</b> <span className={c.muted}>on “{cm2.on}”</span><div>{cm2.text}</div></div>
             ))}
             <div className={`${c.kicker} ${s.asideHead} ${s.versions}`}>Versions</div>
-            {doc.versions.length === 0 && <p className={c.muted}>No versions yet.</p>}
+            {doc.versions.length === 0 && <EmptyNote {...COPY.empty.docVersions} />}
             {doc.versions.map((dv, i) => <div key={i} className={s.version}><span>{dv.t}</span><span className={`${s.seal} ${c.mono} ${c.muted}`}>{dv.seal}</span></div>)}
           </aside>
         </>

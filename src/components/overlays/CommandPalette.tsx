@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useRef, type KeyboardEvent } from 'react';
 import type { ViewModel } from '@/state/viewModel';
 import s from './CommandPalette.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const FOCUSABLE = 'button:not([disabled]),input:not([disabled])';
 
@@ -57,7 +59,7 @@ export function CommandPalette({ vm }: { vm: ViewModel }) {
         </div>
         <div className={s.results} id="palette-list" role="listbox" aria-label="Results">
           {noResults ? (
-            <div className={s.empty} role="status">{q.trim().length < 2 ? 'Type to search.' : 'Nothing matches yet. Try a person, a channel, a snapshot title or words from a message.'}</div>
+            <div className={s.empty} role="status"><EmptyNote {...(q.trim().length < 2 ? COPY.empty.paletteIdle : COPY.empty.paletteNone)} /></div>
           ) : null}
           {results.map((r, i) => (
             <Fragment key={i}>

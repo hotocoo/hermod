@@ -39,7 +39,7 @@ export type Modal =
   | { kind: 'newSpace' } | { kind: 'join'; code?: string } | { kind: 'invite'; space: string } | { kind: 'spaceSettings'; space: string }
   | { kind: 'shortcuts' } | { kind: 'about' } | { kind: 'appSettings'; tab?: string } | { kind: 'search' }
   | { kind: 'lightbox'; blob: BlobRef } | { kind: 'composePost' } | { kind: 'composeStory' } | { kind: 'newSnapshot' }
-  | { kind: 'forward'; msg: Message } | { kind: 'gallery' } | { kind: 'channelSettings'; space: string; channel: string } | { kind: 'privacy' } | { kind: 'contacts' } | { kind: 'schedule' };
+  | { kind: 'forward'; msg: Message } | { kind: 'gallery' } | { kind: 'channelSettings'; space: string; channel: string } | { kind: 'privacy' } | { kind: 'contacts' } | { kind: 'schedule' } | { kind: 'letter' };
 
 export interface CoreSlice {
   seed: Seed | null;

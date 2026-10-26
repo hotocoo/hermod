@@ -96,3 +96,19 @@ test('a scheduled send flies a raven when it goes out (R-006)', async () => {
   await goHome(a);
   await expect(letterOn(a)).toContainText(text, { timeout: 90_000 });
 });
+
+// R-005: A writes a letter from the rookery to the shared Space; B, on the island, gets the raven.
+test('a letter written in the rookery reaches another Space as a raven', async () => {
+  await toIsland(b);
+  await toIsland(a);
+  await goHome(a);
+  const text = unique('letter from the rookery');
+  await a.getByRole('button', { name: /^Rookery/ }).first().click();
+  await a.getByRole('dialog', { name: 'Rookery' }).getByRole('button', { name: 'Write a letter' }).click();
+  const dlg = a.getByRole('dialog', { name: 'Write a letter' });
+  await dlg.getByLabel('To').selectOption({ label: space });
+  await dlg.getByLabel('Letter').fill(text);
+  await dlg.getByRole('button', { name: 'Send by raven' }).click();
+  await expect(dlg).toBeHidden();
+  await expect(letterOn(b)).toContainText(text, { timeout: 30_000 });
+});

@@ -1,6 +1,8 @@
 import type { VmProps } from '../types';
 import c from '../shared.module.css';
 import s from './pinboards.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 export function Pinboards({ vm }: VmProps) {
   const cur = vm.boardCur;
@@ -17,7 +19,7 @@ export function Pinboards({ vm }: VmProps) {
       </div>
       <div className={s.main}>
         {!vm.hasBoards ? (
-          <p className={`${s.none} ${c.muted}`}>No boards yet. Make one to collect images that inspire you, or bookmark a post in the Feed to start your Saved board.</p>
+          <EmptyNote {...COPY.empty.pinboards} />
         ) : (
           <>
             <div className={s.head}>
@@ -26,7 +28,7 @@ export function Pinboards({ vm }: VmProps) {
               {cur.canPin && <button type="button" onClick={vm.addPin} className={c.btnAccent}>{vm.icS.plus} Add pin</button>}
             </div>
             {cur.empty && (
-              <p className={`${s.none} ${c.muted}`}>{cur.canPin ? 'Nothing pinned yet. Add an image and it shows up for everyone in this Space.' : 'Nothing saved yet. Use the bookmark on any post in the Feed and it lands here. Only you see this board.'}</p>
+              <EmptyNote {...(cur.canPin ? COPY.empty.pinboardShared : COPY.empty.pinboardSaved)} />
             )}
             <div className={s.cols}>
               {cur.pins.map((pn, i) => (

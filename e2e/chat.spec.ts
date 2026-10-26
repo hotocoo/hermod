@@ -58,6 +58,29 @@ test('threads: replies from both users, count matches on both peers (A-005)', as
   await b.getByRole('button', { name: 'Close thread' }).click();
 });
 
+// M-042: the thread list shows open and archived threads of the channel; Archive and Reopen send thread.state and sync to the other peer.
+test('thread list: archive and reopen a thread (M-042)', async () => {
+  const root = unique('thread-list-root');
+  await post(a, b, root);
+  await article(a, root).getByRole('button', { name: 'Reply in the margin' }).click();
+  await a.getByRole('textbox', { name: 'Reply in the margin' }).fill('reply for the list');
+  await a.keyboard.press('Enter');
+  await a.getByRole('button', { name: 'Close thread' }).click();
+  await b.getByRole('button', { name: /^Threads \(/ }).click();
+  const list = b.getByRole('region', { name: 'Threads' });
+  const rowOf = () => list.getByRole('listitem').filter({ hasText: root });
+  await expect(rowOf()).toContainText('1 reply', { timeout: 45_000 });
+  await rowOf().getByRole('button', { name: 'Archive' }).click();
+  await expect(rowOf()).toBeHidden({ timeout: 30_000 });
+  await list.getByRole('tab', { name: /^Archived/ }).click();
+  await expect(rowOf()).toBeVisible({ timeout: 30_000 });
+  await rowOf().getByRole('button', { name: 'Reopen' }).click();
+  await expect(rowOf()).toBeHidden({ timeout: 30_000 });
+  await list.getByRole('tab', { name: /^Open/ }).click();
+  await expect(rowOf()).toBeVisible({ timeout: 30_000 });
+  await b.keyboard.press('Escape');
+});
+
 test('reactions: toggle twice returns to zero, synced both ways (A-006)', async () => {
   const text = unique('react-me');
   await post(b, a, text);

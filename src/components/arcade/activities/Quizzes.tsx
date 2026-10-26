@@ -8,6 +8,8 @@ import { seatName } from '@/state/vm/arcade';
 import { answerQuiz, canReveal, createQuiz, revealQuiz, type QuizDraft } from '../actions';
 import type { ActivityProps } from './props';
 import s from '../arcade.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const blank = () => ({ q: '', options: ['', ''], answer: 0 });
 
@@ -80,7 +82,7 @@ export function Quizzes({ view, space, me, seed }: ActivityProps) {
   return (
     <>
       <div className={s.bar}><span className={s.grow} /><button type="button" className="btn btn-primary" onClick={() => setOpen(true)} data-testid="new-quiz">New quiz</button></div>
-      {!view?.quizzes.length && <p className={s.empty}>No quizzes yet.</p>}
+      {!view?.quizzes.length && <EmptyNote {...COPY.empty.arcadeQuizzes} />}
       {seed && <ul className={s.list}>{view?.quizzes.map((z) => <QuizCard key={z.id} z={z} space={space} me={me} seed={seed} />)}</ul>}
       {open && <NewQuiz space={space} onClose={() => setOpen(false)} />}
     </>

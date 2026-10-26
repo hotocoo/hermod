@@ -13,6 +13,8 @@ import { NewTicketDialog } from './NewTicketDialog';
 import { Sidebar } from './Sidebar';
 import { TicketDetail } from './TicketDetail';
 import { TicketList } from './TicketList';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const DeskSettings = lazy(() => import('./DeskSettings').then((m) => ({ default: m.DeskSettings })));
 const SEARCH_DEBOUNCE_MS = 200;
@@ -137,8 +139,7 @@ export default function DeskSection() {
           {tickets.length === 0 ? (
             <div className={s.empty} data-testid="desk-empty">
               <div>
-                <h3 className={s.emptyTitle}>{q ? 'No ticket matches' : agent ? 'Nothing waiting' : 'No tickets yet'}</h3>
-                <p className={s.emptyLine}>{q ? 'Try another word, or switch the filter to Everything.' : agent ? 'New requests from members and guests land here.' : 'Need help? Open a ticket and the team will reply here.'}</p>
+                <EmptyNote {...(q ? COPY.empty.deskSearch : agent ? COPY.empty.deskAgent : COPY.empty.deskMember)} />
                 {!q && <button type="button" className="btn btn-primary" onClick={() => setNewOpen(true)}>New ticket</button>}
               </div>
             </div>

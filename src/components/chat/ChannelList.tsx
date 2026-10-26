@@ -10,6 +10,8 @@ import { useAppStore } from '@/state/store';
 import { msgColl, useMsgView } from './useMsgView';
 import s from './chat.module.css';
 import x from './messaging.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 const RANK: Record<Role, number> = { guest: 0, member: 1, admin: 2, owner: 3 };
 
@@ -68,7 +70,7 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
           <div className={s.navHead}>Channels
             <button type="button" className={s.navAdd} onClick={vm.newChannel} aria-label="New channel" title="New channel"><Icon name="plus" size={14} /></button>
           </div>
-          {channels.length === 0 && <p style={{ margin: '4px 10px', fontSize: 12, fontStyle: 'italic' }}>No channels yet.</p>}
+          {channels.length === 0 && <EmptyNote {...COPY.empty.chatChannels} />}
           {cats.map((cat) => (
             <div key={cat || '_'}>
               {cat && <button type="button" className={x.cat} aria-expanded={!shut[cat]} onClick={() => setShut({ ...shut, [cat]: !shut[cat] })}>{shut[cat] ? '+' : '-'} {cat}</button>}
@@ -104,7 +106,7 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
           </button>
         </div>
       ))}
-      {vm.isHome && dms.length === 0 && dmRows.length === 0 && <p style={{ margin: '4px 10px', fontSize: 12, fontStyle: 'italic' }}>Start one with the plus, or from search (Ctrl K).</p>}
+      {vm.isHome && dms.length === 0 && dmRows.length === 0 && <EmptyNote {...COPY.empty.chatDms} />}
       {dms.map(item)}
       {archived.length > 0 && <button type="button" className={x.cat} aria-expanded={showArchived} onClick={() => setShowArchived(!showArchived)}>{showArchived ? 'Hide' : 'Show'} archived ({archived.length})</button>}
       <button type="button" className={s.ch} onClick={() => st.openModal({ kind: 'privacy' })}><Icon name="lock" size={14} /><span className={s.chName}>Privacy and chat settings</span></button>
