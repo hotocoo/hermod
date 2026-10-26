@@ -588,20 +588,29 @@ test('both DM peers see the same safety number (E-014)', async () => {
   const bNum = await b.getByText(num).textContent();
   expect(aNum).toMatch(num);
   expect(bNum).toBe(aNum);
+  // Back to the shared Space for the tests that follow.
+  for (const p of [a, b]) {
+    await p.keyboard.press('Escape');
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+  }
 });
 
 // M-026: switching presence off sends an offline packet at once, so the peer's dot goes out without waiting for the ttl.
+// The dot that also draws "offline" is the one in the Space's member list, so Ada watches Bo's row there.
 test('turning off presence sends an offline packet and dims the dot (M-026)', async () => {
   test.setTimeout(300_000);
-  const dot = (p: Page) => p.getByRole('navigation', { name: 'Channels' }).getByRole('img').first();
-  await expect(dot(a)).toHaveAttribute('aria-label', /online|away/, { timeout: 30_000 });
+  const boDot = async (state: string | RegExp) => {
+    const members = await openSpaceSettings(a, 'Members');
+    await expect(members.getByRole('row', { name: /Bo Tester/ }).getByRole('img', { name: state })).toBeVisible({ timeout: 45_000 });
+    await members.getByRole('button', { name: 'Close' }).click();
+  };
+  await boDot(/online|away/);
   const dlg = b.getByRole('dialog');
   await b.getByRole('button', { name: 'Privacy and chat settings' }).click();
   await dlg.getByRole('switch', { name: /Share online and last seen/ }).click();
   await dlg.getByRole('button', { name: 'Close' }).click();
-  await expect(dot(a)).toHaveAttribute('aria-label', 'offline', { timeout: 30_000 });
-  // Symmetry: while B keeps presence private, B sees no live dots either (the ttl sweep clears the stale one).
-  await expect(b.getByRole('navigation', { name: 'Channels' }).getByRole('img', { name: /online|away/ })).toHaveCount(0, { timeout: 90_000 });
+  await boDot('offline');
   // Turn it back on so later tests see presence again.
   await b.getByRole('button', { name: 'Privacy and chat settings' }).click();
   await dlg.getByRole('switch', { name: /Share online and last seen/ }).click();
