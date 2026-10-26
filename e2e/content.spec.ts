@@ -279,7 +279,7 @@ test.describe('docs (V-021..V-024)', () => {
   test('V-026: A views an earlier version, then restores it as new edits', async () => {
     const before = await values(a);
     await btn(a, /^View version from/).last().click();
-    await expect(a.getByRole('status')).toContainText('Viewing the version from');
+    await expect(a.getByRole('status').filter({ hasText: 'Viewing the version from' })).toBeVisible();
     await btn(a, 'Back to the latest').click();
     await btn(a, /^View version from/).nth(2).click();
     await btn(a, 'Restore this version').click();
