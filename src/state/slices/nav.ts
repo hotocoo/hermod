@@ -71,7 +71,9 @@ export const createNavSlice: StateCreator<AppStore, [], [], NavSlice> = (set, ge
     const pw = s.panelW();
     set({
       inside: true, section: asSection(id), thread: null, overview: false,
-      clipX: Math.round(x - (window.innerWidth - LAYOUT.panelInsetPx - pw)), clipY: Math.round(y - LAYOUT.panelInsetPx), panelReady: true,
+      // The pick point can be projected mid camera move (far off screen); keep the reveal origin on the panel so it always opens.
+      clipX: Math.min(Math.max(Math.round(x - (window.innerWidth - LAYOUT.panelInsetPx - pw)), 0), pw),
+      clipY: Math.min(Math.max(Math.round(y - LAYOUT.panelInsetPx), 0), window.innerHeight), panelReady: true,
     });
     town?.focus(asPick(id));
   },
