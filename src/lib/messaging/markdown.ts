@@ -11,7 +11,7 @@ export type Inline =
   | { t: 'text'; v: string }
   | { t: 'bold' | 'italic' | 'strike' | 'spoiler'; c: Inline[] }
   | { t: 'code'; v: string }
-  | { t: 'link'; href: string; c: Inline[] }
+  | { t: 'link'; href: string; c: Inline[]; /** real host when the label poses as a different site */ host?: string }
   | { t: 'emoji'; name: string }
   | { t: 'mention'; v: string };
 
@@ -25,6 +25,7 @@ const MAX_DEPTH = 6;
 const URL_RE = /^https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"\]}]/i;
 const EMOJI_RE = /^:([a-z0-9_]{2,32}):/;
 const MENTION_RE = /^@(everyone|here|admins|owners|[\p{L}\p{N}_.-]+)/u;
+const LABEL_HOST_RE = /^(?:https?:\/\/)?((?:[a-z0-9-]+\.)+[a-z]{2,})(?:[/:?#]\S*)?$/i;
 const SAFE_HREF = /^https?:\/\/[^\s]+$/i;
 
 /** True only for http and https URLs. */
@@ -80,7 +81,10 @@ export function parseInline(s: string, depth = 0): Inline[] {
       }
       if (ch === '[') {
         const m = /^\[([^\]\n]{1,200})\]\((https?:\/\/[^\s)]{1,2000})\)/.exec(rest);
-        if (m && isSafeHref(m[2])) { out.push({ t: 'link', href: m[2], c: parseInline(m[1], depth + 1) }); i += m[0].length; continue; }
+        if (m && isSafeHref(m[2])) {
+          const host = deceptiveHost(m[1], m[2]);
+          out.push({ t: 'link', href: m[2], c: parseInline(m[1], depth + 1), ...(host && { host }) }); i += m[0].length; continue;
+        }
       }
     }
     if (ch === 'h') {
@@ -101,6 +105,16 @@ export function parseInline(s: string, depth = 0): Inline[] {
     i += 1;
   }
   return out;
+}
+
+/** The href's real host when the label looks like a URL or domain of a different host, else ''. */
+export function deceptiveHost(label: string, href: string): string {
+  const claimed = LABEL_HOST_RE.exec(label.trim())?.[1];
+  if (!claimed) return '';
+  let real: string;
+  try { real = new URL(href).hostname; } catch { return ''; }
+  const bare = (h: string) => h.toLowerCase().replace(/^www\./, '');
+  return bare(claimed) === bare(real) ? '' : real;
 }
 
 export function parseBlocks(src: string, depth = 0): Block[] {

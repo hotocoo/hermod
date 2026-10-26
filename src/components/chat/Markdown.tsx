@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState, type ReactNode } from 'react';
+import { COPY } from '@/config/copy';
 import { getBridge } from '@/lib/bridge';
 import { highlight, type TokKind } from '@/lib/messaging/highlight';
 import { parseBlocks, type Block, type Inline } from '@/lib/messaging/markdown';
@@ -39,7 +40,7 @@ function Inl({ nodes, x }: { nodes: Inline[]; x: Ctx }): ReactNode {
       case 'link':
         return n.href.startsWith('hermod://')
           ? <button key={i} type="button" className="link" style={{ font: 'inherit' }} onClick={() => openLink(n.href)}><Inl nodes={n.c} x={x} /></button>
-          : <a key={i} className={s.a} href={n.href} target="_blank" rel="noopener noreferrer nofollow"><Inl nodes={n.c} x={x} /></a>;
+          : <a key={i} className={s.a} href={n.href} target="_blank" rel="noopener noreferrer nofollow"><Inl nodes={n.c} x={x} />{n.host ? COPY.linkRealHost(n.host) : null}</a>;
       case 'emoji': {
         const hash = x.emoji[n.name];
         return hash ? <img key={i} className={s.ext} src={getBridge().blobUrl(hash)} alt={`:${n.name}:`} title={`:${n.name}:`} /> : `:${n.name}:`;
