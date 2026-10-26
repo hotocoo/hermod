@@ -794,12 +794,14 @@ impl SpaceState {
         }
     }
 
-    /// Drops expired and device-hidden messages so every view, count and index agrees.
-    pub fn prune(&mut self, now_ms: i64, hidden: &BTreeSet<String>) {
+    /// Drops expired, device-hidden and past-retention (`older_than`) messages so every view,
+    /// count and index agrees.
+    pub fn prune(&mut self, now_ms: i64, hidden: &BTreeSet<String>, older_than: Option<i64>) {
         let extras = &self.msgx.extras;
         for list in self.msgs.values_mut() {
             list.retain(|m| {
                 !hidden.contains(&m.id)
+                    && older_than.is_none_or(|cut| m.ts >= cut)
                     && extras
                         .get(&m.id)
                         .and_then(|x| x.expires)

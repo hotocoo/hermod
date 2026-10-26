@@ -18,6 +18,7 @@ use crate::adapter;
 use crate::blob;
 use crate::ctx::{ALL_COLLECTIONS, Ctx, Live, collections_for};
 use crate::settings::{self, NodePatch, NodeSettings};
+use hermod_core::retention::MAX_RETENTION_DAYS;
 
 /// Largest file accepted over the IPC bridge, checked before the body is parsed.
 pub const MAX_UPLOAD_BYTES: usize = 256 * 1024 * 1024;
@@ -27,6 +28,8 @@ const ADDR_WAIT: Duration = Duration::from_secs(3);
 const DIAL_WAIT: Duration = Duration::from_secs(10);
 const DEFAULT_SEARCH_LIMIT: usize = 30;
 const LOG_TAIL_MAX: usize = 2000;
+/// Suggested name (plus the space label) of the folder a space export is saved into.
+const EXPORT_FOLDER_PREFIX: &str = "hermod-export-";
 const CLEAR_MSG: &str = "Hermod could not complete that";
 
 pub(crate) type Res<T> = Result<T, String>;
@@ -536,21 +539,38 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let patch = a.clone();
             to_json(blk(&live, move |c| settings::notify_settings_set(c, &patch)).await?)
         }
-        "retention_set" => {
+        "retention_get" => {
             let (id, _) = space_of(&live, a).await?;
+            let days = blk(&live, move |c| c.retention_get(&id).map_err(e)).await?;
+            Ok(json!({ "days": days }))
+        }
+        "retention_set" => {
+            let (id, label) = space_of(&live, a).await?;
             let days = match a.get("days") {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(
                     v.as_u64()
-                        .filter(|d| (1..=36500).contains(d))
+                        .filter(|d| (1..=u64::from(MAX_RETENTION_DAYS)).contains(d))
                         .ok_or("retention must be 1 to 36500 days")? as u32,
                 ),
             };
-            blk(&live, move |c| {
-                settings::retention_set(c, &id.to_string(), days)
-            })
-            .await?;
+            let freed = blk(&live, move |c| c.retention_set(&id, days).map_err(e)).await?;
+            if freed > 0 {
+                live.forget_blob_info();
+            }
+            ctx.changed(&label, ALL_COLLECTIONS);
             Ok(Value::Null)
+        }
+        "space_export" => {
+            let (id, label) = space_of(&live, a).await?;
+            let Some(dest) = export_target(ctx, a, &label).await? else {
+                return Ok(Value::Null);
+            };
+            let out = json!(dest.to_string_lossy());
+            let summary = blk(&live, move |c| c.space_export(&id, &dest).map_err(e)).await?;
+            Ok(
+                json!({ "path": out, "messages": summary.messages, "files": summary.files, "missing": summary.missing.len() }),
+            )
         }
 
         // ---- search, storage, audit, logs ----
@@ -850,6 +870,22 @@ async fn backup_target(ctx: &Arc<Ctx>, a: &Value) -> Res<Option<PathBuf>> {
         return Ok(Some(path));
     };
     let suggested = clean_name(&opt_str(a, "suggestedName").unwrap_or_else(|| "backup".into()));
+    tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
+        .await
+        .map_err(e)?
+}
+
+/// Where a space export goes: the app asks with the save dialog (the person names a new folder
+/// there); the devhost and tests may pass an absolute path. The export refuses a non-empty folder.
+async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<PathBuf>> {
+    let Some(shell) = ctx.shell.clone() else {
+        let path = PathBuf::from(str_arg(a, "path")?);
+        if !path.is_absolute() || path.parent().is_none_or(|p| !p.is_dir()) {
+            return Err("choose a folder inside an existing folder".into());
+        }
+        return Ok(Some(path));
+    };
+    let suggested = clean_name(&format!("{EXPORT_FOLDER_PREFIX}{label}"));
     tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
         .await
         .map_err(e)?

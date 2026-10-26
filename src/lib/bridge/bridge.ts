@@ -1,7 +1,7 @@
 import type {
   AuditRow, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, KeyMode, InviteOptions,
   InviteOut, InviteRecord, LegalStatus, Member, NodeSettings, NodeSettingsView, NodeStatus, NotifySettings, OutboxStatus,
-  PickOptions, ProfileInput, Role, SearchHit, SearchOptions, SpaceSummary, StorageUsage, UpdateInfo,
+  PickOptions, ProfileInput, RetentionSetting, Role, SearchHit, SearchOptions, SpaceExportResult, SpaceSummary, StorageUsage, UpdateInfo,
 } from './types';
 import type { Snapshot } from '../data/types';
 import type { LocalAiSettings, PrivacySettings, ChatPrefs, ContactCard, GalleryItem, GalleryKind, LinkPreviewOut, MsgHit, MsgSearchOptions, PageResult, Scheduled } from './messagingTypes';
@@ -56,7 +56,11 @@ export interface Bridge {
   blockList(): Promise<BlockedUser[]>;
   notifySettingsGet(): Promise<NotifySettings>;
   notifySettingsSet(patch: Partial<NotifySettings>): Promise<NotifySettings>;
+  /** Days of messages kept on this device for a space; null keeps everything. */
+  retentionGet(spaceId: string): Promise<number | null>;
   retentionSet(spaceId: string, days: number | null): Promise<void>;
+  /** Export a space as JSON plus files; the app asks for the target with the save dialog, the devhost takes `path`. Null when cancelled. */
+  spaceExport(spaceId: string, path?: string): Promise<SpaceExportResult | null>;
   /** Show an OS notification (the UI already applied mute and Do Not Disturb). */
   notifySend(title: string, body: string, spaceId: string, channelId: string): Promise<void>;
   /** Unread total on the dock icon and tray tooltip; 0 clears it. */
@@ -167,6 +171,8 @@ export function createBridge(t: Transport): Bridge {
     blockList: () => call('block_list'),
     notifySettingsGet: () => call('notify_settings_get'),
     notifySettingsSet: (patch) => call('notify_settings_set', { ...patch }),
+    retentionGet: (spaceId) => call<RetentionSetting>('retention_get', { spaceId }).then((r) => r.days),
+    spaceExport: (spaceId, path) => call('space_export', { spaceId, path: path ?? null }),
     retentionSet: (spaceId, days) => none('retention_set', { spaceId, days }),
     notifySend: (title, body, spaceId, channelId) => none('notify_send', { title, body, spaceId, channelId }),
     badgeSet: (count) => none('badge_set', { count }),

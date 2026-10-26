@@ -79,4 +79,10 @@ export const COPY = {
   recoverResetConfirm: 'Delete everything', recoverResetTyped: 'DELETE',
   safetyNumber: 'Safety number', safetyComputing: 'Computing', safetyOther: 'the other person',
   safetyNote: (peer: string) => `Read it out to ${peer}. It matches when both devices hold the same keys.`,
+  retentionLabel: 'Delete my copy of messages older than',
+  retentionNote: 'Applies to this device only. Older messages are hidden and their files removed here; the signed history stays so syncing keeps working.',
+  retentionOptions: [{ v: '', l: 'Keep everything' }, { v: '30', l: '30 days' }, { v: '90', l: '90 days' }, { v: '365', l: '1 year' }],
+  exportLabel: 'Export this space', exportButton: 'Export to a folder',
+  exportNote: 'Saves messages, posts, docs, boards, members and files as JSON and plain files you can read without Hermod.',
+  exportDone: (n: number, files: number, missing: number) => `Exported ${n} messages and ${files} files${missing ? `; ${missing} files were not on this device` : ''}`,
 } as const;

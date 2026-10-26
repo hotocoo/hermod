@@ -49,13 +49,13 @@ const DEFAULT_CHANNEL: &str = "general";
 const PROFILE_KEY: &str = "profile";
 /// Local record `creator:<space id>` of the only author whose `space.create` counts for a space.
 const CREATOR_PIN_PREFIX: &str = "creator:";
-const SETTING_PREFIX: &str = "setting.";
+pub(crate) const SETTING_PREFIX: &str = "setting.";
 const TZ_SETTING: &str = "tz_offset_secs";
 const RECEIPTS_SETTING: &str = "read_receipts";
 const MAX_SETTING_KEY: usize = 64;
 const MAX_SETTING_VALUE: usize = 4096;
 const MAX_VERSION_LEN: usize = 32;
-const CACHE_GRACE: Duration = Duration::from_secs(3600);
+pub(crate) const CACHE_GRACE: Duration = Duration::from_secs(3600);
 const SEARCH_LIMIT_MAX: usize = 200;
 
 /// Tunables that default sensibly and are only overridden by tests or advanced builds.
@@ -354,6 +354,7 @@ impl Inner {
         ctx.follows = self.store.follows()?;
         ctx.hidden = crate::messaging::hidden_set(&self.store)?;
         ctx.muted = crate::messaging::muted_map(&self.store)?;
+        ctx.retention_cutoffs = crate::retention::cutoffs(&self.store, now)?;
         ctx.config = cfg.projection.clone();
         ctx.growth = cfg.growth.clone();
         Ok(ctx)
@@ -1251,9 +1252,12 @@ impl Core {
             }
         }
         let ids: Vec<SpaceId> = rows.iter().map(|r| r.id).collect();
-        inner
+        let hits = inner
             .store
-            .search_query(q, &ids, kinds, limit.clamp(1, SEARCH_LIMIT_MAX))
+            .search_query(q, &ids, kinds, limit.clamp(1, SEARCH_LIMIT_MAX))?;
+        // Past-retention messages stay indexed (the index follows the log) but never surface.
+        let cuts = crate::retention::cutoffs(&inner.store, now_ms())?;
+        Ok(crate::retention::visible_hits(hits, &cuts))
     }
 
     // ---- skein seals ----
