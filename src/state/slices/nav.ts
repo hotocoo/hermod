@@ -23,6 +23,9 @@ export const townInfo = (s: AppStore): TownSpaceInfo => {
   return { id: sp.id, name: sp.name, sections: sp.sections.slice(), online: sp.online, growth: sp.growth, map_style: sp.mapStyle, people, arcade: arcadeHints(s.seed, sp.id) };
 };
 
+/** No "show earlier" widening: the default window. */
+const EMPTY_CHAT_WIN = { key: '', extra: 0 };
+
 export const createNavSlice: StateCreator<AppStore, [], [], NavSlice> = (set, get) => ({
   spaces: [], space: '', section: 'chat', ch: {}, thread: null, overview: false, idxPinned: false,
   inside: false, door: null, panelReady: false, clipX: 0, clipY: 0, enterVeil: 0,
@@ -40,6 +43,7 @@ export const createNavSlice: StateCreator<AppStore, [], [], NavSlice> = (set, ge
   goChannel: (sp, id) => set((s) => ({
     space: sp, section: 'chat', ch: withKey(s.ch, sp, id), thread: null, overview: false, idxPinned: false,
     seen: withKey(s.seen, `${sp}/${id}`, true),
+    chatWin: s.chatWin.key === `${sp}/${id}` ? s.chatWin : EMPTY_CHAT_WIN, // leaving a channel folds it back to the newest window
   })),
 
   sailTo: (id) => {
