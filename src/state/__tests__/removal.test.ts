@@ -16,7 +16,7 @@ describe('member removal notice (E-002)', () => {
   it('toasts once when removed first appears, not on later snapshots', () => {
     const showToast = vi.fn(); const receive = vi.fn();
     const store = create<AppStore>()((set, get, api) => ({
-      ...createCoreSlice(set, get, api), ch: {}, snap: {}, line: {}, space: 'sp', section: 'chat', boardSel: '', docSel: '', showToast, receive, blocked: {}, scheduled: [], me: null,
+      ...createCoreSlice(set, get, api), ch: {}, seen: {}, older: {}, olderMore: {}, snap: {}, line: {}, space: 'sp', section: 'chat', boardSel: '', docSel: '', showToast, receive, blocked: {}, scheduled: [], me: null,
     }) as unknown as AppStore);
     const { apply } = store.getState();
     apply(seed(false)); // first load: no previous snapshot

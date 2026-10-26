@@ -12,8 +12,8 @@ const arrival = (o: Partial<Arrival> = {}): Arrival => ({ kind: 'message', by: '
 
 describe('M-036 role mentions ping by the core-resolved flag', () => {
   it('an arrival whose message pings me earns a mention notification even without my name in the text', () => {
-    const seed = (ping: boolean) => ({ people: { me: { name: 'Ada', i: 'A', role: '' } }, spaces: [{ id: 's1' }], collections: { letters: {}, messages: { 's1/general': [{ id: 'm1', by: 'u2', text: '@admins ship it', ext: { pingsMe: ping } }] } } }) as unknown as Seed;
-    const empty = { people: {}, spaces: [{ id: 's1' }], collections: { messages: {}, letters: {} } } as unknown as Seed;
+    const seed = (ping: boolean) => ({ people: { me: { name: 'Ada', i: 'A', role: '' } }, spaces: [{ id: 's1' }], collections: { letters: {}, channels: {}, messages: { 's1/general': [{ id: 'm1', by: 'u2', text: '@admins ship it', ext: { pingsMe: ping } }] } } }) as unknown as Seed;
+    const empty = { people: {}, spaces: [{ id: 's1' }], collections: { channels: {}, messages: {}, letters: {} } } as unknown as Seed;
     expect(diffArrivals(empty, seed(true), 'me', {})[0].mentionsMe).toBe(true);
     expect(diffArrivals(empty, seed(false), 'me', {})[0].mentionsMe).toBe(false);
   });

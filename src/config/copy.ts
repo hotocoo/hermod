@@ -228,7 +228,7 @@ export const COPY = {
   get exportLabel() { return t('exportLabel'); },
   get exportButton() { return t('exportButton'); },
   get exportNote() { return t('exportNote'); },
-  exportDone: (n: number, files: number, missing: number) => t('exportDone', { n, files, missing }),
+  exportDone: (n: number, files: number, missing: number) => (missing ? t('exportDoneMissing', { n, files, missing }) : t('exportDone', { n, files })),
   /** Empty states of every list surface (U-016). Each is rendered by EmptyNote; the inventory test in src/components/__tests__/emptyStates.test.ts keeps them routed. */
   empty: {
     chatChannels: {
@@ -363,7 +363,7 @@ export const COPY = {
     get button() { return t('threads.button'); },
     get archive() { return t('threads.archive'); },
     get reopen() { return t('threads.reopen'); },
-    meta: (replies: number) => t('threads.meta', { replies }),
+    meta: (replies: number) => t('threads.meta', { n: replies }),
   },
   letter: {
     get compose() { return t('letter.compose'); },
