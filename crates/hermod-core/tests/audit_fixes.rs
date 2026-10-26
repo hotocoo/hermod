@@ -257,3 +257,103 @@ fn a_vector_value_above_i64_max_means_seen_everything_not_nothing() {
     }
     assert!(a.missing_since(&s, &v).unwrap().is_empty());
 }
+
+/// A stranger holding the key who joins through a fresh invite (seq 1), then signs two different
+/// events for seq 2. Returns the join and the two forks.
+fn member_fork(c: &Core, s: SpaceId) -> (SignedEvent, SignedEvent, SignedEvent) {
+    let inv = InviteV1::parse(&c.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    let who = Identity::generate();
+    let lc = inv.lc;
+    let mk = |seq, text: &str| {
+        let body = if seq == 1 {
+            join_via(&inv.id)
+        } else {
+            post_msg("general", "f", text)
+        };
+        SignedEvent::create(&who, &inv.space_key, 0, s, seq, lc + seq, 1, &body).unwrap()
+    };
+    (mk(1, ""), mk(2, "fork one"), mk(2, "fork two"))
+}
+
+/// Texts of the fork messages the fold shows (the winner only).
+fn fork_texts(c: &Core, s: &SpaceId) -> Vec<String> {
+    texts(c, s).into_iter().filter(|t| t.starts_with("fork")).collect()
+}
+
+fn space_key(c: &Core, s: &SpaceId) -> hermod_core::crypto::SpaceKey {
+    InviteV1::parse(&c.invite_create(s, None, vec![]).unwrap().code).unwrap().space_key
+}
+
+#[test]
+fn equivocation_resolves_to_the_lowest_id_on_every_peer_and_is_surfaced() {
+    let (_d1, a) = core();
+    let (_d2, b) = core();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    let (j, x, y) = member_fork(&a, s);
+    a.ingest_sync(j.clone()).unwrap();
+    b.ingest_sync(j).unwrap();
+    sync(&a, &b, &s);
+    let x_author = x.author.to_string();
+    let winner = if x.id() < y.id() { "fork one" } else { "fork two" };
+    a.ingest_sync(x.clone()).unwrap();
+    let _ = a.ingest_sync(y.clone());
+    b.ingest_sync(y).unwrap();
+    let _ = b.ingest_sync(x);
+    assert_eq!(fork_texts(&a, &s), [winner]);
+    assert_eq!(fork_texts(&b, &s), [winner]);
+    assert_eq!(a.space_report(&s).unwrap().equivocating, [x_author]);
+}
+
+#[test]
+fn sync_hands_out_both_forks_so_a_peer_holding_one_converges() {
+    let (_d1, a) = core();
+    let (_d2, b) = core();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    let (j, x, y) = member_fork(&a, s);
+    a.ingest_sync(j.clone()).unwrap();
+    b.ingest_sync(j).unwrap();
+    sync(&a, &b, &s);
+    a.ingest_sync(x).unwrap();
+    let _ = a.ingest_sync(y.clone());
+    b.ingest_sync(y).unwrap();
+    // b already has seq 1 of `who` in its vector, yet a's page still carries the other fork.
+    for ev in a.missing_since(&s, &b.vector(&s).unwrap()).unwrap() {
+        let _ = b.ingest_sync(ev);
+    }
+    assert_eq!(fork_texts(&a, &s), fork_texts(&b, &s));
+    assert_eq!(fork_texts(&a, &s).len(), 1);
+}
+
+#[test]
+fn restored_device_cannot_post_until_a_sync_round_released_the_hold() {
+    let (_d1, a) = core();
+    let (_d2, b) = core();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&s, None, vec![]).unwrap().code).unwrap();
+    sync(&b, &a, &s);
+    sync(&a, &b, &s);
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("b.bak");
+    b.backup_export(&file, "correct horse battery", false).unwrap();
+    let fresh = tempfile::tempdir().unwrap();
+    Core::backup_import(fresh.path(), &file, "correct horse battery").unwrap();
+    let restored = Core::open(fresh.path()).unwrap();
+    assert!(restored.append(&s, post_msg("general", "r", "too early")).is_err());
+    restored.release_own_seq_hold(&s).unwrap();
+    restored.append(&s, post_msg("general", "r", "now fine")).unwrap();
+}
+
+#[test]
+fn restored_solo_space_is_not_held() {
+    let (_d1, a) = core();
+    let s = a.space_create("Solo", "", "Team").unwrap().id;
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("a.bak");
+    a.backup_export(&file, "correct horse battery", false).unwrap();
+    let fresh = tempfile::tempdir().unwrap();
+    Core::backup_import(fresh.path(), &file, "correct horse battery").unwrap();
+    let restored = Core::open(fresh.path()).unwrap();
+    restored.append(&s, post_msg("general", "r", "ok")).unwrap();
+}

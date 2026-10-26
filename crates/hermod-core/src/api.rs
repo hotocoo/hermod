@@ -49,6 +49,10 @@ const DEFAULT_CHANNEL: &str = "general";
 const PROFILE_KEY: &str = "profile";
 /// Local record `creator:<space id>` of the only author whose `space.create` counts for a space.
 const CREATOR_PIN_PREFIX: &str = "creator:";
+/// Set per space on restore from a backup that other members also wrote to: local posts wait until
+/// a peer sync has run, since peers may already hold own events newer than the backup (a reused
+/// `seq` would fork the log). Cleared by [`Core::release_own_seq_hold`].
+const OWN_SEQ_HOLD_PREFIX: &str = "own_seq_hold.";
 /// Local record of the identity this install acts for; absent on the device that created it.
 const OWNER_KEY: &str = "device.owner";
 const SETTING_PREFIX: &str = "setting.";
@@ -393,7 +397,14 @@ impl Inner {
 
     fn report(&self, cfg: &CoreConfig, space: &SpaceId) -> Result<SpaceReport> {
         let row = self.row(space)?;
-        Ok(report(&self.ctx(cfg, now_ms())?, &self.input(&row)?))
+        let mut rep = report(&self.ctx(cfg, now_ms())?, &self.input(&row)?);
+        rep.equivocating = self
+            .store
+            .equivocators(space)?
+            .iter()
+            .map(UserId::to_string)
+            .collect();
+        Ok(rep)
     }
 
     fn require(&self, cfg: &CoreConfig, space: &SpaceId, min: Role) -> Result<SpaceReport> {
@@ -423,6 +434,15 @@ impl Inner {
             return Err(Error::invalid("map_style", "must be village or sanctuary"));
         }
         let row = self.row(space)?;
+        if self
+            .store
+            .kv_get(&format!("{OWN_SEQ_HOLD_PREFIX}{space}"))?
+            .is_some()
+        {
+            return Err(Error::Forbidden(
+                "restored from a backup: waiting to sync with other members before you can post".into(),
+            ));
+        }
         let me = self.identity.user_id();
         let seq = self.store.vector(space)?.get(&me).copied().unwrap_or(0) + 1;
         let lamport = self
@@ -1251,6 +1271,14 @@ impl Core {
     // shortcut: this install's sibling devices are not recognised (that needs a fold per event),
     // so a linked device's own posts can raise a notice on the other one; upgrade by caching the
     // device set when the node adapter learns of `device.link` events.
+    /// Called when a peer sync round for `space` finished: the own-author vector is now current,
+    /// so posting after a backup restore is safe again.
+    pub fn release_own_seq_hold(&self, space: &SpaceId) -> Result<()> {
+        self.lock()
+            .store
+            .kv_delete(&format!("{OWN_SEQ_HOLD_PREFIX}{space}"))
+    }
+
     pub fn is_own_author(&self, author: &UserId) -> bool {
         *author == self.user || *author == self.lock().identity.user_id()
     }
@@ -1756,6 +1784,11 @@ impl Core {
             }
             if sp.left {
                 store.mark_left(&sp.id)?;
+            }
+            // Other writers mean peers may hold own events newer than this backup.
+            let me = Identity::from_seed(payload.identity_seed).user_id();
+            if store.vector(&sp.id)?.keys().any(|a| *a != me) {
+                store.kv_set(&format!("{OWN_SEQ_HOLD_PREFIX}{}", sp.id), "1")?;
             }
         }
         for (k, v) in &payload.kv {

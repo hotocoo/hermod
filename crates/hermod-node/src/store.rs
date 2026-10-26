@@ -61,6 +61,9 @@ pub trait NodeStore: Send + Sync + 'static {
     fn ingest_gossip(&self, space: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome> {
         self.ingest(space, bytes)
     }
+    /// A sync round with a member peer for `space` finished (last page applied), so this device
+    /// now holds everything that peer had at the time. Defaults to nothing.
+    fn sync_complete(&self, _space: &SpaceId) {}
     /// True when the manifest and every chunk are present.
     fn blob_has(&self, blob: &BlobId) -> bool;
     /// Encoded manifest bytes, if known.

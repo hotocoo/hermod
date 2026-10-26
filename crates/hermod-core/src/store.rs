@@ -45,6 +45,9 @@ pub const MAX_LOCKED_PER_SPACE: i64 = 4096;
 /// Body bytes of key-less rows kept per space; the oldest are evicted past it.
 pub const MAX_LOCKED_BYTES_PER_SPACE: i64 = 32 << 20;
 
+/// Fork events (see `equivocations`) appended to each sync page, so peers converge on the lowest id.
+const MAX_FORK_RESEND: i64 = 32;
+
 const APPLIED: i64 = 0;
 const WAIT_SEQ: i64 = 1;
 const WAIT_KEY: i64 = 2;
@@ -380,13 +383,48 @@ impl Store {
         let tx = self.conn.transaction()?;
         let author = &ev.author.0[..];
         let space_id = &ev.space_id.0[..];
-        let same_slot: bool = tx.query_row(
-            "SELECT EXISTS(SELECT 1 FROM events WHERE space_id = ?1 AND author = ?2 AND seq = ?3)",
-            params![space_id, author, ev.seq as i64],
-            |r| r.get(0),
-        )?;
-        if same_slot {
-            return Err(Error::Equivocation);
+        let slot: Option<(String, i64)> = tx
+            .query_row(
+                "SELECT id, pending FROM events WHERE space_id = ?1 AND author = ?2 AND seq = ?3",
+                params![space_id, author, ev.seq as i64],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?;
+        if let Some((old_id, old_pending)) = slot {
+            // A fork: both ids are recorded, and the lowest id wins on every peer so logs converge.
+            let old_ev: SignedEvent = tx.query_row(
+                &format!("SELECT {EVENT_COLS} FROM events WHERE id = ?1"),
+                [&old_id],
+                |r| Ok(event_from_row_at(r, 0)),
+            )??;
+            for (fork_id, fork) in [(&old_id, &old_ev), (&id, ev)] {
+                tx.execute(
+                    "INSERT OR IGNORE INTO equivocations(space_id, author, seq, event_id, event) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    params![space_id, author, ev.seq as i64, fork_id, fork.to_bytes()?],
+                )?;
+            }
+            let wins = id < old_id && !(old_pending == APPLIED && locked);
+            if !wins {
+                tx.commit()?;
+                return Err(Error::Equivocation);
+            }
+            if old_pending == APPLIED {
+                // Later seqs of the author stay valid: swap the content, keep the slot and its arrival.
+                tx.execute(
+                    "UPDATE events SET id = ?1, lamport = ?2, ts = ?3, epoch = ?4, nonce = ?5, body = ?6, sig = ?7 \
+                     WHERE space_id = ?8 AND author = ?9 AND seq = ?10",
+                    params![id, ev.lamport as i64, ev.ts, ev.epoch as i64, &ev.nonce[..], ev.body, &ev.sig[..], space_id, author, ev.seq as i64],
+                )?;
+                // Same count, different content: force the search index to rebuild.
+                tx.execute("DELETE FROM search_state WHERE space_id = ?1", [space_id])?;
+                tx.commit()?;
+                return Ok(Ingested {
+                    id: id.clone(),
+                    status: IngestStatus::Applied,
+                    applied: vec![id],
+                });
+            }
+            tx.execute("DELETE FROM events WHERE id = ?1", [&old_id])?;
         }
         let applied_max = applied_max(&tx, space_id, author)?;
         let in_order = !locked && ev.seq as i64 == applied_max + 1;
@@ -556,6 +594,14 @@ impl Store {
                 out.push(r??);
             }
         }
+        // Forks are handed out on every page: a peer that holds only one side has `seq` in its
+        // vector and would never ask for the other, so the logs could not converge.
+        let mut forks = self.conn.prepare(
+            "SELECT event FROM equivocations WHERE space_id = ?1 ORDER BY event_id LIMIT ?2",
+        )?;
+        for raw in forks.query_map(params![&space.0[..], MAX_FORK_RESEND], |r| r.get::<_, Vec<u8>>(0))? {
+            out.push(SignedEvent::from_bytes(&raw?)?);
+        }
         Ok(out)
     }
 
@@ -571,6 +617,16 @@ impl Store {
             out.insert(UserId(a?), m as u64);
         }
         Ok(out)
+    }
+
+    /// Authors seen signing two different events for one `(space, seq)`.
+    pub fn equivocators(&self, space: &SpaceId) -> Result<BTreeSet<UserId>> {
+        let mut st = self
+            .conn
+            .prepare("SELECT DISTINCT author FROM equivocations WHERE space_id = ?1")?;
+        st.query_map([&space.0[..]], |r| Ok(blob_arr::<32>(r, 0)))?
+            .map(|r| Ok(UserId(r??)))
+            .collect()
     }
 
     /// Events stored but not yet applied (waiting for a gap or a key).

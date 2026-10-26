@@ -52,6 +52,10 @@ pub struct SpaceReport {
     pub reports: Vec<ReportInfo>,
     /// Linked devices per identity (hex device keys), revoked ones removed.
     pub devices: std::collections::BTreeMap<String, Vec<String>>,
+    /// Authors seen signing two different events for one seq. Filled by the core from its store
+    /// (the fold never sees a fork: the lowest event id wins on every peer).
+    #[serde(default)]
+    pub equivocating: Vec<String>,
 }
 
 fn fold(input: &SpaceInput) -> SpaceState {
@@ -121,6 +125,7 @@ pub fn report(ctx: &ProjectionCtx, input: &SpaceInput) -> SpaceReport {
             .iter()
             .map(|(user, set)| (user.clone(), set.iter().cloned().collect()))
             .collect(),
+        equivocating: Vec::new(),
     }
 }
 

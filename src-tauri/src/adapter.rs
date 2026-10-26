@@ -126,6 +126,12 @@ impl CoreStore {
 }
 
 impl NodeStore for CoreStore {
+    fn sync_complete(&self, space: &hermod_node::store::SpaceId) {
+        if let Err(e) = self.core.release_own_seq_hold(&SpaceId(*space)) {
+            tracing::warn!("could not release the post-restore hold: {e}");
+        }
+    }
+
     fn joined_spaces(&self) -> Vec<hermod_node::store::SpaceId> {
         // Home is local only: joining its topic would advertise that it exists.
         self.core

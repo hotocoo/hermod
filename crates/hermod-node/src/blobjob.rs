@@ -151,6 +151,10 @@ impl Driver {
                 let Some((peer, space)) = self.sync_reqs.remove(&request_id) else {
                     return;
                 };
+                let from_member = self
+                    .space_peers
+                    .get(&space)
+                    .is_some_and(|p| p.contains(&peer));
                 let more = response.more;
                 let events: Vec<_> = response.events.into_iter().take(SYNC_PAGE_EVENTS).collect();
                 self.bytes_in += events.iter().map(|e| e.len() as u64).sum::<u64>();
@@ -164,6 +168,9 @@ impl Driver {
                             )
                         })
                         .count();
+                    if !more && from_member {
+                        s.sync_complete(&space);
+                    }
                     Internal::SyncApplied {
                         peer,
                         space,
