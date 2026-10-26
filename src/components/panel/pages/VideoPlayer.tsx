@@ -40,6 +40,18 @@ function VideoPlayerBody({ vm }: VmProps) {
   }, [vm.ccOn, track, retry]);
 
   useEffect(() => { if (el.current) el.current.playbackRate = vm.speed; }, [vm.speed, id, retry]);
+  // Shorts are a vertical feed: Down moves to the next short, Up to the previous (V-009). Window level, as focus is lost when the card unmounts.
+  const { vidIsShort, stepShort } = vm;
+  useEffect(() => {
+    if (!vidIsShort) return;
+    const k = (e: globalThis.KeyboardEvent) => {
+      if (/INPUT|TEXTAREA/.test((e.target as HTMLElement).tagName)) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); stepShort(1); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); stepShort(-1); }
+    };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [vidIsShort, stepShort]);
   if (!vid) return null;
 
   const total = len || vid.len;
@@ -68,12 +80,12 @@ function VideoPlayerBody({ vm }: VmProps) {
   const chapNow = vid.chapters.filter((ch) => ch.t0 <= t).slice(-1)[0];
 
   return (
-    <div className={s.layout} onKeyDown={onKey}>
+    <div className={vm.theater ? `${s.layout} ${s.layoutTheater}` : s.layout} onKeyDown={onKey}>
       <div>
         <div className={`${s.player} ${c.stage}`}>
           {vid.url && !failed ? (
             <video
-              key={retry} ref={el} src={vid.url} className={s.media} preload="metadata" playsInline aria-label={vid.title}
+              key={retry} ref={el} src={vid.url} className={s.media} preload="metadata" playsInline autoPlay={vm.vidAuto} aria-label={vid.title}
               onClick={toggle}
               onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
               onLoadedMetadata={(e) => setLen(e.currentTarget.duration || 0)}
@@ -81,7 +93,7 @@ function VideoPlayerBody({ vm }: VmProps) {
                 const v = e.currentTarget; setT(v.currentTime);
                 if (v.duration) vm.setWatched(vid.id, Math.round((v.currentTime / v.duration) * 100));
               }}
-              onEnded={() => { setPlaying(false); if (vm.nextVideoId) vm.openVideo(vm.nextVideoId); }}
+              onEnded={() => { setPlaying(false); if (vm.nextVideoId) vm.playVideo(vm.nextVideoId); }}
               onError={() => setFailed(true)}
             >
               {track && <track kind="captions" src={track} srcLang="en" label="Captions" />}
@@ -120,7 +132,7 @@ function VideoPlayerBody({ vm }: VmProps) {
           <span className={`${s.face} ${c.avatar}`}>{vid.initials}</span>
           <span><b className={s.strong}>{vid.by}</b> · {vid.views} views · {vid.when}</span>
           <span className={s.grow} />
-          <button type="button" onClick={vm.likeVid} className={c.btn} aria-pressed={!!vid.liked} style={{ color: vm.vidLikeFg }}>{vm.icS.heart} {vm.vidLikes}</button>
+          <button type="button" onClick={vm.likeVid} className={c.btn} aria-label="Like" aria-pressed={!!vid.liked} style={{ color: vm.vidLikeFg }}>{vm.icS.heart} {vm.vidLikes}</button>
           <button type="button" onClick={vm.closeVid} className={c.btn}>{vm.icS.left} All videos</button>
         </div>
         {vid.desc && <p className={s.desc}>{vid.desc}</p>}

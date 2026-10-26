@@ -26,6 +26,8 @@
 .chapNow { opacity: .7; font-style: italic; }
 .grow { flex: 1; }
 .chip { padding: 2px 7px; border: 1px solid rgba(255,255,255,.3); border-radius: 4px; background: transparent; color: #f3ede3; font-size: 0.6875rem; }
+/* Theater mode: the player takes the whole panel width, chapters and Up next move below it (V-007). */
+.layoutTheater { grid-template-columns: minmax(0, 1fr); }
 .theater { width: 28px; height: 28px; border: 0; background: transparent; display: grid; place-items: center; color: #f3ede3; }
 .title { margin: 14px 0 4px; font-family: var(--font-heading); font-weight: 400; font-size: 1.75rem; line-height: 1.15; }
 .byline { display: flex; align-items: center; gap: 12px; font-size: 0.8125rem; }

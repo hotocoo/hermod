@@ -29,7 +29,7 @@ export function mediaVm(x: Ctx) {
     } : null,
     vidLikes: num(vid?.likes ?? 0), vidLikeFg: vid?.liked ? ACCENT_700 : TEXT, likeVid: () => { void s.likeVid(); },
     ccOn: s.cc, ccBd: s.cc ? ACCENT : 'rgba(255,255,255,.3)', toggleCc: s.toggleCc, captionsHash: vid?.captionsBlob ?? '', speed: s.speed, speedText: `${s.speed}×`, cycleSpeed: s.cycleSpeed,
-    theaterIcon: s.theater ? icS.shrink : icS.expand, toggleTheater: s.toggleTheater, closeVid: s.closeVid, setWatched: s.setWatched,
+    theater: s.theater, theaterIcon: s.theater ? icS.shrink : icS.expand, toggleTheater: s.toggleTheater, closeVid: s.closeVid, setWatched: s.setWatched,
     videos: media.videos.filter((v) => !s.blocked[v.by] && !media.shorts.some((x) => x.id === v.id)).map((v, i) => ({
       title: v.title, by: P(v.by).name, views: v.views, when: v.when, label: v.label, dur: fmtSec(v.len), prog: `${s.watched[v.id] || 0}%`,
       thumb: v.blob?.mime.startsWith('image/') ? blobUrl(v.blob.hash) : '',
@@ -39,7 +39,8 @@ export function mediaVm(x: Ctx) {
       title: v.title, by: P(v.by).name, dur: fmtSec(v.len), onClick: () => s.openVideo(v.id),
     })),
     nextVideoId: (() => { const list = media.videos; const i = list.findIndex((v) => v.id === s.vid); return i >= 0 && i + 1 < list.length ? list[i + 1].id : null; })(),
-    openVideo: s.openVideo,
+    openVideo: s.openVideo, playVideo: s.playVideo, stepShort: s.stepShort, vidAuto: s.vidAuto,
+    vidIsShort: media.shorts.some((x) => x.id === s.vid),
     shorts: media.shorts.map((v, i) => ({ title: v.title, views: v.views, label: v.label, anim: aniPage(i), onClick: () => s.openShort(i) })),
     hasLive: isLive,
     live: {

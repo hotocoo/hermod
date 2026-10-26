@@ -20,7 +20,7 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
   const spaceFor = (id?: string) => id ?? get().space;
 
   return {
-    feedSeen: {}, vid: null, speed: 1, cc: false, theater: false, watched: {}, liveDraft: '',
+    feedSeen: {}, vid: null, vidAuto: false, speed: 1, cc: false, theater: false, watched: {}, liveDraft: '',
     story: null, storySeen: {}, storyDraft: '',
 
     toggleLike: async (id, space) => { await appendEvent(get, spaceFor(space), { t: 'like.toggle', target_id: id }); },
@@ -46,8 +46,15 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
     },
     markFeedSeen: (space) => set((s) => ({ feedSeen: withKey(s.feedSeen, space, true) })),
 
-    openVideo: (id) => set({ vid: id }),
-    closeVid: () => set({ vid: null }),
+    openVideo: (id) => set({ vid: id, vidAuto: false }),
+    // Autoplay and the shorts keys start the next video playing; a click on a library card opens it paused.
+    playVideo: (id) => set({ vid: id, vidAuto: true }),
+    stepShort: (d) => {
+      const shorts = media().shorts; const i = shorts.findIndex((x) => x.id === get().vid);
+      const next = i < 0 ? undefined : shorts[i + d];
+      if (next) set({ vid: next.id, vidAuto: true });
+    },
+    closeVid: () => set({ vid: null, vidAuto: false }),
     setWatched: (id, pct) => set((s) => ({ watched: withKey(s.watched, id, pct) })),
     toggleCc: () => set((s) => ({ cc: !s.cc })),
     cycleSpeed: () => set((s) => ({ speed: MEDIA.speedCycle[s.speed] ?? 1 })),
@@ -83,7 +90,7 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
       set((x) => ({ story: { p: i, i: 0, at: Date.now() }, storySeen: { ...x.storySeen, [i]: true } }));
       scheduleStory();
     },
-    openShort: (i) => { const sh = media().shorts[i]; if (sh) set({ vid: sh.id }); },
+    openShort: (i) => { const sh = media().shorts[i]; if (sh) set({ vid: sh.id, vidAuto: false }); },
     advanceStory: (d) => {
       timer.clear('story');
       const st = get().story;

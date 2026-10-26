@@ -141,7 +141,7 @@ export interface CallSlice {
 
 export interface MediaSlice {
   feedSeen: Record<string, boolean>;
-  vid: string | null; speed: number; cc: boolean; theater: boolean; watched: Record<string, number>;
+  vid: string | null; vidAuto: boolean; speed: number; cc: boolean; theater: boolean; watched: Record<string, number>;
   liveDraft: string;
   story: StoryCursor | null; storySeen: Record<number, boolean>; storyDraft: string;
   toggleLike(id: string, space: string): Promise<void>; toggleSave(id: string, space: string): Promise<void>;
@@ -149,7 +149,7 @@ export interface MediaSlice {
   /** Comments on a post (`message.post` with `target`); resolves true once appended. */
   commentPost(id: string, space: string, text: string): Promise<boolean>;
   markFeedSeen(space: string): void;
-  openVideo(id: string): void; closeVid(): void; setWatched(id: string, pct: number): void;
+  openVideo(id: string): void; playVideo(id: string): void; stepShort(d: number): void; closeVid(): void; setWatched(id: string, pct: number): void;
   toggleCc(): void; cycleSpeed(): void; toggleTheater(): void; likeVid(): Promise<void>;
   setLiveDraft(v: string): void; sendLive(): Promise<void>; goLive(): Promise<void>; endLive(): Promise<void>;
   openStory(i: number): void; openShort(i: number): void; advanceStory(d: number): void; closeStory(): void;
