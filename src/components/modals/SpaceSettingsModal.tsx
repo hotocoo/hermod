@@ -12,7 +12,6 @@ import f from '@/components/ui/form.module.css';
 import { COPY } from '@/config/copy';
 import { InviteList } from './InviteList';
 import { EmptyNote } from '@/components/panel/EmptyStates';
-import { COPY } from '@/config/copy';
 
 const TABS = [['general', 'General'], ['members', 'Members'], ['invites', 'Invites'], ['safety', 'Safety']] as const;
 const ROLES: Role[] = ['owner', 'admin', 'member', 'guest'];
