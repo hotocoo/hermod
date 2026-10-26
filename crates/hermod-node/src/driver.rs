@@ -843,10 +843,18 @@ impl Driver {
     /// Under connection pressure, drop settled peers that share no space and are not relays
     /// or blob sources, oldest first, so space peers and relays keep their slots.
     fn evict_idle_peers(&mut self) {
-        let threshold = (self.limits.max_connections * EVICT_CONN_PERCENT / 100).max(1) as usize;
         let connected = self.swarm.connected_peers().count();
+        for p in self.idle_to_evict(connected) {
+            tracing::debug!("evicting idle non-space peer {p} under connection pressure");
+            let _ = self.swarm.disconnect_peer_id(p);
+        }
+    }
+
+    /// Peers to drop given `connected` live connections (empty below the pressure threshold).
+    fn idle_to_evict(&self, connected: usize) -> Vec<PeerId> {
+        let threshold = (self.limits.max_connections * EVICT_CONN_PERCENT / 100).max(1) as usize;
         if connected < threshold {
-            return;
+            return Vec::new();
         }
         let settle = Duration::from_secs(PEER_SETTLE_SECS);
         let reserved: HashSet<PeerId> = self.reserved_on.iter().filter_map(peer_of).collect();
@@ -864,10 +872,10 @@ impl Driver {
             .map(|(p, t)| (*t, *p))
             .collect();
         idle.sort();
-        for (_, p) in idle.into_iter().take(connected + 1 - threshold) {
-            tracing::debug!("evicting idle non-space peer {p} under connection pressure");
-            let _ = self.swarm.disconnect_peer_id(p);
-        }
+        idle.into_iter()
+            .take(connected + 1 - threshold)
+            .map(|(_, p)| p)
+            .collect()
     }
 
     /// Everything pending, for shutdown.
@@ -1081,20 +1089,20 @@ impl Driver {
             ..
         } = e
         {
-            // Anyone can announce as a provider of a key: cap the dials one key can cause.
-            let dials = self
-                .provider_dials
-                .entry(key.as_ref().to_vec())
-                .or_default();
-            for p in providers {
-                if *dials >= KAD_PROVIDER_DIALS_PER_KEY {
-                    break;
-                }
-                if p != self.local && !self.swarm.is_connected(&p) && !self.banned.contains_key(&p)
-                {
-                    *dials += 1;
-                    let _ = self.swarm.dial(DialOpts::peer_id(p).build());
-                }
+            self.dial_providers(key.as_ref().to_vec(), providers);
+        }
+    }
+
+    /// Anyone can announce as a provider of a key: cap the dials one key can cause per tick.
+    fn dial_providers(&mut self, key: Vec<u8>, providers: impl IntoIterator<Item = PeerId>) {
+        let dials = self.provider_dials.entry(key).or_default();
+        for p in providers {
+            if *dials >= KAD_PROVIDER_DIALS_PER_KEY {
+                break;
+            }
+            if p != self.local && !self.swarm.is_connected(&p) && !self.banned.contains_key(&p) {
+                *dials += 1;
+                let _ = self.swarm.dial(DialOpts::peer_id(p).build());
             }
         }
     }
@@ -1164,13 +1172,19 @@ impl Driver {
         match e {
             gossipsub::Event::Subscribed { peer_id, topic } => {
                 if let Some(space) = self.topics.get(&topic).copied() {
-                    if self.space_peers.entry(space).or_default().insert(peer_id) {
+                    let first = self.space_peers.entry(space).or_default().insert(peer_id);
+                    if first {
                         self.emit(NodeEvent::PeerJoined {
                             space,
                             peer: peer_id,
                         });
                     }
                     self.remember(space, peer_id);
+                    // A new space peer is rare and worth keeping across a crash: write now
+                    // instead of waiting for the maintenance tick.
+                    if first {
+                        self.flush_book();
+                    }
                     self.flush_outbox(space);
                     self.start_sync(peer_id, space);
                 }
@@ -1508,5 +1522,158 @@ mod tests {
         r.allow("fresh");
         r.gc();
         assert_eq!(r.len(), 1);
+    }
+
+    use crate::store::{FilePeerBook, RelayOnlyStore};
+
+    const SPACE: SpaceId = [5u8; 32];
+    const PUBLIC_ADDR: &str = "/ip4/8.8.8.8/tcp/4001";
+
+    async fn driver(cfg: NodeConfig) -> Driver {
+        let key = libp2p::identity::Keypair::generate_ed25519();
+        let swarm = libp2p::SwarmBuilder::with_existing_identity(key)
+            .with_tokio()
+            .with_tcp(
+                libp2p::tcp::Config::default(),
+                libp2p::noise::Config::new,
+                libp2p::yamux::Config::default,
+            )
+            .unwrap()
+            .with_relay_client(libp2p::noise::Config::new, libp2p::yamux::Config::default)
+            .unwrap()
+            .with_behaviour(|key, rc| Behaviour::new(key, rc, &cfg))
+            .unwrap()
+            .build();
+        let (ev, _) = mpsc::unbounded_channel();
+        let (int, _) = mpsc::unbounded_channel();
+        Driver::new(swarm, cfg, Arc::new(RelayOnlyStore), ev, int)
+    }
+
+    fn quiet_cfg() -> NodeConfig {
+        NodeConfig {
+            enable_mdns: false,
+            enable_upnp: false,
+            enable_dht: false,
+            bootstrap: vec![],
+            ..NodeConfig::default()
+        }
+    }
+
+    fn long_ago() -> Instant {
+        Instant::now() - Duration::from_secs(PEER_SETTLE_SECS + 5)
+    }
+
+    #[tokio::test]
+    async fn pressure_evicts_idle_strangers_and_keeps_space_peers_and_relays() {
+        let mut d = driver(quiet_cfg()).await;
+        let max = d.limits.max_connections;
+        let threshold = (max * EVICT_CONN_PERCENT / 100) as usize;
+        let (space_peer, relay_peer, fresh) =
+            (PeerId::random(), PeerId::random(), PeerId::random());
+        let strangers: Vec<PeerId> = (0..threshold).map(|_| PeerId::random()).collect();
+        for p in strangers
+            .iter()
+            .chain([&space_peer, &relay_peer].into_iter())
+        {
+            d.connected_since.insert(*p, long_ago());
+        }
+        d.connected_since.insert(fresh, Instant::now());
+        d.space_peers.entry(SPACE).or_default().insert(space_peer);
+        d.relay_hops.insert(relay_peer);
+        assert!(d.idle_to_evict(threshold - 1).is_empty(), "no pressure yet");
+        let out = d.idle_to_evict(threshold);
+        assert_eq!(out.len(), 1, "only enough to get under the threshold");
+        assert!(strangers.contains(&out[0]));
+        let all = d.idle_to_evict(threshold + strangers.len());
+        assert!(all.iter().all(|p| strangers.contains(p)));
+        assert!(
+            !all.contains(&fresh),
+            "unsettled peers get time to join a space"
+        );
+    }
+
+    #[tokio::test]
+    async fn provider_dials_per_key_are_capped_until_the_tick() {
+        let mut d = driver(quiet_cfg()).await;
+        let key = vec![1u8, 2, 3];
+        let many = (0..KAD_PROVIDER_DIALS_PER_KEY * 4).map(|_| PeerId::random());
+        d.dial_providers(key.clone(), many);
+        assert_eq!(d.provider_dials[&key], KAD_PROVIDER_DIALS_PER_KEY);
+        d.dial_providers(key.clone(), [PeerId::random()]);
+        assert_eq!(d.provider_dials[&key], KAD_PROVIDER_DIALS_PER_KEY);
+        d.provider_dials.clear();
+        d.dial_providers(key.clone(), [PeerId::random()]);
+        assert_eq!(d.provider_dials[&key], 1, "the tick resets the budget");
+    }
+
+    #[tokio::test]
+    async fn relay_circuit_count_resets_when_the_server_is_toggled() {
+        let cfg = NodeConfig {
+            relay_mode: RelayMode::Always,
+            ..quiet_cfg()
+        };
+        let mut d = driver(cfg).await;
+        d.apply_relay_server();
+        assert!(d.swarm.behaviour().relay_server.is_enabled());
+        d.circuits = 5;
+        d.limits.relay_paused = true;
+        d.apply_relay_server();
+        assert!(!d.swarm.behaviour().relay_server.is_enabled());
+        assert_eq!(d.circuits, 0, "disabling drops the old circuits");
+        d.limits.relay_paused = false;
+        d.apply_relay_server();
+        d.circuits = 3;
+        d.apply_relay_server_force(true);
+        assert_eq!(d.circuits, 0, "recreating drops the old circuits");
+    }
+
+    #[tokio::test]
+    async fn only_settled_peers_enter_the_global_book() {
+        let cfg = NodeConfig {
+            allow_private_addrs: false,
+            ..quiet_cfg()
+        };
+        let mut d = driver(cfg).await;
+        let stranger = PeerId::random();
+        d.peer_addrs
+            .insert(stranger, vec![PUBLIC_ADDR.parse().unwrap()]);
+        d.connected_since.insert(stranger, Instant::now());
+        d.promote_settled_peers();
+        assert!(d.book.get(&GLOBAL_PEERS).is_none_or(Vec::is_empty));
+        d.connected_since.insert(stranger, long_ago());
+        d.promote_settled_peers();
+        assert_eq!(
+            d.book[&GLOBAL_PEERS],
+            vec![format!("{PUBLIC_ADDR}/p2p/{stranger}")]
+        );
+        assert!(d.book_dirty.contains(&GLOBAL_PEERS));
+    }
+
+    #[tokio::test]
+    async fn first_space_peer_is_written_to_the_book_at_once() {
+        let dir = std::env::temp_dir().join(format!("hermod-join-{}", std::process::id()));
+        let path = dir.join("peers.json");
+        let cfg = NodeConfig {
+            peer_book: Arc::new(FilePeerBook::open(&path).unwrap()),
+            ..quiet_cfg()
+        };
+        let mut d = driver(cfg).await;
+        d.join(SPACE).unwrap();
+        let peer = PeerId::random();
+        d.peer_addrs
+            .insert(peer, vec![PUBLIC_ADDR.parse().unwrap()]);
+        let topic = IdentTopic::new(topic_name(&SPACE)).hash();
+        d.on_gossip_event(gossipsub::Event::Subscribed {
+            peer_id: peer,
+            topic,
+        });
+        // No maintenance tick ran: a crash now must still keep the peer.
+        let reopened = FilePeerBook::open(&path).unwrap();
+        use crate::store::PeerBook;
+        assert_eq!(
+            reopened.load(&SPACE),
+            vec![format!("{PUBLIC_ADDR}/p2p/{peer}")]
+        );
+        let _ = std::fs::remove_dir_all(dir);
     }
 }

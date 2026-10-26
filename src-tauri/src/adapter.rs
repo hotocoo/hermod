@@ -389,4 +389,33 @@ mod tests {
             ));
         }
     }
+
+    /// A sync page stops at the byte budget (never loading the rest) yet is never empty.
+    #[test]
+    fn events_after_stops_at_the_byte_budget_but_is_never_empty() {
+        const EVENTS: usize = 10;
+        const TEXT_BYTES: usize = 50 * 1024;
+        let dir = tempfile::tempdir().unwrap();
+        let core = Arc::new(Core::open(dir.path()).unwrap());
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let store = CoreStore::new(core.clone(), tx, Touched::default());
+        let sp = core.space_create("Big", "", "Team").unwrap().id;
+        for i in 0..EVENTS {
+            core.append(&sp, post(&"x".repeat(TEXT_BYTES), &format!("m{i}")))
+                .unwrap();
+        }
+        let none = BTreeMap::new();
+        let all = store.events_after(&sp.0, &none, EVENTS * 2, usize::MAX);
+        assert!(all.len() >= EVENTS);
+        let one = all.iter().map(Vec::len).max().unwrap();
+        let budget = one * 3 + one / 2;
+        let page = store.events_after(&sp.0, &none, EVENTS * 2, budget);
+        let total: usize = page.iter().map(Vec::len).sum();
+        assert!(!page.is_empty() && page.len() < all.len(), "{}", page.len());
+        assert!(total <= budget, "{total} > {budget}");
+        assert_eq!(page, all[..page.len()], "a prefix, in order");
+        let tiny = store.events_after(&sp.0, &none, EVENTS * 2, 1);
+        assert_eq!(tiny.len(), 1, "an oversize first event still goes");
+        assert!(store.events_after(&sp.0, &none, 0, budget).is_empty());
+    }
 }
