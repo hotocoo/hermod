@@ -6,6 +6,7 @@ import { wallMs } from '@/lib/clock';
 import { copyText } from '@/lib/clipboard';
 import { readString, writeString } from '@/lib/storage';
 import { applyTextScale } from '@/lib/theme';
+import type { MotionMode } from '@/lib/prefs';
 import { humanSize } from '@/lib/upload';
 import { setNotifySettings } from '@/state/notify';
 import { appendEvent } from '@/state/act';
@@ -116,6 +117,14 @@ function Appearance() {
       <Switch label="Dark theme" on={s.theme === 'dark'} onChange={() => s.toggleTheme()} />
       <Switch label="Paper grain" on={s.grain} onChange={() => s.toggleSetting('grain')} />
       <Switch label="Theme follows the sky" on={s.skyTheme} onChange={() => s.toggleSetting('skyTheme')} />
+      <div className={f.field} style={{ marginTop: 12 }}>
+        <label className={f.label} htmlFor="motion-mode">Reduced motion</label>
+        <select id="motion-mode" className="input" value={s.motion} onChange={(e) => s.setMotion(e.target.value as MotionMode)}>
+          <option value="system">Follow the system</option>
+          <option value="reduce">Always reduce</option>
+          <option value="full">Always full</option>
+        </select>
+      </div>
       <div className={f.field} style={{ marginTop: 12 }}>
         <label className={f.label} htmlFor="txt-scale">Text size</label>
         <select id="txt-scale" className="input" value={scale} onChange={(e) => set(Number(e.target.value))}>

@@ -2,6 +2,7 @@
 import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit } from '../lib/bridge/types';
 import type { Seed, Space, SectionId } from '../lib/data/types';
 import type { Theme, Palette } from '../lib/theme';
+import type { MotionMode } from '../lib/prefs';
 import type { ClockMode, SettingKey, WeatherId } from '../config/ui';
 import type { CalEvent, DocBlock, Message, PinBoard, RookEntry, Skein, WorkBoard } from './dataTypes';
 import type { Arrival } from './arrivals';
@@ -95,7 +96,10 @@ export interface SkySlice {
   theme: Theme; themePalette: Palette; wx: WeatherId; autoWx: boolean; clockMode: ClockMode;
   hour: number; period: string; night: number;
   skyTheme: boolean; ravens: boolean; hints: boolean; expert: boolean; grain: boolean;
+  /** W-006: reduced-motion override; 'system' follows the OS. */
+  motion: MotionMode;
   setTheme(t: Theme): void; toggleTheme(): void;
+  setMotion(m: MotionMode): void;
   setWx(k: WeatherId): void; stepWeather(): void; toggleAutoWx(): void;
   onHour(h: number): void; applyPreset(h: number): void; setClockMode(m: ClockMode): void;
   toggleSetting(key: SettingKey): void;

@@ -22,7 +22,12 @@ export const num = (n: number) => n.toLocaleString('en');
 /** "1 card", "3 cards"; pass `many` for irregular plurals. */
 export const count = (n: number, one: string, many = `${one}s`) => `${num(n)} ${n === 1 ? one : many}`;
 export const firstName = (name: string) => name.split(' ')[0];
-export const reduced = () => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/** W-006 override: 'system' follows the OS, 'reduce' and 'full' force it. Set by the sky slice. */
+let motionOverride: 'system' | 'reduce' | 'full' = 'system';
+export const setMotionOverride = (o: 'system' | 'reduce' | 'full'): void => { motionOverride = o; };
+export const reduced = () =>
+  motionOverride === 'reduce'
+    || (motionOverride !== 'full' && typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 const EASE = 'cubic-bezier(.22,1,.36,1)';
 /** CSS animation shorthand staggered by index; 'none' under reduced motion. */

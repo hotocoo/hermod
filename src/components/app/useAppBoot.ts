@@ -1,5 +1,5 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getBridge } from '@/lib/bridge';
 import { getMount, getOverlay } from '@/state/domRefs';
@@ -28,6 +28,17 @@ function offerUpdate(isCancelled: () => boolean): void {
 /** Walk the gates (Terms, profile, create/join), then start the app controllers and build the 3D town once the mount node exists. */
 export function useAppBoot(): void {
   const live = useAppStore((s) => s.phase === 'app' && !!s.seed);
+  const motion = useAppStore((s) => s.motion);
+  // T-017: the OS flag is watched, not just read once, so changing the system setting rebuilds
+  // the scene without a reload; the W-006 override rebuilds through the same dependency.
+  const [mqReduce, setMqReduce] = useState(() => window.matchMedia(REDUCED_MOTION).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(REDUCED_MOTION);
+    const on = () => setMqReduce(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  const reducedNow = motion === 'reduce' || (motion === 'system' && mqReduce);
 
   useEffect(() => {
     // Deep links can arrive while a gate is still open, so listen from the very start.
@@ -55,7 +66,7 @@ export function useAppBoot(): void {
           ...townHandlers(useAppStore),
           mount,
           overlay: getOverlay(),
-          reduced: window.matchMedia(REDUCED_MOTION).matches,
+          reduced: reducedNow,
         }))
         .then((town) => {
           if (cancelled) { town.dispose(); return; }
@@ -66,5 +77,6 @@ export function useAppBoot(): void {
       useAppStore.getState().setTownStatus('error');
     }
     return () => { cancelled = true; detachTown?.(); cleanups.forEach((c) => c()); };
-  }, [live]);
+    // reducedNow in the deps: an OS flag flip or a W-006 override rebuilds the scene with the new flag.
+  }, [live, reducedNow]);
 }
