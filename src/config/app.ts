@@ -11,6 +11,9 @@ export const STORAGE_KEYS = {
   motion: 'hermodr.motion',
 } as const;
 
+/** Error text the core returns for every command while a passphrase-protected key is still locked (core `Error::Locked`). */
+export const LOCKED_ERROR = 'identity locked';
+
 /** Pseudo-author the core uses for system messages (meeting wrap-up, weave notices). Defined by the contract, not user data. */
 export const SYSTEM_ID = 'system';
 /** Kind of the personal Space and the id the core gives it. */

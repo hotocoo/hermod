@@ -9,7 +9,9 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 
+use hermod_core::identity::Identity;
 use hermod_core::ids::{SpaceId, UserId};
+use hermod_core::keyguard::{KeyMode, Unlock};
 use hermod_core::{Core, SignedEvent};
 use hermod_node::config::NodeConfig;
 use hermod_node::store::FilePeerBook;
@@ -18,6 +20,7 @@ use serde_json::{Value, json};
 use tokio::sync::{RwLock, broadcast, mpsc};
 
 use crate::adapter::{self, CoreStore, Notice};
+use crate::keychain::KeyringStore;
 use crate::{blob, notify, settings};
 
 const JOIN_LINK_PREFIX: &str = "hermod://join/";
@@ -93,6 +96,9 @@ pub struct Options {
     pub preview_allow_private: bool,
     /// Log file `log_tail` reads.
     pub log_file: Option<PathBuf>,
+    /// Offer the OS keychain for the identity key. Off for the devhost and tests, which must
+    /// never touch the developer's real keychain.
+    pub use_keychain: bool,
 }
 
 impl Options {
@@ -102,6 +108,7 @@ impl Options {
             unrestricted_paths: false,
             preview_allow_private: false,
             log_file,
+            use_keychain: true,
         }
     }
 
@@ -126,6 +133,7 @@ impl Options {
             unrestricted_paths: true,
             preview_allow_private: true,
             log_file,
+            use_keychain: false,
         }
     }
 }
@@ -274,6 +282,8 @@ pub struct Ctx {
     picked: Mutex<HashSet<PathBuf>>,
     background: AtomicBool,
     link: Mutex<PendingLink>,
+    /// Keychain entry and, once typed, the passphrase; every reopen of the data dir needs it.
+    unlock: Mutex<Unlock>,
 }
 
 /// A join link that arrived before the UI first asked for one (a cold start opens the app
@@ -286,8 +296,16 @@ struct PendingLink {
     read: bool,
 }
 
-fn open_live(dir: &Path) -> Result<Arc<Live>, String> {
-    let core = Core::open(dir).map_err(|e| format!("cannot open your data: {e}"))?;
+fn open_live(dir: &Path, unlock: &Unlock) -> Result<Arc<Live>, String> {
+    let cfg = hermod_core::CoreConfig {
+        unlock: unlock.clone(),
+        ..Default::default()
+    };
+    let core = Core::open_with(dir, cfg).map_err(|e| match e {
+        // Passed through bare: the UI matches it to show the unlock screen.
+        hermod_core::Error::Locked => e.to_string(),
+        _ => format!("cannot open your data: {e}"),
+    })?;
     let unsent = core
         .setting_get(UNSENT_KEY)
         .ok()
@@ -313,28 +331,82 @@ impl Ctx {
         opts: Options,
         shell: Option<Arc<dyn Shell>>,
     ) -> Result<Arc<Ctx>, String> {
-        let d = dir.clone();
-        let live = tokio::task::spawn_blocking(move || open_live(&d))
-            .await
-            .map_err(|e| e.to_string())??;
+        let unlock = Unlock {
+            store: opts.use_keychain.then(|| {
+                KeyringStore::for_dir(&dir) as Arc<dyn hermod_core::keyguard::SecretStore>
+            }),
+            passphrase: None,
+        };
+        // A passphrase-protected key cannot open until the person types it: start locked.
+        let locked = matches!(Identity::mode_in(&dir), Ok(Some(KeyMode::Passphrase)));
+        let live = if locked {
+            None
+        } else {
+            let (d, u) = (dir.clone(), unlock.clone());
+            Some(
+                tokio::task::spawn_blocking(move || open_live(&d, &u))
+                    .await
+                    .map_err(|e| e.to_string())??,
+            )
+        };
         let (tx, _) = broadcast::channel(512);
         let ctx = Arc::new(Ctx {
             dir,
             opts,
             shell,
             tx,
-            live: RwLock::new(Some(live)),
+            live: RwLock::new(live),
             picked: Mutex::new(HashSet::new()),
             background: AtomicBool::new(false),
             link: Mutex::new(PendingLink::default()),
+            unlock: Mutex::new(unlock),
         });
-        ctx.refresh_background().await;
-        if ctx.legal_accepted().await
-            && let Err(e) = ctx.start_node().await
+        if !locked {
+            ctx.finish_open().await;
+        }
+        Ok(ctx)
+    }
+
+    /// Background mode and, when the Terms were accepted, the node.
+    async fn finish_open(self: &Arc<Self>) {
+        self.refresh_background().await;
+        if self.legal_accepted().await
+            && let Err(e) = self.start_node().await
         {
             tracing::error!("node did not start: {e}");
         }
-        Ok(ctx)
+    }
+
+    /// Opens the data dir with the typed passphrase. A wrong one leaves everything locked.
+    pub async fn unlock(self: &Arc<Self>, passphrase: String) -> Result<(), String> {
+        let mut guard = self.live.write().await;
+        if guard.is_some() {
+            return Ok(());
+        }
+        let unlock = Unlock {
+            passphrase: Some(passphrase),
+            ..lock(&self.unlock).clone()
+        };
+        let (dir, u) = (self.dir.clone(), unlock.clone());
+        let live = tokio::task::spawn_blocking(move || open_live(&dir, &u))
+            .await
+            .map_err(|e| e.to_string())??;
+        *guard = Some(live);
+        drop(guard);
+        *lock(&self.unlock) = unlock;
+        self.finish_open().await;
+        Ok(())
+    }
+
+    /// Remembers (or forgets) the passphrase after the key's protection changed, so a reopen
+    /// during restore or reset can still read the key.
+    pub fn set_passphrase(&self, passphrase: Option<String>) {
+        lock(&self.unlock).passphrase = passphrase;
+    }
+
+    /// Keychain and passphrase the key file is read with.
+    pub fn unlock_state(&self) -> Unlock {
+        lock(&self.unlock).clone()
     }
 
     pub fn subscribe(&self) -> broadcast::Receiver<Emitted> {
@@ -356,11 +428,15 @@ impl Ctx {
     }
 
     pub async fn live(&self) -> Result<Arc<Live>, String> {
-        self.live
-            .read()
-            .await
-            .clone()
-            .ok_or_else(|| "Hermod is restarting, try again in a moment".to_string())
+        self.live.read().await.clone().ok_or_else(|| {
+            if matches!(Identity::mode_in(&self.dir), Ok(Some(KeyMode::Passphrase)))
+                && lock(&self.unlock).passphrase.is_none()
+            {
+                hermod_core::Error::Locked.to_string()
+            } else {
+                "Hermod is restarting, try again in a moment".to_string()
+            }
+        })
     }
 
     pub async fn legal_accepted(&self) -> bool {
@@ -440,7 +516,7 @@ impl Ctx {
         }
         let s = settings::node_settings(&live.core)?;
         live.core.set_rate(s.rate());
-        let seed = adapter::identity_seed(live.core.dir())?;
+        let seed = adapter::identity_seed(&live.core);
         let (ntx, nrx) = mpsc::unbounded_channel::<Notice>();
         let store = Arc::new(CoreStore::new(live.core.clone(), ntx, live.touched.clone()));
         let mut cfg = NodeConfig {
@@ -518,10 +594,11 @@ impl Ctx {
             drop(live);
         }
         let dir = self.dir.clone();
+        let unlock = lock(&self.unlock).clone();
         let result = tokio::task::spawn_blocking(move || {
             let r = f(&dir);
             // Reopen even when `f` failed so the app keeps working on whatever is on disk.
-            open_live(&dir).map(|l| (r, l))
+            open_live(&dir, &unlock).map(|l| (r, l))
         })
         .await
         .map_err(|e| e.to_string())?;

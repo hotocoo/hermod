@@ -13,6 +13,9 @@ pub enum Error {
     Json(#[from] serde_json::Error),
     #[error("cbor: {0}")]
     Cbor(String),
+    /// Display text is matched by the UI (`LOCKED_ERROR` in src/config/app.ts).
+    #[error("identity locked")]
+    Locked,
     #[error("decryption failed")]
     Decrypt,
     #[error("bad signature")]

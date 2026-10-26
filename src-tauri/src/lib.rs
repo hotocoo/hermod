@@ -9,6 +9,7 @@ pub mod api;
 pub mod blob;
 pub mod ctx;
 mod desktop;
+pub mod keychain;
 pub mod local_ai;
 pub mod messaging_api;
 pub mod notify;

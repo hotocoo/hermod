@@ -22,6 +22,7 @@ use crate::growth::GrowthConfig;
 use crate::identity::{self, Identity};
 use crate::ids::{SpaceId, UserId, hex_encode};
 use crate::invite::InviteV1;
+use crate::keyguard::{KeyMode, Unlock};
 use crate::keywrap;
 use crate::projections::{
     InviteInfo, MemberInfo, ProjectionConfig, ProjectionCtx, ReportInfo, SpaceInput, SpaceReport,
@@ -64,6 +65,8 @@ pub struct CoreConfig {
     pub growth: GrowthConfig,
     pub rate: RateConfig,
     pub backup_kdf: KdfParams,
+    /// Keychain entry and passphrase needed to read a protected identity key.
+    pub unlock: Unlock,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -75,6 +78,8 @@ pub struct IdentityInfo {
     pub initials: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub avatar: Option<BlobRef>,
+    /// Where the secret key is kept at rest.
+    pub key_mode: KeyMode,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -556,7 +561,7 @@ impl Core {
     pub fn open_with(dir: impl AsRef<Path>, config: CoreConfig) -> Result<Self> {
         let dir = dir.as_ref().to_path_buf();
         fs::create_dir_all(&dir)?;
-        let identity = Identity::load_or_create(&dir)?;
+        let identity = Identity::load_or_create_with(&dir, &config.unlock)?;
         let store = Store::open_with(&dir.join(DB_FILE), config.rate.clone())?;
         let blobs = BlobStore::open(&dir)?;
         let user = identity.user_id();
@@ -615,7 +620,25 @@ impl Core {
             bio: p.bio,
             initials: p.initials,
             avatar: p.avatar,
+            key_mode: Identity::mode_in(&self.dir)?.unwrap_or(KeyMode::File),
         })
+    }
+
+    /// The 32 byte identity seed the node derives its libp2p keypair from.
+    pub fn identity_seed(&self) -> [u8; 32] {
+        self.lock().identity.seed()
+    }
+
+    /// Moves the identity key to `mode` (see [`Identity::protect`]). `passphrase` is required for
+    /// the passphrase mode and ignored otherwise. Under one lock so no append races the swap.
+    pub fn identity_protect(&self, mode: KeyMode, passphrase: Option<&str>) -> Result<()> {
+        let unlock = Unlock {
+            store: self.config.unlock.store.clone(),
+            passphrase: passphrase.map(str::to_string),
+        };
+        self.lock()
+            .identity
+            .protect(&self.dir, mode, &unlock, self.config.backup_kdf)
     }
 
     /// Stores the profile locally and publishes `profile.set` into every joined space.

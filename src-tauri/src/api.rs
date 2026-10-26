@@ -157,6 +157,11 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
     if name == "deeplink_pending" {
         return Ok(json!(ctx.take_pending_link()));
     }
+    // Opens the data dir, so it has to work while everything else says "locked".
+    if name == "identity_unlock" {
+        ctx.unlock(str_arg(a, "passphrase")?).await?;
+        return Ok(Value::Null);
+    }
     let live = ctx.live().await?;
     match name {
         // ---- legal, identity ----
@@ -174,6 +179,18 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             to_json(st)
         }
         "identity_get" => to_json(blk(&live, |c| c.identity().map_err(e)).await?),
+        "identity_protect" => {
+            let mode: hermod_core::keyguard::KeyMode = str_arg(a, "mode")?.parse().map_err(e)?;
+            let pass = opt_str(a, "passphrase");
+            let p = pass.clone();
+            let info = blk(&live, move |c| {
+                c.identity_protect(mode, p.as_deref()).map_err(e)?;
+                c.identity().map_err(e)
+            })
+            .await?;
+            ctx.set_passphrase(pass.filter(|_| mode == hermod_core::keyguard::KeyMode::Passphrase));
+            to_json(info)
+        }
         "profile_set" => {
             let input: ProfileInput =
                 serde_json::from_value(a.clone()).map_err(|x| format!("invalid profile: {x}"))?;

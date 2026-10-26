@@ -11,7 +11,7 @@ vi.mock('../../lib/bridge', async (orig) => ({
   ...(await orig<typeof import('../../lib/bridge')>()),
   getBridge: () => ({
     legalStatus: async () => ({ accepted_version: LEGAL_VERSION }),
-    identityGet: async () => ({ user_id: 'me', handle: 'me1', name: 'Ada' }),
+    identityGet: async () => ({ user_id: 'me', handle: 'me1', name: 'Ada', key_mode: 'file' }),
     blockList: async () => [],
   }),
 }));

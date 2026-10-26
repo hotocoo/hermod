@@ -8,7 +8,9 @@ export interface BlobRef { hash: string; size: number; name: string; mime: strin
 export type Role = 'owner' | 'admin' | 'member' | 'guest';
 export type SpaceKind = 'Team' | 'Community' | 'Friends';
 
-export interface IdentityInfo { user_id: string; handle: string; name: string; bio: string; initials: string; avatar?: BlobRef }
+/** Where the secret key is kept at rest (core `KeyMode`). */
+export type KeyMode = 'file' | 'keychain' | 'passphrase';
+export interface IdentityInfo { user_id: string; handle: string; name: string; bio: string; initials: string; avatar?: BlobRef; key_mode: KeyMode }
 export interface ProfileInput { name: string; bio: string; initials?: string; avatar?: BlobRef }
 export interface LegalStatus { accepted_version: string | null; accepted_at: number | null; share_resources: boolean }
 /** Result of space_create and invite_accept. `label` is the id the UI uses everywhere (`home` for the home space, else hex). */
