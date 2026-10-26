@@ -4,11 +4,13 @@ import type { ArcadeView } from '@/state/arcadeTypes';
 import { kindInfo } from '@/config/arcade';
 import { seatName } from '@/state/vm/arcade';
 import s from '../arcade.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 /** Elo per game kind (K=24, start 1200), computed by the core from finished games. */
 export function Leaderboard({ view, seed, me }: { view: ArcadeView | null; seed: Seed | null; me: string }) {
   const kinds = Object.entries(view?.leaderboard ?? {});
-  if (!seed || !kinds.length) return <p className={s.empty} data-testid="board-empty">No games finished yet. Ratings appear after the first result.</p>;
+  if (!seed || !kinds.length) return <EmptyNote {...COPY.empty.arcadeBoard} testId="board-empty" />;
   return (
     <>
       {kinds.map(([kind, rows]) => (

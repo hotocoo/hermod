@@ -11,6 +11,8 @@ import { useAppStore } from '@/state/store';
 import type { Message } from '@/state/dataTypes';
 import f from '@/components/ui/form.module.css';
 import x from '@/components/chat/messaging.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 /** Forward a message to any joined channel, any direct message, or Saved messages. */
 export function ForwardModal({ msg }: { msg: Message }) {
@@ -26,7 +28,7 @@ export function ForwardModal({ msg }: { msg: Message }) {
         <input className="input" aria-label="Search chats" placeholder="Search chats" value={q} onChange={(e) => setQ(e.target.value)} />
         <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 280, overflow: 'auto' }}>
           {shown.map((t) => <li key={t.key} className={x.listRow}><label className={f.check}><input type="checkbox" checked={picked.includes(t.key)} onChange={() => toggle(t.key)} /> {t.label}</label></li>)}
-          {shown.length === 0 && <li className={x.empty}>No chats match.</li>}
+          {shown.length === 0 && <li><EmptyNote {...COPY.empty.forwardTargets} /></li>}
         </ul>
         <div className={f.actions}>
           <button type="button" className="btn btn-secondary" onClick={st.closeModal}>Cancel</button>

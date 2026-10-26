@@ -31,9 +31,9 @@ export function FreshBuilt({ vm }: VmProps) {
 }
 
 /** Inline empty state for a list inside a panel or card. */
-export function EmptyNote({ title, line }: { title: string; line: string }) {
+export function EmptyNote({ title, line, testId }: { title: string; line: string; testId?: string }) {
   return (
-    <div className={s.emptyNote}>
+    <div className={s.emptyNote} data-testid={testId}>
       <div className={s.emptyNoteTitle}>{title}</div>
       <p className={s.emptyNoteLine}>{line}</p>
     </div>

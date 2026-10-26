@@ -8,6 +8,8 @@ import { Icon } from '@/components/ui/Icon';
 import { CreateGameDialog } from './CreateGameDialog';
 import { joinGame } from './actions';
 import s from './arcade.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 interface Props { view: ArcadeView | null; space: string; me: string; seed: Seed | null; onOpen: (id: string) => void }
 
@@ -62,7 +64,7 @@ export function Lobby({ view, space, me, seed, onOpen }: Props) {
         <span className={s.grow} />
         <button type="button" className="btn btn-primary" onClick={() => setCreating(true)} data-testid="new-game"><Icon name="plus" size={16} />New game</button>
       </div>
-      {none && <p className={s.empty} data-testid="arcade-empty">No games yet. Open the first table and anyone in this Space can sit down.</p>}
+      {none && <EmptyNote {...COPY.empty.arcadeLobby} testId="arcade-empty" />}
       <Group title="Your games" games={g.mine} {...p} />
       <Group title="Open tables" games={g.open} {...p} />
       <Group title="In play" games={g.live} {...p} />

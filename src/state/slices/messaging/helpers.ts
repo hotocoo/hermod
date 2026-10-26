@@ -88,3 +88,9 @@ export function inFolder(f: { include: string[]; types: string[] }, key: string,
   if (f.include.includes(key)) return true;
   return (f.types.includes('dm') && kind.dm && !kind.group) || (f.types.includes('group') && kind.group) || (f.types.includes('space') && !kind.dm) || (f.types.includes('unread') && kind.unread);
 }
+
+/** Threads of one channel split by state, newest activity first (the core already orders them). */
+export function splitThreads<T extends { archived: boolean }>(list: readonly T[] | undefined): { open: T[]; archived: T[] } {
+  const all = list ?? [];
+  return { open: all.filter((t) => !t.archived), archived: all.filter((t) => t.archived) };
+}

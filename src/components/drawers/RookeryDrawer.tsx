@@ -2,13 +2,16 @@ import type { ViewModel } from '@/state/viewModel';
 import chrome from '../ui/chrome.module.css';
 import { DrawerFrame } from './DrawerFrame';
 import s from './RookeryDrawer.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
+import { useAppStore } from '@/state/store';
 
 export function RookeryDrawer({ vm }: { vm: ViewModel }) {
   const { closeDrawer, drawerRook, hasRookUnread, icS, markRookRead, rook, rookEmpty } = vm;
   return drawerRook ? (
     <DrawerFrame label="Rookery" kicker="Rookery" title="What the ravens brought" headGap="md" closeIcon={icS.x} onClose={closeDrawer}>
       {rookEmpty ? (
-        <p className={s.empty}>The rookery is quiet. Ravens land here when someone reaches you.</p>
+        <EmptyNote {...COPY.empty.rookery} />
       ) : null}
       {rook.map((rk, i) => (
         <button className={s.item} style={{ animation: rk.anim }} onClick={rk.onClick} key={i}>
@@ -26,6 +29,7 @@ export function RookeryDrawer({ vm }: { vm: ViewModel }) {
           <span className={chrome.meta}>{rk.t}</span>
         </button>
       ))}
+      <button className={s.markReadBtn} onClick={() => { closeDrawer(); useAppStore.getState().openModal({ kind: 'letter' }); }}>{COPY.letter.compose}</button>
       {hasRookUnread ? (
         <button className={s.markReadBtn} onClick={markRookRead}>Mark all as read</button>
       ) : null}

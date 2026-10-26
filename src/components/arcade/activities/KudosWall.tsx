@@ -6,6 +6,8 @@ import { seatName } from '@/state/vm/arcade';
 import { giveKudos } from '../actions';
 import type { ActivityProps } from './props';
 import s from '../arcade.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 export function KudosWall({ view, space, me, seed }: ActivityProps) {
   const [to, setTo] = useState(''); const [reason, setReason] = useState(''); const [emoji, setEmoji] = useState<string>(KUDOS_EMOJI[0]); const [busy, setBusy] = useState(false);
@@ -24,7 +26,7 @@ export function KudosWall({ view, space, me, seed }: ActivityProps) {
         <div className={f.field}><label className={f.label} htmlFor="kd-r">What for</label><input id="kd-r" className="input" maxLength={ARCADE_LIMITS.kudosReasonMax} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="kudos-reason" /></div>
         <div><button type="submit" className="btn btn-primary" disabled={!to || !reason.trim() || busy} data-testid="kudos-send">Give kudos</button></div>
       </form>
-      {!view?.kudos.length && <p className={s.empty}>The wall is empty. Say thanks to someone.</p>}
+      {!view?.kudos.length && <EmptyNote {...COPY.empty.arcadeKudos} />}
       <ul className={s.list}>{view?.kudos.map((k, i) => (
         <li key={i} className={s.kudo} data-testid="kudos-item"><span className={s.kudoEmoji} aria-hidden="true">{k.emoji}</span><div><div className={s.cardTitle} style={{ whiteSpace: 'normal' }}>{seatName(seed, k.by)} thanked {seatName(seed, k.to)}</div><div className={s.cardMeta}>{k.reason}</div></div></li>
       ))}</ul>

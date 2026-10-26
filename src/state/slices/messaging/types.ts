@@ -39,6 +39,8 @@ export interface MessagingSlice {
   jumpToMessage(space: string, channel: string, id: string): void;
   copyMessageLink(id: string): void; openMessageLink(href: string): boolean;
   pinMessage(id: string): Promise<void>;
+  /** Archive or reopen a thread root (M-042). */
+  setThreadState(space: string, msgId: string, archived: boolean): Promise<void>;
   startDm(users: string[], name?: string): Promise<void>; acceptDm(id: string): Promise<void>; declineDm(id: string): Promise<void>;
   openSaved(): Promise<void>; saveToNotes(m: Message): Promise<void>;
   sendRecording(r: import('../../../lib/messaging/recorder').NoteResult, kind: 'voice' | 'video_note'): Promise<void>;

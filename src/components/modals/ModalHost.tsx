@@ -8,6 +8,7 @@ import { ComposeStoryModal } from './ComposeStoryModal';
 import { ConfirmDialog } from './ConfirmDialog';
 import { InviteModal } from './InviteModal';
 import { JoinModal } from './JoinModal';
+import { LetterModal } from './LetterModal';
 import { LightboxModal } from './LightboxModal';
 import { ForwardModal, GalleryModal, ScheduleModal } from './MessagingModals';
 import { NewSnapshotModal } from './NewSnapshotModal';
@@ -38,6 +39,7 @@ export function ModalHost() {
       {modal?.kind === 'gallery' && <GalleryModal />}
       {modal?.kind === 'schedule' && <ScheduleModal />}
       {modal?.kind === 'channelSettings' && <ChannelSettingsModal space={modal.space} channel={modal.channel} />}
+      {modal?.kind === 'letter' && <LetterModal />}
       {modal?.kind === 'privacy' && <PrivacyModal />}
       {modal?.kind === 'contacts' && <ContactsModal />}
       <PromptDialog />

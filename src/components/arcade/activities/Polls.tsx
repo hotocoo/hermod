@@ -8,6 +8,8 @@ import { seatName } from '@/state/vm/arcade';
 import { closePoll, createPoll, votePoll } from '../actions';
 import type { ActivityProps } from './props';
 import s from '../arcade.module.css';
+import { EmptyNote } from '@/components/panel/EmptyStates';
+import { COPY } from '@/config/copy';
 
 function NewPoll({ space, onClose }: { space: string; onClose: () => void }) {
   const [q, setQ] = useState(''); const [opts, setOpts] = useState(['', '']); const [multi, setMulti] = useState(false); const [anon, setAnon] = useState(false); const [busy, setBusy] = useState(false);
@@ -60,7 +62,7 @@ export function Polls({ view, space, me, seed }: ActivityProps) {
   return (
     <>
       <div className={s.bar}><span className={s.grow} /><button type="button" className="btn btn-primary" onClick={() => setOpen(true)} data-testid="new-poll">New poll</button></div>
-      {!view?.polls.length && <p className={s.empty}>No polls yet. Ask the Space something.</p>}
+      {!view?.polls.length && <EmptyNote {...COPY.empty.arcadePolls} />}
       {seed && <ul className={s.list}>{view?.polls.map((p) => <PollCard key={p.id} p={p} space={space} me={me} seed={seed} />)}</ul>}
       {open && <NewPoll space={space} onClose={() => setOpen(false)} />}
     </>
