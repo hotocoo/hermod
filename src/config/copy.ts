@@ -1,5 +1,14 @@
 /** User-facing strings the state layer writes (toasts, labels). Served from the i18n catalog (src/i18n/en.ts); getters resolve in the active locale at read time. */
 import { t } from '../i18n';
+import { arcadeCopy } from './copyParts/arcade';
+import { arcadeGamesCopy } from './copyParts/arcadeGames';
+import { chatCopy } from './copyParts/chat';
+import { deskCopy } from './copyParts/desk';
+import { modalsCopy } from './copyParts/modals';
+import { panelCopy } from './copyParts/panel';
+import { settingsModalsCopy } from './copyParts/settingsModals';
+import { shellCopy } from './copyParts/shell';
+import { stateMsgsCopy } from './copyParts/stateMsgs';
 
 const MIB = 1048576;
 
@@ -418,5 +427,17 @@ export const COPY = {
     get acceptConfirmBody() { return t('linkedDevices.acceptConfirmBody'); },
     get acceptConfirm() { return t('linkedDevices.acceptConfirm'); },
     get firstOnly() { return t('linkedDevices.firstOnly'); },
+  },
+  /** Per-area copy for component and state strings (src/config/copyParts). */
+  ui: {
+    settingsModals: settingsModalsCopy,
+    modals: modalsCopy,
+    arcadeGames: arcadeGamesCopy,
+    arcade: arcadeCopy,
+    chat: chatCopy,
+    desk: deskCopy,
+    panel: panelCopy,
+    shell: shellCopy,
+    stateMsgs: stateMsgsCopy,
   },
 };

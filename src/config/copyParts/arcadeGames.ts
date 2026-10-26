@@ -1,0 +1,127 @@
+/** COPY.ui.arcadeGames: getters/functions over the ui.arcadeGames.* catalog keys (W-007). */
+import { t } from '../../i18n';
+
+/** Select-flag encoding for boolean ICU arguments. */
+const yn = (b: boolean): string => (b ? 'y' : 'n');
+
+export const arcadeGamesCopy = {
+  battleship: {
+    get fleetReady() { return t('ui.arcadeGames.battleship.fleetReady'); },
+    place: (ship: string, size: number) => t('ui.arcadeGames.battleship.place', { ship, size }),
+    get yourFleet() { return t('ui.arcadeGames.battleship.yourFleet'); },
+    get horizontal() { return t('ui.arcadeGames.battleship.horizontal'); },
+    get vertical() { return t('ui.arcadeGames.battleship.vertical'); },
+    get randomize() { return t('ui.arcadeGames.battleship.randomize'); },
+    get clear() { return t('ui.arcadeGames.battleship.clear'); },
+    get sealFleet() { return t('ui.arcadeGames.battleship.sealFleet'); },
+    placeCell: (cell: string, ship: boolean) => t('ui.arcadeGames.battleship.placeCell', { cell, ship: yn(ship) }),
+    get sealedWaiting() { return t('ui.arcadeGames.battleship.sealedWaiting'); },
+    get waitingBoth() { return t('ui.arcadeGames.battleship.waitingBoth'); },
+    fireAt: (name: string) => t('ui.arcadeGames.battleship.fireAt', { name }),
+    shotsOf: (name: string) => t('ui.arcadeGames.battleship.shotsOf', { name }),
+    get enemyWaters() { return t('ui.arcadeGames.battleship.enemyWaters'); },
+    get yourWaters() { return t('ui.arcadeGames.battleship.yourWaters'); },
+    targetNotFired: (cell: string) => t('ui.arcadeGames.battleship.targetNotFired', { cell }),
+    targetPending: (cell: string) => t('ui.arcadeGames.battleship.targetPending', { cell }),
+    targetResult: (cell: string, res: string) => t('ui.arcadeGames.battleship.targetResult', { cell, res }),
+    ownCell: (cell: string, ship: boolean, fired: boolean) => t('ui.arcadeGames.battleship.ownCell', { cell, ship: yn(ship), fired: yn(fired) }),
+    get revealing() { return t('ui.arcadeGames.battleship.revealing'); },
+  },
+  checkers: {
+    get board() { return t('ui.arcadeGames.checkers.board'); },
+    get cancel() { return t('ui.arcadeGames.checkers.cancel'); },
+    piece: (dark: boolean, king: boolean) => t('ui.arcadeGames.checkers.piece', { dark: yn(dark), king: yn(king) }),
+    square: (name: string, piece: string, active: boolean, landing: boolean) =>
+      t('ui.arcadeGames.checkers.square', { name, hasPiece: yn(piece !== ''), piece, active: yn(active), landing: yn(landing) }),
+  },
+  chess: {
+    get board() { return t('ui.arcadeGames.chess.board'); },
+    get promoteTo() { return t('ui.arcadeGames.chess.promoteTo'); },
+    piece: (kind: string) => t('ui.arcadeGames.chess.piece', { kind }),
+    colored: (white: boolean, piece: string) => t('ui.arcadeGames.chess.colored', { white: yn(white), piece }),
+    square: (sq: string, piece: string, selected: boolean, legal: boolean) =>
+      t('ui.arcadeGames.chess.square', { sq, hasPiece: yn(piece !== ''), piece, selected: yn(selected), legal: yn(legal) }),
+    get check() { return t('ui.arcadeGames.chess.check'); },
+  },
+  connect4: {
+    get board() { return t('ui.arcadeGames.connect4.board'); },
+    column: (n: number, full: boolean, free: number, last: boolean) => t('ui.arcadeGames.connect4.column', { n, full: yn(full), free, last: yn(last) }),
+  },
+  go: {
+    get board() { return t('ui.arcadeGames.go.board'); },
+    cell: (label: string, stone: 'empty' | 'black' | 'white', last: boolean) => t('ui.arcadeGames.go.cell', { label, stone, last: yn(last) }),
+    get pass() { return t('ui.arcadeGames.go.pass'); },
+    status: (capBlack: number, capWhite: number, scoreBlack: number, scoreWhite: number, komi: number, passed: boolean) =>
+      t('ui.arcadeGames.go.status', { capBlack, capWhite, scoreBlack, scoreWhite, komi, passed: yn(passed) }),
+  },
+  pictionary: {
+    start: (rounds: number) => t('ui.arcadeGames.pictionary.start', { rounds }),
+    get waitingHost() { return t('ui.arcadeGames.pictionary.waitingHost'); },
+    /** `round`/`left` of 0 or less omit their segment. */
+    drawStatus: (iDraw: boolean, name: string, hasRound: boolean, n: number, of: number, left: number) =>
+      t('ui.arcadeGames.pictionary.drawStatus', { iDraw: yn(iDraw), name, hasRound: yn(hasRound), n, of, hasLeft: yn(left > 0), left }),
+    get pickWord() { return t('ui.arcadeGames.pictionary.pickWord'); },
+    get wordWas() { return t('ui.arcadeGames.pictionary.wordWas'); },
+    get canvas() { return t('ui.arcadeGames.pictionary.canvas'); },
+    get brush() { return t('ui.arcadeGames.pictionary.brush'); },
+    colour: (c: string) => t('ui.arcadeGames.pictionary.colour', { c }),
+    get clear() { return t('ui.arcadeGames.pictionary.clear'); },
+    get yourGuess() { return t('ui.arcadeGames.pictionary.yourGuess'); },
+    get guess() { return t('ui.arcadeGames.pictionary.guess'); },
+    get guessedIt() { return t('ui.arcadeGames.pictionary.guessedIt'); },
+    get scores() { return t('ui.arcadeGames.pictionary.scores'); },
+  },
+  reaction: {
+    get waitGreen() { return t('ui.arcadeGames.reaction.waitGreen'); },
+    get tapNow() { return t('ui.arcadeGames.reaction.tapNow'); },
+    get tooEarly() { return t('ui.arcadeGames.reaction.tooEarly'); },
+    ms: (ms: number) => t('ui.arcadeGames.reaction.ms', { ms: String(ms) }),
+    get finished() { return t('ui.arcadeGames.reaction.finished'); },
+    get startWhenSeated() { return t('ui.arcadeGames.reaction.startWhenSeated'); },
+    get waitingHost() { return t('ui.arcadeGames.reaction.waitingHost'); },
+    startRace: (rounds: number) => t('ui.arcadeGames.reaction.startRace', { rounds }),
+    round: (n: number, of: number) => t('ui.arcadeGames.reaction.round', { n, of }),
+    get standings() { return t('ui.arcadeGames.reaction.standings'); },
+    get player() { return t('ui.arcadeGames.reaction.player'); },
+    get lastTap() { return t('ui.arcadeGames.reaction.lastTap'); },
+    get points() { return t('ui.arcadeGames.reaction.points'); },
+    get falseStart() { return t('ui.arcadeGames.reaction.falseStart'); },
+    final: (list: string) => t('ui.arcadeGames.reaction.final', { list }),
+  },
+  tictactoe: {
+    get board() { return t('ui.arcadeGames.tictactoe.board'); },
+    cellEmpty: (n: number) => t('ui.arcadeGames.tictactoe.cellEmpty', { n }),
+    cellMark: (n: number, mark: string) => t('ui.arcadeGames.tictactoe.cellMark', { n, mark }),
+  },
+  trivia: {
+    question: (n: number) => t('ui.arcadeGames.trivia.question', { n }),
+    optionCorrect: (k: number) => t('ui.arcadeGames.trivia.optionCorrect', { k }),
+    questionOption: (i: number, k: number) => t('ui.arcadeGames.trivia.questionOption', { i, k }),
+    get addQuestion() { return t('ui.arcadeGames.trivia.addQuestion'); },
+    get startRush() { return t('ui.arcadeGames.trivia.startRush'); },
+    get waitingHost() { return t('ui.arcadeGames.trivia.waitingHost'); },
+    progress: (n: number, of: number) => t('ui.arcadeGames.trivia.progress', { n, of }),
+    get answers() { return t('ui.arcadeGames.trivia.answers'); },
+    get scores() { return t('ui.arcadeGames.trivia.scores'); },
+  },
+  wordDuel: {
+    tileFeedback: (letter: string, code: string) => t('ui.arcadeGames.wordDuel.tileFeedback', { letter, code }),
+    tilePending: (letter: string) => t('ui.arcadeGames.wordDuel.tilePending', { letter }),
+    get tileEmpty() { return t('ui.arcadeGames.wordDuel.tileEmpty'); },
+    get secretLabel() { return t('ui.arcadeGames.wordDuel.secretLabel'); },
+    get hashNote() { return t('ui.arcadeGames.wordDuel.hashNote'); },
+    get sealWord() { return t('ui.arcadeGames.wordDuel.sealWord'); },
+    get sealedWaiting() { return t('ui.arcadeGames.wordDuel.sealedWaiting'); },
+    get waitingBoth() { return t('ui.arcadeGames.wordDuel.waitingBoth'); },
+    guessesAt: (mine: boolean, name: string) => t('ui.arcadeGames.wordDuel.guessesAt', { mine: yn(mine), name }),
+    get yourGuess() { return t('ui.arcadeGames.wordDuel.yourGuess'); },
+    get guess() { return t('ui.arcadeGames.wordDuel.guess'); },
+    get yourWord() { return t('ui.arcadeGames.wordDuel.yourWord'); },
+    get feedbackNote() { return t('ui.arcadeGames.wordDuel.feedbackNote'); },
+    get revealing() { return t('ui.arcadeGames.wordDuel.revealing'); },
+    words: (list: string) => t('ui.arcadeGames.wordDuel.words', { list }),
+  },
+  wordDuelGameText: {
+    get empty() { return t('ui.arcadeGames.wordDuelGameText.empty'); },
+  },
+};
