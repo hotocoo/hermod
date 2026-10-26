@@ -1576,3 +1576,429 @@ fn an_unnamed_dm_shows_the_other_person_on_both_sides_even_before_accept() {
         assert_eq!(sp.group, Some(false), "a 1:1 dm is never a group");
     }
 }
+
+// ---- tests for the DONE-NEEDS-TEST audit rows (docs/FEATURES.md Acceptance) ----
+
+/// A-016: pin is author-or-admin at the fold, toggles, and ignores removed messages.
+#[test]
+fn pin_needs_author_or_admin_and_toggles() {
+    let mut w = world();
+    w.log.push(
+        &w.bea,
+        NOW - 10 * MIN,
+        post("general", "m1", "pin me", None, vec![]),
+    );
+    w.log.push(
+        &w.bea,
+        NOW - 9 * MIN,
+        post("general", "m2", "mine too", None, vec![]),
+    );
+    // Owner pins Bea's message.
+    w.log.push(
+        &w.ada,
+        NOW - 8 * MIN,
+        EventBody::MessagePin {
+            msg_id: "m1".into(),
+        },
+    );
+    // A member who is neither author nor admin cannot pin Bea's m2.
+    w.log.push(
+        &w.cai,
+        NOW - 7 * MIN,
+        EventBody::MessagePin {
+            msg_id: "m2".into(),
+        },
+    );
+    // The author can pin her own.
+    w.log.push(
+        &w.bea,
+        NOW - 6 * MIN,
+        EventBody::MessagePin {
+            msg_id: "m2".into(),
+        },
+    );
+    let msgs = w.msgs(w.ada, "general");
+    assert!(msgs[0].pinned.unwrap_or(false), "admin pinned m1");
+    assert!(msgs[1].pinned.unwrap_or(false), "author pinned m2");
+
+    // A second pin toggles it back off.
+    let mut w2 = world();
+    w2.log.push(
+        &w2.bea,
+        NOW - 10 * MIN,
+        post("general", "m1", "pin me", None, vec![]),
+    );
+    w2.log.push(
+        &w2.ada,
+        NOW - 8 * MIN,
+        EventBody::MessagePin {
+            msg_id: "m1".into(),
+        },
+    );
+    w2.log.push(
+        &w2.ada,
+        NOW - 7 * MIN,
+        EventBody::MessagePin {
+            msg_id: "m1".into(),
+        },
+    );
+    assert!(
+        !w2.msgs(w2.ada, "general")[0].pinned.unwrap_or(false),
+        "pin toggles"
+    );
+
+    // A forged pin of a removed message changes nothing.
+    let mut w3 = world();
+    w3.log.push(
+        &w3.bea,
+        NOW - 10 * MIN,
+        post("general", "m1", "gone", None, vec![]),
+    );
+    w3.log.push(
+        &w3.bea,
+        NOW - 9 * MIN,
+        EventBody::MessageDelete {
+            msg_id: "m1".into(),
+        },
+    );
+    w3.log.push(
+        &w3.ada,
+        NOW - 8 * MIN,
+        EventBody::MessagePin {
+            msg_id: "m1".into(),
+        },
+    );
+    let tomb = w3.msgs(w3.ada, "general")[0].clone();
+    assert!(
+        tomb.removed.is_some() && !tomb.pinned.unwrap_or(false),
+        "tombstones do not pin"
+    );
+}
+
+/// A-016: the pin reaches the other peer through sync, both directions.
+#[test]
+fn pin_syncs_between_two_cores() {
+    let (_da, a, _db, b, shared) = shared_space();
+    a.append(&shared, post("general", "m1", "pin me", None, vec![]))
+        .unwrap();
+    sync(&a, &b, &shared);
+    a.append(
+        &shared,
+        EventBody::MessagePin {
+            msg_id: "m1".into(),
+        },
+    )
+    .unwrap();
+    sync(&a, &b, &shared);
+    let pinned = |c: &Core| {
+        let s: Snapshot = serde_json::from_value(c.snapshot().unwrap()).unwrap();
+        s.collections.messages[&format!("{shared}/general")][0]
+            .pinned
+            .unwrap_or(false)
+    };
+    assert!(pinned(&a) && pinned(&b), "the pin synced");
+    a.append(
+        &shared,
+        EventBody::MessagePin {
+            msg_id: "m1".into(),
+        },
+    )
+    .unwrap();
+    sync(&a, &b, &shared);
+    assert!(!pinned(&a) && !pinned(&b), "the unpin synced too");
+}
+
+/// M-014 / M-016: gif needs an attachment; video_note needs attachment plus voice meta,
+/// and its duration is clamped like voice.
+#[test]
+fn gif_and_video_note_kinds_follow_their_requirements() {
+    let mut w = world();
+    let gif_ok = MsgExt {
+        kind: Some("gif".into()),
+        ..MsgExt::default()
+    };
+    let gif_no_att = MsgExt {
+        kind: Some("gif".into()),
+        ..MsgExt::default()
+    };
+    let video_ok = MsgExt {
+        kind: Some("video_note".into()),
+        voice: Some(VoiceMeta {
+            dur_ms: 9_999_999,
+            peaks: vec![3; 10],
+        }),
+        ..MsgExt::default()
+    };
+    let video_no_voice = MsgExt {
+        kind: Some("video_note".into()),
+        ..MsgExt::default()
+    };
+    let video_no_att = MsgExt {
+        kind: Some("video_note".into()),
+        voice: Some(VoiceMeta {
+            dur_ms: 1_000,
+            peaks: vec![],
+        }),
+        ..MsgExt::default()
+    };
+    w.log.push(
+        &w.bea,
+        NOW - 10 * MIN,
+        post(
+            "general",
+            "g1",
+            "",
+            Some(gif_ok),
+            vec![blob("g.gif", "image/gif")],
+        ),
+    );
+    w.log.push(
+        &w.bea,
+        NOW - 9 * MIN,
+        post("general", "g2", "gifless", Some(gif_no_att), vec![]),
+    );
+    w.log.push(
+        &w.bea,
+        NOW - 8 * MIN,
+        post(
+            "general",
+            "v1",
+            "",
+            Some(video_ok),
+            vec![blob("v.webm", "video/webm")],
+        ),
+    );
+    w.log.push(
+        &w.bea,
+        NOW - 7 * MIN,
+        post(
+            "general",
+            "v2",
+            "silent",
+            Some(video_no_voice),
+            vec![blob("v.webm", "video/webm")],
+        ),
+    );
+    w.log.push(
+        &w.bea,
+        NOW - 6 * MIN,
+        post("general", "v3", "no file", Some(video_no_att), vec![]),
+    );
+    let msgs = w.msgs(w.ada, "general");
+    assert_eq!(msgs[0].ext.as_ref().unwrap().kind.as_deref(), Some("gif"));
+    assert_eq!(
+        msgs[1].ext.as_ref().unwrap().kind,
+        None,
+        "gif without attachment dropped"
+    );
+    let v = msgs[2].ext.as_ref().unwrap();
+    assert_eq!(v.kind.as_deref(), Some("video_note"));
+    assert_eq!(
+        v.voice.as_ref().unwrap().dur_ms,
+        600_000,
+        "duration clamped"
+    );
+    assert_eq!(
+        msgs[3].ext.as_ref().unwrap().kind,
+        None,
+        "video_note without voice meta dropped"
+    );
+    assert_eq!(
+        msgs[4].ext.as_ref().unwrap().kind,
+        None,
+        "video_note without attachment dropped"
+    );
+}
+
+/// M-014: the My GIFs list round-trips through chat preferences.
+#[test]
+fn chat_prefs_gifs_list_round_trips() {
+    let (_d, c) = core();
+    let gif = serde_json::json!({ "hash": "ab".repeat(32), "size": 9, "name": "g.gif", "mime": "image/gif" });
+    let after = c
+        .chat_prefs_set(&serde_json::json!({ "gifs": [gif] }))
+        .unwrap();
+    assert_eq!(after["gifs"].as_array().unwrap().len(), 1);
+    let got = c.chat_prefs_get().unwrap();
+    assert_eq!(
+        got["gifs"][0]["name"], "g.gif",
+        "the list survives a reload"
+    );
+    let cleared = c
+        .chat_prefs_set(&serde_json::json!({ "gifs": [] }))
+        .unwrap();
+    assert!(cleared["gifs"].as_array().unwrap().is_empty());
+}
+
+/// M-019: a link preview carried by the sender survives the fold and reaches every peer.
+#[test]
+fn link_preview_carried_by_the_sender_projects() {
+    let mut w = world();
+    let body = with(
+        post("general", "m1", "look: https://example.com", None, vec![]),
+        |b| {
+            if let EventBody::MessagePost { preview, .. } = b {
+                *preview = Some(LinkPreview {
+                    url: "https://example.com".into(),
+                    title: "Example".into(),
+                    description: "A domain".into(),
+                    image: None,
+                });
+            }
+        },
+    );
+    w.log.push(&w.bea, NOW - MIN, body);
+    let m = &w.msgs(w.ada, "general")[0];
+    let p = m.preview.as_ref().expect("the preview projected");
+    assert_eq!(
+        (p.url.as_str(), p.title.as_str()),
+        ("https://example.com", "Example")
+    );
+}
+
+/// M-020: an in-chat poll message keeps its kind only with the poll id.
+#[test]
+fn poll_kind_requires_the_poll_id() {
+    let mut w = world();
+    let with_id = MsgExt {
+        kind: Some("poll".into()),
+        poll: Some("p1".into()),
+        ..MsgExt::default()
+    };
+    let without = MsgExt {
+        kind: Some("poll".into()),
+        ..MsgExt::default()
+    };
+    w.log.push(
+        &w.ada,
+        NOW - 3 * MIN,
+        post("general", "p1", "Vote", Some(with_id), vec![]),
+    );
+    w.log.push(
+        &w.ada,
+        NOW - 2 * MIN,
+        post("general", "p2", "Orphan", Some(without), vec![]),
+    );
+    let msgs = w.msgs(w.ada, "general");
+    let x = msgs[0].ext.as_ref().unwrap();
+    assert_eq!(
+        (x.kind.as_deref(), x.poll.as_deref()),
+        (Some("poll"), Some("p1"))
+    );
+    assert_eq!(
+        msgs[1].ext.as_ref().unwrap().kind,
+        None,
+        "poll without id dropped"
+    );
+}
+
+/// M-028: a group DM spans three peers: group flag, default name, and one shared message.
+#[test]
+fn group_dm_three_peers_sync_with_group_flag() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let (_dc, c) = core();
+    let sid = a.space_create("Trio", "", "Team").unwrap().id;
+    for peer in [&b, &c] {
+        peer.invite_accept(&a.invite_create(&sid, None, vec![]).unwrap().code)
+            .unwrap();
+    }
+    for peer in [&b, &c] {
+        sync(&a, peer, &sid);
+        sync(peer, &a, &sid);
+    }
+
+    let started = a
+        .dm_start(&[b.user_id(), c.user_id()], None, vec![])
+        .unwrap();
+    assert!(!started.existing);
+    let dm: SpaceId = started.summary.space_id.parse().unwrap();
+    assert_eq!(started.summary.name, "Group", "the default group name");
+    // Recipients see requests and accept: the carrier invites live in the shared space.
+    for peer in [&b, &c] {
+        for (space, evs) in &started.events {
+            if *space == sid {
+                for e in evs {
+                    peer.ingest_sync(e.clone()).unwrap();
+                }
+            }
+        }
+        let reqs = peer.dm_requests().unwrap();
+        assert_eq!(reqs.len(), 1, "one request each");
+        let joined = peer.dm_accept(&reqs[0].id).unwrap();
+        assert_eq!(joined.id, dm);
+        for e in joined.events {
+            a.ingest_sync(e).unwrap();
+        }
+    }
+    for peer in [&b, &c] {
+        sync(&a, peer, &dm);
+        sync(peer, &a, &dm);
+    }
+    a.append(&dm, post("general", "hi", "group hello", None, vec![]))
+        .unwrap();
+    for peer in [&b, &c] {
+        sync(&a, peer, &dm);
+    }
+    for peer in [&a, &b, &c] {
+        let s: Snapshot = serde_json::from_value(peer.snapshot().unwrap()).unwrap();
+        let space = s.spaces.iter().find(|x| x.id == dm.to_string()).unwrap();
+        assert_eq!(space.kind, "dm");
+        assert_eq!(space.group, Some(true), "the group flag reached everyone");
+        assert_eq!(space.name, "Group");
+        assert_eq!(
+            s.collections.messages[&format!("{dm}/general")][0].text,
+            "group hello"
+        );
+    }
+
+    // Size bounds answer before any contact lookup.
+    assert!(
+        a.dm_start(&[], None, vec![]).is_err(),
+        "no recipients rejected"
+    );
+    let many: Vec<UserId> = (0..16).map(|_| user().1).collect();
+    assert!(
+        a.dm_start(&many, None, vec![]).is_err(),
+        "16 recipients rejected"
+    );
+}
+
+/// M-031: saving a message lands in the local home/saved channel and survives a reload.
+#[test]
+fn saved_messages_land_in_home_saved_and_stay_local() {
+    let (_da, a, _db, b, shared) = shared_space();
+    a.append(&shared, post("general", "m1", "keep this", None, vec![]))
+        .unwrap();
+    sync(&a, &b, &shared);
+    let (label, ch, evs) = a.saved_open().unwrap();
+    assert_eq!((label.as_str(), ch.as_str()), ("home", "saved"));
+    assert_eq!(evs.len(), 1, "the channel is created on first open");
+    let home = a.resolve_space("home").unwrap();
+    let fwd = with(post("saved", "s1", "keep this", None, vec![]), |e| {
+        if let EventBody::MessagePost { ext, .. } = e {
+            *ext = Some(Box::new(MsgExt {
+                fwd: Some(Forward {
+                    by: b.user_id().to_string(),
+                    ts: 5,
+                    origin: format!("{shared}/general"),
+                }),
+                ..MsgExt::default()
+            }));
+        }
+    });
+    a.append(&home, fwd).unwrap();
+    let s: Snapshot = serde_json::from_value(a.snapshot().unwrap()).unwrap();
+    let saved = &s.collections.messages[&"home/saved".to_string()];
+    assert_eq!(saved[0].text, "keep this");
+    assert_eq!(
+        saved[0].ext.as_ref().unwrap().fwd.as_ref().unwrap().by,
+        b.user_id().to_string()
+    );
+    // The home space is device-local: B never sees A's saved channel.
+    let sb: Snapshot = serde_json::from_value(b.snapshot().unwrap()).unwrap();
+    assert!(
+        !sb.collections.messages.contains_key("home/saved"),
+        "saved is local to A"
+    );
+}

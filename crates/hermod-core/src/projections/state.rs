@@ -879,7 +879,13 @@ impl SpaceState {
                 }
             }
             EventBody::MessagePin { msg_id } => {
-                if let Some(m) = self.msg_mut(msg_id) {
+                // Same floor as the UI: only the author or an admin pins; a forged event from
+                // another member changes nothing on any peer.
+                let admin = my_role >= Some(Role::Admin);
+                if let Some(m) = self
+                    .msg_mut(msg_id)
+                    .filter(|m| m.removed.is_none() && (m.by == by || admin))
+                {
                     m.pinned = !m.pinned;
                 }
             }
