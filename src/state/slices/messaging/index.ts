@@ -262,7 +262,10 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
     notePresence: (from, away) => {
       if (!get().privacy.presence) return;
       const now = Date.now();
-      set((x) => ({ presence: notePresence(x.presence, from, away, now), lastSeen: noteSeen(x.lastSeen, from, now) }));
+      set((x) => {
+        const presence = notePresence(x.presence, from, away, now); const lastSeen = noteSeen(x.lastSeen, from, now);
+        return presence === x.presence && lastSeen === x.lastSeen ? x : { presence, lastSeen };
+      });
     },
     dropPresence: (from) => set((x) => ({ presence: dropPresence(x.presence, from) })), // M-026: offline packet, last seen is kept
     sweepPresence: () => { const p = get().presence; const n = sweepPresence(p, Date.now(), PRESENCE.ttlMs); if (n !== p) set({ presence: n }); },

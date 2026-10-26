@@ -176,5 +176,7 @@ export const PRESENCE = {
   everyMs: 20_000, // beacon refresh, well under ttlMs so one lost beacon does not flap the dot
   ttlMs: 60_000, // a peer unseen this long is offline (FEATURES P-001)
   idleMs: 300_000, // no input this long means away (FEATURES P-004)
+  refreshMs: 10_000, // an unchanged beacon inside this window is ignored (no store churn); must stay well under ttlMs
+  lastSeenMax: 500, // peers kept for "last seen"; the oldest are evicted past this
   inputEvents: ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const, // pointermove omitted: too frequent
 } as const;
