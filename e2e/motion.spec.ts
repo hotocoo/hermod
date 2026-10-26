@@ -33,7 +33,9 @@ async function setMotionOverride(page: Page, mode: 'system' | 'reduce' | 'full')
   // Exact: 'Space settings' and 'Privacy and chat settings' also contain 'Settings'.
   await toIsland(page);
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
-  const drawer = page.getByRole('dialog', { name: /Settings/ });
+  await page.getByRole('button', { name: 'App settings' }).click();
+  const drawer = page.getByRole('dialog', { name: /App settings/ });
+  await drawer.getByRole('tab', { name: 'Appearance' }).click();
   await drawer.getByLabel('Reduced motion').selectOption(mode);
   await drawer.getByRole('button', { name: 'Close' }).click();
   await expect(async () => { await enterSection(page, 'chat'); }).toPass({ timeout: 90_000 });
