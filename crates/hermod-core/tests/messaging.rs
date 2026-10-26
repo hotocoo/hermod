@@ -1007,6 +1007,12 @@ fn snapshot_carries_only_the_newest_window_and_older_pages_follow() {
         format!("w{extra}"),
         "the oldest are the ones left out"
     );
+    assert!(
+        w.msgs(w.ada, "general")
+            .iter()
+            .all(|m| m.ts.is_some_and(|t| t > 0)),
+        "each message carries its send time"
+    );
     let first_lp = w.msgs(w.ada, "general")[0].ext.as_ref().unwrap().lp;
     let mut c = ctx(w.ada);
     c.now_ms = NOW;

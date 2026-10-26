@@ -443,6 +443,7 @@ impl<'a> World<'a> {
             }),
             blocked: self.ctx.blocks.contains(&m.by).then_some(true),
             arrival: Some(m.arrival),
+            ts: Some(m.ts),
             ext: None,
         }
     }

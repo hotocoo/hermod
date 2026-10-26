@@ -46,6 +46,8 @@ export const COPY = {
   storyReplyUnavailable: 'This story cannot take replies yet.',
   joined: (space: string) => `You joined ${space}.`,
   fileTooLarge: (name: string, max: number) => `${name} is over the ${Math.round(max / 1048576)} MiB limit.`,
+  notifyMoreTitle: 'Hermod',
+  notifyMore: (n: number) => `${n} more new messages`,
   linkRealHost: (host: string) => ` (links to ${host})`,
   liveFull: 'This live stream is at its viewer limit.',
   liveNote: 'Your camera and microphone go to viewers directly from this device, so a stream is limited to a small audience. Everyone in the Space can join the live chat.',

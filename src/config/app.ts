@@ -58,7 +58,10 @@ export const TIMING = {
 } as const;
 
 /** OS notification timing: reminder lead, how often due reminders are looked for, and how long after a notification a window focus counts as clicking it. */
-export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000 } as const;
+export const NOTIFY = { reminderLeadMin: 5, reminderCheckMs: 30_000, clickWindowMs: 20_000, burstMax: 3 } as const; // burstMax: OS notifications per snapshot apply; the rest fold into one summary
+
+/** Arrivals: how far a peer's clock may trail ours before its message counts as pre-session backfill rather than live. */
+export const ARRIVALS = { clockSkewMs: 300_000 } as const;
 
 export const TOAST_MS = { standard: 3600, storyReply: 3000, profileSaved: 2600, postcard: 3200 } as const;
 
