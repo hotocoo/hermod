@@ -66,18 +66,27 @@ test('thread list: archive and reopen a thread (M-042)', async () => {
   await a.getByRole('textbox', { name: 'Reply in the margin' }).fill('reply for the list');
   await a.keyboard.press('Enter');
   await a.getByRole('button', { name: 'Close thread' }).click();
+  // Only the thread root's author or an admin may archive (core authz), so Ada acts and Bo watches the state sync.
+  await a.getByRole('button', { name: /^Threads \(/ }).click();
   await b.getByRole('button', { name: /^Threads \(/ }).click();
-  const list = b.getByRole('region', { name: 'Threads' });
-  const rowOf = () => list.getByRole('listitem').filter({ hasText: root });
-  await expect(rowOf()).toContainText('1 reply', { timeout: 45_000 });
-  await rowOf().getByRole('button', { name: 'Archive' }).click();
-  await expect(rowOf()).toBeHidden({ timeout: 30_000 });
-  await list.getByRole('tab', { name: /^Archived/ }).click();
-  await expect(rowOf()).toBeVisible({ timeout: 30_000 });
-  await rowOf().getByRole('button', { name: 'Reopen' }).click();
-  await expect(rowOf()).toBeHidden({ timeout: 30_000 });
-  await list.getByRole('tab', { name: /^Open/ }).click();
-  await expect(rowOf()).toBeVisible({ timeout: 30_000 });
+  const listOf = (p: Page) => p.getByRole('region', { name: 'Threads' });
+  const rowOf = (p: Page) => listOf(p).getByRole('listitem').filter({ hasText: root });
+  await expect(rowOf(b)).toContainText('1 reply', { timeout: 45_000 });
+  await rowOf(a).getByRole('button', { name: 'Archive' }).click();
+  await expect(rowOf(a)).toBeHidden({ timeout: 30_000 });
+  await expect(rowOf(b)).toBeHidden({ timeout: 45_000 });
+  await listOf(a).getByRole('tab', { name: /^Archived/ }).click();
+  await listOf(b).getByRole('tab', { name: /^Archived/ }).click();
+  await expect(rowOf(a)).toBeVisible({ timeout: 30_000 });
+  await expect(rowOf(b)).toBeVisible({ timeout: 45_000 });
+  await rowOf(a).getByRole('button', { name: 'Reopen' }).click();
+  await expect(rowOf(a)).toBeHidden({ timeout: 30_000 });
+  await expect(rowOf(b)).toBeHidden({ timeout: 45_000 });
+  await listOf(a).getByRole('tab', { name: /^Open/ }).click();
+  await listOf(b).getByRole('tab', { name: /^Open/ }).click();
+  await expect(rowOf(a)).toBeVisible({ timeout: 30_000 });
+  await expect(rowOf(b)).toBeVisible({ timeout: 45_000 });
+  await a.keyboard.press('Escape');
   await b.keyboard.press('Escape');
 });
 
@@ -355,12 +364,13 @@ test('long history: a palette hit jumps to a message folded out of the window, a
     await invoke(DEVHOST_B, 'event_append', { spaceId: sp, body: { t: 'message.post', channel_id, msg_id: `bulk-${Date.now().toString(36)}-${i}`, text: i === 0 ? `${word} first of the long history` : `long history ${i}`, attachments: [] } });
   }
   await enterSection(b, 'chat');
+  await b.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: chanName }).click(); // the blocked-person test left Bo in general
   await expect(b.locator(`article:has-text("long history ${total - 1}")`)).toBeVisible({ timeout: 60_000 });
   await expect(article(b, word)).toHaveCount(0);
 
   await b.keyboard.press('Control+k');
   await b.getByPlaceholder(/Search people, channels/).fill(word);
-  await b.getByRole('listbox', { name: 'Results' }).getByRole('option').filter({ hasText: word }).first().click({ timeout: 45_000 });
+  await b.getByRole('listbox', { name: 'Results' }).getByRole('option').filter({ hasText: `${word} first of the long history` }).first().click({ timeout: 45_000 }); // the "See all results" row carries the word too and shows before the hit arrives
   await expect(article(b, word)).toBeInViewport({ timeout: 15_000 });
 
   // Reopen the channel so the window folds again, then widen it from the top.
