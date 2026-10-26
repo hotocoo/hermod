@@ -14,7 +14,6 @@ pub mod local_ai;
 pub mod messaging_api;
 pub mod notify;
 pub mod preview;
-pub mod restore;
 pub mod scheduler;
 pub mod settings;
 mod shell;

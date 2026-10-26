@@ -17,6 +17,7 @@ export const en = {
   'comments.send': 'Post',
   'comments.dropped': 'The comment did not land. The post may have been deleted, or you cannot comment here.',
   'syncPending': '{state, select, offline {{n} to sync, offline} alone {{n} saved here, no peer online} other {{n} to sync}}',
+  'ownSeqHold': 'Waiting to sync with the Space before you can post',
   'syncPendingTitle': 'Changes made here that other peers have not received yet',
   'netBanned': 'Banned for flooding',
   'netEventRate': 'Events per second from one person',

@@ -1041,6 +1041,10 @@ fn migrations_upgrade_old_schema_and_report_corruption() {
     use hermod_core::migrations;
     let d = tempfile::tempdir().unwrap();
     let db = d.path().join(hermod_core::api::DB_FILE);
+    // An install always has its key beside the database; open refuses a database without one.
+    hermod_core::identity::Identity::generate()
+        .save(&d.path().join(hermod_core::identity::KEY_FILE))
+        .unwrap();
     {
         let mut conn = rusqlite::Connection::open(&db).unwrap();
         migrations::migrate_to(&mut conn, 1).unwrap();
@@ -1084,6 +1088,11 @@ fn migrations_upgrade_old_schema_and_report_corruption() {
     ));
     let bad_dir = tempfile::tempdir().unwrap();
     std::fs::copy(&bad, bad_dir.path().join(hermod_core::api::DB_FILE)).unwrap();
+    std::fs::copy(
+        d.path().join(hermod_core::identity::KEY_FILE),
+        bad_dir.path().join(hermod_core::identity::KEY_FILE),
+    )
+    .unwrap();
     assert!(matches!(Core::open(bad_dir.path()), Err(Error::Corrupt(_))));
 }
 

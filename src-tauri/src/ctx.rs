@@ -379,13 +379,10 @@ impl Ctx {
         // A passphrase-sealed or unreadable key (keychain entry gone, access denied) must not
         // stop the app starting: it comes up limited, with restore and reset still available.
         let (d, u) = (dir.clone(), unlock.clone());
-        // Finish or undo a restore the app died in, before anything opens (or creates) the data.
-        let opened = tokio::task::spawn_blocking(move || {
-            crate::restore::recover(&d).map_err(|e| format!("cannot recover your data: {e}"))?;
-            open_live(&d, &u)
-        })
-        .await
-        .map_err(|e| e.to_string())?;
+        // `Core::open` finishes or undoes a restore the app died in before it reads anything.
+        let opened = tokio::task::spawn_blocking(move || open_live(&d, &u))
+            .await
+            .map_err(|e| e.to_string())?;
         let (live, limited) = match opened {
             Ok(l) => (Some(l), None),
             Err(msg) if is_limited(&msg) => (None, Some(msg)),

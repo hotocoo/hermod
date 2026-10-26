@@ -1939,6 +1939,11 @@ impl Core {
         swap::wipe(dir)
     }
 
+    /// Where an install is staged before [`Core::replace_data`]; an interrupted swap deletes it.
+    pub fn staging_path(dir: &Path) -> PathBuf {
+        swap::staging_path(dir)
+    }
+
     /// Replaces this install's data with the complete install staged in `staged` (same filesystem).
     /// An interruption is finished or undone by the next [`Core::open`], never left half-way.
     pub fn replace_data(dir: &Path, staged: &Path) -> Result<()> {

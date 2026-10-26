@@ -29,6 +29,7 @@ export const COPY = {
     get dropped() { return t('comments.dropped'); },
   },
   syncPending: (n: string, offline: boolean, alone: boolean) => t('syncPending', { n, state: offline ? 'offline' : alone ? 'alone' : 'other' }),
+  get ownSeqHold() { return t('ownSeqHold'); },
   get syncPendingTitle() { return t('syncPendingTitle'); },
   get netBanned() { return t('netBanned'); },
   get netEventRate() { return t('netEventRate'); },

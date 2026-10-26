@@ -24,6 +24,9 @@ export const CANCELLED_ERROR = 'cancelled';
 /** Start of the error text while the OS keychain cannot return the identity key (core `Error::KeyUnavailable`). */
 export const KEY_UNAVAILABLE_PREFIX = 'identity key unavailable';
 
+/** Part of the error text a post gets after a restore, until a peer sync has run (core `own_seq_hold`, `Error::Forbidden`). */
+export const OWN_SEQ_HOLD_MARKER = 'waiting to sync with other members';
+
 /** Pseudo-author the core uses for system messages (meeting wrap-up, weave notices). Defined by the contract, not user data. */
 export const SYSTEM_ID = 'system';
 /** Kind of the personal Space and the id the core gives it. */

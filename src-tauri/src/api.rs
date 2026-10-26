@@ -1086,13 +1086,20 @@ fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> 
 }
 
 /// Installs a fresh data set with `install` into a scratch dir, then swaps it for `dir`'s contents.
+/// The core keeps the old data aside until the new is in, so an interruption is undone on the next
+/// open. A failed swap leaves the staged copy in place for inspection; a failed install clears it.
 fn swap_in(dir: &std::path::Path, install: impl FnOnce(&std::path::Path) -> Res<()>) -> Res<()> {
-    let probe = dir.with_extension("restore-check");
+    let probe = Core::staging_path(dir);
     let _ = std::fs::remove_dir_all(&probe);
-    // The core keeps the old data aside until the new is in, so an interruption is undone on the next open.
-    let staged = install(&probe).and_then(|()| Core::replace_data(dir, &probe).map_err(e));
-    let _ = std::fs::remove_dir_all(&probe);
-    staged
+    if let Err(x) = install(&probe) {
+        let _ = std::fs::remove_dir_all(&probe);
+        return Err(x);
+    }
+    Core::replace_data(dir, &probe).map_err(e)?;
+    if let Err(x) = std::fs::remove_dir_all(&probe) {
+        tracing::warn!("could not remove the restore scratch folder: {x}");
+    }
+    Ok(())
 }
 
 fn write_blob(c: &Core, hash: &str, dest: &std::path::Path) -> Res<()> {
