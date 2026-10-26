@@ -4,6 +4,7 @@ import { STORAGE_KEYS } from '@/config/app';
 import { COPY } from '@/config/copy';
 import { FRAME_LIMIT } from '@/config/scene';
 import { savedFrameCap } from '@/scene/frameLimit';
+import { LOCALES, setLocale, useLocale } from '@/i18n';
 import { errorMessage, getBridge, type KeyMode, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
 import { wallMs } from '@/lib/clock';
 import { copyText } from '@/lib/clipboard';
@@ -114,6 +115,7 @@ function Notifications() {
 
 function Appearance() {
   const s = useAppStore();
+  const locale = useLocale();
   const [scale, setScale] = useState(() => Number(readString(STORAGE_KEYS.textScale)) || 100);
   const [cap, setCap] = useState<string>(() => savedFrameCap());
   const setFrameCap = (id: string) => { setCap(id); writeString(STORAGE_KEYS.fpsCap, id); getTown()?.setFrameCap(id); };
@@ -143,6 +145,12 @@ function Appearance() {
           {FRAME_LIMIT.options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
         </select>
         <span id="fps-cap-note" className={f.note}>{FRAME_LIMIT.options.find((o) => o.id === cap)?.note}</span>
+      </div>
+      <div className={f.field} style={{ marginTop: 12 }}>
+        <label className={f.label} htmlFor="ui-locale">{COPY.language}</label>
+        <select id="ui-locale" className="input" value={locale} onChange={(e) => setLocale(e.target.value)}>
+          {LOCALES.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+        </select>
       </div>
       <MapStyle />
     </>

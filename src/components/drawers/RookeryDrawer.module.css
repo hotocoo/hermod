@@ -14,7 +14,7 @@
   border: 0;
   border-top: 1px solid var(--color-divider);
   background: transparent;
-  text-align: left;
+  text-align: start;
 }
 .item:hover {
   background: color-mix(in srgb,var(--color-text) 4%,transparent) !important;

@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   motion: 'hermodr.motion',
   /** Render frame cap / low-power mode: an id from FRAME_LIMIT.options (config/scene.ts). */
   fpsCap: 'hermodr.fpsCap',
+  /** W-007: chosen UI locale id (see src/i18n/locale.ts). */
+  locale: 'hermodr.locale',
 } as const;
 
 /** Error text the core returns for every command while a passphrase-protected key is still locked (core `Error::Locked`). */

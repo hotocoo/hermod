@@ -1,6 +1,6 @@
 .root {
   position: absolute;
-  right: 24px;
+  inset-inline-end: 24px;
   top: 76px;
   z-index: 32;
   width: min(340px,calc(100vw - 140px));

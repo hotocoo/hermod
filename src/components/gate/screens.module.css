@@ -13,7 +13,7 @@
 h2.mdHead { font-size: 1.625rem; } h3.mdHead { font-size: 1.25rem; } h4.mdHead { font-size: 1rem; }
 .tableWrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; margin-bottom: 12px; }
-.table th, .table td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--color-divider); }
+.table th, .table td { text-align: start; padding: 6px 10px; border-bottom: 1px solid var(--color-divider); }
 .table th { font-size: 0.6875rem; letter-spacing: .08em; text-transform: uppercase; color: var(--color-accent-700); }
 .consent { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1px solid var(--color-divider); border-radius: 10px; }
 .check { display: flex; align-items: flex-start; gap: 10px; font-size: 0.875rem; line-height: 1.45; cursor: pointer; }
@@ -23,7 +23,7 @@ h2.mdHead { font-size: 1.625rem; } h3.mdHead { font-size: 1.25rem; } h4.mdHead {
 .error { margin: 0; font-size: 0.8125rem; color: #a2352b; }
 .split { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
 .panel { display: flex; flex-direction: column; gap: 14px; }
-.panelAlt { padding-left: 28px; border-left: 1px solid var(--color-divider); }
+.panelAlt { padding-inline-start: 28px; border-inline-start: 1px solid var(--color-divider); }
 .field { display: flex; flex-direction: column; gap: 5px; }
 .label { font-size: 0.75rem; color: color-mix(in srgb, var(--color-text) 72%, transparent); }
 .preview { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--color-accent); font-family: var(--font-heading); font-weight: 600; font-size: 1.5rem; color: var(--color-accent-700); }
@@ -33,5 +33,5 @@ fieldset.group { border: 0; margin: 0; padding: 0; display: flex; flex-direction
 .skip { align-self: flex-start; }
 @media (max-width: 720px) {
   .split { grid-template-columns: minmax(0, 1fr); }
-  .panelAlt { padding-left: 0; border-left: 0; padding-top: 20px; border-top: 1px solid var(--color-divider); }
+  .panelAlt { padding-inline-start: 0; border-inline-start: 0; padding-top: 20px; border-top: 1px solid var(--color-divider); }
 }

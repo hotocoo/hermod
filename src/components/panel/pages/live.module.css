@@ -2,20 +2,20 @@
 .main { padding: 20px 24px; overflow: auto; }
 .player { position: relative; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; color: #f3ede3; }
 .badge {
-  position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid #e1ad66;
+  position: absolute; top: 12px; inset-inline-start: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid #e1ad66;
   border-radius: 20px; font-size: 0.6875rem; letter-spacing: .1em; color: #e1ad66;
 }
 .pulse { width: 6px; height: 6px; border-radius: 50%; background: #e1ad66; animation: hm-breathe 1.4s ease-in-out infinite; }
-.viewers { position: absolute; top: 12px; right: 12px; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.viewers { position: absolute; top: 12px; inset-inline-end: 12px; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .cam { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 0.6875rem; color: rgba(255,255,255,.45); }
-.hearts { position: absolute; right: 12px; bottom: 60px; display: flex; flex-direction: column-reverse; gap: 6px; pointer-events: none; }
+.hearts { position: absolute; inset-inline-end: 12px; bottom: 60px; display: flex; flex-direction: column-reverse; gap: 6px; pointer-events: none; }
 .heart { color: #e1ad66; animation: hm-float 2.4s ease-out both; }
 .title { margin: 14px 0 4px; font-family: var(--font-heading); font-weight: 400; font-size: 1.75rem; }
 .byline { display: flex; align-items: center; gap: 12px; font-size: 0.8125rem; }
 .face { width: 30px; height: 30px; border: 1px solid var(--color-accent); color: var(--color-text); }
 .strong { font-weight: 600; color: var(--color-text); }
 .grow { flex: 1; }
-.chat { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--color-divider); }
+.chat { display: flex; flex-direction: column; min-height: 0; border-inline-start: 1px solid var(--color-divider); }
 .chatHead { padding: 16px 16px 8px; }
 .log { flex: 1; overflow: auto; padding: 0 16px; }
 .line { padding: 5px 0; font-size: 0.8125rem; line-height: 1.45; }
@@ -33,7 +33,7 @@
 @media (max-width: 900px) { .page { grid-template-columns: minmax(0, 1fr); } }
 .video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
 .heartBtn {
-  position: absolute; right: 12px; bottom: 12px; width: 40px; height: 40px; border: 1px solid #e1ad66; border-radius: 50%; background: rgba(0,0,0,.45);
+  position: absolute; inset-inline-end: 12px; bottom: 12px; width: 40px; height: 40px; border: 1px solid #e1ad66; border-radius: 50%; background: rgba(0,0,0,.45);
   color: #e1ad66; font-size: 1.125rem; cursor: pointer;
 }
 .heartBtn:disabled { opacity: .4; cursor: default; }

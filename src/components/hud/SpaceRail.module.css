@@ -1,7 +1,7 @@
 .root {
   position: absolute;
   z-index: 30;
-  left: 28px;
+  inset-inline-start: 28px;
   top: max(var(--hud-clear),calc(50% - 150px));
   /* the rail starts at max(176px, 50% - 150px): cap its height so its bottom (the New Space and Join buttons) never leaves the viewport once there are many spaces */
   max-height: min(calc(100vh - var(--hud-clear) - 20px), calc(50vh + 130px));
@@ -43,7 +43,7 @@
 .unreadBadge {
   position: absolute;
   top: -3px;
-  right: -5px;
+  inset-inline-end: -5px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
