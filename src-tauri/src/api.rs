@@ -766,14 +766,61 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             shell.update_install().await?;
             Ok(Value::Null)
         }
-        "device_list" => {
-            let me = live.core.user_id().to_string();
-            Ok(
-                json!([{ "device_pub": me, "name": "This device", "added_at": 0, "this_device": true, "revoked": false }]),
-            )
+        "device_list" => to_json(blk(&live, |c| c.device_list().map_err(e)).await?),
+        "device_link_start" => {
+            let addrs = local_addrs(ctx).await;
+            // The code is a bearer secret: it goes back to the caller only, never into a log or the settings table.
+            let (code, events) = blk(&live, move |c| c.device_link_start(addrs).map_err(e)).await?;
+            for (space, evs) in group(&events) {
+                ctx.publish(&space, &evs).await;
+            }
+            ctx.changed("home", ALL_COLLECTIONS);
+            Ok(json!({ "code": code, "expires_in": hermod_core::device::LINK_TTL_SECS }))
         }
-        "device_link_start" | "device_link_accept" | "device_revoke" => {
-            Err("Linking another device is not available in this version of Hermod".into())
+        "device_link_accept" => {
+            let code = str_arg(a, "code")?;
+            drop(live);
+            let addrs = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+            let out = addrs.clone();
+            ctx.with_closed(move |dir| {
+                // Linking replaces what is on this install: the new device is the identity it links to.
+                let mut found = Vec::new();
+                swap_in(dir, |probe| {
+                    found = Core::device_link_accept(probe, &code).map_err(|x| x.to_string())?;
+                    Ok(())
+                })?;
+                *out.lock()
+                    .map_err(|_| "link state is unavailable".to_string())? = found;
+                Ok(())
+            })
+            .await?;
+            // The node restarts inside `with_closed` and rejoins every stored space, so only the dial is left.
+            let addrs: Vec<hermod_node::Multiaddr> = addrs
+                .lock()
+                .map_err(|_| "link state is unavailable".to_string())?
+                .iter()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+            if let Some(node) = ctx.node().await
+                && !addrs.is_empty()
+            {
+                match tokio::time::timeout(DIAL_WAIT, node.dial(addrs)).await {
+                    Ok(Ok(p)) => tracing::info!("connected to the linking device {p}"),
+                    Ok(Err(err)) => tracing::warn!("could not reach the linking device yet: {err}"),
+                    Err(_) => tracing::warn!("timed out reaching the linking device"),
+                }
+            }
+            Ok(Value::Null)
+        }
+        "device_revoke" => {
+            let dev: [u8; 32] = hermod_core::ids::hex_decode_array(&str_arg(a, "devicePub")?)
+                .map_err(|_| "that is not a device key".to_string())?;
+            let events = blk(&live, move |c| c.device_revoke(&dev).map_err(e)).await?;
+            for (space, evs) in group(&events) {
+                ctx.publish(&space, &evs).await;
+            }
+            ctx.changed("home", ALL_COLLECTIONS);
+            Ok(Value::Null)
         }
         other => match crate::messaging_api::handle(ctx, &live, other, a).await {
             Some(r) => r,
@@ -1032,18 +1079,20 @@ async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<Pat
 /// and decrypting the backup happens once; the live data is set aside and deleted only after
 /// every staged file is in place.
 fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> Res<()> {
-    let probe = crate::restore::staged_path(dir);
+    swap_in(dir, |probe| {
+        Core::backup_import(probe, file, pass)
+            .map_err(|x| format!("cannot restore this backup: {x}"))
+    })
+}
+
+/// Installs a fresh data set with `install` into a scratch dir, then swaps it for `dir`'s contents.
+fn swap_in(dir: &std::path::Path, install: impl FnOnce(&std::path::Path) -> Res<()>) -> Res<()> {
+    let probe = dir.with_extension("restore-check");
     let _ = std::fs::remove_dir_all(&probe);
-    if let Err(x) = Core::backup_import(&probe, file, pass) {
-        let _ = std::fs::remove_dir_all(&probe);
-        return Err(format!("cannot restore this backup: {x}"));
-    }
-    // On a failed swap the old data is back in place and the staged copy stays in `probe`.
-    crate::restore::swap_data(dir, &|a, b| std::fs::rename(a, b), &|_| {})?;
-    if let Err(x) = std::fs::remove_dir_all(&probe) {
-        tracing::warn!("could not remove the restore scratch folder: {x}");
-    }
-    Ok(())
+    // The core keeps the old data aside until the new is in, so an interruption is undone on the next open.
+    let staged = install(&probe).and_then(|()| Core::replace_data(dir, &probe).map_err(e));
+    let _ = std::fs::remove_dir_all(&probe);
+    staged
 }
 
 fn write_blob(c: &Core, hash: &str, dest: &std::path::Path) -> Res<()> {

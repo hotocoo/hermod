@@ -64,7 +64,7 @@ impl Log {
             kind: kind.into(),
             is_home: home,
             creator: None,
-            events: self.events.clone(),
+            events: self.events.clone().into(),
         }
     }
 }

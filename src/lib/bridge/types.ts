@@ -74,8 +74,8 @@ export interface NotifySettings {
 }
 export interface BlockedUser { user_id: string; name: string; since: number }
 export interface UpdateInfo { available: boolean; version?: string; notes?: string; current: string }
-export interface DeviceInfo { device_pub: string; name: string; added_at: number; this_device: boolean; revoked: boolean }
-export interface DeviceLink { code: string }
+export interface DeviceInfo { device_pub: string; added_at: number; this_device: boolean; revoked: boolean }
+export interface DeviceLink { code: string; expires_in: number }
 export interface PickOptions { multiple?: boolean; accept?: string[] }
 export interface RetentionSetting { days: number | null }
 /** Result of `space_export`; the command resolves null when the person cancels the dialog. */
@@ -150,7 +150,7 @@ export type EventBody =
   | { t: 'line.weave'; line_id: string; into: string }
   | { t: 'letter.send'; to_space?: string; channel_id: string; text: string }
   // added by the feature audit (FEATURES.md)
-  | { t: 'member.role'; user: string; role: Role }
+  | { t: 'member.role'; user: string; role: Role; last_seq?: number }
   | { t: 'member.remove'; user: string }
   | { t: 'invite.create'; id: string; exp: number | null; max_uses: number | null; role: Role }
   | { t: 'invite.revoke'; id: string }

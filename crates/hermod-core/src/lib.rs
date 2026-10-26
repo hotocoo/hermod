@@ -30,10 +30,11 @@ pub mod search;
 pub mod snapdir;
 pub mod store;
 pub mod textdiff;
+mod swap;
 
 pub use api::{
-    Core, CoreConfig, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput, SpaceCreated,
-    SpaceSummary,
+    Core, CoreConfig, DeviceRow, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput,
+    SpaceCreated, SpaceSummary,
 };
 pub use error::{Error, Result};
 pub use event::{BlobRef, EventBody, Role, SignedEvent};

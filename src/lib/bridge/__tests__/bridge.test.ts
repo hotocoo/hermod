@@ -55,6 +55,21 @@ describe('skein snapshots', () => {
   });
 });
 
+describe('device linking', () => {
+  it('maps each device method to its command with the argument names the host reads', async () => {
+    const t = base({});
+    const b = createBridge(t);
+    await b.deviceLinkStart();
+    await b.deviceLinkAccept('abc');
+    await b.deviceList();
+    await b.deviceRevoke('ff00');
+    expect(t.call).toHaveBeenNthCalledWith(1, 'device_link_start', undefined);
+    expect(t.call).toHaveBeenNthCalledWith(2, 'device_link_accept', { code: 'abc' });
+    expect(t.call).toHaveBeenNthCalledWith(3, 'device_list', undefined);
+    expect(t.call).toHaveBeenNthCalledWith(4, 'device_revoke', { devicePub: 'ff00' });
+  });
+});
+
 describe('binary uploads', () => {
   it('send the raw body when the transport supports it', async () => {
     const callRaw = vi.fn(async () => ({}) as never);

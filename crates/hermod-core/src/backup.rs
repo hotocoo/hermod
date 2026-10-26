@@ -167,9 +167,21 @@ pub fn open(file: &[u8], passphrase: &str) -> Result<Payload> {
     Ok(payload)
 }
 
+/// Writes `bytes` to `path` so a crash leaves either the old file or the whole new one: data is
+/// flushed to disk before the rename, and the directory entry after it.
 pub fn write_file(path: &Path, bytes: &[u8]) -> Result<()> {
+    use std::io::Write;
     let tmp = path.with_extension("tmp");
-    fs::write(&tmp, bytes)?;
+    let mut f = fs::File::create(&tmp)?;
+    f.write_all(bytes)?;
+    f.sync_all()?;
+    drop(f);
     fs::rename(&tmp, path)?;
+    if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+        // Directory fsync is not available everywhere; the file itself is already durable.
+        if let Ok(d) = fs::File::open(parent) {
+            let _ = d.sync_all();
+        }
+    }
     Ok(())
 }

@@ -278,7 +278,7 @@ fn ticket_numbers_are_deterministic_under_shuffled_ingest() {
         r.reverse();
         for evs in [s, r] {
             let mut input = d.log.input(d.sid, "Acme", "Team", false);
-            input.events = evs;
+            input.events = evs.into();
             let snap = project(&ctx(a), &[input]);
             let got = serde_json::to_string(&snap.collections.desk.into_values().next().unwrap())
                 .unwrap();

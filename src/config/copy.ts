@@ -4,6 +4,8 @@ import { t } from '../i18n';
 const MIB = 1048576;
 
 export const COPY = {
+  /** Invite expiry is advisory: the joiner's own clock decides it. Revoking is what enforces. */
+  get inviteExpiryNote() { return t('inviteExpiryNote'); },
   card: {
     get unassigned() { return t('card.unassigned'); },
     get duePlaceholder() { return t('card.duePlaceholder'); },
@@ -378,5 +380,34 @@ export const COPY = {
     get noChannels() { return t('letter.noChannels'); },
     sent: (space: string) => t('letter.sent', { space }),
     get failed() { return t('letter.failed'); },
+  },
+  linkedDevices: {
+    get heading() { return t('linkedDevices.heading'); },
+    get intro() { return t('linkedDevices.intro'); },
+    get first() { return t('linkedDevices.first'); },
+    get linked() { return t('linkedDevices.linked'); },
+    get thisDevice() { return t('linkedDevices.thisDevice'); },
+    get revoked() { return t('linkedDevices.revoked'); },
+    added: (when: string) => t('linkedDevices.added', { when }),
+    get revoke() { return t('linkedDevices.revoke'); },
+    revokeLabel: (key: string) => t('linkedDevices.revokeLabel', { key }),
+    get revokeTitle() { return t('linkedDevices.revokeTitle'); },
+    get revokeBody() { return t('linkedDevices.revokeBody'); },
+    get revoked_toast() { return t('linkedDevices.revoked_toast'); },
+    get linkStart() { return t('linkedDevices.linkStart'); },
+    get codeHeading() { return t('linkedDevices.codeHeading'); },
+    codeNote: (mins: number) => t('linkedDevices.codeNote', { mins }),
+    get codeQr() { return t('linkedDevices.codeQr'); },
+    get codeField() { return t('linkedDevices.codeField'); },
+    get hide() { return t('linkedDevices.hide'); },
+    get accept() { return t('linkedDevices.accept'); },
+    get acceptHeading() { return t('linkedDevices.acceptHeading'); },
+    get acceptNote() { return t('linkedDevices.acceptNote'); },
+    get acceptField() { return t('linkedDevices.acceptField'); },
+    get acceptSubmit() { return t('linkedDevices.acceptSubmit'); },
+    get acceptConfirmTitle() { return t('linkedDevices.acceptConfirmTitle'); },
+    get acceptConfirmBody() { return t('linkedDevices.acceptConfirmBody'); },
+    get acceptConfirm() { return t('linkedDevices.acceptConfirm'); },
+    get firstOnly() { return t('linkedDevices.firstOnly'); },
   },
 };

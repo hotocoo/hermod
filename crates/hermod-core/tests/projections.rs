@@ -682,7 +682,7 @@ fn hearth_agenda_and_meeting_summary() {
     let mut s2 = studio();
     let mut extra = Log::new();
     extra.push_at(&s2.ada, 10_000, NOW - 10 * MIN, EventBody::MeetingEnd {});
-    s2.inputs[1].events.extend(extra.events);
+    s2.inputs[1].events_mut().extend(extra.events);
     let snap = snapshot(&s2);
     let general = &snap.collections.messages[&format!("{}/general", s2.sid)];
     let summary = general
@@ -759,7 +759,7 @@ fn board_and_skein() {
             into: "main".into(),
         },
     );
-    s2.inputs[1].events.extend(extra.events);
+    s2.inputs[1].events_mut().extend(extra.events);
     let skein = &snapshot(&s2).collections.skein[&s2.sid.to_string()];
     assert_eq!(
         skein
@@ -1021,7 +1021,9 @@ fn fold_is_independent_of_event_arrival_order() {
         for input in &mut shuffled {
             let n = input.events.len();
             for i in (1..n).rev() {
-                input.events.swap(i, (next() % (i as u64 + 1)) as usize);
+                input
+                    .events_mut()
+                    .swap(i, (next() % (i as u64 + 1)) as usize);
             }
         }
         assert_eq!(
@@ -1046,7 +1048,7 @@ fn two_authors_with_equal_lamport_merge_deterministically() {
     l.push_at(&b, 10, NOW - 31 * MIN, post_msg("general", "mb", "from b"));
     let first = project(&ctx(me), &[l.input(sid, "Duo", "Team", false)]);
     let mut rev = l.input(sid, "Duo", "Team", false);
-    rev.events.reverse();
+    rev.events_mut().reverse();
     let second = project(&ctx(me), &[rev]);
     assert_eq!(first, second);
     let order: Vec<_> = first.collections.messages[&format!("{sid}/general")]

@@ -163,6 +163,7 @@ fn role_table_every_event_type_is_gated() {
             MemberRole {
                 user: "u".into(),
                 role: Role::Admin,
+                last_seq: None,
             },
             Role::Owner,
         ),
@@ -243,6 +244,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         EventBody::MemberRole {
             user: member.to_string(),
             role: Role::Owner,
+            last_seq: None,
         },
     );
     l.push(
@@ -303,7 +305,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
     assert_eq!(rep.invites.len(), 2, "member could not create an invite");
     assert_eq!(rep.my_role, Some(Role::Owner));
     let mut shuffled = input.clone();
-    shuffled.events.reverse();
+    shuffled.events_mut().reverse();
     assert_eq!(
         serde_json::to_string(&project(&ctx(owner), &[shuffled])).unwrap(),
         serde_json::to_string(&snap).unwrap()
@@ -1086,12 +1088,9 @@ fn migrations_upgrade_old_schema_and_report_corruption() {
 }
 
 #[test]
-fn rekey_requires_admin_and_devices_are_logged() {
-    let (a, b, _c, s, _d) = trio();
+fn rekey_requires_admin() {
+    let (_a, b, _c, s, _d) = trio();
     assert!(matches!(b.rekey(&s), Err(Error::Forbidden(_))));
-    let dev = [9u8; 32];
-    a.device_link(&dev).unwrap();
-    a.device_revoke(&dev).unwrap();
 }
 
 #[test]

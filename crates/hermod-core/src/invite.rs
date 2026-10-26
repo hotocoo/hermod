@@ -5,14 +5,17 @@ use serde::{Deserialize, Serialize};
 use crate::crypto::SpaceKey;
 use crate::error::{Error, Result};
 use crate::ids::{SpaceId, UserId};
-use crate::store::{MAX_CLOCK, MAX_EPOCH};
+use crate::store::{CLOCK_HEADROOM, MAX_CLOCK, MAX_EPOCH};
 
 /// Landing page that forwards to the app. The code lives in the fragment and never reaches a server.
 pub const LINK_BASE: &str = "https://hotocoo.github.io/hermod/join#";
 /// Custom scheme opened by the landing page.
 pub const DEEP_LINK_BASE: &str = "hermod://join/";
 
-const MAX_CODE_CHARS: usize = 2048;
+const MAX_CODE_CHARS: usize = 4096;
+/// Older `(epoch, key)` pairs an invite may carry so the joiner can read history written before
+/// the current epoch. Bounded to keep the code scannable; older epochs stay locked.
+pub const MAX_INVITE_KEYS: usize = 16;
 const MAX_ADDRS: usize = 16;
 const MAX_NAME_CHARS: usize = 128;
 const MAX_ID_CHARS: usize = 64;
@@ -38,6 +41,9 @@ pub struct InviteV1 {
     /// Proof-of-work bits the space asked for when this invite was made; `0` = none.
     #[serde(default, skip_serializing_if = "is_zero")]
     pub pow_bits: u8,
+    /// Earlier `(epoch, key)` pairs the inviter holds, newest first. Absent in older codes.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub keys: Vec<(u32, SpaceKey)>,
 }
 
 fn is_zero(n: &u8) -> bool {
@@ -69,7 +75,15 @@ impl InviteV1 {
             addrs,
             exp,
             pow_bits: 0,
+            keys: Vec::new(),
         }
+    }
+
+    /// Adds earlier-epoch keys, keeping at most [`MAX_INVITE_KEYS`] (the given order wins).
+    pub fn with_keys(mut self, mut keys: Vec<(u32, SpaceKey)>) -> Self {
+        keys.truncate(MAX_INVITE_KEYS);
+        self.keys = keys;
+        self
     }
 
     /// Serialized form: CBOR, base58.
@@ -100,9 +114,11 @@ impl InviteV1 {
             || inv.id.chars().count() > MAX_ID_CHARS
             || inv.addrs.len() > MAX_ADDRS
             || inv.addrs.iter().any(|a| a.len() > MAX_ADDR_CHARS)
-            || inv.lc > MAX_CLOCK
+            || inv.lc > MAX_CLOCK - CLOCK_HEADROOM
             || inv.epoch > MAX_EPOCH
             || inv.pow_bits > crate::pow::MAX_JOIN_POW_BITS
+            || inv.keys.len() > MAX_INVITE_KEYS
+            || inv.keys.iter().any(|(e, _)| *e > MAX_EPOCH)
         {
             return Err(Error::invalid("invite", "field out of bounds"));
         }
@@ -204,10 +220,32 @@ mod tests {
         many.addrs = vec!["a".into(); 40];
         assert!(InviteV1::decode(&many.encode().unwrap()).is_err());
         let mut clock = sample(None);
-        clock.lc = MAX_CLOCK + 1;
+        clock.lc = MAX_CLOCK;
         assert!(InviteV1::decode(&clock.encode().unwrap()).is_err());
         let mut epoch = sample(None);
         epoch.epoch = MAX_EPOCH + 1;
         assert!(InviteV1::decode(&epoch.encode().unwrap()).is_err());
+        let mut keys = sample(None);
+        keys.keys = vec![(0, SpaceKey::random()); MAX_INVITE_KEYS + 1];
+        assert!(InviteV1::decode(&keys.encode().unwrap()).is_err());
+    }
+
+    #[test]
+    fn carries_history_keys_and_old_codes_still_parse() {
+        let k = SpaceKey::random();
+        let inv = sample(None).with_keys(vec![(1, k.clone()), (0, SpaceKey::random())]);
+        let back = InviteV1::decode(&inv.encode().unwrap()).unwrap();
+        assert_eq!(back.keys.len(), 2);
+        assert!(back.keys[0].1 == k);
+        // A code without the field (made before it existed) decodes to no extra keys.
+        assert!(
+            InviteV1::decode(&sample(None).encode().unwrap())
+                .unwrap()
+                .keys
+                .is_empty()
+        );
+        let many = sample(None).with_keys(vec![(0, SpaceKey::random()); MAX_INVITE_KEYS + 5]);
+        assert_eq!(many.keys.len(), MAX_INVITE_KEYS);
+        assert!(many.encode().unwrap().len() <= MAX_CODE_CHARS);
     }
 }

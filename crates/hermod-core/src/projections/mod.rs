@@ -119,7 +119,14 @@ pub struct SpaceInput {
     pub is_home: bool,
     /// Creator pinned locally for spaces whose id is not bound to one; see [`genesis_author`].
     pub creator: Option<UserId>,
-    pub events: Vec<Opened>,
+    pub events: std::sync::Arc<Vec<Opened>>,
+}
+
+impl SpaceInput {
+    /// The events for in-place edits (tests reorder them); copies only if another holder shares them.
+    pub fn events_mut(&mut self) -> &mut Vec<Opened> {
+        std::sync::Arc::make_mut(&mut self.events)
+    }
 }
 
 /// Creator to pin for `id`: the author whose nonce derives the id, else the first `space.create` in fold order.

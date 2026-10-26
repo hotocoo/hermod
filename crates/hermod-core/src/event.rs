@@ -106,14 +106,17 @@ impl SignedEvent {
         decode_body(&crypto::open(key, &self.nonce, &self.body)?)
     }
 
+    /// Decrypts with the first key held for this event's epoch that fits; no decoding. This alone
+    /// proves the author held the key, so the store applies the event even if the body is junk.
+    pub fn decrypt_any(&self, keys: &[SpaceKey]) -> Result<Vec<u8>> {
+        keys.iter()
+            .find_map(|key| crypto::open(key, &self.nonce, &self.body).ok())
+            .ok_or(Error::Decrypt)
+    }
+
     /// Like [`SignedEvent::open`], trying every key held for this event's epoch.
     pub fn open_any(&self, keys: &[SpaceKey]) -> Result<Decoded> {
-        for key in keys {
-            if let Ok(plain) = crypto::open(key, &self.nonce, &self.body) {
-                return decode_body(&plain);
-            }
-        }
-        Err(Error::Decrypt)
+        decode_body(&self.decrypt_any(keys)?)
     }
 
     /// CBOR wire form.
@@ -414,7 +417,14 @@ pub enum EventBody {
     #[serde(rename = "member.leave")]
     MemberLeave {},
     #[serde(rename = "member.role")]
-    MemberRole { user: String, role: Role },
+    MemberRole {
+        user: String,
+        role: Role,
+        /// Highest `seq` the changer saw from the target. The target's later seqs act at most at
+        /// `role`, whatever lamport they claim (a demoted admin cannot backdate). Absent on older events.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "member.remove")]
     MemberRemove {
         user: String,
@@ -744,9 +754,21 @@ pub enum EventBody {
     #[serde(rename = "read.mark")]
     ReadMark { channel_id: String, upto: u64 },
     #[serde(rename = "device.link")]
-    DeviceLink { device_pub: String, cert: String },
+    DeviceLink {
+        device_pub: String,
+        /// The identity's signature over `device_pub`.
+        cert: String,
+        /// The device's own signature over the identity; links without it never take effect.
+        #[serde(default, skip_serializing_if = "String::is_empty")]
+        proof: String,
+    },
     #[serde(rename = "device.revoke")]
-    DeviceRevoke { device_pub: String },
+    DeviceRevoke {
+        device_pub: String,
+        /// Highest `seq` the identity saw from the device. Later seqs are rejected whatever lamport they claim.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "desk.config")]
     DeskConfig {
         queues: Vec<DeskQueueIn>,
