@@ -2194,11 +2194,11 @@
     "Hermod"
    ],
    "license": "CC0-1.0 (authored here; source textures CC0 Poly Haven)",
-   "key": "6b4bc3115698f26c52fea717ef819563f9c5e6a87bbc5a7919000b885d2fc075",
-   "outBlake3": "f8f69e7c34753c7dbb2880889cc996f0b16cdd1d93c804f8bc6f5a128a565818",
+   "key": "d6e81afc11360410e293a10e833890abf71f48c8a2880b52608e3902b17ea6d3",
+   "outBlake3": "9c7d7b2e108f7586525329265bd96fe2f2213837d0b695c8f46e6600ae38c9aa",
    "files": {
     "figure_a.glb": {
-     "blake3": "f8f69e7c34753c7dbb2880889cc996f0b16cdd1d93c804f8bc6f5a128a565818"
+     "blake3": "9c7d7b2e108f7586525329265bd96fe2f2213837d0b695c8f46e6600ae38c9aa"
     }
    }
   },
@@ -2212,11 +2212,11 @@
     "Hermod"
    ],
    "license": "CC0-1.0 (authored here; source textures CC0 Poly Haven)",
-   "key": "09be171970eddc251af3e4961b0b213747ae98249e9b8fd33b5ec74a2bae8d55",
-   "outBlake3": "8c9e28c5c29b9a48505f2afc7c8b9aae5b8e47be7ca57459323bf6080bfc197d",
+   "key": "796fe30b3842d33c63d627ebb397938db38960803b0e9c0dad7df9bcc2bab5a3",
+   "outBlake3": "b184e4635b5d3b8d8fb6720f38bd4d9bfcbf2a79be94410988fbd988536ef3d2",
    "files": {
     "figure_b.glb": {
-     "blake3": "8c9e28c5c29b9a48505f2afc7c8b9aae5b8e47be7ca57459323bf6080bfc197d"
+     "blake3": "b184e4635b5d3b8d8fb6720f38bd4d9bfcbf2a79be94410988fbd988536ef3d2"
     }
    }
   },
@@ -2230,11 +2230,11 @@
     "Hermod"
    ],
    "license": "CC0-1.0 (authored here; source textures CC0 Poly Haven)",
-   "key": "a0ffc3ef11b9425d3abda175e83c6b249dd4a53e56a2e4a1e008b5ec8f1143e1",
-   "outBlake3": "6ef5471fccf3f82344378bb4946c3a637934662856cbc3e640d15502ac34523d",
+   "key": "e2f64307b9ea0e606ff622ebdd1625789ca39e05cc0948eb422587b03e610b11",
+   "outBlake3": "dd80cf8d4d6738669c48c2e8c294df3093e512299f6b7745747c6a4a37c194b1",
    "files": {
     "figure_c.glb": {
-     "blake3": "6ef5471fccf3f82344378bb4946c3a637934662856cbc3e640d15502ac34523d"
+     "blake3": "dd80cf8d4d6738669c48c2e8c294df3093e512299f6b7745747c6a4a37c194b1"
     }
    }
   },
@@ -2248,11 +2248,11 @@
     "Hermod"
    ],
    "license": "CC0-1.0 (authored here; source textures CC0 Poly Haven)",
-   "key": "368404d1b6ebf22532624bdbee30efc17e0352ee6f84bf4cc4a26a852a8bb59d",
-   "outBlake3": "09c2b8afd1e3b321977bf287b97010d980d743df2e2c702d42a4a7b02b8a651c",
+   "key": "ca3d14105f8b3d6d32086d33fcf3d1fbd8492d33b6e5377f9fb6cc154c85ac79",
+   "outBlake3": "ad12804a415c329d20ebd170a0392c9383d64ed87dd79834bf9252a9cb76baa1",
    "files": {
     "figure_d.glb": {
-     "blake3": "09c2b8afd1e3b321977bf287b97010d980d743df2e2c702d42a4a7b02b8a651c"
+     "blake3": "ad12804a415c329d20ebd170a0392c9383d64ed87dd79834bf9252a9cb76baa1"
     }
    }
   },

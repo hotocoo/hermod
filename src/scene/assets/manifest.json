@@ -12189,13 +12189,13 @@
    "tiers": {
     "high": {
      "file": "models/figure_a.glb",
-     "bytes": 2132664,
-     "blake3": "9eb1b77f9b3d9fd03560c1c677ac383d783fc6f1facb09bdb71dedaf70cc8589"
+     "bytes": 2130604,
+     "blake3": "dd9d5f75b60d2fd0c2a9b70e5b86ec83fa710ef37210d463e87d0ccbe2c77c21"
     },
     "ultra": {
      "file": "models/figure_a.glb",
-     "bytes": 3307408,
-     "blake3": "e924808f3ed030ed0ecefddda609bec18d2b8a09201582622a301ff1e81b5b6f"
+     "bytes": 3305348,
+     "blake3": "0298ce4f8a1ac9f9b022fcd432578a6b484997c1a2a2abc5f6a21bdf964812b5"
     }
    },
    "materialOverrides": {
@@ -12293,13 +12293,13 @@
    "tiers": {
     "high": {
      "file": "models/figure_b.glb",
-     "bytes": 2339664,
-     "blake3": "3c63750c4fa3845cc3b241f48287616f35e322f3ddeb4fe4df3ad7fda7eb5f58"
+     "bytes": 2336972,
+     "blake3": "d98c5fabf0fdd60dc3d37f5c10ea67ce442163fc21d9874d3c2273920f49d306"
     },
     "ultra": {
      "file": "models/figure_b.glb",
-     "bytes": 6669748,
-     "blake3": "99f586b8f7c5d9c299c4c921817a549af4ccb59155da3daec64e705004d8a075"
+     "bytes": 6667060,
+     "blake3": "4b5794fba75ea4f07477457d1cce73e608b3d520f96102a862df5b74537411c0"
     }
    },
    "materialOverrides": {
@@ -12392,13 +12392,13 @@
    "tiers": {
     "high": {
      "file": "models/figure_c.glb",
-     "bytes": 3051840,
-     "blake3": "06d03ef47691019fae5b4d0f1cdc3e32b3ae26a0b46afda109aa638da44e9553"
+     "bytes": 3050128,
+     "blake3": "5b9c6a85d34192baa6cce64cf0fcae4437622de7c2902f032c295c11cece26de"
     },
     "ultra": {
      "file": "models/figure_c.glb",
-     "bytes": 5290220,
-     "blake3": "28f0a14691e8db2bae6ffd8684b44d712bbdc064468d8b678e0cb7e9c0020f43"
+     "bytes": 5288512,
+     "blake3": "81ba5ce42bdd679849e931f1ca4df9d4eb06d2a789befa878922cf59dbf5a9b9"
     }
    },
    "materialOverrides": {
@@ -12491,13 +12491,13 @@
    "tiers": {
     "high": {
      "file": "models/figure_d.glb",
-     "bytes": 2223896,
-     "blake3": "86f1d6c25ed61368f702a6ddefb0ad6b89beebc5047abb3b91942c36fa66ca07"
+     "bytes": 2221124,
+     "blake3": "d5ef4fa01155aa0c4cca9a4bb65be28376de30ff748c29d7a2d92980721913ad"
     },
     "ultra": {
      "file": "models/figure_d.glb",
-     "bytes": 5157072,
-     "blake3": "c4276eb7df7e4ffe77eaf06e96d8bfd02f6d004c3cc4eef0e8752f0615236df1"
+     "bytes": 5154296,
+     "blake3": "35923c0bf0a95bb7a91104c191db878045fc8cae4b69fcfda714ec03befc23e3"
     }
    },
    "materialOverrides": {
