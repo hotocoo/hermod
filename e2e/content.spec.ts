@@ -1,6 +1,28 @@
 import type { Locator, Page } from '@playwright/test';
-import { test, expect, twoUsers, sharedSpace, enterSection, unique, pngBuffer, type SectionId } from './fixtures';
-import { freshDevhosts } from './devhosts';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { test, expect, twoUsers, sharedSpace, enterSection, unique, pngBuffer, DEVHOST_A, DEVHOST_B, type SectionId } from './fixtures';
+import { devhostDir, freshDevhosts } from './devhosts';
+
+/** One bridge command on a devhost over its generic /invoke route (the same one the UI uses). */
+const invoke = async <T,>(host: string, cmd: string, args: Record<string, unknown> = {}): Promise<T> => {
+  const res = await fetch(`${host}/invoke/${cmd}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(args) });
+  if (!res.ok) throw new Error(`${cmd}: ${await res.text()}`);
+  return await res.json() as T;
+};
+type Snap = { spaces: { id: string; name: string; kind?: string }[]; collections: Record<string, any> }; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+/** The stored chunk file under a devhost's data dir whose bytes equal `data`. */
+function chunkHolding(dir: string, data: Buffer): string {
+  const root = join(dir, 'blobs', 'chunks');
+  for (const sub of readdirSync(root)) {
+    for (const f of readdirSync(join(root, sub))) {
+      const p = join(root, sub, f);
+      if (readFileSync(p).equals(data)) return p;
+    }
+  }
+  throw new Error('chunk not found on disk');
+}
 
 /** Every spec file starts on three empty devhosts, so no spec depends on state a former one left. */
 test.beforeAll(async () => { test.setTimeout(180_000); await freshDevhosts(); });
@@ -183,6 +205,32 @@ test.describe('stories (V-016, V-017)', () => {
   });
 });
 
+test.describe('story reply and love (V-018)', () => {
+  test('B replies and loves A\'s story: the reply lands as a DM to A and the story counts both', async () => {
+    const reply = unique('lovely light');
+    await go(b, 'feed');
+    await tab(b, 'Stories').click();
+    await btn(b, "Watch Ada's story").click(sync);
+    const viewer = b.getByRole('dialog', { name: "Ada Tester's story" });
+    await viewer.getByLabel('Reply to Ada').fill(reply);
+    await viewer.getByLabel('Reply to Ada').press('Enter');
+    await expect(viewer.getByLabel('Reply to Ada')).toHaveValue('');
+    await viewer.getByRole('button', { name: 'Love' }).click();
+    await b.keyboard.press('Escape');
+
+    const stories = async () => (await invoke<Snap>(DEVHOST_A, 'snapshot')).collections.media.stories as { loves?: number; replies?: number }[];
+    await expect.poll(async () => (await stories())[0]?.replies, sync).toBe(1);
+    await expect.poll(async () => (await stories())[0]?.loves, sync).toBe(1);
+    // The reply text is a real message posted in a DM Space between B and A (the DM request reaches A through the node; no event type of its own).
+    const dmOf = async () => {
+      const s = await invoke<Snap>(DEVHOST_B, 'snapshot');
+      const key = Object.keys(s.collections.messages).find((k) => JSON.stringify(s.collections.messages[k]).includes(reply));
+      return key ? s.spaces.find((x) => x.id === key.split('/')[0])?.kind : undefined;
+    };
+    await expect.poll(dmOf, sync).toBe('dm');
+  });
+});
+
 test.describe('pinboards (V-019, V-020)', () => {
   const board = unique('Glazes');
   const pin = unique('Celadon test');
@@ -279,7 +327,8 @@ test.describe('docs (V-021..V-024)', () => {
   test('V-026: A views an earlier version, then restores it as new edits', async () => {
     const before = await values(a);
     await btn(a, /^View version from/).last().click();
-    await expect(a.getByRole('status')).toContainText('Viewing the version from');
+    // Several status regions can exist at once (sync indicator, toasts such as a DM arriving); this is the doc's banner.
+    await expect(a.getByRole('status').filter({ hasText: 'Viewing the version from' })).toBeVisible();
     await btn(a, 'Back to the latest').click();
     await btn(a, /^View version from/).nth(2).click();
     await btn(a, 'Restore this version').click();
@@ -448,6 +497,82 @@ test.describe('skein (K-001..K-003, K-006, K-007)', () => {
       await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
       await p.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'general' }).click();
       await expect(p.getByRole('article').filter({ hasText: /Wove .* into main/ }).first()).toBeVisible(sync);
+    }
+  });
+
+  /** Takes a snapshot on A from the picked files, then opens it in the ledger. */
+  async function snapOf(title: string, files: { name: string; mimeType: string; buffer: Buffer }[]): Promise<void> {
+    await go(a, 'skein');
+    await btn(a, /Take a snapshot/).first().click();
+    await a.getByLabel('Title (required)').fill(title);
+    await choose(a, btn(a, 'Choose files'), files);
+    await btn(a, 'Take snapshot').click();
+    await btn(a, new RegExp(title)).click();
+    await expect(a.getByRole('heading', { name: title })).toBeVisible();
+  }
+
+  test('K-005: an image file previews, a non-image file shows an icon', async () => {
+    await snapOf(unique('Picture and notes'), [
+      { name: 'glaze.png', mimeType: 'image/png', buffer: pngBuffer(200, 120, 40) },
+      { name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('cone six\n') },
+    ]);
+    const img = a.locator('img[alt="glaze.png"]');
+    await expect(img).toBeVisible();
+    await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth), sync).toBeGreaterThan(0);
+    // Exactly one file has no preview (notes.txt): it gets the icon, the picture does not.
+    await expect(a.getByRole('img', { name: 'File, no preview' })).toHaveCount(1);
+    await expect(a.locator('img[alt="notes.txt"]')).toHaveCount(0);
+  });
+
+  test('K-008: Expert and Plain words switch the vocabulary, for this person only', async () => {
+    const vocab = (p: Page) => p.getByRole('group', { name: 'Vocabulary' });
+    await expect(btn(a, /Take a snapshot/).first()).toBeVisible();
+    await expect(a.getByText(/A fingerprint of exactly what/)).toBeVisible();
+    await vocab(a).getByRole('button', { name: 'Expert' }).click();
+    await expect(btn(a, /Take a commit/).first()).toBeVisible();
+    await expect(a.getByText(/blake3:/)).toBeVisible();
+    await expect(a.getByText(/A fingerprint of exactly what/)).toHaveCount(0);
+    // B did not change: its own words are still Plain.
+    await go(b, 'skein');
+    await expect(btn(b, /Take a snapshot/).first()).toBeVisible();
+    await vocab(a).getByRole('button', { name: 'Plain words' }).click();
+    await expect(btn(a, /Take a snapshot/).first()).toBeVisible();
+    await expect(a.getByText(/blake3:/)).toHaveCount(0);
+  });
+
+  test('K-009: a blob altered on disk shows the red "does not match its seal" warning', async () => {
+    const title = unique('Tamper target');
+    const bytes = Buffer.from(`${unique('seal me')}\n`);
+    // An audio file: no line diff or image fetch of the damaged blob, so the only reaction is the seal warning.
+    await snapOf(title, [{ name: 'seal.wav', mimeType: 'audio/wav', buffer: bytes }]);
+    await expect(a.getByText(/Seal verified: every file matches/)).toBeVisible(sync);
+    writeFileSync(chunkHolding(devhostDir(0), bytes), 'tampered');
+    // Opening a snapshot re-hashes its blobs: go to another one and back.
+    await btn(a, new RegExp(first)).click();
+    await expect(a.getByRole('heading', { name: first })).toBeVisible();
+    await btn(a, new RegExp(title)).click();
+    const warn = a.getByRole('alert').filter({ hasText: /does not match its seal/ });
+    await expect(warn).toBeVisible(sync);
+    await expect(warn).toContainText('seal.wav');
+    await expect(warn).toHaveCSS('color', 'rgb(162, 53, 43)');
+    await expect(a.getByText(/Seal verified/)).toHaveCount(0);
+  });
+
+  test('B-003: a card linked to a snapshot shows it and opens it in the Loom', async () => {
+    const cardTitle = unique('Review palette');
+    const snap = await invoke<Snap>(DEVHOST_A, 'snapshot');
+    const sp = snap.spaces.find((x) => x.name === space)!.id;
+    const target = (snap.collections.skein[sp].snaps as { id: string; title: string }[]).find((x) => x.title === first)!;
+    const board = snap.collections.workboards[sp] as { id: string; cols: { id: string }[] };
+    await invoke(DEVHOST_A, 'event_append', { spaceId: sp, body: { t: 'card.create', board_id: board.id, card_id: unique('k'), col_id: board.cols[0].id, title: cardTitle, tag: '', snap: target.id } });
+    for (const p of [a, b]) {
+      await go(p, 'board');
+      await tab(p, 'Board').click();
+      const link = p.getByRole('button', { name: new RegExp(`${first}$`) });
+      await expect(link).toBeVisible(sync);
+      await link.click();
+      await expect(p.getByRole('heading', { name: first })).toBeVisible();
+      await expect(p.getByText(/Seal verified: every file matches/)).toBeVisible(sync);
     }
   });
 });

@@ -85,6 +85,7 @@ export const en = {
   'fileDiff.binary': 'This file is not text, so there is no line diff. Download it to compare.',
   'fileDiff.tooLarge': 'This file is too large to compare here. Download it to compare.',
   'fileDiff.unchanged': 'No line changes.',
+  'fileDiff.fileIcon': 'File, no preview',
   'fileDiff.failed': 'Could not load the changes. {why}',
   'fileDiff.retry': 'Try again',
   'fileDiff.hunk': 'Change {n}',
