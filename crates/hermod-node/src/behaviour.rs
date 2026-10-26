@@ -42,6 +42,9 @@ pub struct Behaviour {
 pub fn conn_limits(l: &Limits) -> connection_limits::ConnectionLimits {
     connection_limits::ConnectionLimits::default()
         .with_max_established(Some(l.max_connections))
+        .with_max_established_incoming(Some(
+            (l.max_connections * INCOMING_CONN_PERCENT / 100).max(1),
+        ))
         .with_max_pending_incoming(Some(l.max_connections.min(32)))
         .with_max_pending_outgoing(Some(l.max_connections.min(32)))
         .with_max_established_per_peer(Some(4))
@@ -116,6 +119,8 @@ impl Behaviour {
             .heartbeat_interval(cfg.gossip_heartbeat)
             .validation_mode(gossipsub::ValidationMode::Strict)
             .max_transmit_size(2 * 1024 * 1024)
+            // Nothing is forwarded until the driver reports Accept: unvalidated floods stop here.
+            .validate_messages()
             .build()
             .map_err(|e| e.to_string())?;
         let gossipsub = gossipsub::Behaviour::new(
@@ -140,8 +145,8 @@ impl Behaviour {
             kad_hermod,
             kad_ipfs: Toggle::from(kad_ipfs),
             gossipsub,
-            sync: rpc(SYNC_PROTOCOL, Duration::from_secs(30)),
-            blob: rpc(BLOB_PROTOCOL, Duration::from_secs(30)),
+            sync: rpc(SYNC_PROTOCOL, RPC_REQUEST_TIMEOUT),
+            blob: rpc(BLOB_PROTOCOL, RPC_REQUEST_TIMEOUT),
             signal: rpc(SIGNAL_PROTOCOL, Duration::from_secs(10)),
             relay_server: relay_server(local, &cfg.limits),
             relay_client,

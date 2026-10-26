@@ -44,6 +44,38 @@ pub const STRIKE_LIMIT: u32 = 50;
 pub const BAN_SECS: u64 = 600;
 /// Parallel chunk requests per blob.
 pub const BLOB_WINDOW: usize = 8;
+/// Inbound gossip messages per propagation source (any author), refill per second and burst.
+/// Above the per-author cap because an honest forwarder relays several authors, but bounded so
+/// rotating the unauthenticated author header buys no extra budget.
+pub const PEER_GOSSIP_IN_RATE: (f64, f64) = (300.0, 1200.0);
+/// Most keys one `RateMap` tracks; at the cap the least recently seen key is evicted.
+pub const RATE_MAP_MAX_KEYS: usize = 4096;
+/// Seconds without traffic after which a `RateMap` key is dropped by `gc`.
+pub const RATE_MAP_IDLE_SECS: u64 = 120;
+/// Gossiped events being ingested on blocking threads at once; more are ignored (not forwarded).
+pub const INGEST_QUEUE_CAP: usize = 64;
+/// Sync pages served at once across all peers; more are answered empty.
+pub const SYNC_SERVE_GLOBAL_MAX: usize = 8;
+/// Blob requests served at once across all peers; more are answered `data: None`.
+pub const BLOB_SERVE_GLOBAL_MAX: usize = 64;
+/// Request-response timeout for sync and blob requests.
+pub const RPC_REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+/// A blob reply that the serve rate limiter would delay longer than this is refused instead.
+pub const BLOB_SERVE_MAX_WAIT: std::time::Duration = std::time::Duration::from_secs(15);
+/// Rejected (bad signature, malformed) events in one sync page tolerated before the sender is struck.
+pub const SYNC_REJECT_TOLERANCE: usize = 8;
+/// Share of `max_connections` that may be inbound, in percent, so dialers cannot fill every slot.
+pub const INCOMING_CONN_PERCENT: u32 = 75;
+/// Connected share of `max_connections`, in percent, above which idle non-space peers are dropped.
+pub const EVICT_CONN_PERCENT: u32 = 90;
+/// Provider dials started per rendezvous key between maintenance ticks.
+pub const KAD_PROVIDER_DIALS_PER_KEY: u32 = 8;
+/// Addresses remembered per peer (peer book, relay reservation targets).
+pub const MAX_ADDRS_PER_PEER: usize = 4;
+/// Peers asked for a blob that are neither announced providers nor space members.
+pub const BLOB_FALLBACK_PEERS: usize = 2;
+/// Misses (no data, bad data, failure) after which a peer is no longer asked for a blob job.
+pub const BLOB_PEER_MISS_LIMIT: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncReq {
