@@ -776,6 +776,15 @@ fn board_and_skein() {
             .iter()
             .any(|x| x.weave_of.as_deref() == Some("lantern-glow") && x.line == "main")
     );
+
+    // A-010: the weave also folds a system chat message every peer can read.
+    let snap2 = snapshot(&s2);
+    let sys = snap2.collections.messages[&format!("{}/general", s2.sid)]
+        .iter()
+        .find(|m| m.id.starts_with("weave-msg-"))
+        .expect("the weave posts a system message");
+    assert_eq!(sys.by, "system");
+    assert_eq!(sys.text, "Wove lantern-glow into main");
 }
 
 #[test]

@@ -82,6 +82,8 @@ pub struct ProjectionCtx {
     pub follows: BTreeSet<(String, String)>,
     /// Messages the local user deleted for themselves, `(space, msg id)`; never synced.
     pub hidden: BTreeSet<(SpaceId, String)>,
+    /// Chat mute map `space/channel -> until` (0 = forever): muted chats raise no inbox entry (M-035).
+    pub muted: BTreeMap<String, i64>,
     pub config: ProjectionConfig,
     pub growth: GrowthConfig,
 }
@@ -96,6 +98,7 @@ impl ProjectionCtx {
             blocks: BTreeSet::new(),
             follows: BTreeSet::new(),
             hidden: BTreeSet::new(),
+            muted: BTreeMap::new(),
             config: ProjectionConfig::default(),
             growth: GrowthConfig::default(),
         }

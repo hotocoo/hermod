@@ -348,6 +348,7 @@ impl Inner {
         ctx.blocks = self.store.blocked()?;
         ctx.follows = self.store.follows()?;
         ctx.hidden = crate::messaging::hidden_set(&self.store)?;
+        ctx.muted = crate::messaging::muted_map(&self.store)?;
         ctx.config = cfg.projection.clone();
         ctx.growth = cfg.growth.clone();
         Ok(ctx)

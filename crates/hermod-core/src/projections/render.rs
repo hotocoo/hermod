@@ -1180,6 +1180,15 @@ impl<'a> World<'a> {
         let mut latest: Vec<(i64, &str, RookEntry)> = Vec::new();
         for s in self.states {
             for (ch, list) in &s.msgs {
+                // M-035: a muted chat raises no inbox entry; the mute lives in this device's prefs.
+                if self
+                    .ctx
+                    .muted
+                    .get(&format!("{}/{}", self.label(s), ch))
+                    .is_some_and(|until| *until == 0 || *until > self.ctx.now_ms)
+                {
+                    continue;
+                }
                 let last = list.iter().rev().find(|m| self.unread_candidate(m));
                 if let Some(m) = last {
                     latest.push((

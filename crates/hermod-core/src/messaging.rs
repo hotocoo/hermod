@@ -5,7 +5,7 @@
 //! Device-local state lives in the `kv` table under `local.` keys so it is backed up with the
 //! rest of the database and never reaches the event log.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -42,6 +42,16 @@ const PREF_LISTS: [&str; 5] = ["archived", "pinned", "gifs", "contacts", "declin
 const MAX_DECLINED: usize = 500;
 
 /// Reads the device-hidden message set for the projection context.
+/// Chat mute map `space/channel -> until` (0 = forever): the inbox projection skips muted chats (M-035).
+pub(crate) fn muted_map(store: &Store) -> Result<BTreeMap<String, i64>> {
+    let raw = store.kv_get(PREFS_KEY)?;
+    Ok(raw
+        .and_then(|r| serde_json::from_str::<Value>(&r).ok())
+        .and_then(|v| v.get("muted").cloned())
+        .and_then(|m| serde_json::from_value::<BTreeMap<String, i64>>(m).ok())
+        .unwrap_or_default())
+}
+
 pub(crate) fn hidden_set(store: &Store) -> Result<BTreeSet<(SpaceId, String)>> {
     let mut out = BTreeSet::new();
     for (k, v) in store.kv_prefix(HIDDEN_PREFIX)? {

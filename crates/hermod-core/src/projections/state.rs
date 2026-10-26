@@ -368,6 +368,8 @@ pub struct SpaceState {
     pub lines: Vec<LineSt>,
     pub snaps: Vec<SnapSt>,
     pub woven: BTreeMap<String, usize>,
+    /// System chat announcements for weaves (A-010), folded from `line.weave` events.
+    pub weave_msgs: Vec<Msg>,
     pub letters: Vec<LetterSt>,
     pub counts: Counts,
     pub desk: DeskState,
@@ -489,6 +491,7 @@ impl SpaceState {
             lines: Vec::new(),
             snaps: Vec::new(),
             woven: BTreeMap::new(),
+            weave_msgs: Vec::new(),
             letters: Vec::new(),
             counts: Counts::default(),
             desk: DeskState::new(),
@@ -1425,6 +1428,26 @@ impl SpaceState {
                     files: Vec::new(),
                     weave_of: Some(line_id.clone()),
                 });
+                // A-010: every peer folds the same system notice into the default channel.
+                self.weave_msgs.push(Msg {
+                    id: format!("weave-msg-{}", ev.id.chars().take(12).collect::<String>()),
+                    by: "system".into(),
+                    ts,
+                    ord,
+                    arrival: 0,
+                    text: format!("Wove {line_id} into {into}"),
+                    rx: Vec::new(),
+                    thread: Vec::new(),
+                    img: None,
+                    att: Vec::new(),
+                    snap: None,
+                    meet: None,
+                    removed: None,
+                    history: Vec::new(),
+                    pinned: false,
+                    mentions: Vec::new(),
+                    preview: None,
+                });
             }
             EventBody::LetterSend {
                 to_space,
@@ -1610,11 +1633,14 @@ impl SpaceState {
                 });
             }
         }
-        if summaries.is_empty() {
+        let weaves = std::mem::take(&mut self.weave_msgs);
+        if summaries.is_empty() && weaves.is_empty() {
             return;
         }
         let list = self.msgs.entry(ch).or_default();
         list.extend(summaries);
+        // A-010: weave announcements fold on every peer next to the meeting summaries.
+        list.extend(weaves);
         list.sort_by_key(|m| m.ord);
     }
 }

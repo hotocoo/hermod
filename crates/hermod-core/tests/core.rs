@@ -842,3 +842,44 @@ fn mark_read_with_a_watermark_leaves_later_arrivals_unread() {
         .unwrap();
     assert!(!late.read, "and the rookery agrees");
 }
+
+/// A muted chat raises no inbox entry (M-035): the mute lives in this device's chat prefs,
+/// and the core projection honors it so every surface agrees.
+#[test]
+fn muted_chat_raises_no_inbox_entry() {
+    let (_da, a) = core();
+    let (_db, b) = core();
+    let sid = a.space_create("Muted", "", "Team").unwrap().id;
+    b.invite_accept(&a.invite_create(&sid, None, vec![]).unwrap().code)
+        .unwrap();
+    sync(&a, &b, &sid);
+    sync(&b, &a, &sid);
+
+    say(&b, &sid, "m1", "loud arrival");
+    sync(&b, &a, &sid);
+    assert_eq!(
+        snap(&a).collections.inbox.len(),
+        1,
+        "unmuted: the entry is raised"
+    );
+
+    let key = format!("{sid}/general");
+    a.chat_prefs_set(&serde_json::json!({ "muted": { &key: 0 } }))
+        .unwrap();
+    assert!(
+        snap(&a).collections.inbox.is_empty(),
+        "muted forever: no entry"
+    );
+
+    // An expired mute raises it again; clearing the map keeps it raised.
+    a.chat_prefs_set(&serde_json::json!({ "muted": { &key: 1 } }))
+        .unwrap();
+    assert_eq!(
+        snap(&a).collections.inbox.len(),
+        1,
+        "expired mute: entry returns"
+    );
+    a.chat_prefs_set(&serde_json::json!({ "muted": {} }))
+        .unwrap();
+    assert_eq!(snap(&a).collections.inbox.len(), 1);
+}
