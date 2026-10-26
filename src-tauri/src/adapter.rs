@@ -19,6 +19,10 @@ use hermod_node::store::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
+/// Events read from SQLite per step while filling a sync page, so the page's byte budget
+/// bounds memory (at most this many maximum-size events are in memory beyond the budget).
+const SYNC_READ_STEP: usize = 8;
+
 /// A remote event that applied, decrypted for notification and blob-metadata purposes.
 #[derive(Debug, Clone)]
 pub struct Notice {
@@ -152,18 +156,37 @@ impl NodeStore for CoreStore {
         space: &hermod_node::store::SpaceId,
         vector: &BTreeMap<Author, u64>,
         limit: usize,
+        max_bytes: usize,
     ) -> Vec<Vec<u8>> {
-        let remote: BTreeMap<UserId, u64> = vector
+        let mut remote: BTreeMap<UserId, u64> = vector
             .iter()
             .filter_map(|(a, n)| a.parse::<UserId>().ok().map(|u| (u, *n)))
             .collect();
-        // Paged in SQL, already in `(author, seq)` order: the receiver applies per author.
-        self.core
-            .missing_page(&SpaceId(*space), &remote, limit)
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|e| e.to_bytes().ok())
-            .collect()
+        let mut out: Vec<Vec<u8>> = Vec::new();
+        let mut total = 0usize;
+        // Small SQL pages in `(author, seq)` order (the receiver applies per author), each
+        // continuing from the last seq taken, so the byte budget stops the reading instead of
+        // a full page of maximum-size events being loaded and cut afterwards.
+        while out.len() < limit {
+            let room = (limit - out.len()).min(SYNC_READ_STEP);
+            let Ok(page) = self.core.missing_page(&SpaceId(*space), &remote, room) else {
+                break;
+            };
+            let got = page.len();
+            for e in page {
+                let Ok(bytes) = e.to_bytes() else { continue };
+                if !out.is_empty() && total + bytes.len() > max_bytes {
+                    return out;
+                }
+                total += bytes.len();
+                out.push(bytes);
+                remote.insert(e.author, e.seq);
+            }
+            if got < room {
+                break;
+            }
+        }
+        out
     }
 
     fn ingest(
@@ -363,5 +386,34 @@ mod tests {
                 IngestOutcome::Rejected(_)
             ));
         }
+    }
+
+    /// A sync page stops at the byte budget (never loading the rest) yet is never empty.
+    #[test]
+    fn events_after_stops_at_the_byte_budget_but_is_never_empty() {
+        const EVENTS: usize = 10;
+        const TEXT_BYTES: usize = 50 * 1024;
+        let dir = tempfile::tempdir().unwrap();
+        let core = Arc::new(Core::open(dir.path()).unwrap());
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let store = CoreStore::new(core.clone(), tx, Touched::default());
+        let sp = core.space_create("Big", "", "Team").unwrap().id;
+        for i in 0..EVENTS {
+            core.append(&sp, post(&"x".repeat(TEXT_BYTES), &format!("m{i}")))
+                .unwrap();
+        }
+        let none = BTreeMap::new();
+        let all = store.events_after(&sp.0, &none, EVENTS * 2, usize::MAX);
+        assert!(all.len() >= EVENTS);
+        let one = all.iter().map(Vec::len).max().unwrap();
+        let budget = one * 3 + one / 2;
+        let page = store.events_after(&sp.0, &none, EVENTS * 2, budget);
+        let total: usize = page.iter().map(Vec::len).sum();
+        assert!(!page.is_empty() && page.len() < all.len(), "{}", page.len());
+        assert!(total <= budget, "{total} > {budget}");
+        assert_eq!(page, all[..page.len()], "a prefix, in order");
+        let tiny = store.events_after(&sp.0, &none, EVENTS * 2, 1);
+        assert_eq!(tiny.len(), 1, "an oversize first event still goes");
+        assert!(store.events_after(&sp.0, &none, 0, budget).is_empty());
     }
 }

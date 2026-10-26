@@ -73,6 +73,18 @@ impl MemStore {
             .insert(seq, b.clone());
         b
     }
+    /// An event padded to `size` bytes, to exercise the sync page byte budget.
+    fn add_big_event(&self, author: &str, seq: u64, size: usize) {
+        let mut b = ev(author, seq);
+        b.resize(size, b'x');
+        self.0
+            .lock()
+            .unwrap()
+            .events
+            .entry(author.into())
+            .or_default()
+            .insert(seq, b);
+    }
     fn count(&self) -> usize {
         self.0
             .lock()
@@ -119,18 +131,30 @@ impl NodeStore for MemStore {
             .filter_map(|(a, m)| Some((a.clone(), *m.keys().next_back()?)))
             .collect()
     }
-    fn events_after(&self, _: &SpaceId, v: &BTreeMap<Author, u64>, limit: usize) -> Vec<Vec<u8>> {
+    fn events_after(
+        &self,
+        _: &SpaceId,
+        v: &BTreeMap<Author, u64>,
+        limit: usize,
+        max_bytes: usize,
+    ) -> Vec<Vec<u8>> {
         let g = self.0.lock().unwrap();
-        let mut out = Vec::new();
+        let mut out: Vec<Vec<u8>> = Vec::new();
+        let mut total = 0usize;
         for (a, m) in &g.events {
             let have = v.get(a).copied().unwrap_or(0);
-            out.extend(m.range(have + 1..).map(|(_, b)| b.clone()));
+            for (_, b) in m.range(have + 1..) {
+                if out.len() >= limit || (!out.is_empty() && total + b.len() > max_bytes) {
+                    return out;
+                }
+                total += b.len();
+                out.push(b.clone());
+            }
         }
-        out.truncate(limit);
         out
     }
     fn ingest_gossip(&self, space: &SpaceId, bytes: &[u8]) -> StoreResult<IngestOutcome> {
-        if parse(bytes).is_some_and(|(a, _)| a == FLOODER) {
+        if parse(bytes).is_some_and(|(a, _)| a.starts_with(FLOODER)) {
             return Ok(IngestOutcome::Rejected("rate limit exceeded".into()));
         }
         self.ingest(space, bytes)
@@ -629,4 +653,119 @@ async fn flooding_peer_is_banned_and_stays_banned() {
         p.h.shutdown().await;
     }
     let _ = std::fs::remove_dir_all(dir);
+}
+
+/// Three nodes in a line (A - M - C), all in the space. Returns them once gossip crosses it.
+async fn line_of_three() -> (Peer, Peer, Peer) {
+    let a = spawn(test_cfg()).await;
+    let m = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    for p in [&a, &m, &c] {
+        p.h.join_space(SPACE).await.unwrap();
+    }
+    let m_addr = first_addr(&m.h).await;
+    a.h.dial(vec![m_addr.clone()]).await.unwrap();
+    c.h.dial(vec![m_addr]).await.unwrap();
+    status_until("middle sees both", &m.h, |s| s.peers == 2).await;
+    // The mesh needs a heartbeat or two: an honest event from C must reach A through M.
+    let probe = c.store.add_event("carol", 1);
+    c.h.publish_event(SPACE, probe).await.unwrap();
+    until("honest event crosses the line", || a.store.count() == 1).await;
+    (a, m, c)
+}
+
+/// Rotating the (unauthenticated) author header buys no extra budget: every rejected message
+/// strikes the relaying peer, which is banned, and the honest middle node never forwards the
+/// rejected events to its other neighbour.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn rotating_author_flood_is_banned_and_not_forwarded() {
+    let (flooder, middle, far) = line_of_three().await;
+    for seq in 1..=hermod_node::proto::STRIKE_LIMIT as u64 + 20 {
+        let author = format!("{FLOODER}-{seq}");
+        flooder
+            .h
+            .publish_event(SPACE, ev(&author, 1))
+            .await
+            .unwrap();
+    }
+    status_until("flooder banned by the middle node", &middle.h, |s| {
+        s.banned == 1 && s.peers == 1
+    })
+    .await;
+    assert_eq!(far.store.count(), 1, "rejected events were not forwarded");
+    assert_eq!(far.h.status().await.unwrap().banned, 0);
+    for p in [&flooder, &middle, &far] {
+        p.h.shutdown().await;
+    }
+}
+
+/// A signal from a peer that is not our gossip neighbour (it passed gossipsub signing) is
+/// delivered at the far end of a line.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn signal_from_a_non_neighbour_reaches_the_far_end() {
+    let (a, m, mut c) = line_of_three().await;
+    let (a_id, c_id) = (a.h.peer_id(), c.h.peer_id());
+    within("signal across the line", async {
+        loop {
+            a.h.send_signal(SPACE, Some(c_id), b"offer".to_vec())
+                .await
+                .unwrap();
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            while let Ok(e) = c.events.try_recv() {
+                if let NodeEvent::Signal { from, payload, .. } = e {
+                    assert_eq!((from, payload), (a_id, b"offer".to_vec()));
+                    return;
+                }
+            }
+        }
+    })
+    .await;
+    for p in [&a, &m, &c] {
+        p.h.shutdown().await;
+    }
+}
+
+/// Events larger than a page's byte budget still backfill completely, page by page.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn backfill_respects_the_page_byte_budget() {
+    let a = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    // Maximum-size events (1 MiB): a page holds four, so seven need two pages.
+    let size = hermod_node::proto::MAX_GOSSIP_EVENT - 4096;
+    let n = 7u64;
+    for seq in 1..=n {
+        a.store.add_big_event("alice", seq, size);
+    }
+    a.h.join_space(SPACE).await.unwrap();
+    c.h.join_space(SPACE).await.unwrap();
+    c.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+    until("C pulls every byte-bounded page", || {
+        c.store.count() == n as usize
+    })
+    .await;
+    for p in [&a, &c] {
+        p.h.shutdown().await;
+    }
+}
+
+/// A peer that connects before it has joined the space is not struck for the early sync
+/// traffic: it joins, backfills, and nobody is banned.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn dial_before_join_syncs_without_strikes() {
+    let a = spawn(test_cfg()).await;
+    let c = spawn(test_cfg()).await;
+    for seq in 1..=3 {
+        a.store.add_event("alice", seq);
+    }
+    a.h.join_space(SPACE).await.unwrap();
+    c.h.dial(vec![first_addr(&a.h).await]).await.unwrap();
+    status_until("A sees C", &a.h, |s| s.peers == 1).await;
+    tokio::time::sleep(Duration::from_millis(500)).await;
+    c.h.join_space(SPACE).await.unwrap();
+    until("C backfills after joining", || c.store.count() == 3).await;
+    assert_eq!(a.h.status().await.unwrap().banned, 0);
+    assert_eq!(c.h.status().await.unwrap().banned, 0);
+    for p in [&a, &c] {
+        p.h.shutdown().await;
+    }
 }
