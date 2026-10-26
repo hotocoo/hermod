@@ -20,6 +20,8 @@ const PAGES = ['chat', 'hearth', 'feed', 'board', 'skein', 'desk'] as const;
 
 /** Describes every clipped box and every box past the right edge, empty when the surface fits. */
 async function clipped(page: Page): Promise<string[]> {
+  // Entrances (the toast that announces a raised plot, a sliding panel) finish first: mid-flight they sit partly outside the window.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
   return page.evaluate((tol) => {
     const found: string[] = [];
     const name = (el: Element) => `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? `.${el.className.split(' ')[0]}` : ''} "${(el.textContent ?? '').trim().slice(0, 30)}"`;
@@ -33,7 +35,19 @@ async function clipped(page: Page): Promise<string[]> {
       if (!(el.textContent ?? '').trim()) continue;
       // An ellipsis is an intentional, announced truncation (the full text is in the title), not a clip.
       const hides = (v: string) => v === 'hidden' || v === 'clip';
-      if (cs.textOverflow !== 'ellipsis' && ((hides(cs.overflowX) && el.scrollWidth > el.clientWidth + tol) || (hides(cs.overflowY) && el.scrollHeight > el.clientHeight + tol))) {
+      // Content parked wholly outside the box (the closed thread pane, projected labels of buildings off screen) is off-canvas by design;
+      // clipped means text that overlaps the box and is cut at its edge.
+      // A transparent label (the building labels fade out while a panel is open) shows nothing either.
+      const faded = (c: Element) => { for (let n: Element | null = c; n && n !== el; n = n.parentElement) if (getComputedStyle(n).opacity === '0') return true; return false; };
+      const cutText = () => [...el.querySelectorAll('*')].some((c) => {
+        // Building labels are projected from the 3D scene by the camera, so where they sit follows the island, not the layout.
+        if (faded(c) || c.closest('[data-bld]')) return false;
+        if (![...c.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim())) return false;
+        const r = c.getBoundingClientRect();
+        const overlaps = r.left < box.right && r.right > box.left && r.top < box.bottom && r.bottom > box.top;
+        return overlaps && (r.right > box.right + tol || r.bottom > box.bottom + tol || r.left < box.left - tol || r.top < box.top - tol);
+      });
+      if (cs.textOverflow !== 'ellipsis' && ((hides(cs.overflowX) && el.scrollWidth > el.clientWidth + tol) || (hides(cs.overflowY) && el.scrollHeight > el.clientHeight + tol)) && cutText()) {
         found.push(`clipped ${name(el)}: ${el.scrollWidth}x${el.scrollHeight} in ${el.clientWidth}x${el.clientHeight}`);
       }
       // Text with no children of its own that sits past the window edge is cut off by the viewport.
