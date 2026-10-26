@@ -393,7 +393,14 @@ pub enum EventBody {
     #[serde(rename = "member.leave")]
     MemberLeave {},
     #[serde(rename = "member.role")]
-    MemberRole { user: String, role: Role },
+    MemberRole {
+        user: String,
+        role: Role,
+        /// Highest `seq` the changer saw from the target. The target's later seqs act at most at
+        /// `role`, whatever lamport they claim (a demoted admin cannot backdate). Absent on older events.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        last_seq: Option<u64>,
+    },
     #[serde(rename = "member.remove")]
     MemberRemove {
         user: String,

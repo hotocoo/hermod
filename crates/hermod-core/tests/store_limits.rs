@@ -7,7 +7,7 @@ use hermod_core::crypto::SpaceKey;
 use hermod_core::event::SignedEvent;
 use hermod_core::identity::Identity;
 use hermod_core::ids::SpaceId;
-use hermod_core::store::{
+use hermod_core::store::{CLOCK_HEADROOM, 
     MAX_CLOCK, MAX_EPOCH_AHEAD, MAX_LOCKED_PER_SPACE, Source, SpaceRow, Store,
 };
 use hermod_core::{Core, Error};
@@ -53,12 +53,12 @@ fn forge(
 fn huge_lamports_are_rejected_and_buffered_ones_do_not_move_the_clock() {
     let (mut store, row) = store_with_space();
     let who = Identity::generate();
-    for lamport in [i64::MAX as u64, MAX_CLOCK + 1] {
+    for lamport in [i64::MAX as u64, MAX_CLOCK + 1, MAX_CLOCK] {
         let ev = forge(&who, &row, &row.key, 0, 1, lamport);
         assert!(store.ingest_from(&ev, Source::Sync).is_err());
     }
     // Seq 2 with a gap: buffered, not applied, so it must not count towards the next lamport.
-    let gap = forge(&who, &row, &row.key, 0, 2, MAX_CLOCK);
+    let gap = forge(&who, &row, &row.key, 0, 2, MAX_CLOCK - CLOCK_HEADROOM);
     store.ingest_from(&gap, Source::Sync).unwrap();
     assert_eq!(store.max_lamport(&row.id).unwrap(), 0);
 }

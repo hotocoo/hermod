@@ -815,11 +815,19 @@ impl Core {
         if target.role == Role::Owner && role != Role::Owner && owners <= 1 {
             return Err(Error::Forbidden("the last owner cannot be demoted".into()));
         }
+        let last_seq = inner
+            .store
+            .load_opened(&inner.row(space)?)?
+            .iter()
+            .filter(|e| e.author == *user)
+            .map(|e| e.seq)
+            .max();
         inner.append(
             space,
             &EventBody::MemberRole {
                 user: user.to_string(),
                 role,
+                last_seq,
             },
         )
     }

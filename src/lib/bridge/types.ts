@@ -132,7 +132,7 @@ export type EventBody =
   | { t: 'line.weave'; line_id: string; into: string }
   | { t: 'letter.send'; to_space?: string; channel_id: string; text: string }
   // added by the feature audit (FEATURES.md)
-  | { t: 'member.role'; user: string; role: Role }
+  | { t: 'member.role'; user: string; role: Role; last_seq?: number }
   | { t: 'member.remove'; user: string }
   | { t: 'invite.create'; id: string; exp: number | null; max_uses: number | null; role: Role }
   | { t: 'invite.revoke'; id: string }

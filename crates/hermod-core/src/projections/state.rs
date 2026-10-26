@@ -44,6 +44,8 @@ pub struct Prior {
     pub caps: BTreeMap<String, u64>,
     /// Revoked invite id to the users that may have joined through it.
     pub revoked: BTreeMap<String, BTreeSet<String>>,
+    /// User to `last_seq` of a role change to the highest role their later seqs may act at.
+    pub role_caps: BTreeMap<String, BTreeMap<u64, Role>>,
 }
 
 /// Author of the `space.create` whose nonce derives `id`, if any.
@@ -568,10 +570,26 @@ impl SpaceState {
             .revoked
             .get(&inv.id)
             .map_or(!inv.revoked, |joined| joined.contains(by));
-        let live = open && inv.exp.is_none_or(|e| (ts.max(0) as u64) / 1000 < e);
+        // An invite dies with its creator's standing: removed, or demoted below the role that may create invites.
+        let standing = !self.banned.contains(&inv.by)
+            && self.role_of(&inv.by).is_none_or(|r| r >= Role::Admin);
+        let live = open && standing && inv.exp.is_none_or(|e| (ts.max(0) as u64) / 1000 < e);
         let room =
             inv.uses.contains(by) || inv.max_uses.is_none_or(|m| (inv.uses.len() as u32) < m);
         live && room
+    }
+
+    /// Role `by` holds for an event of sequence `seq`: the fold role, held down by the cap of the
+    /// latest role change that already covered every earlier seq of the signer.
+    fn role_at(&self, by: &str, seq: u64) -> Option<Role> {
+        let role = self.role_of(by)?;
+        let cap = self
+            .prior
+            .role_caps
+            .get(by)
+            .and_then(|c| c.range(..seq).next_back())
+            .map(|(_, r)| *r);
+        Some(cap.map_or(role, |c| c.min(role)))
     }
 
     fn authorize(&self, ev: &Opened, by: &str) -> bool {
@@ -592,7 +610,7 @@ impl SpaceState {
             _ if !self.created => false,
             EventBody::MemberJoin { invite, .. } => self.can_join(by, invite.as_ref(), ts),
             other => self
-                .role_of(by)
+                .role_at(by, ev.seq)
                 .is_some_and(|r| r >= min_role(other) && self.msgx_allows(by, r, other, ts)),
         }
     }
@@ -633,7 +651,7 @@ impl SpaceState {
 
     fn apply(&mut self, ev: &Opened, by: &str, ord: Ord3) {
         let ts = ev.ts;
-        let my_role = self.role_of(by);
+        let my_role = self.role_at(by, ev.seq);
         match &ev.body {
             EventBody::SpaceCreate {
                 name,
@@ -703,7 +721,11 @@ impl SpaceState {
                 self.drop_member(by);
                 self.audit(ev, by, "member.leave", None, String::new());
             }
-            EventBody::MemberRole { user, role } => {
+            EventBody::MemberRole {
+                user,
+                role,
+                last_seq,
+            } => {
                 let Some(target) = self.role_of(user) else {
                     return;
                 };
@@ -712,6 +734,17 @@ impl SpaceState {
                     return;
                 }
                 self.roles.insert(user.clone(), *role);
+                // A self-demotion is not capped: its own event would fall under the cap it sets.
+                if let Some(seq) = last_seq.filter(|_| user != by) {
+                    let cap = self
+                        .found
+                        .role_caps
+                        .entry(user.clone())
+                        .or_default()
+                        .entry(seq)
+                        .or_insert(*role);
+                    *cap = (*cap).min(*role);
+                }
                 self.audit(ev, by, "member.role", Some(user), role.as_str().to_string());
             }
             EventBody::MemberRemove { user, last_seq } => {

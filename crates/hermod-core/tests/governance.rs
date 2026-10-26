@@ -154,6 +154,7 @@ fn role_table_every_event_type_is_gated() {
             MemberRole {
                 user: "u".into(),
                 role: Role::Admin,
+                last_seq: None,
             },
             Role::Owner,
         ),
@@ -232,6 +233,7 @@ fn fold_ignores_unauthorized_authors_and_converges() {
         EventBody::MemberRole {
             user: member.to_string(),
             role: Role::Owner,
+            last_seq: None,
         },
     );
     l.push(

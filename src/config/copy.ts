@@ -1,5 +1,7 @@
 /** User-facing strings the state layer writes (toasts, labels). */
 export const COPY = {
+  /** Invite expiry is advisory: the joiner's own clock decides it. Revoking is what enforces. */
+  inviteExpiryNote: 'Expiry is a courtesy, not a lock: it relies on the joiner\'s clock. To stop a link for certain, revoke it.',
   card: {
     unassigned: 'Nobody', duePlaceholder: 'YYYY-MM-DD', dueInvalid: 'Use a due date like 2030-01-31, or leave it empty.',
     editTitle: 'Edit card', assignedTo: 'Assigned to', dueLabel: 'Due', due: (d: string) => `Due ${d}`,
