@@ -2,6 +2,7 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import s from './Dialog.module.css';
+import { COPY } from '@/config/copy';
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
@@ -38,7 +39,7 @@ export function Dialog({ title, kicker, onClose, wide, children, initialFocus }:
             {kicker && <div className={s.kicker}>{kicker}</div>}
             <h2 id={titleId} className={s.title}>{title}</h2>
           </div>
-          <button type="button" className={s.close} onClick={onClose} aria-label="Close"><Icon name="x" size={16} /></button>
+          <button type="button" className={s.close} onClick={onClose} aria-label={COPY.ui.shell.dialogText.close}><Icon name="x" size={16} /></button>
         </div>
         <div className={s.body}>{children}</div>
       </div>

@@ -1,4 +1,5 @@
 import type { MouseEventHandler, ReactNode } from 'react';
+import { COPY } from '@/config/copy';
 import s from './skein.module.css';
 
 export interface SkeinLine { id: string; name: string; note: string; hasAhead: boolean; aheadLabel: string; bg: string; fg: string; onClick: MouseEventHandler }
@@ -19,10 +20,10 @@ export function Lines({ label, lines, weavable, weaveLabel, icLine, icWeave }: P
       ))}
       {weavable.length > 0 && (
         <div className={s.weave}>
-          <div className={s.weaveTitle}>Ready to {weaveLabel}</div>
+          <div className={s.weaveTitle}>{COPY.ui.panel.sections.weaveReady(weaveLabel)}</div>
           {weavable.map((w) => (
             <div key={w.id} className={s.weaveRow}>
-              <span className={s.weaveText}><b className={s.weaveName}>{w.name}</b> from {w.by}, no conflicts</span>
+              <span className={s.weaveText}><b className={s.weaveName}>{w.name}</b>{' '}{COPY.ui.panel.sections.weaveFrom(w.by)}</span>
               <button type="button" className={s.weaveBtn} onClick={w.onWeave}>{icWeave} {weaveLabel}</button>
             </div>
           ))}

@@ -9,7 +9,7 @@ import { useAppStore } from '@/state/store';
 export function RookeryDrawer({ vm }: { vm: ViewModel }) {
   const { closeDrawer, drawerRook, hasRookUnread, icS, markRookRead, rook, rookEmpty } = vm;
   return drawerRook ? (
-    <DrawerFrame label="Rookery" kicker="Rookery" title="What the ravens brought" headGap="md" closeIcon={icS.x} onClose={closeDrawer}>
+    <DrawerFrame label={COPY.ui.shell.drawers.rookery.label} kicker={COPY.ui.shell.drawers.rookery.kicker} title={COPY.ui.shell.drawers.rookery.title} headGap="md" closeIcon={icS.x} onClose={closeDrawer}>
       {rookEmpty ? (
         <EmptyNote {...COPY.empty.rookery} />
       ) : null}
@@ -20,7 +20,7 @@ export function RookeryDrawer({ vm }: { vm: ViewModel }) {
             <span className={s.line}>
               <b className={s.from}>{rk.from}</b>
               {' '}
-              in
+              {COPY.ui.shell.drawers.rookery.in}
               {' '}
               {rk.where}
             </span>
@@ -31,7 +31,7 @@ export function RookeryDrawer({ vm }: { vm: ViewModel }) {
       ))}
       <button className={s.markReadBtn} onClick={() => { closeDrawer(); useAppStore.getState().openModal({ kind: 'letter' }); }}>{COPY.letter.compose}</button>
       {hasRookUnread ? (
-        <button className={s.markReadBtn} onClick={markRookRead}>Mark all as read</button>
+        <button className={s.markReadBtn} onClick={markRookRead}>{COPY.ui.shell.drawers.rookery.markRead}</button>
       ) : null}
     </DrawerFrame>
   ) : null;

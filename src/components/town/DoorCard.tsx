@@ -1,4 +1,5 @@
 import type { ViewModel } from '@/state/viewModel';
+import { COPY } from '@/config/copy';
 import chrome from '../ui/chrome.module.css';
 import s from './DoorCard.module.css';
 
@@ -27,9 +28,9 @@ export function DoorCard({ vm }: { vm: DoorVm }) {
             {' '}
             {icS.right}
           </button>
-          <button className={s.backBtn} onClick={backDoor}>Back</button>
+          <button className={s.backBtn} onClick={backDoor}>{COPY.ui.panel.town.doorBack}</button>
         </div>
-        <div className={s.hint}>Click the building again to go in · Esc to step back</div>
+        <div className={s.hint}>{COPY.ui.panel.town.doorHint}</div>
       </div>
     </div>
   );

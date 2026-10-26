@@ -1,4 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
+import { COPY } from '@/config/copy';
 import chrome from '../ui/chrome.module.css';
 import s from './DrawerFrame.module.css';
 
@@ -44,7 +45,7 @@ export function DrawerFrame({ label, kicker, title, headExtra, headGap, closeIco
           {title != null ? <div className={s.title}>{title}</div> : null}
           {headExtra}
         </div>
-        <button className={s.closeBtn} onClick={onClose} aria-label="Close">{closeIcon}</button>
+        <button className={s.closeBtn} onClick={onClose} aria-label={COPY.ui.shell.misc.close}>{closeIcon}</button>
       </div>
       {children}
     </div>

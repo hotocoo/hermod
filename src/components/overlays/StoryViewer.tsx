@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { ViewModel } from '@/state/viewModel';
 import s from './StoryViewer.module.css';
+import { COPY } from '@/config/copy';
 
 export function StoryViewer({ vm }: { vm: ViewModel }) {
   const { closeStory, ic, icS, onStoryDraft, onStoryKey, story, storyDraft, storyHeart, storyHeartFg, storyNext, storyOpen, storyPrev } = vm;
@@ -15,7 +16,7 @@ export function StoryViewer({ vm }: { vm: ViewModel }) {
     return () => window.removeEventListener('keydown', k);
   }, [storyOpen, storyNext, storyPrev]);
   return storyOpen && story ? (
-    <div className={s.root} role="dialog" aria-modal="true" aria-label={`${story.name}'s story`}>
+    <div className={s.root} role="dialog" aria-modal="true" aria-label={COPY.ui.shell.overlaysMore.storyOf(story.name)}>
       <div className={s.frame}>
         <div className={s.bars}>
           {story.bars.map((sb, i) => (
@@ -32,14 +33,14 @@ export function StoryViewer({ vm }: { vm: ViewModel }) {
         {story.media?.mime.startsWith('video/') && <video src={story.media.url} className={s.media} autoPlay muted playsInline loop aria-label={story.caption || story.label} />}
         {!story.media && <span className={s.label}>{story.label}</span>}
         <div className={s.caption}>{story.caption}</div>
-        <button className={s.prevZone} onClick={storyPrev} aria-label="Previous" />
-        <button className={s.nextZone} onClick={storyNext} aria-label="Next" />
+        <button className={s.prevZone} onClick={storyPrev} aria-label={COPY.ui.shell.storyViewerText.previous} />
+        <button className={s.nextZone} onClick={storyNext} aria-label={COPY.ui.shell.storyViewerText.next} />
         <div className={s.replyRow}>
-          <input value={storyDraft} onChange={onStoryDraft} onKeyDown={onStoryKey} placeholder={`Reply to ${story.first}`} aria-label={`Reply to ${story.first}`} className={`${s.replyInput} hm-story-in`} />
-          <button className={s.heartBtn} style={{ color: storyHeartFg }} onClick={storyHeart} aria-label="Love">{icS.heart}</button>
+          <input value={storyDraft} onChange={onStoryDraft} onKeyDown={onStoryKey} placeholder={COPY.ui.shell.overlaysMore.replyTo(story.first)} aria-label={COPY.ui.shell.overlaysMore.replyTo(story.first)} className={`${s.replyInput} hm-story-in`} />
+          <button className={s.heartBtn} style={{ color: storyHeartFg }} onClick={storyHeart} aria-label={COPY.ui.shell.storyViewerText.love}>{icS.heart}</button>
         </div>
       </div>
-      <button className={s.closeBtn} onClick={closeStory} aria-label="Close stories">{ic.x}</button>
+      <button className={s.closeBtn} onClick={closeStory} aria-label={COPY.ui.shell.storyViewerText.closeStories}>{ic.x}</button>
     </div>
   ) : null;
 }

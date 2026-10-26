@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
 import { UPLOAD } from '@/config/app';
+import { COPY } from '@/config/copy';
 import { errorMessage, getBridge, type BlobRef } from '@/lib/bridge';
 import { mediaBridgeFrom, prepareStoryItem, type UploadProgress } from '@/lib/media';
 import { chooseFiles } from '@/lib/upload';
@@ -46,26 +47,27 @@ export function ComposeStoryModal() {
     if (ok) close();
   };
 
+  const C = COPY.ui.modals.story;
   return (
-    <Dialog title="New story" kicker="Stories" onClose={close} wide>
+    <Dialog title={C.title} kicker={C.kicker} onClose={close} wide>
       <form onSubmit={submit} className={f.field} style={{ gap: 14 }}>
-        <p className={f.note}>A story lasts a day. Add one or more photos or clips, each with an optional caption.</p>
+        <p className={f.note}>{C.note}</p>
         {items.map((it, i) => (
           <div key={it.blob.hash + i} className={s.item}>
-            {it.preview && it.blob.mime.startsWith('image/') ?  <img src={it.preview} alt="" className={s.thumb} /> : <span className={s.thumb}>{it.blob.mime.startsWith('video/') ? 'video' : 'file'}</span>}
+            {it.preview && it.blob.mime.startsWith('image/') ?  <img src={it.preview} alt="" className={s.thumb} /> : <span className={s.thumb}>{it.blob.mime.startsWith('video/') ? C.thumbVideo : C.thumbFile}</span>}
             <div className={f.field}>
-              <label className={f.label} htmlFor={`cs-${i}`}>Caption for {it.blob.name}</label>
+              <label className={f.label} htmlFor={`cs-${i}`}>{C.captionFor(it.blob.name)}</label>
               <input id={`cs-${i}`} className="input" value={it.caption} onChange={(e) => setCaption(i, e.target.value)} autoComplete="off" />
             </div>
-            <button type="button" className="btn btn-secondary" onClick={() => remove(i)} aria-label={`Remove ${it.blob.name}`}>Remove</button>
+            <button type="button" className="btn btn-secondary" onClick={() => remove(i)} aria-label={C.removeLabel(it.blob.name)}>{C.remove}</button>
           </div>
         ))}
-        <div className={f.row}><button type="button" className="btn btn-secondary" onClick={add} disabled={busy}>{items.length ? 'Add more' : 'Choose photos or clips'}</button></div>
+        <div className={f.row}><button type="button" className="btn btn-secondary" onClick={add} disabled={busy}>{items.length ? C.addMore : C.choose}</button></div>
         {progress && <p role="status" className={f.note}>{Math.round((progress.loaded / Math.max(1, progress.total)) * 100)}%</p>}
         {err && <p role="alert" className={f.error}>{err}</p>}
         <div className={f.actions}>
-          <button type="button" className="btn btn-secondary" onClick={close}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={!items.length || busy}>{busy ? 'Working…' : 'Share story'}</button>
+          <button type="button" className="btn btn-secondary" onClick={close}>{COPY.ui.modals.common.cancel}</button>
+          <button type="submit" className="btn btn-primary" disabled={!items.length || busy}>{busy ? COPY.ui.modals.common.working : C.share}</button>
         </div>
       </form>
     </Dialog>

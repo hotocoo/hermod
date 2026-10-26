@@ -6,7 +6,7 @@ import { getTown } from '@/state/townPort';
 import s from './SettingsDrawer.module.css';
 
 type Choice = QualityTier | 'auto';
-const LABEL: Record<Choice, string> = { auto: 'Auto', low: 'Low', medium: 'Medium', high: 'High', ultra: 'Ultra' };
+const label = (c: Choice) => COPY.ui.shell.drawers.quality[c];
 
 /** Graphics tier for this device: Auto follows the GPU and steps down when frames drop; a fixed tier is saved locally and never changed for you. */
 export function GraphicsQuality() {
@@ -17,13 +17,13 @@ export function GraphicsQuality() {
   useEffect(() => { const t = window.setInterval(() => setCur((p) => { const n = read(); return n.pick === p.pick && n.tier === p.tier ? p : n; }), TIMING.qualityPollMs); return () => window.clearInterval(t); }, []);
   return (
     <fieldset className={s.quality}>
-      <legend className={s.rowLabel}>Graphics quality</legend>
-      <span className={s.rowSub}>{cur.pick !== 'auto' ? `${COPY.qualityFixed}${cur.pick !== 'low' ? COPY.qualityLowerHint : ''}` : cur.tier ? COPY.qualityAutoPicked(LABEL[cur.tier]) : COPY.qualityAutoIdle}</span>
-      <div className="seg" role="radiogroup" aria-label="Graphics quality">
+      <legend className={s.rowLabel}>{COPY.ui.shell.drawers.graphicsQuality}</legend>
+      <span className={s.rowSub}>{cur.pick !== 'auto' ? `${COPY.qualityFixed}${cur.pick !== 'low' ? COPY.qualityLowerHint : ''}` : cur.tier ? COPY.qualityAutoPicked(label(cur.tier)) : COPY.qualityAutoIdle}</span>
+      <div className="seg" role="radiogroup" aria-label={COPY.ui.shell.drawers.graphicsQuality}>
         {(['auto', ...QUALITY_ORDER] as Choice[]).map((c) => (
           <label className="seg-opt" key={c}>
             <input type="radio" name="graphics-quality" value={c} checked={cur.pick === c} onChange={() => choose(c)} />
-            {LABEL[c]}
+            {label(c)}
           </label>
         ))}
       </div>

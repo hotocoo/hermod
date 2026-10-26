@@ -5,6 +5,7 @@ import s from './Profile.module.css';
 import { Face } from '@/components/ui/Face';
 import { cssUrl } from '@/lib/blobHash';
 import { blobUrl } from '@/lib/upload';
+import { COPY } from '@/config/copy';
 
 export function Profile({ vm }: { vm: ViewModel }) {
   return vm.profOpen && vm.prof ? <ProfileDialog vm={vm} /> : null;
@@ -15,9 +16,9 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
   const [trapRef, trapKeys] = useTrap<HTMLDivElement>(closeProfile);
   return (
     <div className={s.backdrop} onClick={closeProfile}>
-      <div ref={trapRef} onKeyDown={trapKeys} className={s.dialog} onClick={stop} role="dialog" aria-modal="true" aria-label="Profile">
+      <div ref={trapRef} onKeyDown={trapKeys} className={s.dialog} onClick={stop} role="dialog" aria-modal="true" aria-label={COPY.ui.shell.profileText.profile}>
         <div className={s.cover} style={prof.ext?.banner ? { backgroundImage: cssUrl(blobUrl(prof.ext.banner.hash)), backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
-          <button className={s.closeBtn} onClick={closeProfile} aria-label="Close">{icS.x}</button>
+          <button className={s.closeBtn} onClick={closeProfile} aria-label={COPY.ui.shell.profileText.close}>{icS.x}</button>
         </div>
         <div className={s.body}>
           <div className={s.headRow}>
@@ -32,17 +33,17 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
                 </>
               ) : null}
             </div>
-            <button className={s.editBtn} onClick={setAvatar}>Change photo</button>
+            <button className={s.editBtn} onClick={setAvatar}>{COPY.ui.shell.profileText.changePhoto}</button>
             <button className={s.editBtn} onClick={toggleEditProf}>{profEditLabel}</button>
           </div>
           {profEdit ? (
             <div className={s.editForm}>
               <label className={s.field}>
-                Name
+                {COPY.ui.shell.profileText.name}
                 <input className={s.nameInput} value={prof.name} onChange={onProfName} />
               </label>
               <label className={s.field}>
-                Bio
+                {COPY.ui.shell.profileText.bio}
                 <textarea className={s.bioInput} onChange={onProfBio} value={prof.bio} />
               </label>
             </div>
@@ -63,7 +64,7 @@ function ProfileDialog({ vm }: { vm: ViewModel }) {
           </div>
         </div>
         <div className={s.gridWrap}>
-          {profEmpty ? <p className={s.bio}>Nothing here yet.</p> : null}
+          {profEmpty ? <p className={s.bio}>{COPY.ui.shell.profileText.nothingHereYet}</p> : null}
           <div className={s.grid}>
             {profGrid.map((pg, i) => (
               <div className={s.tile} style={{ aspectRatio: pg.ar, animation: pg.anim, backgroundImage: cssUrl(pg.url), backgroundSize: 'cover' }} key={i}>

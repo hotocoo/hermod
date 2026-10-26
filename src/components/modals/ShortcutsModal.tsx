@@ -2,6 +2,7 @@
 import { useAppStore } from '@/state/store';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
+import { COPY } from '@/config/copy';
 
 const MOD = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform) ? '⌘' : 'Ctrl';
 const ROWS: [string, string][] = [
@@ -14,9 +15,9 @@ const ROWS: [string, string][] = [
 export function ShortcutsModal() {
   const close = useAppStore((s) => s.closeModal);
   return (
-    <Dialog title="Keyboard shortcuts" kicker="Help" onClose={close}>
+    <Dialog title={COPY.ui.modals.shortcutsModalText.keyboardShortcuts} kicker={COPY.ui.modals.shortcutsModalText.help} onClose={close}>
       <table className={f.table}>
-        <thead><tr><th scope="col">Keys</th><th scope="col">Does</th></tr></thead>
+        <thead><tr><th scope="col">{COPY.ui.modals.shortcutsModalText.keys}</th><th scope="col">{COPY.ui.modals.shortcutsModalText.does}</th></tr></thead>
         <tbody>{ROWS.map(([k, d]) => <tr key={k}><td><kbd>{k}</kbd></td><td>{d}</td></tr>)}</tbody>
       </table>
     </Dialog>

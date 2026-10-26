@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { useAppStore } from '@/state/store';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
+import { COPY } from '@/config/copy';
 
 /** The one text-input dialog every "new thing" action uses (store.ask). Required fields block submit. */
 export function PromptDialog() {
@@ -22,7 +23,7 @@ function PromptForm({ spec, settle }: { spec: NonNullable<ReturnType<typeof useA
       <form onSubmit={submit} className={f.field} style={{ gap: 14 }}>
         {spec.fields.map((fl) => (
           <div key={fl.key} className={f.field}>
-            <label className={f.label} htmlFor={`pf-${fl.key}`}>{fl.label}{fl.required ? ' (required)' : ''}</label>
+            <label className={f.label} htmlFor={`pf-${fl.key}`}>{fl.label}{fl.required ? COPY.ui.modals.promptDialogText.required : ''}</label>
             {fl.options ? (
               <select id={`pf-${fl.key}`} className="input" value={values[fl.key]} onChange={(e) => set(fl.key, e.target.value)}>
                 {fl.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -36,7 +37,7 @@ function PromptForm({ spec, settle }: { spec: NonNullable<ReturnType<typeof useA
         ))}
         {spec.note && <p className={f.note}>{spec.note}</p>}
         <div className={f.actions}>
-          <button type="button" className="btn btn-secondary" onClick={() => settle(null)}>Cancel</button>
+          <button type="button" className="btn btn-secondary" onClick={() => settle(null)}>{COPY.ui.modals.promptDialogText.cancel}</button>
           <button type="submit" className="btn btn-primary" disabled={!ok}>{spec.submit}</button>
         </div>
       </form>

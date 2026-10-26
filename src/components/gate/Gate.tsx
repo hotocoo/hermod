@@ -1,5 +1,6 @@
 'use client';
 import { ModalHost } from '@/components/modals/ModalHost';
+import { COPY } from '@/config/copy';
 import { useAppStore } from '@/state/store';
 import { DeclinedScreen } from './DeclinedScreen';
 import { FailedScreen } from './FailedScreen';
@@ -14,7 +15,7 @@ export function Gate() {
   const phase = useAppStore((s) => s.phase);
   return (
     <div className={s.root}>
-      {phase === 'boot' && <p role="status" className={s.loading}>Starting Hermod…</p>}
+      {phase === 'boot' && <p role="status" className={s.loading}>{COPY.ui.shell.gate.starting}</p>}
       {phase === 'legal' && <TermsGate />}
       {phase === 'declined' && <DeclinedScreen />}
       {phase === 'profile' && <ProfileSetup />}

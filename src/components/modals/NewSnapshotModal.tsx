@@ -58,20 +58,20 @@ export function NewSnapshotModal() {
     if (done) close();
   };
   return (
-    <Dialog title="Take a snapshot" kicker="Skein" onClose={close}>
+    <Dialog title={COPY.ui.modals.newSnapshotModalText.takeASnapshot} kicker={COPY.ui.modals.newSnapshotModalText.skein} onClose={close}>
       <form onSubmit={(e) => { void submit(e); }} className={f.field} style={{ gap: 14 }}>
         <div className={f.field}>
-          <label className={f.label} htmlFor="ns-title">Title (required)</label>
-          <input id="ns-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What changed" autoComplete="off" />
+          <label className={f.label} htmlFor="ns-title">{COPY.ui.modals.newSnapshotModalText.titleRequired}</label>
+          <input id="ns-title" className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={COPY.ui.modals.newSnapshotModalText.whatChanged} autoComplete="off" />
         </div>
         <div className={f.field}>
-          <label className={f.label} htmlFor="ns-line">Line</label>
+          <label className={f.label} htmlFor="ns-line">{COPY.ui.modals.newSnapshotModalText.line}</label>
           <select id="ns-line" className="input" value={line} onChange={(e) => setLine(e.target.value)}>
             {lines.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
         </div>
         <div className={f.field}>
-          <span className={f.label}>Files (required)</span>
+          <span className={f.label}>{COPY.ui.modals.newSnapshotModalText.filesRequired}</span>
           <ul className={s.modalFiles}>{files.map((x) => <li key={x.blob.hash}>{x.blob.name} · {humanSize(x.blob.size)}</li>)}{(plan?.files ?? []).map((x) => <li key={x.path}>{x.path} · +{x.adds} / −{x.dels}</li>)}</ul>
           {plan && <p className={s.sealNote}>{COPY.snapFolder.summary(plan.added, plan.removed, plan.changed)}</p>}
           <div>
@@ -81,8 +81,8 @@ export function NewSnapshotModal() {
         </div>
         {err && <p role="alert" className={f.error}>{err}</p>}
         <div className={f.actions}>
-          <button type="button" className="btn btn-secondary" onClick={close}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={!ok}>{busy ? 'Saving…' : 'Take snapshot'}</button>
+          <button type="button" className="btn btn-secondary" onClick={close}>{COPY.ui.modals.newSnapshotModalText.cancel}</button>
+          <button type="submit" className="btn btn-primary" disabled={!ok}>{busy ? COPY.ui.modals.newSnapshotModalText.saving : COPY.ui.modals.newSnapshotModalText.takeSnapshot}</button>
         </div>
       </form>
     </Dialog>

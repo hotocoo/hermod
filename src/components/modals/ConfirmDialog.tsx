@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/state/store';
 import { Dialog } from '@/components/ui/Dialog';
+import { COPY } from '@/config/copy';
 import f from '@/components/ui/form.module.css';
 
 /** Explicit confirmation for destructive actions (store.confirmAction). `typed` requires the user to type a phrase first. */
@@ -16,12 +17,12 @@ export function ConfirmDialog() {
       <p className={f.note}>{spec.body}</p>
       {spec.typed && (
         <div className={f.field}>
-          <label className={f.label} htmlFor="cf-typed">Type <b>{spec.typed}</b> to confirm</label>
+          <label className={f.label} htmlFor="cf-typed">{COPY.ui.modals.confirm.typeBefore} <b>{spec.typed}</b> {COPY.ui.modals.confirm.typeAfter}</label>
           <input id="cf-typed" className="input" value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
         </div>
       )}
       <div className={f.actions}>
-        <button type="button" data-cancel className="btn btn-secondary" onClick={() => { setTyped(''); settle(false); }}>Cancel</button>
+        <button type="button" data-cancel className="btn btn-secondary" onClick={() => { setTyped(''); settle(false); }}>{COPY.ui.modals.common.cancel}</button>
         <button type="button" className={spec.danger ? `btn btn-secondary ${f.danger}` : 'btn btn-primary'} disabled={!ready} onClick={() => { setTyped(''); settle(true); }}>{spec.confirm}</button>
       </div>
     </Dialog>

@@ -14,19 +14,19 @@ export function FeedSection() {
     <div className={s.scroll}>
       <div className={s.page}>
         <header className={s.head}>
-          <div className={s.headMain}><div className={s.kicker}>Feed</div><h2 className={s.title}>Made here</h2></div>
-          <div className={s.tabs} role="tablist" aria-label="Feed">
+          <div className={s.headMain}><div className={s.kicker}>{COPY.ui.panel.sections.feedTitle}</div><h2 className={s.title}>{COPY.ui.panel.sections.feedMadeHere}</h2></div>
+          <div className={s.tabs} role="tablist" aria-label={COPY.ui.panel.sections.feedTitle}>
             {vm.feedTabs.map((t) => (
               <button key={t.id} type="button" role="tab" aria-selected={t.on} onClick={t.onClick} className={t.on ? `${s.tab} ${s.tabOn}` : s.tab}>{t.label}</button>
             ))}
           </div>
-          <button type="button" className={`btn btn-primary ${s.newPost}`} onClick={vm.composePost}>{vm.icS.plus} New post</button>
+          <button type="button" className={`btn btn-primary ${s.newPost}`} onClick={vm.composePost}>{vm.icS.plus} {COPY.ui.panel.sections.feedNewPost}</button>
         </header>
         {!vm.hasFeed && (
           <div className={s.empty}>
-            <h3 className={s.emptyTitle}>Nothing hung yet</h3>
+            <h3 className={s.emptyTitle}>{COPY.ui.panel.sections.feedNothing}</h3>
             <p className={s.emptyLine}>{vm.freshLine}</p>
-            <button type="button" className="btn btn-primary" onClick={vm.composePost}>Share the first post</button>
+            <button type="button" className="btn btn-primary" onClick={vm.composePost}>{COPY.ui.panel.sections.feedShare}</button>
           </div>
         )}
         {vm.feedEmptyTab && <div className={s.empty}><EmptyNote {...COPY.empty.feedSaved} /></div>}

@@ -1,5 +1,6 @@
 'use client';
 import { useViewModel } from '@/state/useViewModel';
+import { COPY } from '@/config/copy';
 import s from './hearth.module.css';
 import { Face } from '@/components/ui/Face';
 
@@ -11,7 +12,7 @@ export function Lobby() {
   return (
     <div className={s.lobby}>
       <div className={s.lobbyInner}>
-        <div className={s.kicker}>Drop-in room · always open</div>
+        <div className={s.kicker}>{COPY.ui.panel.sections.lobbyKicker}</div>
         <h2 className={s.lobbyTitle}>{hearth.name}</h2>
         <p className={s.lobbyLine} role="status" aria-live="polite">{hearth.line}</p>
         <div className={s.faces}>
@@ -23,9 +24,9 @@ export function Lobby() {
           ))}
           {hearth.hasExtra && <div className={s.extra}>{hearth.extra}</div>}
         </div>
-        <button type="button" className={s.join} onClick={vm.joinRoom} disabled={hearth.full} aria-describedby={hearth.full ? 'hearth-full' : undefined}>{vm.ic.flame} Pull up a chair</button>
+        <button type="button" className={s.join} onClick={vm.joinRoom} disabled={hearth.full} aria-describedby={hearth.full ? 'hearth-full' : undefined}>{vm.ic.flame} {COPY.ui.panel.sections.lobbyJoin}</button>
         {hearth.full && <p id="hearth-full" className={s.full} role="status">{hearth.fullLine}</p>}
-        <p className={s.blurb}>Anyone in {vm.space.name} can drop in. When it turns into real work, make it a meeting: agenda, shared notes and a recording, without hanging up.</p>
+        <p className={s.blurb}>{COPY.ui.panel.sections.lobbyBlurb(vm.space.name)}</p>
       </div>
     </div>
   );

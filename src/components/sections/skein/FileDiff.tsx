@@ -86,7 +86,7 @@ export function FileDiff({ f }: { f: SkeinFileData }) {
       </div>
       
       {f.previewUrl && <img className={s.preview} src={f.previewUrl} alt={f.path} />}
-      {f.blob && <button type="button" className={s.dl} onClick={() => { void download(f.blob as BlobRef); }}>Download {f.blob.name}</button>}
+      {f.blob && <button type="button" className={s.dl} onClick={() => { void download(f.blob as BlobRef); }}>{COPY.ui.panel.sections.fileDownload(f.blob.name)}</button>}
       {f.isSwatch && <div className={s.swatches}>{f.swatches.map((w) => <Swatch key={w.n} w={w} />)}</div>}
       {f.isCode && f.lines.length > 0 && (
         <div className={s.code}>
@@ -114,8 +114,8 @@ export function FileDiff({ f }: { f: SkeinFileData }) {
       )}
       {f.isAudio && f.audio && (
         <div className={s.audio}>
-          <div><div className={s.audioLabel}>Before · {f.audio.from}</div><div className={`${s.wave} ${s.waveBefore}`}></div></div>
-          <div><div className={`${s.audioLabel} ${s.audioAfterLabel}`}>After · {f.audio.to}</div><div className={`${s.wave} ${s.waveAfter}`}></div></div>
+          <div><div className={s.audioLabel}>{COPY.ui.panel.sections.fileBefore(f.audio.from)}</div><div className={`${s.wave} ${s.waveBefore}`}></div></div>
+          <div><div className={`${s.audioLabel} ${s.audioAfterLabel}`}>{COPY.ui.panel.sections.fileAfter(f.audio.to)}</div><div className={`${s.wave} ${s.waveAfter}`}></div></div>
         </div>
       )}
     </section>

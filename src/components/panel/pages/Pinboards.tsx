@@ -9,13 +9,13 @@ export function Pinboards({ vm }: VmProps) {
   return (
     <div className={s.page}>
       <div className={s.side}>
-        <div className={`${c.kicker} ${s.sideHead}`}>Inspiration boards</div>
+        <div className={`${c.kicker} ${s.sideHead}`}>{COPY.ui.panel.panel.pinBoards}</div>
         {vm.boardsList.map((bl) => (
           <button type="button" key={bl.name} onClick={bl.onClick} className={s.board} style={{ background: bl.bg, color: bl.fg }}>
             <span>{bl.name}</span><span className={`${s.count} ${c.muted}`}>{bl.count}</span>
           </button>
         ))}
-        <button type="button" onClick={vm.newPinboard} className={`${c.btn} ${s.newBtn}`}>{vm.icS.plus} New board</button>
+        <button type="button" onClick={vm.newPinboard} className={`${c.btn} ${s.newBtn}`}>{vm.icS.plus} {COPY.ui.panel.panel.pinNewBoard}</button>
       </div>
       <div className={s.main}>
         {!vm.hasBoards ? (
@@ -23,9 +23,9 @@ export function Pinboards({ vm }: VmProps) {
         ) : (
           <>
             <div className={s.head}>
-              <h2 className={s.name}>{cur.name}</h2><span className={`${s.meta} ${c.muted}`}>{cur.count} pins · {cur.who}</span>
+              <h2 className={s.name}>{cur.name}</h2><span className={`${s.meta} ${c.muted}`}>{COPY.ui.panel.panel.pinMeta(String(cur.count), cur.who)}</span>
               <span className={s.grow} />
-              {cur.canPin && <button type="button" onClick={vm.addPin} className={c.btnAccent}>{vm.icS.plus} Add pin</button>}
+              {cur.canPin && <button type="button" onClick={vm.addPin} className={c.btnAccent}>{vm.icS.plus} {COPY.ui.panel.panel.pinAdd}</button>}
             </div>
             {cur.empty && (
               <EmptyNote {...(cur.canPin ? COPY.empty.pinboardShared : COPY.empty.pinboardSaved)} />
@@ -33,7 +33,7 @@ export function Pinboards({ vm }: VmProps) {
             <div className={s.cols}>
               {cur.pins.map((pn, i) => (
                 <div key={`${pn.label}-${i}`} className={s.pin} style={{ animation: pn.anim }}>
-                  <button type="button" className={s.pinArt} style={{ height: pn.url ? 'auto' : pn.h }} onClick={pn.open} aria-label={`Open ${pn.title}`}>
+                  <button type="button" className={s.pinArt} style={{ height: pn.url ? 'auto' : pn.h }} onClick={pn.open} aria-label={COPY.ui.panel.panel.pinOpen(pn.title)}>
                     {pn.url ?  <img src={pn.url} alt={pn.title} loading="lazy" className={s.pinImg} /> : <span className={`${s.pinLabel} ${c.mono} ${c.muted}`}>{pn.label}</span>}
                   </button>
                   <div className={s.pinTitle}>{pn.title}</div>

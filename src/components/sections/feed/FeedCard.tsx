@@ -31,7 +31,7 @@ export function FeedCard({ p, play, trash }: { p: FeedPost; play: ReactNode; tra
       {p.isMedia && (
         <div className={s.media} style={{ height: isImg || isVid ? 'auto' : p.h }}>
           {isImg && m && (
-            <button type="button" className={s.open} onClick={m.open} aria-label={`Open ${p.title}`}>
+            <button type="button" className={s.open} onClick={m.open} aria-label={COPY.ui.panel.sections.feedOpen(p.title)}>
               
               <img src={m.url} alt={p.title} loading="lazy" className={s.img} />
             </button>
@@ -50,11 +50,11 @@ export function FeedCard({ p, play, trash }: { p: FeedPost; play: ReactNode; tra
       <h3 className={s.cardTitle}>{p.title}</h3>
       <div className={s.meta}>
         <span className={s.by}>{p.by} · {p.space}</span>
-        {!p.mine && <button type="button" className={s.follow} onClick={p.onFollow} aria-pressed={p.following}>{p.following ? 'Following' : 'Follow'}</button>}
-        <button type="button" className={s.like} onClick={p.onLike} aria-pressed={p.liked} aria-label={`Like, ${p.likes}`} style={{ color: p.likeFg }}>{p.heart}{p.likes}</button>
+        {!p.mine && <button type="button" className={s.follow} onClick={p.onFollow} aria-pressed={p.following}>{p.following ? COPY.ui.panel.sections.feedFollowing : COPY.ui.panel.sections.feedFollow}</button>}
+        <button type="button" className={s.like} onClick={p.onLike} aria-pressed={p.liked} aria-label={COPY.ui.panel.sections.feedLike(p.likes)} style={{ color: p.likeFg }}>{p.heart}{p.likes}</button>
         <button type="button" className={s.save} onClick={p.onSave} aria-pressed={p.saved} aria-label={p.saveLabel} style={{ color: p.saveFg }}>{p.mark}</button>
         {!p.mine && <button type="button" className={s.follow} onClick={p.onReport}>{COPY.report.action}</button>}
-        {p.mine && <button type="button" className={s.save} onClick={p.onDelete} aria-label="Delete this post">{trash}</button>}
+        {p.mine && <button type="button" className={s.save} onClick={p.onDelete} aria-label={COPY.ui.panel.sections.feedDelete}>{trash}</button>}
       </div>
       <button type="button" className={s.commentToggle} onClick={() => setOpen((v) => !v)} aria-expanded={open}>{COPY.comments.toggle(p.comments.length)}</button>
       {open && (

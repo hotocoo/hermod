@@ -15,14 +15,15 @@ import f from '@/components/ui/form.module.css';
 import { InviteList } from './InviteList';
 import { EmptyNote } from '@/components/panel/EmptyStates';
 
-const TABS = [['general', 'General'], ['members', 'Members'], ['invites', 'Invites'], ['safety', 'Safety']] as const;
+const TABS = ['general', 'members', 'invites', 'safety'] as const;
+const C = () => COPY.ui.settingsModals.space;
 const ROLES: Role[] = ['owner', 'admin', 'member', 'guest'];
 
 /** Space settings: rename, members and roles, invites, safety (U-013, U-014, E-004, E-007). */
 export function SpaceSettingsModal({ space }: { space: string }) {
   const s = useAppStore();
   const sp = spaceOf(s.spaces, space);
-  const [tab, setTab] = useState<(typeof TABS)[number][0]>('general');
+  const [tab, setTab] = useState<(typeof TABS)[number]>('general');
   const isHome = sp.kind === 'Personal';
   const me = s.me?.user_id;
   const toast = s.showToast;
@@ -36,16 +37,16 @@ export function SpaceSettingsModal({ space }: { space: string }) {
   const role = members ? members.find((m) => m.user_id === me && !m.removed)?.role : sp.role;
   const admin = role === 'owner' || role === 'admin';
   return (
-    <Dialog title={sp.name} kicker="Space settings" onClose={s.closeModal} wide>
+    <Dialog title={sp.name} kicker={C().kicker} onClose={s.closeModal} wide>
       <div role="tablist" className="seg" style={{ alignSelf: 'flex-start', flexWrap: 'wrap' }}>
-        {TABS.filter(([id]) => !isHome || id === 'general').map(([id, label]) => (
+        {TABS.filter((id) => !isHome || id === 'general').map((id) => (
           <button key={id} type="button" role="tab" aria-selected={tab === id} className="seg-opt" onClick={() => setTab(id)}
-            style={tab === id ? { color: 'var(--color-accent-700)', boxShadow: 'inset 0 0 0 1px var(--color-accent)' } : undefined}>{label}</button>
+            style={tab === id ? { color: 'var(--color-accent-700)', boxShadow: 'inset 0 0 0 1px var(--color-accent)' } : undefined}>{C().tab[id]}</button>
         ))}
       </div>
       {tab === 'general' && <General space={space} admin={admin} home={isHome} stopPolling={() => off.current()} />}
       {tab === 'members' && <Members space={space} list={members} reload={load} admin={admin} owner={role === 'owner'} />}
-      {tab === 'invites' && (!members ? <p className={f.note}>Loading invites…</p> : admin ? <InviteList space={space} /> : <p className={f.note}>Only admins manage invites.</p>)}
+      {tab === 'invites' && (!members ? <p className={f.note}>{C().loadingInvites}</p> : admin ? <InviteList space={space} /> : <p className={f.note}>{C().invitesAdminOnly}</p>)}
       {tab === 'safety' && <Safety space={space} admin={!!members && admin} />}
     </Dialog>
   );
@@ -76,9 +77,9 @@ function General({ space, admin, home, stopPolling }: { space: string; admin: bo
   const [name, setName] = useState(sp.name);
   const [tag, setTag] = useState(sp.tagline);
   const dirty = name.trim() !== sp.name || tag.trim() !== sp.tagline;
-  const save = async () => { if (name.trim() && await appendEvent(get, space, { t: 'space.update', name: name.trim(), tagline: tag.trim() })) get().showToast('Saved'); };
+  const save = async () => { if (name.trim() && await appendEvent(get, space, { t: 'space.update', name: name.trim(), tagline: tag.trim() })) get().showToast(C().saved); };
   const doLeave = async () => {
-    if (!(await confirm({ title: `Leave ${sp.name}?`, body: 'You lose access on this device. You need a new invite to come back. Others keep what you shared.', confirm: 'Leave Space', danger: true }))) return;
+    if (!(await confirm({ title: C().leaveTitle(sp.name), body: C().leaveBody, confirm: C().leave, danger: true }))) return;
     // Stop the members poll before the core stops tracking the space, or its next `changed`
     // would ask for members of a space that now answers 400.
     stopPolling();
@@ -86,16 +87,16 @@ function General({ space, admin, home, stopPolling }: { space: string; admin: bo
   };
   return (
     <>
-      <div className={f.field}><label className={f.label} htmlFor="ss-name">Name</label>
+      <div className={f.field}><label className={f.label} htmlFor="ss-name">{C().name}</label>
         <input id="ss-name" className="input" value={name} disabled={!admin} onChange={(e) => setName(e.target.value)} /></div>
-      <div className={f.field}><label className={f.label} htmlFor="ss-tag">Tagline</label>
+      <div className={f.field}><label className={f.label} htmlFor="ss-tag">{C().tagline}</label>
         <input id="ss-tag" className="input" value={tag} disabled={!admin} onChange={(e) => setTag(e.target.value)} /></div>
-      {!admin && !home && <p className={f.note}>Only admins can change these.</p>}
+      {!admin && !home && <p className={f.note}>{C().adminOnly}</p>}
       {!home && <JoinPow space={space} admin={admin} />}
-      <p className={f.note}>Buildings are raised from the island itself: open an empty plot and choose Raise. Raised buildings stay for everyone.</p>
+      <p className={f.note}>{C().raiseNote}</p>
       <div className={f.actions}>
-        {!home && <button type="button" className={`btn btn-secondary ${f.danger}`} onClick={doLeave}>Leave Space</button>}
-        <button type="button" className="btn btn-primary" disabled={!admin || !dirty || !name.trim()} onClick={save}>Save</button>
+        {!home && <button type="button" className={`btn btn-secondary ${f.danger}`} onClick={doLeave}>{C().leave}</button>}
+        <button type="button" className="btn btn-primary" disabled={!admin || !dirty || !name.trim()} onClick={save}>{C().save}</button>
       </div>
     </>
   );
@@ -116,27 +117,27 @@ function Members({ space, list, reload, admin, owner }: { space: string; list: M
     await (blocked[m.user_id] ? b.unblockUser(m.user_id) : b.blockUser(m.user_id));
     useAppStore.getState().setBlocked((await b.blockList()).map((x) => x.user_id));
   });
-  if (!list) return <p className={f.note}>Loading members…</p>;
+  if (!list) return <p className={f.note}>{C().loadingMembers}</p>;
   const active = list.filter((m) => !m.removed);
   if (!active.length) return <EmptyNote {...COPY.empty.members} />;
   return (
     <div className={f.scroll}>
       <table className={f.table}>
-        <caption className={f.sr}>Members</caption>
-        <thead><tr><th scope="col">Member</th><th scope="col">Role</th><th scope="col"><span className={f.sr}>Actions</span></th></tr></thead>
+        <caption className={f.sr}>{C().members}</caption>
+        <thead><tr><th scope="col">{C().colMember}</th><th scope="col">{C().colRole}</th><th scope="col"><span className={f.sr}>{C().colActions}</span></th></tr></thead>
         <tbody>
           {active.map((m) => (
             <tr key={m.user_id}>
               <td>
-                <PresenceDot id={m.user_id} inline fallbackOnline={m.online} />{nicks[m.user_id] || m.name}{m.user_id === me ? ' (you)' : ''}
+                <PresenceDot id={m.user_id} inline fallbackOnline={m.online} />{nicks[m.user_id] || m.name}{m.user_id === me ? C().you : ''}
                 {(profiles[m.user_id]?.status || profiles[m.user_id]?.pronouns) && (
-                  <div className={f.note}>{profiles[m.user_id]?.statusEmoji} {profiles[m.user_id]?.status}{profiles[m.user_id]?.pronouns ? ` (${profiles[m.user_id]?.pronouns})` : ''}</div>
+                  <div className={f.note}>{profiles[m.user_id]?.statusEmoji} {profiles[m.user_id]?.status}{profiles[m.user_id]?.pronouns ? C().pronouns(profiles[m.user_id]?.pronouns ?? '') : ''}</div>
                 )}
                 {lastSeenLabel(lastSeen[m.user_id]) && !statusOf(presence, m.user_id) && <div className={f.note}>{lastSeenLabel(lastSeen[m.user_id])}</div>}
               </td>
               <td>
                 {owner && m.user_id !== me ? (
-                  <select aria-label={`Role of ${nicks[m.user_id] || m.name}`} className="input" value={m.role} onChange={(e) => run(() => getBridge().memberSetRole(space, m.user_id, e.target.value as Role))}>
+                  <select aria-label={C().roleOf(nicks[m.user_id] || m.name)} className="input" value={m.role} onChange={(e) => run(() => getBridge().memberSetRole(space, m.user_id, e.target.value as Role))}>
                     {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                   </select>
                 ) : m.role}
@@ -144,11 +145,11 @@ function Members({ space, list, reload, admin, owner }: { space: string; list: M
               <td>
                 {m.user_id !== me && (
                   <span className={f.row}>
-                    <button type="button" className="btn btn-secondary" onClick={() => toggleBlock(m)}>{blocked[m.user_id] ? 'Unblock' : 'Block'}</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => toggleBlock(m)}>{blocked[m.user_id] ? C().unblock : C().block}</button>
                     {admin && m.role !== 'owner' && (
                       <button type="button" className={`btn btn-secondary ${f.danger}`} onClick={async () => {
-                        if (await confirm({ title: `Remove ${m.name}?`, body: 'They lose access to new messages. What they already received stays on their device.', confirm: 'Remove', danger: true })) await run(() => getBridge().memberRemove(space, m.user_id));
-                      }}>Remove</button>
+                        if (await confirm({ title: C().removeTitle(m.name), body: C().removeBody, confirm: C().remove, danger: true })) await run(() => getBridge().memberRemove(space, m.user_id));
+                      }}>{C().remove}</button>
                     )}
                   </span>
                 )}
@@ -157,7 +158,7 @@ function Members({ space, list, reload, admin, owner }: { space: string; list: M
           ))}
         </tbody>
       </table>
-      <p className={f.note}>Blocking hides someone for you only, on this device. Admins remove people for everyone.</p>
+      <p className={f.note}>{C().blockNote}</p>
     </div>
   );
 }
@@ -220,7 +221,7 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
       {admin && (
         <div className={f.scroll}>
           <h3 style={{ fontSize: 18 }}>{COPY.report.queue}</h3>
-          {!reports ? <p className={f.note}>Loading…</p> : reports.length === 0 ? <p className={f.note}>{COPY.report.queueEmpty}</p> : (
+          {!reports ? <p className={f.note}>{C().loading}</p> : reports.length === 0 ? <p className={f.note}>{COPY.report.queueEmpty}</p> : (
             <table className={f.table}>
               <thead><tr>{(['when', 'by', 'what', 'reason', 'action'] as const).map((k) => <th key={k} scope="col">{COPY.report.cols[k]}</th>)}</tr></thead>
               <tbody>{reports.map((r) => (
@@ -237,15 +238,15 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
               ))}</tbody>
             </table>
           )}
-          <h3 style={{ fontSize: 18 }}>Audit log</h3>
+          <h3 style={{ fontSize: 18 }}>{C().auditHeading}</h3>
           <div>
             <span className={f.note}>{COPY.audit.export}: </span>
             <button type="button" className="btn btn-secondary" disabled={!rows?.length} aria-label={COPY.audit.exportLabel(COPY.audit.csv)} onClick={() => { void save('csv'); }}>{COPY.audit.csv}</button>{' '}
             <button type="button" className="btn btn-secondary" disabled={!rows?.length} aria-label={COPY.audit.exportLabel(COPY.audit.json)} onClick={() => { void save('json'); }}>{COPY.audit.json}</button>
           </div>
-          {!rows ? <p className={f.note}>Loading…</p> : rows.length === 0 ? <p className={f.note}>Nothing recorded yet.</p> : (
+          {!rows ? <p className={f.note}>{C().loading}</p> : rows.length === 0 ? <p className={f.note}>{C().auditEmpty}</p> : (
             <table className={f.table}>
-              <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">By</th></tr></thead>
+              <thead><tr><th scope="col">{C().colWhen}</th><th scope="col">{C().colWhat}</th><th scope="col">{C().colBy}</th></tr></thead>
               <tbody>{rows.map((r, i) => <tr key={i}><td>{new Date(r.ts).toLocaleString()}</td><td>{r.kind}{r.detail ? `: ${r.detail}` : ''}</td><td>{nameOf(r.by)}</td></tr>)}</tbody>
             </table>
           )}

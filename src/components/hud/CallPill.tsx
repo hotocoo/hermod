@@ -1,6 +1,7 @@
 import type { ViewModel } from '@/state/viewModel';
 import chrome from '../ui/chrome.module.css';
 import s from './CallPill.module.css';
+import { COPY } from '@/config/copy';
 
 export function CallPill({ vm }: { vm: ViewModel }) {
   const { backToCall, call, icS, leave, showPill, toggleMute } = vm;
@@ -18,7 +19,7 @@ export function CallPill({ vm }: { vm: ViewModel }) {
         </div>
       </button>
       <button className={s.micBtn} style={{ border: `1px solid ${call.micBd}`, background: call.micBg, color: call.micFg }} onClick={toggleMute} aria-label={call.micLabel}>{call.micIcon}</button>
-      <button className={s.leaveBtn} onClick={leave} aria-label="Leave">{icS.leave}</button>
+      <button className={s.leaveBtn} onClick={leave} aria-label={COPY.ui.shell.callPillText.leave}>{icS.leave}</button>
     </div>
   ) : null;
 }

@@ -21,7 +21,7 @@ export function Column({ col, line }: { col: BoardColumn; line: ReactNode }) {
         {col.cards.length === 0 && <EmptyNote {...COPY.empty.boardColumn} />}
         {col.cards.map((cd) => <Card key={cd.id} cd={cd} line={line} />)}
       </div>
-      <button type="button" className={s.addCard} onClick={col.onNewCard}><Icon name="plus" size={14} /> Add a card</button>
+      <button type="button" className={s.addCard} onClick={col.onNewCard}><Icon name="plus" size={14} /> {COPY.ui.panel.sections.columnAddCard}</button>
     </section>
   );
 }
