@@ -1,11 +1,11 @@
 'use client';
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { COPY } from '@/config/copy';
 import { myTurn, type RendererProps } from '../types';
 import s from '../../arcade.module.css';
 
 interface ChessState { fen: string; turn: number; check: boolean; legal: string[] }
 const GLYPH: Record<string, string> = { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
-const NAME: Record<string, string> = { k: 'king', q: 'queen', r: 'rook', b: 'bishop', n: 'knight', p: 'pawn' };
 const PROMOS = ['q', 'r', 'b', 'n'] as const;
 
 const sqName = (i: number) => `${'abcdefgh'[i % 8]}${Math.floor(i / 8) + 1}`;
@@ -80,12 +80,12 @@ export default function ChessGame({ game, seat, move }: RendererProps) {
   });
   return (
     <>
-      <div className={s.board} style={{ gridTemplateColumns: 'repeat(8,1fr)' }} role="grid" aria-label="Chess board" data-testid="chess-board">
+      <div className={s.board} style={{ gridTemplateColumns: 'repeat(8,1fr)' }} role="grid" aria-label={COPY.ui.arcadeGames.chess.board} data-testid="chess-board">
         {squares.map((i, vis) => {
           const p = board[i]; const dark = (Math.floor(i / 8) + (i % 8)) % 2 === 0;
           const t = targets.get(i);
           const kingInCheck = st.check && p === (st.turn === 0 ? 'K' : 'k');
-          const label = `${sqName(i)}${p ? `, ${p === p.toUpperCase() ? 'white' : 'black'} ${NAME[p.toLowerCase()]}` : ', empty'}${sel === i ? ', selected' : ''}${t ? ', legal destination' : ''}`;
+          const label = COPY.ui.arcadeGames.chess.square(sqName(i), p ? COPY.ui.arcadeGames.chess.colored(p === p.toUpperCase(), COPY.ui.arcadeGames.chess.piece(p.toLowerCase())) : '', sel === i, !!t);
           const draggable = mine && !!p && mover(i);
           return (
             <button key={i} ref={(el) => { refs.current[vis] = el; }} type="button" role="gridcell" aria-label={label} data-sq={sqName(i)} data-testid={`sq-${sqName(i)}`}
@@ -99,13 +99,13 @@ export default function ChessGame({ game, seat, move }: RendererProps) {
         })}
       </div>
       {promo && (
-        <div role="group" aria-label="Promote pawn to" className={s.promo}>
+        <div role="group" aria-label={COPY.ui.arcadeGames.chess.promoteTo} className={s.promo}>
           {PROMOS.map((p) => (
-            <button key={p} type="button" className={s.promoBtn} aria-label={NAME[p]} data-testid={`promo-${p}`} onClick={() => { void send(promo.from, promo.to, p); }}>{GLYPH[st.turn === 0 ? p.toUpperCase() : p]}</button>
+            <button key={p} type="button" className={s.promoBtn} aria-label={COPY.ui.arcadeGames.chess.piece(p)} data-testid={`promo-${p}`} onClick={() => { void send(promo.from, promo.to, p); }}>{GLYPH[st.turn === 0 ? p.toUpperCase() : p]}</button>
           ))}
         </div>
       )}
-      {st.check && game.status === 'active' && <p className={s.cardMeta} role="status">Check</p>}
+      {st.check && game.status === 'active' && <p className={s.cardMeta} role="status">{COPY.ui.arcadeGames.chess.check}</p>}
     </>
   );
 }

@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { COPY } from '@/config/copy';
 import type { DeskMacro } from '@/state/deskTypes';
 import s from './desk.module.css';
 
 /** Dropdown of saved macros; picking one runs its actions as ordinary ticket events. */
-export function MacroMenu({ macros, onPick, label = 'Macros' }: { macros: DeskMacro[]; onPick: (m: DeskMacro) => void; label?: string }) {
+export function MacroMenu({ macros, onPick, label = COPY.ui.desk.macros }: { macros: DeskMacro[]; onPick: (m: DeskMacro) => void; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -15,7 +16,7 @@ export function MacroMenu({ macros, onPick, label = 'Macros' }: { macros: DeskMa
   }, [open]);
   return (
     <div className={s.menuWrap} ref={ref}>
-      <button type="button" className="btn btn-secondary" aria-haspopup="menu" aria-expanded={open} disabled={!macros.length} title={macros.length ? undefined : 'No macros yet. Admins and agents can add them in Desk settings.'}
+      <button type="button" className="btn btn-secondary" aria-haspopup="menu" aria-expanded={open} disabled={!macros.length} title={macros.length ? undefined : COPY.ui.desk.macroMenu.empty}
         onClick={() => setOpen((v) => !v)} data-testid="macro-button">{label}</button>
       {open && (
         <div className={s.menu} role="menu">

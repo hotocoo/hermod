@@ -8,9 +8,9 @@ import {
   type BusinessHours, type DeskConfig, type DeskField, type DeskMacro, type DeskQueue, type DeskSla, type FieldKind, type TicketPriority, type TicketStatus,
 } from '@/state/deskTypes';
 import { useAppStore } from '@/state/store';
+import { COPY } from '@/config/copy';
 import s from './desk.module.css';
 
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_HOURS: BusinessHours = { tz: 'UTC', days: [1, 2, 3, 4, 5], start: 540, end: 1020 };
 /** Shapes the core accepts: UTC, a signed offset, or an IANA name such as Asia/Kuala_Lumpur (the core checks the name). */
 const OFFSET = /^(utc|z|gmt|[+-]\d{1,2}(:?\d{2})?|[A-Za-z][A-Za-z0-9_+-]*(\/[A-Za-z0-9_+-]+)+)$/i;
@@ -23,18 +23,18 @@ function Queues({ list, set }: { list: DeskQueue[]; set: (l: DeskQueue[]) => voi
   const [name, setName] = useState('');
   return (
     <section className={s.settingsSection}>
-      <h3>Queues</h3>
+      <h3>{COPY.ui.desk.queues}</h3>
       {list.map((q, i) => (
         <div key={q.queue_id} className={s.rowForm}>
-          <input className="input" aria-label="Queue name" value={q.name} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))} />
-          <input className="input" aria-label="Queue description" placeholder="Description" value={q.desc} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, desc: e.target.value } : x)))} />
-          <button type="button" className="btn btn-secondary" onClick={() => set(list.filter((_, k) => k !== i))}>Remove</button>
+          <input className="input" aria-label={COPY.ui.desk.settings.queueName} value={q.name} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))} />
+          <input className="input" aria-label={COPY.ui.desk.settings.queueDesc} placeholder={COPY.ui.desk.settings.description} value={q.desc} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, desc: e.target.value } : x)))} />
+          <button type="button" className="btn btn-secondary" onClick={() => set(list.filter((_, k) => k !== i))}>{COPY.ui.desk.remove}</button>
         </div>
       ))}
       <div className={s.rowForm}>
-        <input className="input" aria-label="New queue name" placeholder="New queue, for example Billing" value={name} onChange={(e) => setName(e.target.value)} />
+        <input className="input" aria-label={COPY.ui.desk.settings.newQueueLabel} placeholder={COPY.ui.desk.settings.newQueuePh} value={name} onChange={(e) => setName(e.target.value)} />
         <button type="button" className="btn btn-secondary" disabled={!name.trim()} data-testid="add-queue"
-          onClick={() => { set([...list, { queue_id: uniqueId(slug(name), list.map((q) => q.queue_id)), name: name.trim(), desc: '' }]); setName(''); }}>Add queue</button>
+          onClick={() => { set([...list, { queue_id: uniqueId(slug(name), list.map((q) => q.queue_id)), name: name.trim(), desc: '' }]); setName(''); }}>{COPY.ui.desk.settings.addQueue}</button>
       </div>
     </section>
   );
@@ -45,22 +45,22 @@ function Fields({ list, set }: { list: DeskField[]; set: (l: DeskField[]) => voi
   const [kind, setKind] = useState<FieldKind>('text');
   return (
     <section className={s.settingsSection}>
-      <h3>Custom fields</h3>
+      <h3>{COPY.ui.desk.settings.fieldsTitle}</h3>
       {list.map((fd, i) => (
         <div key={fd.field_id} className={s.rowForm}>
-          <input className="input" aria-label="Field label" value={fd.label} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} />
+          <input className="input" aria-label={COPY.ui.desk.settings.fieldLabel} value={fd.label} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))} />
           <span className={s.chip}>{fd.kind}</span>
-          {fd.kind === 'select' && <input className="input" aria-label="Options, comma separated" placeholder="Options, comma separated" value={fd.options.join(', ')}
+          {fd.kind === 'select' && <input className="input" aria-label={COPY.ui.desk.settings.options} placeholder={COPY.ui.desk.settings.options} value={fd.options.join(', ')}
             onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, options: e.target.value.split(',').map((o) => o.trim()).filter(Boolean) } : x)))} />}
-          <label className={f.check}><input type="checkbox" checked={fd.required} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, required: e.target.checked } : x)))} />Required</label>
-          <button type="button" className="btn btn-secondary" onClick={() => set(list.filter((_, k) => k !== i))}>Remove</button>
+          <label className={f.check}><input type="checkbox" checked={fd.required} onChange={(e) => set(list.map((x, k) => (k === i ? { ...x, required: e.target.checked } : x)))} />{COPY.ui.desk.settings.required}</label>
+          <button type="button" className="btn btn-secondary" onClick={() => set(list.filter((_, k) => k !== i))}>{COPY.ui.desk.remove}</button>
         </div>
       ))}
       <div className={s.rowForm}>
-        <input className="input" aria-label="New field label" placeholder="New field, for example Order number" value={label} onChange={(e) => setLabel(e.target.value)} />
-        <select className="input" aria-label="Field kind" value={kind} onChange={(e) => setKind(e.target.value as FieldKind)}>{FIELD_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
+        <input className="input" aria-label={COPY.ui.desk.settings.newFieldLabel} placeholder={COPY.ui.desk.settings.newFieldPh} value={label} onChange={(e) => setLabel(e.target.value)} />
+        <select className="input" aria-label={COPY.ui.desk.settings.fieldKind} value={kind} onChange={(e) => setKind(e.target.value as FieldKind)}>{FIELD_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}</select>
         <button type="button" className="btn btn-secondary" disabled={!label.trim()} data-testid="add-field"
-          onClick={() => { set([...list, { field_id: uniqueId(slug(label), list.map((x) => x.field_id)), label: label.trim(), kind, options: [], required: false }]); setLabel(''); }}>Add field</button>
+          onClick={() => { set([...list, { field_id: uniqueId(slug(label), list.map((x) => x.field_id)), label: label.trim(), kind, options: [], required: false }]); setLabel(''); }}>{COPY.ui.desk.settings.addField}</button>
       </div>
     </section>
   );
@@ -76,13 +76,13 @@ function Sla({ list, set }: { list: DeskSla[]; set: (l: DeskSla[]) => void }) {
   };
   return (
     <section className={s.settingsSection}>
-      <h3>Service promises</h3>
-      <p className={f.note}>Minutes to first reply and to a solution, per priority. Leave a row empty for no promise. Time counts only inside business hours when those are set.</p>
+      <h3>{COPY.ui.desk.settings.slaTitle}</h3>
+      <p className={f.note}>{COPY.ui.desk.settings.slaNote}</p>
       {TICKET_PRIORITIES.map((p) => (
         <div key={p} className={s.rowForm}>
           <span style={{ width: 70 }}>{PRIORITY_LABEL[p]}</span>
-          <input className="input" inputMode="numeric" aria-label={`${PRIORITY_LABEL[p]} first reply minutes`} placeholder="First reply (min)" value={of(p)?.first_response_mins || ''} onChange={(e) => edit(p, 'first_response_mins', e.target.value)} data-testid={`sla-first-${p}`} />
-          <input className="input" inputMode="numeric" aria-label={`${PRIORITY_LABEL[p]} resolve minutes`} placeholder="Solve (min)" value={of(p)?.resolve_mins || ''} onChange={(e) => edit(p, 'resolve_mins', e.target.value)} data-testid={`sla-resolve-${p}`} />
+          <input className="input" inputMode="numeric" aria-label={COPY.ui.desk.settings.firstReplyLabel(PRIORITY_LABEL[p])} placeholder={COPY.ui.desk.settings.firstReplyPh} value={of(p)?.first_response_mins || ''} onChange={(e) => edit(p, 'first_response_mins', e.target.value)} data-testid={`sla-first-${p}`} />
+          <input className="input" inputMode="numeric" aria-label={COPY.ui.desk.settings.resolveLabel(PRIORITY_LABEL[p])} placeholder={COPY.ui.desk.settings.solvePh} value={of(p)?.resolve_mins || ''} onChange={(e) => edit(p, 'resolve_mins', e.target.value)} data-testid={`sla-resolve-${p}`} />
         </div>
       ))}
     </section>
@@ -92,24 +92,24 @@ function Sla({ list, set }: { list: DeskSla[]; set: (l: DeskSla[]) => void }) {
 function Hours({ value, set }: { value: BusinessHours | null; set: (h: BusinessHours | null) => void }) {
   return (
     <section className={s.settingsSection}>
-      <h3>Business hours</h3>
-      <Switch label="Count service time only in business hours" on={!!value} onChange={(on) => set(on ? DEFAULT_HOURS : null)} />
+      <h3>{COPY.ui.desk.settings.hoursTitle}</h3>
+      <Switch label={COPY.ui.desk.settings.hoursSwitch} on={!!value} onChange={(on) => set(on ? DEFAULT_HOURS : null)} />
       {value && (
         <>
           <div className={s.rowForm}>
-            <label className={f.label} htmlFor="bh-tz">Time zone</label>
-            <input id="bh-tz" className="input" style={{ maxWidth: 220 }} value={value.tz} placeholder="Asia/Kuala_Lumpur" onChange={(e) => set({ ...value, tz: e.target.value })} />
-            <label className={f.label} htmlFor="bh-start">From</label>
+            <label className={f.label} htmlFor="bh-tz">{COPY.ui.desk.settings.timeZone}</label>
+            <input id="bh-tz" className="input" style={{ maxWidth: 220 }} value={value.tz} placeholder={COPY.ui.desk.deskSettingsText.asiaKualaLumpur} onChange={(e) => set({ ...value, tz: e.target.value })} />
+            <label className={f.label} htmlFor="bh-start">{COPY.ui.desk.settings.from}</label>
             <input id="bh-start" className="input" type="time" style={{ maxWidth: 120 }} value={hhmm(value.start)} onChange={(e) => set({ ...value, start: minutes(e.target.value) })} />
-            <label className={f.label} htmlFor="bh-end">To</label>
+            <label className={f.label} htmlFor="bh-end">{COPY.ui.desk.settings.to}</label>
             <input id="bh-end" className="input" type="time" style={{ maxWidth: 120 }} value={hhmm(value.end)} onChange={(e) => set({ ...value, end: minutes(e.target.value) })} />
           </div>
-          <div className={s.rowForm} role="group" aria-label="Working days">
-            {WEEKDAYS.map((d, i) => (
+          <div className={s.rowForm} role="group" aria-label={COPY.ui.desk.settings.workingDays}>
+            {COPY.ui.desk.settings.weekdays.map((d, i) => (
               <label key={d} className={f.check}><input type="checkbox" checked={value.days.includes(i)} onChange={(e) => set({ ...value, days: e.target.checked ? [...value.days, i].sort() : value.days.filter((x) => x !== i) })} />{d}</label>
             ))}
           </div>
-          <span className={s.hint} role={OFFSET.test(value.tz.trim()) ? undefined : 'alert'}>{OFFSET.test(value.tz.trim()) ? 'Use an IANA zone such as Asia/Kuala_Lumpur or America/New_York (daylight saving applies), UTC, or a fixed offset such as +08:00.' : 'Not a valid time zone: use a name like Europe/London, UTC or +08:00.'}</span>
+          <span className={s.hint} role={OFFSET.test(value.tz.trim()) ? undefined : 'alert'}>{OFFSET.test(value.tz.trim()) ? COPY.ui.desk.settings.tzHelp : COPY.ui.desk.settings.tzInvalid}</span>
         </>
       )}
     </section>
@@ -128,34 +128,34 @@ function Macros({ list }: { list: DeskMacro[] }) {
   const reset = () => { setName(''); setStatus(''); setPrio(''); setTags(''); setComment(''); setInternal(false); };
   return (
     <section className={s.settingsSection}>
-      <h3>Macros</h3>
-      <p className={f.note}>A macro is saved data: running it sends ordinary updates and comments on the tickets you pick.</p>
+      <h3>{COPY.ui.desk.macros}</h3>
+      <p className={f.note}>{COPY.ui.desk.settings.macrosNote}</p>
       {list.map((m) => (
         <div key={m.id} className={s.rowForm} data-testid="macro-row">
           <strong style={{ minWidth: 100 }}>{m.name}</strong>
-          <span className={s.hint}>{m.actions.map((a) => [a.set_status && `status ${a.set_status}`, a.set_priority && `priority ${a.set_priority}`, a.add_tags?.length && `tags ${a.add_tags.join(',')}`, a.comment && `${a.internal ? 'note' : 'reply'} "${a.comment.slice(0, 30)}"`].filter(Boolean).join(', ')).join(' / ')}</span>
+          <span className={s.hint}>{m.actions.map((a) => [a.set_status && COPY.ui.desk.settings.macroStatus(a.set_status), a.set_priority && COPY.ui.desk.settings.macroPriority(a.set_priority), a.add_tags?.length && COPY.ui.desk.settings.macroTags(a.add_tags.join(',')), a.comment && COPY.ui.desk.settings.macroComment(!!a.internal, a.comment.slice(0, 30))].filter(Boolean).join(', ')).join(' / ')}</span>
           <span className={s.grow} />
-          <button type="button" className="btn btn-secondary" onClick={() => { void del(m.id); }}>Delete</button>
+          <button type="button" className="btn btn-secondary" onClick={() => { void del(m.id); }}>{COPY.ui.desk.settings.delete}</button>
         </div>
       ))}
       <div className={s.rowForm}>
-        <input className="input" aria-label="Macro name" placeholder="Macro name" value={name} onChange={(e) => setName(e.target.value)} data-testid="macro-name" />
-        <select className="input" aria-label="Set status" value={status} onChange={(e) => setStatus(e.target.value as TicketStatus | '')}>
-          <option value="">Keep status</option>{TICKET_STATUSES.map((x) => <option key={x} value={x}>{STATUS_LABEL[x]}</option>)}
+        <input className="input" aria-label={COPY.ui.desk.settings.macroName} placeholder={COPY.ui.desk.settings.macroName} value={name} onChange={(e) => setName(e.target.value)} data-testid="macro-name" />
+        <select className="input" aria-label={COPY.ui.desk.settings.setStatus} value={status} onChange={(e) => setStatus(e.target.value as TicketStatus | '')}>
+          <option value="">{COPY.ui.desk.settings.keepStatus}</option>{TICKET_STATUSES.map((x) => <option key={x} value={x}>{STATUS_LABEL[x]}</option>)}
         </select>
-        <select className="input" aria-label="Set priority" value={prio} onChange={(e) => setPrio(e.target.value as TicketPriority | '')}>
-          <option value="">Keep priority</option>{TICKET_PRIORITIES.map((x) => <option key={x} value={x}>{PRIORITY_LABEL[x]}</option>)}
+        <select className="input" aria-label={COPY.ui.desk.settings.setPriority} value={prio} onChange={(e) => setPrio(e.target.value as TicketPriority | '')}>
+          <option value="">{COPY.ui.desk.settings.keepPriority}</option>{TICKET_PRIORITIES.map((x) => <option key={x} value={x}>{PRIORITY_LABEL[x]}</option>)}
         </select>
-        <input className="input" aria-label="Add tags" placeholder="Tags, comma separated" value={tags} onChange={(e) => setTags(e.target.value)} />
+        <input className="input" aria-label={COPY.ui.desk.settings.addTags} placeholder={COPY.ui.desk.settings.tagsPh} value={tags} onChange={(e) => setTags(e.target.value)} />
       </div>
       <div className={s.rowForm}>
-        <input className="input" aria-label="Macro comment" placeholder="Comment to post (optional)" value={comment} onChange={(e) => setComment(e.target.value)} data-testid="macro-comment" />
-        <label className={f.check}><input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} />Internal note</label>
+        <input className="input" aria-label={COPY.ui.desk.settings.macroCommentLabel} placeholder={COPY.ui.desk.settings.macroCommentPh} value={comment} onChange={(e) => setComment(e.target.value)} data-testid="macro-comment" />
+        <label className={f.check}><input type="checkbox" checked={internal} onChange={(e) => setInternal(e.target.checked)} />{COPY.ui.desk.internalNote}</label>
         <button type="button" className="btn btn-secondary" disabled={!name.trim()} data-testid="macro-save"
           onClick={() => {
             const add = tags.split(',').map((x) => x.trim()).filter(Boolean);
             void save({ name: name.trim(), actions: [{ set_status: status || undefined, set_priority: prio || undefined, add_tags: add.length ? add : undefined, comment: comment.trim() || undefined, internal }] }).then((ok) => { if (ok) reset(); });
-          }}>Add macro</button>
+          }}>{COPY.ui.desk.settings.addMacro}</button>
       </div>
     </section>
   );
@@ -167,7 +167,7 @@ export function DeskSettings({ config, macros, admin, onClose }: { config: DeskC
   const [busy, setBusy] = useState(false);
   const save = useAppStore((st) => st.deskSaveConfig);
   return (
-    <Dialog title="Desk settings" kicker="Help Desk" onClose={onClose} wide>
+    <Dialog title={COPY.ui.desk.section.deskSettings} kicker={COPY.ui.desk.kicker} onClose={onClose} wide>
       <div className={s.settings} data-testid="desk-settings">
         {admin ? (
           <>
@@ -176,15 +176,15 @@ export function DeskSettings({ config, macros, admin, onClose }: { config: DeskC
             <Sla list={draft.sla} set={(sla) => setDraft({ ...draft, sla })} />
             <Hours value={draft.business_hours} set={(business_hours) => setDraft({ ...draft, business_hours })} />
             <section className={s.settingsSection}>
-              <h3>Customer rating</h3>
-              <Switch label="Ask requesters to rate solved tickets" on={draft.csat} onChange={(csat) => setDraft({ ...draft, csat })} />
+              <h3>{COPY.ui.desk.settings.customerRating}</h3>
+              <Switch label={COPY.ui.desk.settings.askRate} on={draft.csat} onChange={(csat) => setDraft({ ...draft, csat })} />
             </section>
             <div className={f.actions}>
               <button type="button" className="btn btn-primary" disabled={busy || (!!draft.business_hours && !OFFSET.test(draft.business_hours.tz.trim()))} data-testid="save-config"
-                onClick={() => { setBusy(true); void save(draft).then((ok) => { setBusy(false); if (ok) onClose(); }); }}>Save settings</button>
+                onClick={() => { setBusy(true); void save(draft).then((ok) => { setBusy(false); if (ok) onClose(); }); }}>{COPY.ui.desk.settings.save}</button>
             </div>
           </>
-        ) : <p className={f.note}>Only admins can change queues, fields and service promises.</p>}
+        ) : <p className={f.note}>{COPY.ui.desk.settings.adminOnly}</p>}
         <Macros list={macros} />
       </div>
     </Dialog>

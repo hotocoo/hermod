@@ -4,6 +4,7 @@ import { errorMessage, type BlobRef } from '@/lib/bridge';
 import { pickAndStore } from '@/lib/upload';
 import type { DeskMacro } from '@/state/deskTypes';
 import { useAppStore } from '@/state/store';
+import { COPY } from '@/config/copy';
 import { Atts } from './Conversation';
 import s from './desk.module.css';
 import { MacroMenu } from './MacroMenu';
@@ -19,7 +20,7 @@ export function Composer({ agent, closed, internal, macros, onInternal, onSend, 
   const [att, setAtt] = useState<BlobRef[]>([]);
   const [busy, setBusy] = useState(false);
   const toast = useAppStore((st) => st.showToast);
-  if (closed && !agent) return <div className={s.composer}><span className={s.hint}>This ticket is closed. Open a new ticket if you still need help.</span></div>;
+  if (closed && !agent) return <div className={s.composer}><span className={s.hint}>{COPY.ui.desk.composer.closed}</span></div>;
   const note = agent && internal;
   const send = async () => {
     if ((!text.trim() && !att.length) || busy) return;
@@ -35,22 +36,22 @@ export function Composer({ agent, closed, internal, macros, onInternal, onSend, 
   return (
     <div className={s.composer} data-testid="composer">
       {agent && (
-        <div className={s.composerRow} role="group" aria-label="Reply type">
-          <button type="button" className={s.modeBtn} aria-pressed={!internal} onClick={() => onInternal(false)} data-testid="mode-reply">Reply</button>
-          <button type="button" className={s.modeBtn} aria-pressed={internal} onClick={() => onInternal(true)} data-testid="mode-internal">Internal note</button>
+        <div className={s.composerRow} role="group" aria-label={COPY.ui.desk.composer.replyType}>
+          <button type="button" className={s.modeBtn} aria-pressed={!internal} onClick={() => onInternal(false)} data-testid="mode-reply">{COPY.ui.desk.composer.reply}</button>
+          <button type="button" className={s.modeBtn} aria-pressed={internal} onClick={() => onInternal(true)} data-testid="mode-internal">{COPY.ui.desk.internalNote}</button>
           <span className={s.grow} />
           <MacroMenu macros={macros} onPick={onMacro} />
         </div>
       )}
-      <textarea id="desk-composer" className="input" value={text} onChange={(e) => setText(e.target.value)} aria-label={note ? 'Internal note' : 'Reply'}
-        placeholder={note ? 'Only your team sees this note' : 'Write a reply'} data-testid="composer-input"
+      <textarea id="desk-composer" className="input" value={text} onChange={(e) => setText(e.target.value)} aria-label={note ? COPY.ui.desk.internalNote : COPY.ui.desk.composer.reply}
+        placeholder={note ? COPY.ui.desk.composer.onlyTeam : COPY.ui.desk.composer.placeholder} data-testid="composer-input"
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void send(); } }} />
       <Atts list={att} />
       <div className={s.composerRow}>
-        <button type="button" className="btn btn-secondary" onClick={() => { void attach(); }}>Attach</button>
-        <span className={s.hint}>Ctrl or Cmd + Enter to send</span>
+        <button type="button" className="btn btn-secondary" onClick={() => { void attach(); }}>{COPY.ui.desk.composer.attach}</button>
+        <span className={s.hint}>{COPY.ui.desk.composer.sendHint}</span>
         <span className={s.grow} />
-        <button type="button" className="btn btn-primary" disabled={busy || (!text.trim() && !att.length)} onClick={() => { void send(); }} data-testid="composer-send">{note ? 'Add note' : 'Send reply'}</button>
+        <button type="button" className="btn btn-primary" disabled={busy || (!text.trim() && !att.length)} onClick={() => { void send(); }} data-testid="composer-send">{note ? COPY.ui.desk.composer.addNote : COPY.ui.desk.composer.sendReply}</button>
       </div>
     </div>
   );

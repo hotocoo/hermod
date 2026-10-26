@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import type { Seed } from '@/lib/data/types';
 import { PRIORITY_LABEL, STATUS_LABEL, isTerminal, type DeskView, type Ticket } from '@/state/deskTypes';
+import { COPY } from '@/config/copy';
 import { personOf } from '@/state/selectors';
 import { useAppStore } from '@/state/store';
 import { queueName } from '@/state/vm/desk';
@@ -24,21 +25,21 @@ export function TicketDetail({ desk, t, seed, me, onBack }: Props) {
   const numberOf = (id: string) => desk.tickets.find((x) => x.id === id)?.number ?? null;
   const showCsat = requester && isTerminal(t.status) && desk.config.csat && !t.csat;
   return (
-    <section className={s.detail} aria-label={`Ticket ${t.number}`} data-testid="ticket-detail" data-ticket={t.id}>
+    <section className={s.detail} aria-label={COPY.ui.desk.detail.label(t.number)} data-testid="ticket-detail" data-ticket={t.id}>
       <div className={s.detailScroll}>
         <div className={s.thread}>
-          <button type="button" className={`btn btn-secondary ${s.back}`} onClick={onBack}>Back to tickets</button>
+          <button type="button" className={`btn btn-secondary ${s.back}`} onClick={onBack}>{COPY.ui.desk.detail.back}</button>
           <h3 className={s.subject} data-testid="ticket-subject">{t.subject}</h3>
           <div className={s.byline}>
             <span>#{t.number}</span>
             <span className={s.chip} data-testid="ticket-status">{STATUS_LABEL[t.status]}</span>
             <span className={s.chip}>{PRIORITY_LABEL[t.priority]}</span>
             <span>{queueName(desk, t.queue)}</span>
-            <span>by {personOf(seed, t.requester).name}</span>
-            {t.assignee && <span>for {personOf(seed, t.assignee).name}</span>}
+            <span>{COPY.ui.desk.detail.by(personOf(seed, t.requester).name)}</span>
+            {t.assignee && <span>{COPY.ui.desk.detail.for(personOf(seed, t.assignee).name)}</span>}
             {desk.agent && <SlaBadge t={t} />}
           </div>
-          {t.csat && <p className={s.hint} data-testid="csat-result">Rated {t.csat.score} out of 5{t.csat.comment ? `: ${t.csat.comment}` : ''}</p>}
+          {t.csat && <p className={s.hint} data-testid="csat-result">{COPY.ui.desk.detail.rated(t.csat.score, t.csat.comment)}</p>}
           <Conversation t={t} seed={seed} numberOf={numberOf} />
           {showCsat && <CsatPrompt onRate={(score, comment) => st.deskRate(t.id, score, comment)} />}
         </div>

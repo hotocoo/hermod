@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { COPY } from '@/config/copy';
 import type { Ticket } from '@/state/deskTypes';
 import s from './desk.module.css';
 import { ROW_HEIGHT, TicketRow } from './TicketRow';
@@ -35,7 +36,7 @@ export function TicketList({ tickets, selected, bulk, agent, now, name, onOpen, 
   const first = Math.max(0, Math.floor(view.top / ROW_HEIGHT) - OVERSCAN);
   const last = Math.min(tickets.length, Math.ceil((view.top + view.h) / ROW_HEIGHT) + OVERSCAN);
   return (
-    <div ref={box} className={s.scroller} onScroll={sync} role="listbox" aria-label="Tickets" data-testid="ticket-list">
+    <div ref={box} className={s.scroller} onScroll={sync} role="listbox" aria-label={COPY.ui.desk.tickets} data-testid="ticket-list">
       <div className={s.spacer} style={{ height: tickets.length * ROW_HEIGHT }}>
         {tickets.slice(first, last).map((t, k) => (
           <TicketRow key={t.id} t={t} top={(first + k) * ROW_HEIGHT} selected={t.id === selected} checked={!!bulk[t.id]} agent={agent} now={now}

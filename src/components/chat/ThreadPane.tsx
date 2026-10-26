@@ -6,7 +6,7 @@ import { Face } from '@/components/ui/Face';
 export function ThreadPane({ vm }: VmProps) {
   const t = vm.thread;
   return (
-    <section aria-label="Thread" className={s.pane}
+    <section aria-label={COPY.ui.chat.threadPaneText.thread} className={s.pane}
       style={{ transform: `translateX(${vm.threadX})`, opacity: vm.threadOp, pointerEvents: vm.threadEvents as 'auto' | 'none' }}>
       {vm.threadOpen && !t && (
         <div className={s.tHead}>
@@ -18,10 +18,10 @@ export function ThreadPane({ vm }: VmProps) {
         <>
           <div className={s.tHead}>
             <div className={s.tHeadMain}>
-              <div className={s.tKick}>In the margin</div>
-              <div className={s.tTitle}>Thread in #{vm.chan.name}</div>
+              <div className={s.tKick}>{COPY.ui.chat.threadPaneText.inTheMargin}</div>
+              <div className={s.tTitle}>{COPY.ui.chat.listMore.threadIn(vm.chan.name)}</div>
             </div>
-            <button onClick={vm.closeThread} aria-label="Close thread" className={s.tClose}>{vm.icS.x}</button>
+            <button onClick={vm.closeThread} aria-label={COPY.ui.chat.threadPaneText.closeThread} className={s.tClose}>{vm.icS.x}</button>
           </div>
           <div className={s.tBody}>
             <div className={s.root}>
@@ -37,8 +37,8 @@ export function ThreadPane({ vm }: VmProps) {
           </div>
           <div className={s.tComposer}>
             <div className={s.tbox}>
-              <input value={vm.tdraft} onChange={vm.onTDraft} onKeyDown={vm.onTKey} placeholder="Reply in the margin" aria-label="Reply in the margin" className={s.tInput} />
-              <button onClick={vm.onTSend} aria-label="Send reply" className={s.tSend}>{vm.icS.send}</button>
+              <input value={vm.tdraft} onChange={vm.onTDraft} onKeyDown={vm.onTKey} placeholder={COPY.ui.chat.threadPaneText.replyInTheMargin} aria-label={COPY.ui.chat.threadPaneText.replyInTheMargin} className={s.tInput} />
+              <button onClick={vm.onTSend} aria-label={COPY.ui.chat.threadPaneText.sendReply} className={s.tSend}>{vm.icS.send}</button>
             </div>
           </div>
         </>

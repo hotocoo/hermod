@@ -1,5 +1,6 @@
 'use client';
 import { useState, type FormEvent } from 'react';
+import { COPY } from '@/config/copy';
 import f from '@/components/ui/form.module.css';
 import { seatName } from '@/state/vm/arcade';
 import { WORD_LEN, commitWord, loadWord } from '../../actions';
@@ -17,7 +18,7 @@ function Rows({ guesses, max }: { guesses: Guess[]; max: number }) {
         return (
           <div key={r} className={s.wRow}>
             {Array.from({ length: WORD_LEN }, (__, c) => (
-              <span key={c} className={`${s.wTile} ${g?.fb ? s[`wf${g.fb[c]}` as 'wf0'] : ''}`} aria-label={g ? `${g.word[c]}, ${g.fb ? ['absent', 'elsewhere', 'correct'][Number(g.fb[c])] : 'waiting for feedback'}` : 'empty'}>{g?.word[c] ?? ''}</span>
+              <span key={c} className={`${s.wTile} ${g?.fb ? s[`wf${g.fb[c]}` as 'wf0'] : ''}`} aria-label={g ? `${g.word[c]}, ${g.fb ? ['absent', 'elsewhere', 'correct'][Number(g.fb[c])] : 'waiting for feedback'}` : COPY.ui.arcadeGames.wordDuelGameText.empty}>{g?.word[c] ?? ''}</span>
             ))}
           </div>
         );
@@ -45,13 +46,13 @@ export default function WordDuelGame({ game, space, seed, seat, move }: Renderer
         {seat >= 0 && !st.committed[seat] ? (
           <form className={s.formCol} onSubmit={(e) => { void seal(e); }} data-testid="wd-seal">
             <div className={f.field}>
-              <label className={f.label} htmlFor="wd-word">Your secret word (5 letters, a to z)</label>
+              <label className={f.label} htmlFor="wd-word">{COPY.ui.arcadeGames.wordDuel.secretLabel}</label>
               <input id="wd-word" className="input" value={word} maxLength={5} autoComplete="off" spellCheck={false} onChange={(e) => setWord(e.target.value.toLowerCase())} data-testid="wd-word" />
             </div>
-            <p className={f.note}>Only a hash of the word is shared. You reveal it at the end; if it does not match, you forfeit.</p>
-            <button type="submit" className="btn btn-primary" disabled={!valid(word) || busy} data-testid="wd-seal-btn">Seal word</button>
+            <p className={f.note}>{COPY.ui.arcadeGames.wordDuel.hashNote}</p>
+            <button type="submit" className="btn btn-primary" disabled={!valid(word) || busy} data-testid="wd-seal-btn">{COPY.ui.arcadeGames.wordDuel.sealWord}</button>
           </form>
-        ) : <p className={s.empty}>{seat >= 0 ? 'Word sealed. Waiting for your opponent.' : 'Waiting for both players to seal a word.'}</p>}
+        ) : <p className={s.empty}>{seat >= 0 ? COPY.ui.arcadeGames.wordDuel.sealedWaiting : COPY.ui.arcadeGames.wordDuel.waitingBoth}</p>}
       </div>
     );
   }
@@ -62,21 +63,21 @@ export default function WordDuelGame({ game, space, seed, seat, move }: Renderer
       <div className={s.wCols}>
         {view.map((owner, idx) => (
           <div key={owner} className={s.wCol}>
-            <span className={s.wLabel}>{idx === 0 && seat >= 0 ? 'Your guesses at' : 'Guesses at'} {idx === 0 && seat >= 0 ? names[1 - seat] : names[1 - owner]}</span>
+            <span className={s.wLabel}>{COPY.ui.arcadeGames.wordDuel.guessesAt(idx === 0 && seat >= 0, idx === 0 && seat >= 0 ? names[1 - seat] : names[1 - owner])}</span>
             <Rows guesses={st.guesses[owner] ?? []} max={st.maxGuesses} />
           </div>
         ))}
       </div>
       {st.phase === 'play' && seat >= 0 && (
         <form className={s.bar} onSubmit={(e) => { void send(e); }}>
-          <label className={s.sr} htmlFor="wd-guess">Your guess</label>
+          <label className={s.sr} htmlFor="wd-guess">{COPY.ui.arcadeGames.wordDuel.yourGuess}</label>
           <input id="wd-guess" className="input" style={{ width: 140 }} value={guess} maxLength={5} autoComplete="off" spellCheck={false} disabled={!mineToGuess} onChange={(e) => setGuess(e.target.value.toLowerCase())} data-testid="wd-guess" />
-          <button type="submit" className="btn btn-primary" disabled={!mineToGuess || !valid(guess) || busy} data-testid="wd-send">Guess</button>
+          <button type="submit" className="btn btn-primary" disabled={!mineToGuess || !valid(guess) || busy} data-testid="wd-send">{COPY.ui.arcadeGames.wordDuel.guess}</button>
         </form>
       )}
-      {st.phase === 'play' && secret && <p className={s.cardMeta}>Your word: <b>{secret.word}</b>. Feedback for your opponent&apos;s guesses is answered automatically.</p>}
-      {st.phase === 'reveal' && <p className={s.cardMeta}>Revealing words and checking every answer.</p>}
-      {st.phase === 'done' && st.revealed.some(Boolean) && <p className={s.cardMeta}>Words: {st.revealed.map((w, i) => `${names[i]}: ${w ?? '?'}`).join(', ')}</p>}
+      {st.phase === 'play' && secret && <p className={s.cardMeta}>{COPY.ui.arcadeGames.wordDuel.yourWord} <b>{secret.word}</b>{COPY.ui.arcadeGames.wordDuel.feedbackNote}</p>}
+      {st.phase === 'reveal' && <p className={s.cardMeta}>{COPY.ui.arcadeGames.wordDuel.revealing}</p>}
+      {st.phase === 'done' && st.revealed.some(Boolean) && <p className={s.cardMeta}>{COPY.ui.arcadeGames.wordDuel.words(st.revealed.map((w, i) => `${names[i]}: ${w ?? '?'}`).join(', '))}</p>}
     </div>
   );
 }

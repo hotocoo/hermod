@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { COPY } from '@/config/copy';
 import { myTurn, type RendererProps } from '../types';
 import s from '../../arcade.module.css';
 
@@ -12,10 +13,10 @@ export default function TicTacToeGame({ game, seat, move }: RendererProps) {
   const mine = myTurn(game, seat) && !busy;
   const play = async (cell: number) => { setBusy(true); await move({ cell }); setBusy(false); };
   return (
-    <div className={s.ttt} role="group" aria-label="Tic-tac-toe board" data-testid="ttt-board">
+    <div className={s.ttt} role="group" aria-label={COPY.ui.arcadeGames.tictactoe.board} data-testid="ttt-board">
       {st.cells.map((c, i) => (
         <button key={i} type="button" className={`${s.tttCell} ${c === 0 ? s.tttX : c === 1 ? s.tttO : ''}`} disabled={!mine || !st.legal.includes(i)} onClick={() => { void play(i); }}
-          aria-label={`Cell ${i + 1}, ${c === null ? 'empty' : MARK[c]}`} data-testid={`ttt-${i}`}>{c === null ? '' : MARK[c]}</button>
+          aria-label={c === null ? COPY.ui.arcadeGames.tictactoe.cellEmpty(i + 1) : COPY.ui.arcadeGames.tictactoe.cellMark(i + 1, MARK[c])} data-testid={`ttt-${i}`}>{c === null ? '' : MARK[c]}</button>
       ))}
     </div>
   );

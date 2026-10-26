@@ -1,5 +1,6 @@
 'use client';
 import { memo } from 'react';
+import { COPY } from '@/config/copy';
 import { PRIORITY_LABEL, STATUS_LABEL, type Ticket } from '@/state/deskTypes';
 import { ageLabel } from '@/state/vm/desk';
 import s from './desk.module.css';
@@ -18,7 +19,7 @@ export const TicketRow = memo(function TicketRow({ t, top, selected, checked, re
     <div className={s.row} style={{ top, height: ROW_HEIGHT }} role="option" aria-selected={selected} data-testid="ticket-row" data-ticket={t.id}
       tabIndex={-1} onClick={() => onOpen(t.id)}>
       {agent ? (
-        <input type="checkbox" className={s.rowCheck} checked={checked} aria-label={`Select ticket ${t.number}`}
+        <input type="checkbox" className={s.rowCheck} checked={checked} aria-label={COPY.ui.desk.row.select(t.number)}
           onClick={(e) => e.stopPropagation()} onChange={() => onCheck(t.id)} />
       ) : <span />}
       <div style={{ minWidth: 0 }}>
@@ -30,7 +31,7 @@ export const TicketRow = memo(function TicketRow({ t, top, selected, checked, re
         <div className={s.rowMeta}>
           <span className={`${s.chip} ${t.status === 'new' ? s.sNew : t.status === 'open' ? s.sOpen : s.sSolved}`}>{STATUS_LABEL[t.status]}</span>
           {t.priority !== 'normal' && <span className={`${s.chip} ${t.priority === 'urgent' ? s.pUrgent : t.priority === 'high' ? s.pHigh : ''}`}>{PRIORITY_LABEL[t.priority]}</span>}
-          <span className={s.hint}>{requester}{agent ? ` · ${assignee || 'Unassigned'}` : ''}</span>
+          <span className={s.hint}>{requester}{agent ? ` · ${assignee || COPY.ui.desk.unassigned}` : ''}</span>
           {agent && <SlaBadge t={t} />}
         </div>
       </div>

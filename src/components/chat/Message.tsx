@@ -28,8 +28,8 @@ function KindBody({ m }: { m: Msg }) {
   const src = getBridge().blobUrl(att.hash);
   if (e.kind === 'voice') return <VoiceNote blob={att} peaks={e.voice?.peaks ?? []} durMs={e.voice?.dur_ms ?? 0} />;
   if (e.kind === 'video_note') return <VideoNote blob={att} />;
-  if (e.kind === 'sticker') return <img className={x.sticker} src={src} alt="Sticker" loading="lazy" />;
-  if (e.kind === 'gif') return <img className={x.gif} src={src} alt="GIF" loading="lazy" />;
+  if (e.kind === 'sticker') return <img className={x.sticker} src={src} alt={COPY.ui.chat.message.sticker} loading="lazy" />;
+  if (e.kind === 'gif') return <img className={x.gif} src={src} alt={COPY.ui.chat.message.gif} loading="lazy" />;
   return null;
 }
 
@@ -40,16 +40,16 @@ function Actions({ m }: { m: Msg }) {
   const btn = (label: string, icon: string, fn: () => void) => <button type="button" className={s.act} onClick={fn} aria-label={label} title={label}><Icon name={icon} size={14} /></button>;
   return (
     <span className={s.actions}>
-      {btn('Reply with quote', 'reply', () => st.setQuote(r))}
-      {ok && btn('Forward', 'share', () => st.openModal({ kind: 'forward', msg: r }))}
-      {ok && btn('Save to notes', 'bookmark', () => { void st.saveToNotes(r); })}
-      {(isAdmin || m.isMe) && btn(r.pinned ? 'Unpin' : 'Pin', 'pin', () => { void st.pinMessage(r.id); })}
-      {r.text && btn('Translate with local AI', 'chat', () => { void st.localAi('translate', r.text).then((t) => { if (t) st.showToast(t.slice(0, 300)); }); })}
-      {btn('Copy message link', 'link', () => st.copyMessageLink(r.id))}
-      {m.canEdit && !m.editing && btn('Edit message', 'edit', m.startEdit)}
+      {btn(COPY.ui.chat.message.replyQuote, 'reply', () => st.setQuote(r))}
+      {ok && btn(COPY.ui.chat.message.forward, 'share', () => st.openModal({ kind: 'forward', msg: r }))}
+      {ok && btn(COPY.ui.chat.message.saveToNotes, 'bookmark', () => { void st.saveToNotes(r); })}
+      {(isAdmin || m.isMe) && btn(r.pinned ? COPY.ui.chat.message.unpin : COPY.ui.chat.message.pin, 'pin', () => { void st.pinMessage(r.id); })}
+      {r.text && btn(COPY.ui.chat.message.translate, 'chat', () => { void st.localAi('translate', r.text).then((t) => { if (t) st.showToast(t.slice(0, 300)); }); })}
+      {btn(COPY.ui.chat.message.copyLink, 'link', () => st.copyMessageLink(r.id))}
+      {m.canEdit && !m.editing && btn(COPY.ui.chat.message.edit, 'edit', m.startEdit)}
       {!m.isMe && !m.isSystem && btn(COPY.report.action, 'shield', () => { void st.reportContent(r.id, st.space); })}
-      {btn('Delete for me', 'eye', () => { void st.hideForMe(r.id); })}
-      {m.canEdit && !m.editing && btn('Delete for everyone', 'trash', m.onDelete)}
+      {btn(COPY.ui.chat.message.deleteForMe, 'eye', () => { void st.hideForMe(r.id); })}
+      {m.canEdit && !m.editing && btn(COPY.ui.chat.message.deleteForAll, 'trash', m.onDelete)}
     </span>
   );
 }
@@ -66,11 +66,11 @@ function MessageView({ m, icons, people }: Props) {
   const r = m.raw; const ext = r.ext; const special = !!ext?.viewOnce || ['voice', 'video_note', 'sticker', 'gif'].includes(ext?.kind ?? '');
   const poll = ext?.kind === 'poll' ? ext.poll : undefined;
   const cls = [s.msg, x.lazy, m.isMe ? s.msgMe : '', m.mentionsMe || ext?.pingsMe ? s.msgMention : ''].join(' ');
-  const editedBtn = m.edited && !m.removed ? <button type="button" className={`${s.edited} ${s.link}`} style={{ textDecoration: 'none' }} aria-expanded={hist} onClick={() => setHist((v) => !v)}>edited</button> : null;
+  const editedBtn = m.edited && !m.removed ? <button type="button" className={`${s.edited} ${s.link}`} style={{ textDecoration: 'none' }} aria-expanded={hist} onClick={() => setHist((v) => !v)}>{COPY.ui.chat.message.edited}</button> : null;
   if (m.blocked && !shown) {
     return (
-      <article className={s.msg} aria-label={`Message from a blocked person, hidden`}>
-        <div /><div className={s.blockedRow}>Message from {m.name} (blocked) <button type="button" className={s.link} onClick={() => setShown(true)}>Show</button></div>
+      <article className={s.msg} aria-label={COPY.ui.chat.message.blockedHidden}>
+        <div /><div className={s.blockedRow}>{COPY.ui.chat.message.blocked(m.name)} <button type="button" className={s.link} onClick={() => setShown(true)}>{COPY.ui.chat.message.show}</button></div>
       </article>
     );
   }
@@ -83,34 +83,34 @@ function MessageView({ m, icons, people }: Props) {
           <div className={s.byline}>
             <span className={s.by}>{m.name}</span><span className={s.time}>{m.t}</span>
             {editedBtn}
-            {ext?.auto && <span className={x.badge} title="Posted by an automation">auto</span>}
-            {r.pinned && <span className={`${x.badge} ${x.badgeOn}`}>pinned</span>}
+            {ext?.auto && <span className={x.badge} title={COPY.ui.chat.message.autoTitle}>{COPY.ui.chat.message.auto}</span>}
+            {r.pinned && <span className={`${x.badge} ${x.badgeOn}`}>{COPY.ui.chat.message.pinned}</span>}
             <Ticks m={r} others={Math.max(1, members - 1)} />
             <Expiry at={ext?.expires} />
-            {m.blocked && <button type="button" className={s.link} onClick={() => setShown(false)}>Hide</button>}
+            {m.blocked && <button type="button" className={s.link} onClick={() => setShown(false)}>{COPY.ui.chat.message.hide}</button>}
           </div>
         )}
         {hist && r.history && (
-          <ul className={x.menu} style={{ position: 'static', margin: '4px 0' }} aria-label="Edit history">
+          <ul className={x.menu} style={{ position: 'static', margin: '4px 0' }} aria-label={COPY.ui.chat.message.editHistory}>
             {r.history.map((h, i) => <li key={i} style={{ padding: '3px 8px', fontSize: 13 }}><span className={s.time}>{h.t}</span> {h.text}</li>)}
           </ul>
         )}
         {!m.removed && <><Forwarded m={r} /><QuoteCard m={r} /></>}
         {m.removed ? (
-          <p className={s.tomb}>{m.removed === 'admin' ? 'Removed by an admin' : (m.isMe ? 'Removed by you' : `Removed by ${m.name}`)}</p>
+          <p className={s.tomb}>{m.removed === 'admin' ? COPY.ui.chat.message.removedAdmin : (m.isMe ? COPY.ui.chat.message.removedYou : COPY.ui.chat.message.removedBy(m.name))}</p>
         ) : m.editing ? (
           <div className={s.editBox}>
-            <textarea className="input" rows={2} value={m.editDraft} onChange={m.onEditDraft} onKeyDown={onEditKey} aria-label="Edit message" autoFocus />
+            <textarea className="input" rows={2} value={m.editDraft} onChange={m.onEditDraft} onKeyDown={onEditKey} aria-label={COPY.ui.chat.message.edit} autoFocus />
             <div className={s.editBtns}>
-              <button type="button" className="btn btn-primary" onClick={m.saveEdit}>Save</button>
-              <button type="button" className="btn btn-secondary" onClick={m.cancelEdit}>Cancel</button>
-              <span className={s.time}>Enter to save, Esc to cancel</span>
+              <button type="button" className="btn btn-primary" onClick={m.saveEdit}>{COPY.ui.chat.message.save}</button>
+              <button type="button" className="btn btn-secondary" onClick={m.cancelEdit}>{COPY.ui.chat.message.cancel}</button>
+              <span className={s.time}>{COPY.ui.chat.message.editHint}</span>
             </div>
           </div>
         ) : (
           <>
             {ext?.kind === 'forum_post' && ext.title && <h3 style={{ margin: '2px 0', fontFamily: 'var(--font-heading)' }}>{ext.title}{(ext.tags ?? []).map((t) => <span key={t} className={x.pill} style={{ marginLeft: 6 }}>{t}</span>)}</h3>}
-            {m.text && !poll && <div className={s.text}><Markdown text={m.text} people={people} everyone={ext?.everyone || ext?.admins || ext?.owners} />{!m.showHead && <>{editedBtn}{r.pinned && <span className={`${x.badge} ${x.badgeOn}`}>pinned</span>}<Ticks m={r} others={Math.max(1, members - 1)} /><Expiry at={ext?.expires} /></>}</div>}
+            {m.text && !poll && <div className={s.text}><Markdown text={m.text} people={people} everyone={ext?.everyone || ext?.admins || ext?.owners} />{!m.showHead && <>{editedBtn}{r.pinned && <span className={`${x.badge} ${x.badgeOn}`}>{COPY.ui.chat.message.pinned}</span>}<Ticks m={r} others={Math.max(1, members - 1)} /><Expiry at={ext?.expires} /></>}</div>}
             {poll && <PollCard id={poll} />}
             {special && <KindBody m={m} />}
             {!special && m.att.length > 0 && <div className={s.atts}>{m.att.map((b) => <Attachment key={b.hash} b={b} />)}</div>}
@@ -122,18 +122,18 @@ function MessageView({ m, icons, people }: Props) {
           <button type="button" onClick={m.snap.open} className={s.snap}>
             <span className={s.snapIcon}>{ic.line}</span>
             <span className={s.snapBody}>
-              <span className={s.snapKick}>Snapshot · {m.snap.line}</span>
+              <span className={s.snapKick}>{COPY.ui.chat.message.snapshot(m.snap.line)}</span>
               <span className={s.snapTitle}>{m.snap.title}</span>
-              <span className={s.snapSeal}>{m.snap.seal} · {m.snap.files} files</span>
+              <span className={s.snapSeal}>{COPY.ui.chat.message.snapSeal(m.snap.seal, m.snap.files)}</span>
             </span>
-            <span className={s.snapGo}>Compare {icS.right}</span>
+            <span className={s.snapGo}>{COPY.ui.chat.message.compare} {icS.right}</span>
           </button>
         )}
         {m.hasMeet && m.meet && (
           <div className={s.meet}>
-            <div className={s.meetKick}>Meeting notes</div>
+            <div className={s.meetKick}>{COPY.ui.chat.message.meetingNotes}</div>
             <div className={s.meetTitle}>{m.meet.title}</div>
-            <div className={s.meetMeta}>{m.meet.dur} · {m.meet.notes} notes · agenda {m.meet.done}/{m.meet.total}</div>
+            <div className={s.meetMeta}>{COPY.ui.chat.message.meetMeta(m.meet.dur, m.meet.notes, m.meet.done, m.meet.total)}</div>
           </div>
         )}
         {!m.removed && (
@@ -144,11 +144,11 @@ function MessageView({ m, icons, people }: Props) {
               </button>
             ))}
             <span style={{ position: 'relative' }}>
-              <button type="button" onClick={() => setPicker((v) => !v)} className={s.rx} aria-label="Add reaction" aria-expanded={picker}>+</button>
+              <button type="button" onClick={() => setPicker((v) => !v)} className={s.rx} aria-label={COPY.ui.chat.message.addReaction} aria-expanded={picker}>+</button>
               {picker && <EmojiPicker onClose={() => setPicker(false)} onPick={(e) => { setPicker(false); void react(chat, m.id, e); }} />}
             </span>
             <button type="button" onClick={m.onThread} className={s.thread}>
-              {m.hasThread ? <><span className={s.faces}>{m.threadFaces.map((tf, i) => <span key={i} className={s.mini}>{tf.i}</span>)}</span>{m.threadLabel} in the margin</> : 'Reply in the margin'}
+              {m.hasThread ? <><span className={s.faces}>{m.threadFaces.map((tf, i) => <span key={i} className={s.mini}>{tf.i}</span>)}</span>{COPY.ui.chat.message.inMargin(m.threadLabel)}</> : COPY.ui.chat.message.replyMargin}
             </button>
           </div>
         )}

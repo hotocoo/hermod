@@ -18,17 +18,17 @@ export function KudosWall({ view, space, me, seed }: ActivityProps) {
     <>
       <form className={s.formCol} onSubmit={(e) => { void submit(e); }} data-testid="kudos-form" style={{ maxWidth: 520 }}>
         <div className={f.row}>
-          <div className={f.field}><label className={f.label} htmlFor="kd-to">To</label>
-            <select id="kd-to" className="input" value={to} onChange={(e) => setTo(e.target.value)} data-testid="kudos-to"><option value="">Choose someone</option>{members.map(([id, p]) => <option key={id} value={id}>{p.name}</option>)}</select></div>
-          <div className={f.field}><span className={f.label} id="kd-e">Emoji</span>
+          <div className={f.field}><label className={f.label} htmlFor="kd-to">{COPY.ui.arcade.kudosWallText.to}</label>
+            <select id="kd-to" className="input" value={to} onChange={(e) => setTo(e.target.value)} data-testid="kudos-to"><option value="">{COPY.ui.arcade.kudosWallText.chooseSomeone}</option>{members.map(([id, p]) => <option key={id} value={id}>{p.name}</option>)}</select></div>
+          <div className={f.field}><span className={f.label} id="kd-e">{COPY.ui.arcade.kudosWallText.emoji}</span>
             <div role="group" aria-labelledby="kd-e" className={s.tools}>{KUDOS_EMOJI.map((e) => <button key={e} type="button" className="btn btn-secondary" aria-pressed={emoji === e} onClick={() => setEmoji(e)}>{e}</button>)}</div></div>
         </div>
-        <div className={f.field}><label className={f.label} htmlFor="kd-r">What for</label><input id="kd-r" className="input" maxLength={ARCADE_LIMITS.kudosReasonMax} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="kudos-reason" /></div>
-        <div><button type="submit" className="btn btn-primary" disabled={!to || !reason.trim() || busy} data-testid="kudos-send">Give kudos</button></div>
+        <div className={f.field}><label className={f.label} htmlFor="kd-r">{COPY.ui.arcade.kudosWallText.whatFor}</label><input id="kd-r" className="input" maxLength={ARCADE_LIMITS.kudosReasonMax} value={reason} onChange={(e) => setReason(e.target.value)} data-testid="kudos-reason" /></div>
+        <div><button type="submit" className="btn btn-primary" disabled={!to || !reason.trim() || busy} data-testid="kudos-send">{COPY.ui.arcade.kudosWallText.giveKudos}</button></div>
       </form>
       {!view?.kudos.length && <EmptyNote {...COPY.empty.arcadeKudos} />}
       <ul className={s.list}>{view?.kudos.map((k, i) => (
-        <li key={i} className={s.kudo} data-testid="kudos-item"><span className={s.kudoEmoji} aria-hidden="true">{k.emoji}</span><div><div className={s.cardTitle} style={{ whiteSpace: 'normal' }}>{seatName(seed, k.by)} thanked {seatName(seed, k.to)}</div><div className={s.cardMeta}>{k.reason}</div></div></li>
+        <li key={i} className={s.kudo} data-testid="kudos-item"><span className={s.kudoEmoji} aria-hidden="true">{k.emoji}</span><div><div className={s.cardTitle} style={{ whiteSpace: 'normal' }}>{COPY.ui.arcade.activitiesMore.thanked(seatName(seed, k.by), seatName(seed, k.to))}</div><div className={s.cardMeta}>{k.reason}</div></div></li>
       ))}</ul>
     </>
   );

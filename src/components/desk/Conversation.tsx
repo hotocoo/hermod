@@ -3,6 +3,7 @@ import { Attachment } from '@/components/chat/Attachment';
 import type { BlobRef } from '@/lib/bridge';
 import type { Seed } from '@/lib/data/types';
 import { useAppStore } from '@/state/store';
+import { COPY } from '@/config/copy';
 import type { Ticket } from '@/state/deskTypes';
 import { personOf } from '@/state/selectors';
 import s from './desk.module.css';
@@ -25,7 +26,7 @@ export function Conversation({ t, seed, numberOf }: { t: Ticket; seed: Seed; num
         <div className={s.face} aria-hidden="true">{first.i}</div>
         <div>
           <div className={s.msgHead}><span className={s.msgBy}>{first.name}</span><span className={s.hint}>{when(t.created)}</span></div>
-          <p className={s.msgBody}>{t.body || 'No description.'}</p>
+          <p className={s.msgBody}>{t.body || COPY.ui.desk.conversation.noDescription}</p>
           <Atts list={t.att} />
         </div>
       </article>
@@ -38,8 +39,8 @@ export function Conversation({ t, seed, numberOf }: { t: Ticket; seed: Seed; num
             <div className={c.internal ? s.internal : undefined}>
               <div className={s.msgHead}>
                 <span className={s.msgBy}>{p.name}</span><span className={s.hint}>{when(c.ts)}</span>
-                {c.internal && <span className={s.internalTag}>Internal note</span>}
-                {from != null && <span className={s.merged}>merged from #{from}</span>}
+                {c.internal && <span className={s.internalTag}>{COPY.ui.desk.internalNote}</span>}
+                {from != null && <span className={s.merged}>{COPY.ui.desk.conversation.mergedFrom(from)}</span>}
               </div>
               <p className={s.msgBody}>{c.body}</p>
               <Atts list={c.att} />

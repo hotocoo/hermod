@@ -7,6 +7,7 @@ import { useAppStore } from '@/state/store';
 import { Message } from './Message';
 import s from './chat.module.css';
 import x from './messaging.module.css';
+import { COPY } from '@/config/copy';
 
 const WINDOW = LIMITS.messageWindow;
 
@@ -76,21 +77,21 @@ export function MessageList({ vm }: VmProps) {
   useEffect(() => { const want = threadToLoad(thread, vm.threadFound); if (want) void ensureLoaded(key, want); }, [thread, vm.threadFound, key]); // eslint-disable-line react-hooks/exhaustive-deps
   const toUnread = () => document.getElementById('unread-sep')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   return (
-    <div ref={msgRef} className={s.scroll} role="log" onScroll={(e) => { if (e.currentTarget.scrollTop < LAYOUT.olderTriggerPx) void older(); }} aria-label="Messages" style={{ position: 'relative' }}>
-      {sepAt > 0 && <button type="button" className={x.jump} onClick={toUnread}>Jump to {open.unread} unread</button>}
+    <div ref={msgRef} className={s.scroll} role="log" onScroll={(e) => { if (e.currentTarget.scrollTop < LAYOUT.olderTriggerPx) void older(); }} aria-label={COPY.ui.chat.messageListText.messages} style={{ position: 'relative' }}>
+      {sepAt > 0 && <button type="button" className={x.jump} onClick={toUnread}>{COPY.ui.chat.listMore.jumpToUnread(open.unread)}</button>}
       <div className={s.inner}>
-        {(hidden > 0 || canLoad) && <button type="button" className={`btn btn-secondary ${x.older}`} onClick={() => { void older(); }}>Show earlier messages{hidden > 0 ? ` (${hidden})` : ''}</button>}
-        <div className={s.today}><span className={s.rule} />Messages<span className={s.rule} /></div>
+        {(hidden > 0 || canLoad) && <button type="button" className={`btn btn-secondary ${x.older}`} onClick={() => { void older(); }}>{COPY.ui.chat.listMore.showEarlier}{hidden > 0 ? ` (${hidden})` : ''}</button>}
+        <div className={s.today}><span className={s.rule} />{COPY.ui.chat.messageListText.messages}<span className={s.rule} /></div>
         {vm.noMessages && (
           <div className={s.quiet}>
-            <div className={s.eth} aria-hidden="true">ð</div>
+            <div className={s.eth} aria-hidden="true">{COPY.ui.chat.messageListText.ð}</div>
             <h3 className={s.quietTitle}>{vm.emptyTitle}</h3>
             <p className={s.quietLine}>{vm.emptyLine}</p>
           </div>
         )}
         {list.map((m, i) => (
           <div key={m.id}>
-            {i === sepAt && <div id="unread-sep" className={x.sep} role="separator" aria-label="New messages"><span className={x.sepRule} />New messages<span className={x.sepRule} /></div>}
+            {i === sepAt && <div id="unread-sep" className={x.sep} role="separator" aria-label={COPY.ui.chat.messageListText.newMessages}><span className={x.sepRule} />{COPY.ui.chat.messageListText.newMessages}<span className={x.sepRule} /></div>}
             <Message m={m} icons={{ ic: vm.ic, icS: vm.icS }} people={vm.people} />
           </div>
         ))}

@@ -51,24 +51,24 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
         <button type="button" onClick={c.onClick} className={muted ? `${s.ch} ${x.muted}` : s.ch} aria-current={c.active ? 'page' : undefined} style={{ background: c.bg, color: c.color, fontWeight: c.weight, flex: 1 }}>
           {c.isDm ? <span className={s.chFace}><span aria-hidden="true">{c.initials}</span><PresenceDot id={c.dmId} /></span> : <Icon name={icon} size={14} strokeWidth={1.8} />}
           <span className={s.chName}>{c.name}</span>
-          {voiceIn(c.id) > 0 && <span className={x.badge} title="In voice now">{voiceIn(c.id)}</span>}
+          {voiceIn(c.id) > 0 && <span className={x.badge} title={COPY.ui.chat.channelList.inVoiceNow}>{voiceIn(c.id)}</span>}
           {pinned.includes(k) && <Icon name="pin" size={11} />}
-          {c.hasUnread && <span className={s.chBadge} aria-label={`${c.unread} unread`}>{c.unread}</span>}
+          {c.hasUnread && <span className={s.chBadge} aria-label={COPY.ui.chat.channelList.unread(c.unread)}>{c.unread}</span>}
         </button>
       </div>
     );
   };
   return (
-    <nav aria-label="Channels" className={open ? s.nav : `${s.nav} ${s.navHide}`} id="chat-channels">
+    <nav aria-label={COPY.ui.chat.channels} className={open ? s.nav : `${s.nav} ${s.navHide}`} id="chat-channels">
       {folders.length > 0 && (
-        <div className={x.folderRow} role="group" aria-label="Folders">
-          {[{ id: '', name: 'All' }, ...folders].map((f) => <button key={f.id} type="button" className={`${x.chip2} ${folder === f.id ? x.chipOn : ''}`} aria-pressed={folder === f.id} onClick={() => setFolder(f.id)}>{f.name}</button>)}
+        <div className={x.folderRow} role="group" aria-label={COPY.ui.chat.channelList.folders}>
+          {[{ id: '', name: COPY.ui.chat.channelList.all }, ...folders].map((f) => <button key={f.id} type="button" className={`${x.chip2} ${folder === f.id ? x.chipOn : ''}`} aria-pressed={folder === f.id} onClick={() => setFolder(f.id)}>{f.name}</button>)}
         </div>
       )}
       {!vm.isHome && (
         <>
-          <div className={s.navHead}>Channels
-            <button type="button" className={s.navAdd} onClick={vm.newChannel} aria-label="New channel" title="New channel"><Icon name="plus" size={14} /></button>
+          <div className={s.navHead}>{COPY.ui.chat.channels}
+            <button type="button" className={s.navAdd} onClick={vm.newChannel} aria-label={COPY.ui.chat.channelList.newChannel} title={COPY.ui.chat.channelList.newChannel}><Icon name="plus" size={14} /></button>
           </div>
           {channels.length === 0 && <EmptyNote {...COPY.empty.chatChannels} />}
           {cats.map((cat) => (
@@ -80,36 +80,36 @@ export function ChannelList({ vm, open }: VmProps & { open: boolean }) {
         </>
       )}
       {(
-        <div className={s.navHead}>Direct messages
-          <button type="button" className={s.navAdd} onClick={() => st.openModal({ kind: 'contacts' })} aria-label="New message or contacts" title="New message or contacts"><Icon name="plus" size={14} /></button>
+        <div className={s.navHead}>{COPY.ui.chat.channelList.directMessages}
+          <button type="button" className={s.navAdd} onClick={() => st.openModal({ kind: 'contacts' })} aria-label={COPY.ui.chat.channelList.newMessage} title={COPY.ui.chat.channelList.newMessage}><Icon name="plus" size={14} /></button>
         </div>
       )}
       {requests.length > 0 && (
-        <section aria-label="Message requests">
-          <div className={x.cat}>Requests ({requests.length})</div>
+        <section aria-label={COPY.ui.chat.channelList.messageRequests}>
+          <div className={x.cat}>{COPY.ui.chat.channelList.requests(requests.length)}</div>
           {requests.map((r) => (
             <div key={r.id} className={x.listRow} style={{ padding: '4px 10px' }}>
-              <span className={x.grow}>{vm.people[r.from]?.name ?? r.from.slice(0, 8)}{r.group ? ' (group)' : ''}</span>
-              <button type="button" className="btn btn-primary" onClick={() => { void st.acceptDm(r.id); }}>Accept</button>
-              <button type="button" className="btn btn-secondary" onClick={() => { void st.declineDm(r.id); }}>Decline</button>
+              <span className={x.grow}>{vm.people[r.from]?.name ?? r.from.slice(0, 8)}{r.group ? COPY.ui.chat.channelList.groupSuffix : ''}</span>
+              <button type="button" className="btn btn-primary" onClick={() => { void st.acceptDm(r.id); }}>{COPY.ui.chat.channelList.accept}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { void st.declineDm(r.id); }}>{COPY.ui.chat.channelList.decline}</button>
             </div>
           ))}
         </section>
       )}
-      <button type="button" className={s.ch} onClick={() => { void st.openSaved(); }}><Icon name="bookmark" size={14} /><span className={s.chName}>Saved messages</span></button>
+      <button type="button" className={s.ch} onClick={() => { void st.openSaved(); }}><Icon name="bookmark" size={14} /><span className={s.chName}>{COPY.ui.chat.channelList.savedMessages}</span></button>
       {dmRows.map(({ sp, key, unread }) => (
         <div key={sp.id} className={x.chRow}>
           <button type="button" className={isMuted(prefs.muted, key) ? `${s.ch} ${x.muted}` : s.ch} onClick={() => st.goSpace(sp.id)} aria-current={sp.id === st.space ? 'page' : undefined} style={{ flex: 1 }}>
             <span className={s.chFace} aria-hidden="true">{sp.mono}</span><span className={s.chName}>{sp.name}</span>
             {pinned.includes(key) && <Icon name="pin" size={11} />}
-            {unread > 0 && <span className={s.chBadge} aria-label={`${unread} unread`}>{unread}</span>}
+            {unread > 0 && <span className={s.chBadge} aria-label={COPY.ui.chat.channelList.unread(unread)}>{unread}</span>}
           </button>
         </div>
       ))}
       {vm.isHome && dms.length === 0 && dmRows.length === 0 && <EmptyNote {...COPY.empty.chatDms} />}
       {dms.map(item)}
-      {archived.length > 0 && <button type="button" className={x.cat} aria-expanded={showArchived} onClick={() => setShowArchived(!showArchived)}>{showArchived ? 'Hide' : 'Show'} archived ({archived.length})</button>}
-      <button type="button" className={s.ch} onClick={() => st.openModal({ kind: 'privacy' })}><Icon name="lock" size={14} /><span className={s.chName}>Privacy and chat settings</span></button>
+      {archived.length > 0 && <button type="button" className={x.cat} aria-expanded={showArchived} onClick={() => setShowArchived(!showArchived)}>{COPY.ui.chat.channelList.archived(showArchived, archived.length)}</button>}
+      <button type="button" className={s.ch} onClick={() => st.openModal({ kind: 'privacy' })}><Icon name="lock" size={14} /><span className={s.chName}>{COPY.ui.chat.channelList.privacy}</span></button>
     </nav>
   );
 }

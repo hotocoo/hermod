@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { REALTIME } from '@/config/arcade';
+import { COPY } from '@/config/copy';
 import { monoMs } from '@/lib/clock';
 import { seatName } from '@/state/vm/arcade';
 import { reportResult } from '../../actions';
@@ -47,8 +48,8 @@ export default function ReactionGame({ game, space, me, seed, seat }: RendererPr
   }, [game.seats, game.id, space, send]);
 
   const beginLocal = (n: number, delay: number) => {
-    clear(); tapped.current = false; roundNo.current = n; setRound(n); setPhase('wait'); setMsg('Wait for green');
-    timer.current = setTimeout(() => { greenAt.current = monoMs(); setPhase('go'); setMsg('Tap now'); }, delay);
+    clear(); tapped.current = false; roundNo.current = n; setRound(n); setPhase('wait'); setMsg(COPY.ui.arcadeGames.reaction.waitGreen);
+    timer.current = setTimeout(() => { greenAt.current = monoMs(); setPhase('go'); setMsg(COPY.ui.arcadeGames.reaction.tapNow); }, delay);
   };
 
   const startRound = (n: number) => {
@@ -77,10 +78,10 @@ export default function ReactionGame({ game, space, me, seed, seat }: RendererPr
   const tap = () => {
     if (seat < 0 || tapped.current) return;
     const n = roundNo.current;
-    if (phase === 'wait') { tapped.current = true; clear(); setPhase('idle'); setMsg('Too early'); report(n, -1); return; }
+    if (phase === 'wait') { tapped.current = true; clear(); setPhase('idle'); setMsg(COPY.ui.arcadeGames.reaction.tooEarly); report(n, -1); return; }
     if (phase === 'go') {
       tapped.current = true; const ms = Math.round(monoMs() - greenAt.current);
-      setPhase('done'); setMsg(`${ms} ms`); report(n, ms);
+      setPhase('done'); setMsg(COPY.ui.arcadeGames.reaction.ms(ms)); report(n, ms);
     }
   };
 
@@ -92,17 +93,17 @@ export default function ReactionGame({ game, space, me, seed, seat }: RendererPr
     <div className={s.stage}>
       <button type="button" className={`${s.pad} ${phase === 'go' ? s.padGo : phase === 'wait' ? s.padWait : s.padIdle}`} onPointerDown={tap} onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); tap(); } }}
         disabled={seat < 0 || finished} aria-live="assertive" data-testid="reaction-pad" data-phase={phase}>
-        {finished ? 'Race finished' : phase === 'idle' && !msg ? (isHost ? 'Start the race when everyone is seated' : 'Waiting for the host') : msg}
+        {finished ? COPY.ui.arcadeGames.reaction.finished : phase === 'idle' && !msg ? (isHost ? COPY.ui.arcadeGames.reaction.startWhenSeated : COPY.ui.arcadeGames.reaction.waitingHost) : msg}
       </button>
-      {isHost && game.status === 'active' && round === 0 && <button type="button" className="btn btn-primary" onClick={() => startRound(1)} data-testid="reaction-start">Start race ({R.rounds} rounds)</button>}
-      {round > 0 && !finished && <p className={s.cardMeta}>Round {round} of {R.rounds}</p>}
+      {isHost && game.status === 'active' && round === 0 && <button type="button" className="btn btn-primary" onClick={() => startRound(1)} data-testid="reaction-start">{COPY.ui.arcadeGames.reaction.startRace(R.rounds)}</button>}
+      {round > 0 && !finished && <p className={s.cardMeta}>{COPY.ui.arcadeGames.reaction.round(round, R.rounds)}</p>}
       {rows.length > 0 && (
-        <table className={s.table} aria-label="Standings">
-          <thead><tr><th>Player</th><th className={s.num}>Last tap</th><th className={s.num}>Points</th></tr></thead>
-          <tbody>{rows.map(([u, pts]) => <tr key={u}><td>{name(u)}</td><td className={s.num}>{last[u] === undefined ? '' : last[u] < 0 ? 'false start' : `${last[u]} ms`}</td><td className={s.num}>{pts}</td></tr>)}</tbody>
+        <table className={s.table} aria-label={COPY.ui.arcadeGames.reaction.standings}>
+          <thead><tr><th>{COPY.ui.arcadeGames.reaction.player}</th><th className={s.num}>{COPY.ui.arcadeGames.reaction.lastTap}</th><th className={s.num}>{COPY.ui.arcadeGames.reaction.points}</th></tr></thead>
+          <tbody>{rows.map(([u, pts]) => <tr key={u}><td>{name(u)}</td><td className={s.num}>{last[u] === undefined ? '' : last[u] < 0 ? COPY.ui.arcadeGames.reaction.falseStart : COPY.ui.arcadeGames.reaction.ms(last[u])}</td><td className={s.num}>{pts}</td></tr>)}</tbody>
         </table>
       )}
-      {game.result && <p className={s.cardMeta}>Final: {Object.entries(game.result.scores).sort((a, b) => b[1] - a[1]).map(([u, v]) => `${name(u)} ${v}`).join(', ')}</p>}
+      {game.result && <p className={s.cardMeta}>{COPY.ui.arcadeGames.reaction.final(Object.entries(game.result.scores).sort((a, b) => b[1] - a[1]).map(([u, v]) => `${name(u)} ${v}`).join(', '))}</p>}
     </div>
   );
 }
