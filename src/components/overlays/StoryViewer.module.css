@@ -51,7 +51,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .avatar {
@@ -75,7 +75,7 @@
   top: 50%;
   transform: translate(-50%,-50%);
   font-family: ui-monospace,Menlo,monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: rgba(255,255,255,.45);
   white-space: nowrap;
 }
@@ -86,7 +86,7 @@
   right: 14px;
   bottom: 70px;
   font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: 1.5rem;
   line-height: 1.25;
 }
 
@@ -130,7 +130,7 @@
   background: rgba(0,0,0,.25);
   color: #f3ede3;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 0.875rem;
   outline: none;
 }
 

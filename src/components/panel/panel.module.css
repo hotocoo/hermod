@@ -13,25 +13,25 @@
   width: 84px; height: 84px; margin: 0 auto 18px; border: 1px dashed var(--color-accent); border-radius: 8px;
   display: grid; place-items: center; color: var(--color-accent-text);
 }
-.plotTitle { margin: 8px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 34px; line-height: 1.1; }
-.plotLine { margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
+.plotTitle { margin: 8px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 2.125rem; line-height: 1.1; }
+.plotLine { margin: 0 0 22px; font-size: 0.875rem; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
 .raise {
   display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border: 1px solid var(--color-accent); border-radius: 8px;
-  background: transparent; color: var(--color-accent-700); font-family: var(--font-heading); font-weight: 600; font-size: 17px;
+  background: transparent; color: var(--color-accent-700); font-family: var(--font-heading); font-weight: 600; font-size: 1.0625rem;
 }
 .raise:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
 .raise:active { transform: scale(.97); }
 .eth { font-family: var(--font-heading); font-style: italic; font-size: 64px; line-height: 1; color: var(--color-accent-text); }
-.freshTitle { margin: 10px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 32px; }
-.freshLine { margin: 0; font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
+.freshTitle { margin: 10px 0 8px; font-family: var(--font-heading); font-weight: 400; font-size: 2rem; }
+.freshLine { margin: 0; font-size: 0.875rem; line-height: 1.6; color: color-mix(in srgb, var(--color-text) 66%, transparent); text-wrap: pretty; }
 .head { display: flex; align-items: center; gap: 14px; padding: 16px 20px 14px; border-bottom: 1px solid var(--color-divider); }
 .back {
-  display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 8px; border: 1px solid var(--color-divider);
-  border-radius: 18px; background: transparent; font-family: var(--font-heading); font-weight: 600; font-size: 14px;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px 0 8px; border: 1px solid var(--color-divider);
+  border-radius: 18px; background: transparent; font-family: var(--font-heading); font-weight: 600; font-size: 0.875rem;
 }
 .back:hover { border-color: var(--color-accent); color: var(--color-accent-700); }
 .titles { flex: 1; min-width: 0; }
-.title { font-family: var(--font-heading); font-size: 26px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.title { font-family: var(--font-heading); font-size: 1.625rem; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tabs { display: flex; gap: 2px; padding: 3px; border: 1px solid var(--color-divider); border-radius: 20px; }
 .tab {
   width: 34px; height: 34px; border: 0; border-radius: 50%; display: grid; place-items: center;
@@ -40,11 +40,11 @@
 .tab:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
 .sub { position: relative; display: flex; gap: 4px; padding: 10px 24px 0; border-bottom: 1px solid var(--color-divider); }
 .subTab {
-  display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px 11px; border: 0; background: transparent; font-family: var(--font-heading); font-size: 16px;
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px 11px; border: 0; background: transparent; font-family: var(--font-heading); font-size: 1rem;
   transition: color 200ms ease, box-shadow 300ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
 }
 .subTab:hover { color: var(--color-accent-700); }
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent); animation: hm-breathe 1.6s ease-in-out infinite; }
 .emptyNote{padding:14px 4px;text-align:center}
-.emptyNoteTitle{font-family:var(--font-heading);font-weight:600;font-size:14px}
-.emptyNoteLine{margin:4px 0 0;font-size:13px;line-height:1.5;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
+.emptyNoteTitle{font-family:var(--font-heading);font-weight:600;font-size:0.875rem}
+.emptyNoteLine{margin:4px 0 0;font-size:0.8125rem;line-height:1.5;color:color-mix(in srgb,var(--color-text) 66%,transparent)}

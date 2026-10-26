@@ -18,5 +18,8 @@ export function applyGrain(on: boolean): void {
 /** Text size as a percentage of the browser default; every rem and inherited size follows. */
 export function applyTextScale(percent: number): void {
   if (typeof document === 'undefined') return;
-  document.documentElement.style.fontSize = percent === 100 ? '' : `${percent}%`;
+  const root = document.documentElement;
+  root.style.fontSize = percent === 100 ? '' : `${percent}%`;
+  // Fixed HUD offsets (px) multiply by this so the chrome clears text that has grown.
+  root.style.setProperty('--text-scale', String(percent / 100));
 }
