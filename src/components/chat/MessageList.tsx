@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { LAYOUT, LIMITS, TIMING } from '@/config/app';
 import type { VmProps } from '@/components/panel/types';
-import { channelsOf, chatKey, meId } from '@/state/selectors';
+import { channelsOf, chatKey, meId, threadToLoad } from '@/state/selectors';
 import { getMsgs, msgRef } from '@/state/domRefs';
 import { useAppStore } from '@/state/store';
 import { Message } from './Message';
@@ -73,7 +73,7 @@ export function MessageList({ vm }: VmProps) {
   }, [jump, key, total, jumpIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // An open thread whose root sits above the loaded history: page it in (the pane stays open meanwhile).
-  useEffect(() => { if (thread && !vm.threadFound) void ensureLoaded(key, thread); }, [thread, vm.threadFound, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const want = threadToLoad(thread, vm.threadFound); if (want) void ensureLoaded(key, want); }, [thread, vm.threadFound, key]); // eslint-disable-line react-hooks/exhaustive-deps
   const toUnread = () => document.getElementById('unread-sep')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   return (
     <div ref={msgRef} className={s.scroll} role="log" onScroll={(e) => { if (e.currentTarget.scrollTop < LAYOUT.olderTriggerPx) void older(); }} aria-label="Messages" style={{ position: 'relative' }}>

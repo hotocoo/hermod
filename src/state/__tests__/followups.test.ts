@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { TIMING } from '../../config/app';
 import { createCoreSlice } from '../slices/core';
 import { createMessagingSlice } from '../slices/messaging';
+import { threadToLoad } from '../selectors';
 import { createOverlaySlice } from '../slices/overlay';
 import type { AppStore } from '../types';
 
@@ -44,6 +45,18 @@ describe('thread root above the window', () => {
     expect(await store.getState().ensureLoaded('sp/a', 'root')).toBe(true);
     expect(store.getState().older['sp/a'].map((x) => (x as { id: string }).id)).toEqual(['root', 'x']);
   });
+  it('waits for a scroll-triggered loadOlder already in flight, then still finds the root', async () => {
+    const full = Array.from({ length: 150 }, (_, i) => m(`n${i}`, 1000 + i));
+    let land: (v: unknown) => void = () => undefined;
+    messagesPage.mockReturnValueOnce(new Promise((r) => { land = r; }));
+    const store = create<AppStore>()((set, get, api) => ({ ...createMessagingSlice(set, get, api), msgs: { 'sp/a': full }, older: {}, olderMore: {}, showToast: vi.fn() }) as unknown as AppStore);
+    const scroll = store.getState().loadOlder('sp/a');
+    const ensured = store.getState().ensureLoaded('sp/a', 'root');
+    land({ messages: [m('root', 900)], has_more: true, first_lp: 900, last_lp: 900 });
+    await scroll;
+    expect(await ensured).toBe(true);
+    expect(messagesPage).toHaveBeenCalledTimes(1);
+  });
   it('gives up when history ends without the root', async () => {
     messagesPage.mockResolvedValueOnce({ messages: [], has_more: false, first_lp: 0, last_lp: 0 });
     const store = create<AppStore>()((set, get, api) => ({ ...createMessagingSlice(set, get, api), msgs: { 'sp/a': [m('c', 30)] }, older: {}, olderMore: { 'sp/a': true }, showToast: vi.fn() }) as unknown as AppStore);
@@ -70,5 +83,13 @@ describe('errors are reported, not swallowed', () => {
     store.getState().refreshSoon();
     await vi.advanceTimersByTimeAsync(TIMING.snapshotDebounceMs + 1);
     expect(showToast).toHaveBeenCalledWith('core busy', undefined, 'error');
+  });
+});
+
+describe('thread root effect decision', () => {
+  it('asks to load only an open thread whose root is missing', () => {
+    expect(threadToLoad('t1', false)).toBe('t1');
+    expect(threadToLoad('t1', true)).toBeNull();
+    expect(threadToLoad(null, false)).toBeNull();
   });
 });

@@ -19,7 +19,8 @@ const MAX_PAGE = 200; // the core's page ceiling (MAX_PAGE in render_messaging.r
 const MAX_GIFS = 100;
 let lastTyping = 0;
 let probeSeq = 0;
-const loading = new Set<string>(); // chats with an older page in flight
+const loading = new Map<string, Promise<void>>(); // chats with an older page in flight, settled when it ends
+const startLoading = (key: string): (() => void) => { let done = () => undefined as void; loading.set(key, new Promise<void>((r) => { done = r; })); return () => { loading.delete(key); done(); }; };
 
 const chanOf = (s: AppStore) => s.ch[s.space];
 
@@ -201,20 +202,20 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
       const have = [...(get().older[key] ?? []), ...(get().msgs[key] ?? [])];
       const first = have[0]?.ext?.lp;
       if (!first || loading.has(key)) return false; // one page per chat in flight: a second call would fetch the same page and double it
-      loading.add(key);
+      const end = startLoading(key);
       try {
         const page = await guarded(get, () => getBridge().messagesPage<Message>(space, channel, first, PAGE));
         if (!page) return false;
         // Only this chat keeps pages: opening another one released the previous chat's.
         set((s) => ({ older: { [key]: prependOlder(s.older[key] ?? [], page.messages) }, olderMore: { [key]: page.has_more && page.messages.length > 0 } }));
         return page.messages.length > 0;
-      } finally { loading.delete(key); }
+      } finally { end(); }
     },
     refreshOlder: async (key) => {
       const [space, channel] = splitKey(key);
       const held = get().older[key]?.length ?? 0; const snapFirst = get().msgs[key]?.[0]?.ext?.lp;
       if (!held || !snapFirst || loading.has(key)) return;
-      loading.add(key);
+      const end = startLoading(key);
       try {
         // Re-request the same range (the pages just above the snapshot window) so edits, deletes and reactions in loaded history show.
         let before = snapFirst; let need = held; const fresh: Message[] = [];
@@ -226,10 +227,12 @@ export const createMessagingSlice: StateCreator<AppStore, [], [], MessagingSlice
           if (!page.has_more) break;
         }
         set((s) => (s.older[key] ? { older: { ...s.older, [key]: fresh } } : s));
-      } finally { loading.delete(key); }
+      } finally { end(); }
     },
     ensureLoaded: async (key, id) => {
       while (!loadedMessages(get(), key).some((m) => m.id === id)) {
+        const busy = loading.get(key);
+        if (busy) { await busy; continue; } // a scroll-triggered page is in flight: let it land, then look again
         if (!mayHaveOlder(get(), key) || !(await get().loadOlder(key))) return false;
       }
       return true;

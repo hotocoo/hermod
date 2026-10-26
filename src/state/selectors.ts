@@ -10,6 +10,9 @@ export const loadedMessages = (s: Pick<AppStore, 'msgs' | 'older'>, key: string)
 /** Whether history older than what is loaded may exist: the last page said so, or the snapshot window is full. */
 export const mayHaveOlder = (s: Pick<AppStore, 'msgs' | 'olderMore'>, key: string): boolean => s.olderMore[key] ?? (s.msgs[key]?.length ?? 0) >= LIMITS.messageWindow;
 
+/** The open thread's root id when it is not loaded yet (so it must be paged in), else null. */
+export const threadToLoad = (thread: string | null, found: boolean): string | null => (thread && !found ? thread : null);
+
 /** Id of the signed-in user ('' until identity has loaded). */
 export const meId = (s: Pick<AppStore, 'me'>): string => s.me?.user_id ?? '';
 export const initialsOf = (name: string): string => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
