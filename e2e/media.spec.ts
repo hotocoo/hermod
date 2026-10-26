@@ -259,6 +259,7 @@ test.describe('live', () => {
 
     await a.getByRole('button', { name: 'End live' }).click();
     await expect(b.getByRole('heading', { name: 'Nobody is live' })).toBeVisible({ timeout: 60_000 });
+    await tab(b, 'For you'); // the Following filter lives in the feed, not on the Live page
     await tab(b, 'Following');
     await expect(b.getByRole('article', { name: noteTitle })).toBeVisible({ timeout: 30_000 });
   });

@@ -19,7 +19,7 @@ const seedWith = (inRoom: string[], share: Record<string, boolean> = {}): Seed =
   collections: { rooms: { sp: { name: 'Hearth', topic: '', inRoom, cams: {}, share } } },
 } as unknown as Seed);
 const ctx = (seed: Seed): Ctx => ({
-  s: { me: { user_id: ME }, call: null, space: 'sp', spaces: [{ id: 'sp', name: 'Sp' }], section: 'hearth', speaking: null, stageBig: false, noteDraft: '' } as unknown as AppStore,
+  s: { me: { user_id: ME }, call: null, space: 'sp', spaces: [{ id: 'sp', name: 'Sp' }], section: 'hearth', speaking: null, talking: {}, stageBig: false, noteDraft: '' } as unknown as AppStore,
   seed, I: () => null,
 } as unknown as Ctx);
 

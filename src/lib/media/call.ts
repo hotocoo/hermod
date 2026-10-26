@@ -97,7 +97,10 @@ export class CallSession extends Emitter<CallEvents> {
       if (this.o.audio !== false) await this.local.startAudio(this.o.micId);
       if (this.o.video) await this.local.startVideo(this.o.camId);
       this.ctx = new AudioContext();
-      void this.ctx.resume();
+      // Chromium may start the context suspended (no gesture on this task); a suspended context reads silence, so resume whenever it falls back.
+      const ctx = this.ctx;
+      ctx.onstatechange = () => { if (ctx.state === 'suspended') void ctx.resume(); };
+      void ctx.resume();
       this.monitor = new LevelMonitor(this.ctx, (l) => this.onLevels(l));
       if (this.local.stream.getAudioTracks().length) this.monitor.add(this.o.self, this.local.stream);
       this.offSig = this.sig.subscribe(this.scope, (from, m) => this.onSignal(from, m));

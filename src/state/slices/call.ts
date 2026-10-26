@@ -50,7 +50,7 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
   };
 
   return {
-    call: null, speaking: null, stageBig: false, now: 0, noteDraft: '',
+    call: null, speaking: null, talking: {}, stageBig: false, now: 0, noteDraft: '',
 
     join: async (sp, roomId = '') => {
       if (get().call) await get().leave();
@@ -85,7 +85,7 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
       if (useMediaRt.getState().hands[meId(s) ?? '']) signal({ hand: false });
       await room({ t: 'room.leave', room: get().call?.room ?? '' });
       useMediaRt.setState({ hands: {}, reactions: {} });
-      set({ call: null, speaking: null });
+      set({ call: null, speaking: null, talking: {} });
       s.showToast(meeting ? COPY.meetingSaved : COPY.leftHearth);
     },
 
@@ -137,6 +137,7 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
 
     tickNow: () => set({ now: Date.now() }),
     setSpeaking: (speaking) => set({ speaking }),
+    setTalking: (ids) => set({ talking: Object.fromEntries(ids.map((id) => [id, true as const])) }),
     returnToCall: () => { const c = get().call; if (c) set({ space: c.space, section: 'hearth', overview: false }); },
     backToCall: () => {
       const s = get(); const c = s.call;

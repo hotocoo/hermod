@@ -12,7 +12,7 @@ import { useAppStore } from '@/state/store';
 export function CallMedia({ space, room }: { space: string; room: string }) {
   const self = useSelf();
   const c = useCall(space, room ? `voice-${room}` : 'hearth');
-  const { join, joined, joining, error, peers, localStream, activeSpeaker, recordingBy, stats } = c;
+  const { join, joined, joining, error, peers, localStream, activeSpeaker, levels, recordingBy, stats } = c;
   const shown = useRef<unknown>(null);
 
   useEffect(() => { void join({ audio: true, video: false }); }, [join]);
@@ -31,6 +31,7 @@ export function CallMedia({ space, room }: { space: string; room: string }) {
   }, [stats]);
 
   useEffect(() => { useAppStore.getState().setSpeaking(activeSpeaker); }, [activeSpeaker]);
+  useEffect(() => { useAppStore.getState().setTalking(Object.entries(levels).filter(([, v]) => v.speaking).map(([id]) => id)); }, [levels]);
 
   useEffect(() => {
     if (!error || shown.current === error) return;

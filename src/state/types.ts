@@ -130,13 +130,13 @@ export interface ChatSlice {
 }
 
 export interface CallSlice {
-  call: CallState | null; speaking: string | null; stageBig: boolean; now: number; noteDraft: string;
+  call: CallState | null; speaking: string | null; /** Everyone whose audio is above the speaking threshold right now (each tile's ring), unlike `speaking`, the one the spotlight sticks to. */ talking: Record<string, true>; stageBig: boolean; now: number; noteDraft: string;
   join(sp: string, room?: string): Promise<void>; joinRoom(): Promise<void>; leave(): Promise<void>; makeMeeting(): Promise<void>;
   setCall(patch: Partial<CallState>): void;
   toggleMute(): Promise<void>; toggleCam(): Promise<void>; toggleShare(): Promise<void>; toggleRecord(): Promise<void>; toggleStage(): void;
  toggleHand(): Promise<void>; /** Call reaction burst on tiles (not a message reaction, see `react`). */ callReact(r: string): Promise<void>; noteHearthSignal(from: string, space: string, p: { room?: unknown; hand?: unknown; react?: unknown }): void;
   toggleAgendaItem(i: number): Promise<void>; setNoteDraft(v: string): void; addNote(): Promise<void>;
-  tickNow(): void; returnToCall(): void; backToCall(): void; setSpeaking(id: string | null): void;
+  tickNow(): void; returnToCall(): void; backToCall(): void; setSpeaking(id: string | null): void; setTalking(ids: string[]): void;
 }
 
 export interface MediaSlice {

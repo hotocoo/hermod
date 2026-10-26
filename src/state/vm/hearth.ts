@@ -18,7 +18,7 @@ export function hearthVm(x: Ctx) {
     const cam = mine ? !!(call && call.cam) : !!(room && room.cams[p]);
     const muted = mine ? !!(call && call.muted) : !!room?.muted?.[p];
     const share = mine ? !!(call && call.share) : !!room?.share?.[p];
-    const spk = p === speaking;
+    const spk = !!s.talking[p]; // every voice above the threshold lights its own ring, not only the sticky spotlight speaker
     return {
       id: p, name: mine ? 'You' : P(p).name, first: mine ? 'You' : firstName(P(p).name), initials: P(p).i, av: P(p).av ?? '', isMe: mine, cam, share, noCam: !cam && !share, speaking: spk, muted,
       ring: spk ? ACCENT : 'transparent',
@@ -67,7 +67,7 @@ export function hearthVm(x: Ctx) {
     text: n.text, t: n.t, name: n.by === SYSTEM_ID ? P(SYSTEM_ID).name : firstName(P(n.by).name), isSystem: n.by === SYSTEM_ID, anim: anim(0, 'hm-rise'),
   }));
   const meetingView = inCall && !!meeting && s.section === 'hearth';
-  const spot = tiles.find((t) => t.share) ?? tiles.find((t) => t.speaking) ?? tiles[0] ?? null;
+  const spot = tiles.find((t) => t.share) ?? tiles.find((t) => t.id === speaking) ?? tiles[0] ?? null;
 
   return {
     hasRoom: !!room, hearth, inCall, notInCall: !inCall, joinRoom: () => { void s.joinRoom(); }, tiles, tileCount: tiles.length,
