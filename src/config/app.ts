@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   /** Appearance overrides (text size multiplier, motion: system | reduce). */
   textScale: 'hermodr.textScale',
   motion: 'hermodr.motion',
+  /** Render frame cap / low-power mode: an id from FRAME_LIMIT.options (config/scene.ts). */
+  fpsCap: 'hermodr.fpsCap',
 } as const;
 
 /** Pseudo-author the core uses for system messages (meeting wrap-up, weave notices). Defined by the contract, not user data. */

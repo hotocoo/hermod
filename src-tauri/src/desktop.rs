@@ -237,10 +237,12 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                let keep = window
-                    .app_handle()
-                    .try_state::<Arc<Ctx>>()
-                    .is_some_and(|c| c.background());
+                let keep = shell::close_hides(
+                    window
+                        .app_handle()
+                        .try_state::<Arc<Ctx>>()
+                        .map(|c| c.background()),
+                );
                 if keep {
                     api.prevent_close();
                     let _ = window.hide();
@@ -257,4 +259,22 @@ pub fn run() {
             tauri::async_runtime::block_on(ctx.shutdown());
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{LOG_KEEP, LOG_MAX_BYTES};
+
+    /// W-012: the rotating log keeps a bounded amount of disk.
+    #[test]
+    fn log_rotation_is_bounded() {
+        const {
+            assert!(LOG_KEEP >= 1);
+            assert!(
+                LOG_MAX_BYTES >= 1_000_000,
+                "rotating too small loses history"
+            );
+            assert!(LOG_MAX_BYTES * (LOG_KEEP as u128 + 1) <= 100_000_000);
+        }
+    }
 }

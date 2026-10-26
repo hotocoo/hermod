@@ -881,3 +881,21 @@ fn tail_log(file: Option<&std::path::Path>, n: usize) -> Vec<String> {
         .map(|s| s.to_string())
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::tail_log;
+
+    #[test]
+    fn tail_log_handles_missing_short_and_long_files() {
+        assert!(tail_log(None, 5).is_empty(), "no log file configured");
+        let d = tempfile::tempdir().unwrap();
+        let f = d.path().join("hermod.log");
+        assert!(tail_log(Some(&f), 5).is_empty(), "missing file");
+        std::fs::write(&f, "a\nb\n").unwrap();
+        assert_eq!(tail_log(Some(&f), 5), ["a", "b"], "shorter than n");
+        std::fs::write(&f, "1\n2\n3\n4\n5\n6\n").unwrap();
+        assert_eq!(tail_log(Some(&f), 3), ["4", "5", "6"], "only the last n");
+        assert!(tail_log(Some(&f), 0).is_empty());
+    }
+}

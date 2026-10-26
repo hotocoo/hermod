@@ -1,6 +1,8 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { STORAGE_KEYS } from '@/config/app';
+import { FRAME_LIMIT } from '@/config/scene';
+import { savedFrameCap } from '@/scene/frameLimit';
 import { errorMessage, getBridge, type NotifySettings, type StorageUsage, type UpdateInfo } from '@/lib/bridge';
 import { wallMs } from '@/lib/clock';
 import { copyText } from '@/lib/clipboard';
@@ -111,6 +113,8 @@ function Notifications() {
 function Appearance() {
   const s = useAppStore();
   const [scale, setScale] = useState(() => Number(readString(STORAGE_KEYS.textScale)) || 100);
+  const [cap, setCap] = useState<string>(() => savedFrameCap());
+  const setFrameCap = (id: string) => { setCap(id); writeString(STORAGE_KEYS.fpsCap, id); getTown()?.setFrameCap(id); };
   const set = (p: number) => { setScale(p); writeString(STORAGE_KEYS.textScale, String(p)); applyTextScale(p); };
   return (
     <>
@@ -130,6 +134,13 @@ function Appearance() {
         <select id="txt-scale" className="input" value={scale} onChange={(e) => set(Number(e.target.value))}>
           {SCALES.map((p) => <option key={p} value={p}>{p}%</option>)}
         </select>
+      </div>
+      <div className={f.field} style={{ marginTop: 12 }}>
+        <label className={f.label} htmlFor="fps-cap">Frame rate</label>
+        <select id="fps-cap" className="input" value={cap} onChange={(e) => setFrameCap(e.target.value)} aria-describedby="fps-cap-note">
+          {FRAME_LIMIT.options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+        </select>
+        <span id="fps-cap-note" className={f.note}>{FRAME_LIMIT.options.find((o) => o.id === cap)?.note}</span>
       </div>
       <MapStyle />
     </>

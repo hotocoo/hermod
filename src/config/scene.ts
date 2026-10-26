@@ -89,6 +89,17 @@ export const QUALITY: Readonly<Record<QualityTier, QualitySpec>> = {
 export const GI = { minRoomMs: 2, probeSmallR: 1, fitStableFrames: 24, pad: 3, floor: -0.5, height: 10, rebakeHours: 0.6, rebakeEmissiveDelta: 0.35, interactBudgetMs: 1, frameBudgetMs: 8, busySpeed: 0.1, busyTurn: 0.1, maxFrameMs: 20, hemiScale: 0.62, envScale: 0.7, near: 0.2, far: 60 } as const;
 /** Progressive path traced stills (photo mode, postcard, ultra idle refine): sample budgets, idle delay, bounces, denoise strength. */
 export const STILL = { giWaitMs: 40000, idleMs: 2000, settleMs: 400, tilesIdle: 4, tilesPhoto: 2, idleTier: 'ultra' as QualityTier, photoSamples: 192, idleSamples: 512, maxTriangles: 2_500_000, exportSamples: 384, bounces: 4, samplesPerFrame: 1, denoise: { radius: 2, sigmaColor: 0.35, fadeSamples: 160 }, fireflyClamp: 8 } as const;
+/** User frame cap (T-018). `fps` 0 = uncapped; `low` is the low-power mode. `slackMs` forgives requestAnimationFrame jitter so a 60 fps cap on a 60 Hz display does not skip every other frame. */
+export const FRAME_LIMIT = {
+  defaultId: 'off', slackMs: 2,
+  options: [
+    { id: 'off', fps: 0, label: 'Uncapped', note: 'Draw at the display refresh rate.' },
+    { id: '60', fps: 60, label: '60 fps', note: 'Smooth, slightly lighter than uncapped on fast displays.' },
+    { id: '30', fps: 30, label: '30 fps', note: 'Half the GPU work, still fluid.' },
+    { id: 'low', fps: 15, label: 'Low power', note: 'Saves battery and heat; the island animates gently.' },
+  ],
+} as const;
+export type FrameCapId = (typeof FRAME_LIMIT.options)[number]['id'];
 /** GPU classification and the fps-adaptive downgrade. */
 export const QUALITY_DETECT = {
   storageKey: 'hermod.quality', queryParam: 'quality',
