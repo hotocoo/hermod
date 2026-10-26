@@ -19,7 +19,9 @@ export function startEffects(store: StoreLike): () => void {
     const open = s.seed ? channelsOf(s.seed, s.space).find((c) => c.id === s.ch[s.space]) : undefined;
     // Reading a channel with unread messages tells the core (read marker); the marker lives in the core so every launch agrees.
     // The watermark is taken now, not when the delayed mark runs: anything that lands in between stays unread.
-    if (inChat && open?.unread) {
+    // A channel switch fires this before its messages are loaded; a watermark of 0 would mark nothing and
+    // swallow the window, so wait for the seed apply that carries the messages (it re-fires run()).
+    if (inChat && open?.unread && (s.msgs[key]?.length ?? 0) > 0) {
       const seenUpTo = Math.max(0, ...(s.msgs[key] ?? []).map((m) => m.arrival ?? 0));
       once(`seen:${key}`, TIMING.seenDelayMs, () => store.getState().markSeen(key, seenUpTo));
     }
