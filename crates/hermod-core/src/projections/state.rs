@@ -204,6 +204,7 @@ pub struct PinboardSt {
     pub pins: Vec<PinSt>,
 }
 
+#[derive(Clone)]
 pub struct BlockSt {
     pub id: String,
     pub k: String,
@@ -213,8 +214,17 @@ pub struct BlockSt {
 
 pub struct DocCommentSt {
     pub by: String,
+    pub block_id: String,
     pub on: String,
     pub text: String,
+}
+
+/// One entry of a doc's history: the edit's time, event id, author and the blocks as they stood after it.
+pub struct DocVersionSt {
+    pub ts: i64,
+    pub id: String,
+    pub by: String,
+    pub blocks: Vec<BlockSt>,
 }
 
 pub struct DocSt {
@@ -224,7 +234,7 @@ pub struct DocSt {
     pub blocks: Vec<BlockSt>,
     pub editors: Vec<String>,
     pub last_edit: (i64, String),
-    pub versions: Vec<(i64, String)>,
+    pub versions: Vec<DocVersionSt>,
     pub comments: Vec<DocCommentSt>,
 }
 
@@ -1261,7 +1271,12 @@ impl SpaceState {
                         blocks: Vec::new(),
                         editors: vec![by.to_string()],
                         last_edit: (ts, by.to_string()),
-                        versions: vec![(ts, ev.id.clone())],
+                        versions: vec![DocVersionSt {
+                            ts,
+                            id: ev.id.clone(),
+                            by: by.to_string(),
+                            blocks: Vec::new(),
+                        }],
                         comments: Vec::new(),
                     });
                 }
@@ -1280,7 +1295,12 @@ impl SpaceState {
                         d.editors.push(by.to_string());
                     }
                     d.last_edit = (ts, by.to_string());
-                    d.versions.push((ts, ev.id.clone()));
+                    d.versions.push(DocVersionSt {
+                        ts,
+                        id: ev.id.clone(),
+                        by: by.to_string(),
+                        blocks: d.blocks.clone(),
+                    });
                 }
             }
             EventBody::DocComment {
@@ -1294,6 +1314,7 @@ impl SpaceState {
                     let on: String = b.text.chars().take(40).collect();
                     d.comments.push(DocCommentSt {
                         by: by.to_string(),
+                        block_id: block_id.clone(),
                         on,
                         text: text.clone(),
                     });

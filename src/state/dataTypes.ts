@@ -73,7 +73,9 @@ export interface PinBoard { spaceId?: string; id: string; name: string; who: str
 export interface DocBlock { id?: string; k: string; text: string; done?: boolean }
 export interface Doc {
   spaceId?: string; id: string; title: string; kicker: string; edited: string; people: string[]; blocks: DocBlock[];
-  comments: { by: string; on: string; text: string }[]; versions: { t: string; seal: string }[];
+  comments: { by: string; block_id: string; on: string; text: string }[];
+  /** Newest first; each carries its author and the blocks as they stood after that edit. */
+  versions: { t: string; seal: string; by: string; blocks: DocBlock[] }[];
 }
 export interface CalEvent {
   spaceId?: string; going?: boolean; id: string; /** Author user id; only they or an admin can edit it. */ by?: string; d: number; s: number; e: number; t: string; where: string; meeting?: boolean; note: string;

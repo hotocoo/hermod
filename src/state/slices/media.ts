@@ -1,13 +1,14 @@
 import type { StateCreator } from 'zustand';
-import { MEDIA, POST_COMMENT_CHANNEL, TIMING, TOAST_MS } from '../../config/app';
+import { DM_CHANNEL, MEDIA, POST_COMMENT_CHANNEL, TIMING, TOAST_MS } from '../../config/app';
+import { getBridge } from '../../lib/bridge';
 import { COPY } from '../../config/copy';
 import { firstName } from '../../lib/format';
-import { appendEvent, uid } from '../act';
+import { appendEvent, guarded, uid } from '../act';
 import { useMediaRt } from '../mediaRt';
 import { scrollLiveToEnd } from '../domRefs';
 import { coll } from '../dataTypes';
 import { withKey } from '../helpers';
-import { personOf } from '../selectors';
+import { meId, personOf } from '../selectors';
 import { timer } from '../timers';
 import type { AppStore, MediaSlice } from '../types';
 
@@ -103,6 +104,11 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
       if (!story || !text) return;
       if (!story.id) { s.showToast(COPY.storyReplyUnavailable, undefined, 'error'); return; }
       set({ storyDraft: '' });
+      // The reply text lands as a DM to the author (V-018); the story.reply event only counts it on the story.
+      if (story.by !== meId(s)) {
+        const dm = await guarded(get, () => getBridge().dmStart([story.by]));
+        if (!dm || !(await appendEvent(get, dm.label, { t: 'message.post', channel_id: DM_CHANNEL, msg_id: uid('m'), text, attachments: [] }))) { set({ storyDraft: text }); return; }
+      }
       if (await appendEvent(get, spaceFor(story.spaceId), { t: 'story.reply', story_id: story.id, text })) {
         s.showToast(COPY.storyReply(firstName(personOf(s.seed!, story.by).name)), TOAST_MS.storyReply);
       } else set({ storyDraft: text });

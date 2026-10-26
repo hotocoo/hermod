@@ -268,6 +268,24 @@ test.describe('docs (V-021..V-024)', () => {
       await expect.poll(() => values(p), sync).toEqual(expect.arrayContaining([todo, edited]));
     }
   });
+
+  test('V-025: B comments on a line and it shows in the margin for both', async () => {
+    const note = unique('mind the draught');
+    await btn(b, 'Comment on paragraph').first().click();
+    await ask(b, { 'Comment (required)': note }, 'Post comment');
+    for (const p of [a, b]) await expect(p.getByRole('list', { name: 'Comments on paragraph' }).getByText(note)).toBeVisible(sync);
+  });
+
+  test('V-026: A views an earlier version, then restores it as new edits', async () => {
+    const before = await values(a);
+    await btn(a, /^View version from/).last().click();
+    await expect(a.getByRole('status')).toContainText('Viewing the version from');
+    await btn(a, 'Back to the latest').click();
+    await btn(a, /^View version from/).nth(2).click();
+    await btn(a, 'Restore this version').click();
+    await expect.poll(() => values(a), sync).not.toEqual(before);
+    await expect.poll(() => values(b), sync).toEqual(await values(a));
+  });
 });
 
 test.describe('calendar (V-028..V-030)', () => {
