@@ -1539,6 +1539,16 @@ impl Core {
                 device_pub: dev,
             });
         }
+        // The home log never syncs between devices, so a linked device may not hold the event that
+        // linked it yet; it still knows it is one (the owner's cert is how it was installed).
+        if inner.is_linked_device() && !rows.iter().any(|r| r.this_device) {
+            rows.push(DeviceRow {
+                device_pub: me,
+                added_at: 0,
+                this_device: true,
+                revoked: false,
+            });
+        }
         Ok(rows)
     }
 

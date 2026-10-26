@@ -20,6 +20,9 @@ use crate::blob;
 use crate::ctx::{ALL_COLLECTIONS, Ctx, Live, collections_for};
 use crate::settings::{self, NodePatch, NodeSettings};
 use hermod_core::retention::MAX_RETENTION_DAYS;
+use hermod_node::store::{FilePeerBook, GLOBAL_PEERS, PeerBook};
+
+use crate::ctx::PEER_BOOK_FILE;
 
 /// Largest file accepted over the IPC bridge, checked before the body is parsed.
 pub const MAX_UPLOAD_BYTES: usize = 256 * 1024 * 1024;
@@ -798,6 +801,13 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                     found = Core::device_link_accept(probe, &code).map_err(|x| x.to_string())?;
                     Ok(())
                 })?;
+                // Terms may still need accepting on the new identity, so the node can start later than this
+                // call: remember where the linking device is and the node dials it on its next start.
+                if !found.is_empty() {
+                    let book = FilePeerBook::open(dir.join(PEER_BOOK_FILE))
+                        .map_err(|x| format!("cannot remember the linking device: {x}"))?;
+                    book.save(&GLOBAL_PEERS, &found);
+                }
                 *out.lock()
                     .map_err(|_| "link state is unavailable".to_string())? = found;
                 Ok(())

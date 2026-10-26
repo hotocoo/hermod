@@ -58,6 +58,8 @@ const STATUS_EVERY: Duration = Duration::from_secs(1);
 /// Core setting that remembers events authored while the node could not send them (G-010), so
 /// the "waiting to sync" count survives a restart.
 const UNSENT_KEY: &str = "unsent_events";
+/// File in the data dir holding the peers the node redials after a restart.
+pub const PEER_BOOK_FILE: &str = "peers.json";
 const STOP_GRACE: Duration = Duration::from_secs(3);
 /// How long a data swap waits for in-flight work to let go of the database, and how often it looks.
 const CLOSE_WAIT: Duration = Duration::from_secs(10);
@@ -553,7 +555,7 @@ impl Ctx {
             limits: s.limits(),
             ..NodeConfig::default()
         };
-        let book = FilePeerBook::open(self.dir.join("peers.json"))
+        let book = FilePeerBook::open(self.dir.join(PEER_BOOK_FILE))
             .map_err(|e| format!("cannot read known peers: {e}"))?;
         cfg.peer_book = Arc::new(book);
         if let Some(t) = &self.opts.node_tweak {
@@ -612,6 +614,18 @@ impl Ctx {
     /// Close everything, run `f` on the quiet data dir, reopen, and restart the node if the
     /// Terms stand. Used by backup restore and app reset.
     pub async fn with_closed<F>(self: &Arc<Self>, f: F) -> Result<(), String>
+    where
+        F: FnOnce(&Path) -> Result<(), String> + Send + 'static,
+    {
+        // Run to the end on its own task: a caller that goes away mid-way (the page navigates, the
+        // connection drops) must not abandon the swap with the data dir closed and nothing reopened.
+        let this = self.clone();
+        tokio::spawn(async move { this.close_swap_reopen(f).await })
+            .await
+            .map_err(|e| e.to_string())?
+    }
+
+    async fn close_swap_reopen<F>(self: &Arc<Self>, f: F) -> Result<(), String>
     where
         F: FnOnce(&Path) -> Result<(), String> + Send + 'static,
     {
