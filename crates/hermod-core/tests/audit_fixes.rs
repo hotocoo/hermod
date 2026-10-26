@@ -2,7 +2,9 @@
 mod common;
 
 use common::*;
+use hermod_core::crypto::seal;
 use hermod_core::event::{EventBody, Role, SignedEvent};
+use hermod_core::store::IngestStatus;
 use hermod_core::identity::Identity;
 use hermod_core::ids::{SpaceId, UserId};
 use hermod_core::invite::InviteV1;
@@ -207,4 +209,39 @@ fn invite_expiry_is_judged_by_the_join_ts_which_the_joiner_signs() {
     assert!(!has(&honest), "a join stamped after expiry is ignored");
     // Documented limit (docs/ARCHITECTURE.md): expiry is advisory, revoke is the enforcement.
     assert!(has(&backdater));
+}
+
+/// Signed event whose plaintext is not a decodable body.
+fn junk_event(who: &Identity, key: &hermod_core::crypto::SpaceKey, s: SpaceId, seq: u64) -> SignedEvent {
+    let (nonce, body) = seal(key, b"\xffnot cbor at all").unwrap();
+    let mut ev = SignedEvent {
+        space_id: s,
+        author: who.user_id(),
+        seq,
+        lamport: seq,
+        ts: 1,
+        epoch: 0,
+        nonce,
+        body,
+        sig: [0; 64],
+    };
+    ev.sig = who.sign(&ev.digest());
+    ev
+}
+
+#[test]
+fn undecodable_signed_body_leaves_no_seq_hole() {
+    let (_d, a) = core();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    let key = InviteV1::parse(&a.invite_create(&s, None, vec![]).unwrap().code)
+        .unwrap()
+        .space_key;
+    let who = Identity::generate();
+    let first = a.ingest_sync(junk_event(&who, &key, s, 1)).unwrap();
+    assert_eq!(first.status, IngestStatus::Applied);
+    let next = SignedEvent::create(&who, &key, 0, s, 2, 2, 1, &post_msg("general", "x", "ok")).unwrap();
+    assert_eq!(a.ingest_sync(next).unwrap().status, IngestStatus::Applied);
+    assert_eq!(a.pending(&s).unwrap(), (0, 0));
+    // The folded views still build.
+    let _ = a.space_report(&s).unwrap();
 }

@@ -106,14 +106,17 @@ impl SignedEvent {
         decode_body(&crypto::open(key, &self.nonce, &self.body)?)
     }
 
+    /// Decrypts with the first key held for this event's epoch that fits; no decoding. This alone
+    /// proves the author held the key, so the store applies the event even if the body is junk.
+    pub fn decrypt_any(&self, keys: &[SpaceKey]) -> Result<Vec<u8>> {
+        keys.iter()
+            .find_map(|key| crypto::open(key, &self.nonce, &self.body).ok())
+            .ok_or(Error::Decrypt)
+    }
+
     /// Like [`SignedEvent::open`], trying every key held for this event's epoch.
     pub fn open_any(&self, keys: &[SpaceKey]) -> Result<Decoded> {
-        for key in keys {
-            if let Ok(plain) = crypto::open(key, &self.nonce, &self.body) {
-                return decode_body(&plain);
-            }
-        }
-        Err(Error::Decrypt)
+        decode_body(&self.decrypt_any(keys)?)
     }
 
     /// CBOR wire form.

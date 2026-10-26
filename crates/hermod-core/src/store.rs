@@ -14,7 +14,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::crypto::{SpaceKey, blake3_hash};
 use crate::error::{Error, Result};
-use crate::event::{EventBody, MAX_BODY_BYTES, SignedEvent};
+use crate::event::{EventBody, MAX_BODY_BYTES, SignedEvent, decode_body};
 use crate::ids::{SpaceId, UserId, hex_encode};
 use crate::migrations;
 use crate::ratelimit::{Limiter, RateConfig};
@@ -388,7 +388,7 @@ impl Store {
                 return Err(Error::invalid("event", "epoch too far ahead"));
             }
         } else {
-            ev.open_any(&keys)?;
+            ev.decrypt_any(&keys)?;
         }
 
         let tx = self.conn.transaction()?;
@@ -469,7 +469,7 @@ impl Store {
         for (id, ev) in &locked {
             if keys
                 .get(&ev.epoch)
-                .is_some_and(|ks| ev.open_any(ks).is_ok())
+                .is_some_and(|ks| ev.decrypt_any(ks).is_ok())
             {
                 tx.execute(
                     "UPDATE events SET pending = ?2 WHERE id = ?1",
@@ -643,7 +643,9 @@ impl Store {
             .events(&space.id)?
             .into_iter()
             .filter_map(|ev| {
-                let d = ev.open_any(keys.get(&ev.epoch)?).ok()?;
+                let plain = ev.decrypt_any(keys.get(&ev.epoch)?).ok()?;
+                // Signed and decrypted but undecodable: kept as Unknown so the author's seq has no hole.
+                let body = decode_body(&plain).map_or(EventBody::Unknown, |d| d.body);
                 let id = ev.id();
                 Some(Opened {
                     arrival: arrivals.get(&id).copied().unwrap_or(0),
@@ -652,7 +654,7 @@ impl Store {
                     seq: ev.seq,
                     lamport: ev.lamport,
                     ts: ev.ts,
-                    body: d.body,
+                    body,
                 })
             })
             .collect())
