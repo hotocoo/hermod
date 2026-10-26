@@ -26,7 +26,7 @@
 .weaveName{font-weight:600}
 .weaveBtn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--color-accent);border-radius:6px;background:transparent;color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:0.875rem}
 .weaveBtn:hover{background:color-mix(in srgb,var(--color-accent) 12%,transparent)}
-.snap{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;width:100%;padding:0 8px 0 4px;border:0;border-radius:6px;text-align:start}
+.snap{display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;width:100%;padding-block:0;padding-inline:4px 8px;border:0;border-radius:6px;text-align:start}
 .snap:hover{background:color-mix(in srgb,var(--color-text) 4%,transparent)}
 .rail{position:relative;align-self:stretch}
 .railLine{position:absolute;inset-inline-start:8px;top:0;bottom:0;width:1px;background:var(--color-divider)}
@@ -66,8 +66,8 @@
 .lnNum{text-align:end;padding-inline-end:10px;font-family:ui-monospace,Menlo,monospace;font-size:0.6875rem;color:color-mix(in srgb,var(--color-text) 38%,transparent)}
 .lnMark{font-family:ui-monospace,Menlo,monospace}
 .lnText{white-space:pre-wrap}
-.hunkHead{padding:3px 14px;font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent);background:color-mix(in srgb,var(--color-text) 4%,transparent)}
-.diffNote{display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
+.hunkHead{padding:3px 14px;font-size:0.6875rem;color:color-mix(in srgb,var(--color-text) 50%,transparent);background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+.diffNote{display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:0.8125rem;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
 .audio{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}
 .audioLabel{font-size:0.6875rem;margin-bottom:6px;color:color-mix(in srgb,var(--color-text) 55%,transparent)}
 .audioAfterLabel{color:var(--color-accent-700)}
@@ -83,7 +83,7 @@
 .freshLine{max-width:440px;margin:0 auto 18px;font-size:0.875rem;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
 .modalFiles{margin:0;padding:0;list-style:none;font-size:0.8125rem}
 .modalFiles li{padding:4px 0;border-bottom:1px solid var(--color-divider)}
-.sealOk{color:var(--color-accent-700,inherit);font-size:12px}
-.sealWarn{color:#a2352b;font-size:12px;font-weight:600}
-.sealNote{margin:8px 0 0;font-size:12px;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
+.sealOk{color:var(--color-accent-700,inherit);font-size:0.75rem}
+.sealWarn{color:#a2352b;font-size:0.75rem;font-weight:600}
+.sealNote{margin:8px 0 0;font-size:0.75rem;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
 .exportRow{display:flex;align-items:center;gap:10px;margin-top:12px}

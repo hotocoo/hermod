@@ -75,7 +75,7 @@ export function NewSnapshotModal() {
           <ul className={s.modalFiles}>{files.map((x) => <li key={x.blob.hash}>{x.blob.name} · {humanSize(x.blob.size)}</li>)}{(plan?.files ?? []).map((x) => <li key={x.path}>{x.path} · +{x.adds} / −{x.dels}</li>)}</ul>
           {plan && <p className={s.sealNote}>{COPY.snapFolder.summary(plan.added, plan.removed, plan.changed)}</p>}
           <div>
-            <button type="button" className="btn btn-secondary" onClick={() => { void pick(); }}>Choose files</button>
+            <button type="button" className="btn btn-secondary" onClick={() => { void pick(); }}>{COPY.chooseFiles}</button>
             {getBridge().kind === 'tauri' && <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => { void pickFolder(); }}>{COPY.snapFolder.choose}</button>}
           </div>
         </div>

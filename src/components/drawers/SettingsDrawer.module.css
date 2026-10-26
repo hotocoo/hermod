@@ -36,7 +36,7 @@
 }
 
 .quality legend {
-  float: left;
+  float: inline-start;
   padding: 0;
 }
 

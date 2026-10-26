@@ -52,9 +52,9 @@ export function Docs({ vm }: VmProps) {
               </>
             ) : (
               <>
-                {doc.blocks.length === 0 && <p className={c.muted}>An empty page. Add the first line below.</p>}
+                {doc.blocks.length === 0 && <p className={c.muted}>{COPY.docEmptyPage}</p>}
                 {doc.blocks.map((bk) => <DocBlock key={bk.id || bk.text} bk={bk} />)}
-                <div className={s.addRow} role="group" aria-label="Add a line">
+                <div className={s.addRow} role="group" aria-label={COPY.docAddLine}>
                   {ADD.map((a) => <button key={a.k} onClick={() => vm.addDocBlock(a.k)} className={c.btn}>{vm.icS.plus} {a.label}</button>)}
                 </div>
               </>

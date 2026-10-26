@@ -67,7 +67,7 @@
 
 .composer { padding: 10px 40px 20px; }
 .composerIn { max-width: 780px; margin: 0 auto; }
-.box { display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 8px; border: 1px solid var(--color-divider); border-radius: 10px; transition: border-color 200ms ease; }
+.box { display: flex; align-items: center; gap: 6px; padding-block: 6px; padding-inline: 8px 6px; border: 1px solid var(--color-divider); border-radius: 10px; transition: border-color 200ms ease; }
 .box:focus-within, .tbox:focus-within { border-color: var(--color-accent); }
 .tool { width: 34px; height: 34px; border: 0; border-radius: 6px; background: transparent; display: grid; place-items: center; color: color-mix(in srgb, var(--color-text) 60%, transparent); }
 .tool:hover { color: var(--color-accent-text); }
@@ -148,7 +148,7 @@
 .boxCol { display: flex; flex-direction: column; border: 1px solid var(--color-divider); border-radius: 10px; transition: border-color 200ms ease; }
 .boxCol:focus-within { border-color: var(--color-accent); }
 .boxCol.drop { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 7%, transparent); }
-.boxRow { display: flex; align-items: flex-end; gap: 6px; padding: 6px 6px 6px 8px; }
+.boxRow { display: flex; align-items: flex-end; gap: 6px; padding-block: 6px; padding-inline: 8px 6px; }
 .area { flex: 1; min-width: 0; max-height: 160px; resize: none; border: 0; outline: none; background: transparent; font-family: var(--font-body); font-size: 0.9375rem; line-height: 1.5; padding: 7px 0; color: var(--color-text); caret-color: var(--color-accent); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 10px 0; }
 .chip { display: inline-flex; align-items: center; gap: 8px; max-width: 240px; padding: 3px 4px 3px 6px; border: 1px solid var(--color-divider); border-radius: 8px; font-size: 0.75rem; }

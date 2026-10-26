@@ -66,7 +66,7 @@
 .label{font-size:0.6875rem;letter-spacing:.06em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 58%,transparent)}
 .fieldCol{display:flex;flex-direction:column;gap:4px}
 .tagList{display:flex;flex-wrap:wrap;gap:4px}
-.tagX{border:0;background:transparent;padding:0 0 0 2px;color:inherit;font-size:0.75rem;line-height:1}
+.tagX{border:0;background:transparent;padding:0;padding-inline-start:2px;color:inherit;font-size:0.75rem;line-height:1}
 .linkRow{display:flex;gap:6px;align-items:center;font-size:0.75rem;flex-wrap:wrap}
 .linkBtn{border:0;background:transparent;padding:0;color:var(--color-accent-700);text-decoration:underline;font-size:0.75rem}
 .menuWrap{position:relative}

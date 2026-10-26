@@ -76,7 +76,7 @@ export function JoinForm({ initial, onDone, focus }: { initial?: string; onDone:
       {joining && <p role="status" className={s.note}>{COPY.joinWorking}</p>}
       <div className={s.actions}>
         {joining && <button type="button" className="btn btn-secondary" onClick={() => void cancel()}>{COPY.joinCancel}</button>}
-        <button type="submit" className="btn btn-primary" disabled={!code || busy}>Join Space</button>
+        <button type="submit" className="btn btn-primary" disabled={!code || busy}>{COPY.joinSpace}</button>
       </div>
     </form>
   );

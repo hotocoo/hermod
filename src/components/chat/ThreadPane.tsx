@@ -11,7 +11,7 @@ export function ThreadPane({ vm }: VmProps) {
       {vm.threadOpen && !t && (
         <div className={s.tHead}>
           <div className={s.tHeadMain}><div className={s.tKick}>{COPY.threadLoading}</div></div>
-          <button onClick={vm.closeThread} aria-label="Close thread" className={s.tClose}>{vm.icS.x}</button>
+          <button onClick={vm.closeThread} aria-label={COPY.closeThread} className={s.tClose}>{vm.icS.x}</button>
         </div>
       )}
       {vm.threadOpen && t && (

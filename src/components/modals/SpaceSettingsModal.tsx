@@ -201,7 +201,7 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
   useEffect(() => { if (admin) getBridge().auditList(space).then(setRows).catch((e) => { setRows([]); toast(errorMessage(e), undefined, 'error'); }); }, [admin, space, toast]);
   const setRetention = async (v: string) => {
     setDays(v);
-    try { await getBridge().retentionSet(space, v ? Number(v) : null); toast('Saved'); } catch (e) { toast(errorMessage(e), undefined, 'error'); getBridge().retentionGet(space).then((d) => setDays(d == null ? '' : String(d))).catch(() => undefined); }
+    try { await getBridge().retentionSet(space, v ? Number(v) : null); toast(COPY.savedToast); } catch (e) { toast(errorMessage(e), undefined, 'error'); getBridge().retentionGet(space).then((d) => setDays(d == null ? '' : String(d))).catch(() => undefined); }
   };
   return (
     <>

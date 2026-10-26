@@ -141,7 +141,7 @@ function Appearance() {
         </select>
       </div>
       <div className={f.field} style={{ marginTop: 12 }}>
-        <label className={f.label} htmlFor="fps-cap">Frame rate</label>
+        <label className={f.label} htmlFor="fps-cap">{COPY.frameRate}</label>
         <select id="fps-cap" className="input" value={cap} onChange={(e) => setFrameCap(e.target.value)} aria-describedby="fps-cap-note">
           {FRAME_LIMIT.options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
         </select>
@@ -284,7 +284,7 @@ function Backup() {
       <p className={f.note}>A backup holds your identity, spaces and keys, encrypted with a passphrase only you know. Lose the passphrase and the backup cannot be opened.</p>
       <div className={f.field}><label className={f.label} htmlFor="bk-pass">Passphrase (at least {MIN_PASS} characters)</label>
         <input id="bk-pass" type="password" className="input" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="new-password" /></div>
-      <div className={f.field}><label className={f.label} htmlFor="bk-again">Repeat passphrase</label>
+      <div className={f.field}><label className={f.label} htmlFor="bk-again">{COPY.passphraseRepeat}</label>
         <input id="bk-again" type="password" className="input" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" /></div>
       {again && pass !== again && <p className={f.error}>The passphrases do not match.</p>}
       <Switch label="Include files and media" sub="Bigger backup, but photos and videos come back too." on={blobs} onChange={setBlobs} />
@@ -384,7 +384,7 @@ function KeyStorage() {
           <p className={f.note}>{COPY.keyPassphraseWarn}</p>
           <div className={f.field}><label className={f.label} htmlFor="key-pass">Passphrase (at least {MIN_PASS} characters)</label>
             <input id="key-pass" type="password" className="input" value={pass} onChange={(e) => setPass(e.target.value)} autoComplete="new-password" /></div>
-          <div className={f.field}><label className={f.label} htmlFor="key-again">Repeat passphrase</label>
+          <div className={f.field}><label className={f.label} htmlFor="key-again">{COPY.passphraseRepeat}</label>
             <input id="key-again" type="password" className="input" value={again} onChange={(e) => setAgain(e.target.value)} autoComplete="new-password" /></div>
           {again && pass !== again && <p className={f.error}>{COPY.keyPassMismatch}</p>}
         </>
