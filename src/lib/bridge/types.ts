@@ -62,8 +62,8 @@ export interface NotifySettings {
 }
 export interface BlockedUser { user_id: string; name: string; since: number }
 export interface UpdateInfo { available: boolean; version?: string; notes?: string; current: string }
-export interface DeviceInfo { device_pub: string; name: string; added_at: number; this_device: boolean; revoked: boolean }
-export interface DeviceLink { code: string }
+export interface DeviceInfo { device_pub: string; added_at: number; this_device: boolean; revoked: boolean }
+export interface DeviceLink { code: string; expires_in: number }
 export interface PickOptions { multiple?: boolean; accept?: string[] }
 export interface RetentionSetting { space_id: string; days: number | null }
 

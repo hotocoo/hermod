@@ -48,6 +48,8 @@ const DEFAULT_CHANNEL: &str = "general";
 const PROFILE_KEY: &str = "profile";
 /// Local record `creator:<space id>` of the only author whose `space.create` counts for a space.
 const CREATOR_PIN_PREFIX: &str = "creator:";
+/// Local record of the identity this install acts for; absent on the device that created it.
+const OWNER_KEY: &str = "device.owner";
 const SETTING_PREFIX: &str = "setting.";
 const TZ_SETTING: &str = "tz_offset_secs";
 const RECEIPTS_SETTING: &str = "read_receipts";
@@ -94,6 +96,17 @@ struct StoredProfile {
     bio: String,
     initials: String,
     avatar: Option<BlobRef>,
+}
+
+/// One device of this identity, as listed in settings.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct DeviceRow {
+    /// Hex device key; the first device is listed under the identity's own key.
+    pub device_pub: String,
+    /// Unix ms of the `device.link` event; 0 for the first device.
+    pub added_at: i64,
+    pub this_device: bool,
+    pub revoked: bool,
 }
 
 /// A space that was just created locally.
@@ -194,7 +207,11 @@ pub struct SnapVerify {
 
 pub(crate) struct Inner {
     pub(crate) store: Store,
+    /// The key that signs local events. On a linked device this is the device key.
     pub(crate) identity: Identity,
+    /// Who the local user is in every space: the identity this install acts for. Equals the
+    /// signing key unless this install was linked as a device of another identity.
+    pub(crate) owner: UserId,
 }
 
 pub struct Core {
@@ -281,11 +298,26 @@ fn changes_my_keys(body: &EventBody, me: &str) -> bool {
 }
 
 impl Inner {
+    /// True when this install acts for another identity (it was linked as a device).
+    fn is_linked_device(&self) -> bool {
+        self.owner != self.identity.user_id()
+    }
+
+    /// Spaces and joins are made under the identity's own key, which a linked device does not hold.
+    fn require_first_device(&self, what: &str) -> Result<()> {
+        if self.is_linked_device() {
+            return Err(Error::Forbidden(format!(
+                "{what} on the device that created this identity"
+            )));
+        }
+        Ok(())
+    }
+
     fn stored_profile(&self) -> Result<StoredProfile> {
         match self.store.kv_get(PROFILE_KEY)? {
             Some(s) => Ok(serde_json::from_str(&s)?),
             None => {
-                let handle = self.identity.user_id().short();
+                let handle = self.owner.short();
                 Ok(StoredProfile {
                     initials: initials_of(&handle),
                     name: handle,
@@ -338,7 +370,7 @@ impl Inner {
     }
 
     pub(crate) fn ctx(&self, cfg: &CoreConfig, now: i64) -> Result<ProjectionCtx> {
-        let mut ctx = ProjectionCtx::new(self.identity.user_id(), now);
+        let mut ctx = ProjectionCtx::new(self.owner, now);
         ctx.tz_offset_secs = self
             .store
             .kv_get(&format!("{SETTING_PREFIX}{TZ_SETTING}"))?
@@ -483,6 +515,7 @@ impl Inner {
         if name.is_empty() || name.chars().count() > 80 {
             return Err(Error::invalid("space name", "must be 1 to 80 characters"));
         }
+        self.require_first_device("create spaces")?;
         let nonce: [u8; 32] = crate::crypto::random_bytes();
         let id = SpaceId::derive(&self.identity.user_id(), &nonce);
         let row = SpaceRow {
@@ -542,6 +575,13 @@ impl Inner {
                 user: m.user.clone(),
                 sealed_key: keywrap::wrap(&user, &key)?,
             });
+            // Linked devices hold their own key, so each gets its own wrap.
+            for dev in rep.devices.get(&m.user).into_iter().flatten() {
+                wraps.push(KeyWrap {
+                    user: dev.clone(),
+                    sealed_key: keywrap::wrap(&dev.parse()?, &key)?,
+                });
+            }
         }
         self.append(space, &EventBody::SpaceRekey { epoch: next, wraps })
     }
@@ -559,8 +599,16 @@ impl Core {
         let identity = Identity::load_or_create(&dir)?;
         let store = Store::open_with(&dir.join(DB_FILE), config.rate.clone())?;
         let blobs = BlobStore::open(&dir)?;
-        let user = identity.user_id();
-        let mut inner = Inner { store, identity };
+        let owner = match store.kv_get(OWNER_KEY)? {
+            Some(o) => o.parse()?,
+            None => identity.user_id(),
+        };
+        let user = owner;
+        let mut inner = Inner {
+            store,
+            identity,
+            owner,
+        };
         if inner.store.home()?.is_none() {
             inner.new_space(HOME_NAME, HOME_TAGLINE, HOME_KIND, &["chat", "feed"], true)?;
         }
@@ -928,6 +976,7 @@ impl Core {
         let inv = InviteV1::parse(code)?;
         inv.check_expiry(now_secs())?;
         let mut inner = self.lock();
+        inner.require_first_device("join spaces")?;
         let mut joined = Joined {
             id: inv.space_id,
             label: inv.space_id.to_string(),
@@ -1148,35 +1197,186 @@ impl Core {
 
     // ---- devices ----
 
-    /// Vouches for another device of this identity (`device.link` in the home space).
-    pub fn device_link(&self, device_pub: &[u8; 32]) -> Result<SignedEvent> {
-        let mut inner = self.lock();
-        let home = inner
-            .store
-            .home()?
-            .ok_or_else(|| Error::UnknownSpace(HOME_LABEL.into()))?;
-        let cert = device::make_cert(&inner.identity, device_pub);
-        inner.append(
-            &home.id,
-            &EventBody::DeviceLink {
-                device_pub: hex_encode(device_pub),
-                cert,
-            },
-        )
+    /// True for events signed by this install or by the identity it acts for.
+    // shortcut: this install's sibling devices are not recognised (that needs a fold per event),
+    // so a linked device's own posts can raise a notice on the other one; upgrade by caching the
+    // device set when the node adapter learns of `device.link` events.
+    pub fn is_own_author(&self, author: &UserId) -> bool {
+        *author == self.user || *author == self.lock().identity.user_id()
     }
 
-    pub fn device_revoke(&self, device_pub: &[u8; 32]) -> Result<SignedEvent> {
+    /// Starts linking another device: mints a device key, certifies it in every joined space
+    /// (`device.link`), and returns the one-time code that hands the new device its key and the
+    /// space keys, plus the events to publish. The code is a bearer secret and is never stored.
+    pub fn device_link_start(&self, addrs: Vec<String>) -> Result<(String, Vec<SignedEvent>)> {
         let mut inner = self.lock();
+        inner.require_first_device("link devices")?;
+        let dev = Identity::generate();
+        let cert = device::make_cert(&inner.identity, &dev.user_id().0);
+        let proof = device::make_proof(&dev, &inner.owner);
+        let (mut spaces, mut events) = (Vec::new(), Vec::new());
+        for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
+            let ev = inner.append(
+                &row.id,
+                &EventBody::DeviceLink {
+                    device_pub: hex_encode(&dev.user_id().0),
+                    cert: cert.clone(),
+                    proof: proof.clone(),
+                },
+            )?;
+            let keys = inner
+                .store
+                .all_keys(&row.id)?
+                .into_iter()
+                .flat_map(|(epoch, ks)| ks.into_iter().map(move |k| (epoch, k)))
+                .collect();
+            spaces.push(device::LinkSpace {
+                id: row.id,
+                name: row.name,
+                kind: row.kind,
+                is_home: row.is_home,
+                keys,
+                lc: ev.lamport,
+            });
+            events.push(ev);
+        }
+        let link = device::DeviceLinkV1 {
+            v: 1,
+            owner: inner.owner,
+            device_seed: dev.seed(),
+            cert,
+            proof,
+            exp: now_secs() + device::LINK_TTL_SECS,
+            spaces,
+            addrs,
+            profile: inner.store.kv_get(PROFILE_KEY)?,
+        };
+        Ok((link.encode()?, events))
+    }
+
+    /// Installs a link code into an empty data dir (see [`Core::backup_import`] for the shape);
+    /// returns where the linking device can be reached. Nothing is written when the code is bad
+    /// or expired. Call [`Core::open`] on the dir afterwards.
+    pub fn device_link_accept(dir: &Path, code: &str) -> Result<Vec<String>> {
+        let link = device::DeviceLinkV1::decode(code)?;
+        link.check_expiry(now_secs())?;
+        if let Some(p) = &link.profile {
+            serde_json::from_str::<StoredProfile>(p)
+                .map_err(|_| Error::invalid("device link", "bad profile"))?;
+        }
+        let mut kv = BTreeMap::from([(OWNER_KEY.to_string(), link.owner.to_string())]);
+        kv.extend(link.profile.map(|p| (PROFILE_KEY.to_string(), p)));
+        let mut spaces = Vec::new();
+        for sp in link.spaces {
+            kv.insert(format!("lamport_floor.{}", sp.id), sp.lc.to_string());
+            spaces.push(SpaceBackup {
+                id: sp.id,
+                name: sp.name,
+                kind: sp.kind,
+                is_home: sp.is_home,
+                joined_at: now_ms(),
+                left: false,
+                keys: sp.keys,
+                events: Vec::new(),
+            });
+        }
+        Self::install_payload(
+            dir,
+            &Payload {
+                v: 1,
+                identity_seed: link.device_seed,
+                spaces,
+                kv,
+                read_markers: Vec::new(),
+                blocks: Vec::new(),
+                follows: Vec::new(),
+                blobs: Vec::new(),
+            },
+        )?;
+        Ok(link.addrs)
+    }
+
+    /// Ends a linked device everywhere it was certified: `device.revoke` in each space, then a
+    /// rekey where this identity administers, so the device cannot read what follows.
+    pub fn device_revoke(&self, device_pub: &[u8; 32]) -> Result<Vec<SignedEvent>> {
+        let mut inner = self.lock();
+        inner.require_first_device("revoke devices")?;
+        let hex = hex_encode(device_pub);
+        let (mut events, mut found) = (Vec::new(), false);
+        for row in inner.store.spaces()?.into_iter().filter(|s| !s.left) {
+            let rep = inner.report(&self.config, &row.id)?;
+            let linked = rep
+                .devices
+                .get(&inner.owner.to_string())
+                .is_some_and(|d| d.contains(&hex));
+            if !linked {
+                continue;
+            }
+            found = true;
+            let last_seq = inner
+                .store
+                .load_opened(&row)?
+                .iter()
+                .filter(|e| e.author.0 == *device_pub)
+                .map(|e| e.seq)
+                .max()
+                .unwrap_or(0);
+            events.push(inner.append(
+                &row.id,
+                &EventBody::DeviceRevoke {
+                    device_pub: hex.clone(),
+                    last_seq: Some(last_seq),
+                },
+            )?);
+            if rep.my_role.is_some_and(|r| r >= Role::Admin) {
+                events.push(inner.rekey(&self.config, &row.id)?);
+            }
+        }
+        if !found {
+            return Err(Error::NotFound("device".into()));
+        }
+        Ok(events)
+    }
+
+    /// Every device of this identity, first device included, from the home space.
+    pub fn device_list(&self) -> Result<Vec<DeviceRow>> {
+        let inner = self.lock();
         let home = inner
             .store
             .home()?
             .ok_or_else(|| Error::UnknownSpace(HOME_LABEL.into()))?;
-        inner.append(
-            &home.id,
-            &EventBody::DeviceRevoke {
-                device_pub: hex_encode(device_pub),
-            },
-        )
+        let rep = inner.report(&self.config, &home.id)?;
+        let owner = inner.owner.to_string();
+        let me = hex_encode(&inner.identity.user_id().0);
+        let linked_at = |dev: &str, kind: &str| {
+            rep.audit
+                .iter()
+                .find(|a| a.kind == kind && a.target.as_deref() == Some(dev))
+                .map(|a| a.ts)
+        };
+        let mut rows = vec![DeviceRow {
+            device_pub: owner.clone(),
+            added_at: 0,
+            this_device: !inner.is_linked_device(),
+            revoked: false,
+        }];
+        let live = rep.devices.get(&owner).cloned().unwrap_or_default();
+        let mut seen: Vec<String> = rep
+            .audit
+            .iter()
+            .filter(|a| a.kind == "device.link")
+            .filter_map(|a| a.target.clone())
+            .collect();
+        seen.dedup();
+        for dev in seen {
+            rows.push(DeviceRow {
+                added_at: linked_at(&dev, "device.link").unwrap_or(0),
+                this_device: dev == me,
+                revoked: !live.contains(&dev),
+                device_pub: dev,
+            });
+        }
+        Ok(rows)
     }
 
     // ---- projections and search ----
@@ -1220,7 +1420,7 @@ impl Core {
         };
         for row in &rows {
             if inner.store.search_stale(&row.id)? {
-                let items = search_items(&inner.identity.user_id().to_string(), &inner.input(row)?);
+                let items = search_items(&inner.owner.to_string(), &inner.input(row)?);
                 inner.store.search_reindex(&row.id, &items)?;
             }
         }
@@ -1438,7 +1638,11 @@ impl Core {
 
     /// Restores a backup into an empty data dir. Call [`Core::open`] on the dir afterwards.
     pub fn backup_import(dir: &Path, file: &Path, passphrase: &str) -> Result<()> {
-        let payload = backup::open(&fs::read(file)?, passphrase)?;
+        Self::install_payload(dir, &backup::open(&fs::read(file)?, passphrase)?)
+    }
+
+    /// Writes `payload` into an empty data dir; a failure leaves `dir` untouched.
+    fn install_payload(dir: &Path, payload: &Payload) -> Result<()> {
         fs::create_dir_all(dir)?;
         if dir.join(identity::KEY_FILE).exists() || dir.join(DB_FILE).exists() {
             return Err(Error::invalid(
@@ -1450,7 +1654,7 @@ impl Core {
         let tmp = dir.join(RESTORE_DIR);
         let _ = fs::remove_dir_all(&tmp);
         fs::create_dir_all(&tmp)?;
-        let moved = Self::restore_into(&tmp, &payload).and_then(|()| {
+        let moved = Self::restore_into(&tmp, payload).and_then(|()| {
             // The identity moves last: its presence is what marks `dir` as already restored.
             for name in [
                 DB_FILE,
