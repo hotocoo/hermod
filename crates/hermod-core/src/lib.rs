@@ -25,6 +25,7 @@ pub mod projections;
 pub mod ratelimit;
 pub mod search;
 pub mod store;
+mod swap;
 
 pub use api::{
     Core, CoreConfig, DeviceRow, IdentityInfo, InviteOut, Joined, LegalStatus, ProfileInput,

@@ -31,11 +31,15 @@ use crate::projections::{
 use crate::ratelimit::RateConfig;
 use crate::search::SearchHit;
 use crate::store::{Ingested, MAX_CLOCK, Source, SpaceRow, Store};
+use crate::swap;
 
 pub use crate::projections::AuditEntry;
 
 /// Database file name inside the app data dir.
 pub const DB_FILE: &str = "hermod.db";
+/// Largest total of attachment bytes a backup will take. The file is built in memory (about three
+/// copies at once), so a bigger library is refused with a clear error instead of exhausting RAM.
+pub const MAX_BACKUP_BLOB_BYTES: u64 = 512 << 20;
 /// Scratch directory inside the data dir where a backup is unpacked before being moved into place.
 const RESTORE_DIR: &str = ".restore";
 /// Label the UI uses for the home space.
@@ -71,6 +75,8 @@ pub struct CoreConfig {
     pub growth: GrowthConfig,
     pub rate: RateConfig,
     pub backup_kdf: KdfParams,
+    /// Overrides [`MAX_BACKUP_BLOB_BYTES`] (tests); `None` keeps it.
+    pub backup_blob_cap: Option<u64>,
     /// Keychain entry and passphrase needed to read a protected identity key.
     pub unlock: Unlock,
 }
@@ -624,6 +630,9 @@ impl Core {
     pub fn open_with(dir: impl AsRef<Path>, mut config: CoreConfig) -> Result<Self> {
         let dir = dir.as_ref().to_path_buf();
         fs::create_dir_all(&dir)?;
+        // An interrupted restore is finished or undone before anything reads the key or database.
+        swap::recover(&dir)?;
+        swap::check_key_present(&dir)?;
         let identity = Identity::load_or_create_with(&dir, &config.unlock)?;
         // The passphrase is only for reading the key file; do not keep it for the Core's lifetime.
         config.unlock.passphrase = None;
@@ -1688,12 +1697,21 @@ impl Core {
         };
         drop(inner);
         let mut blobs = Vec::new();
+        let mut total = 0u64;
         for id in blob_ids {
             let Some(m) = self.blobs.manifest(&id)? else {
                 continue;
             };
             if !self.blobs.missing(&id)?.is_empty() {
                 continue;
+            }
+            total = total.saturating_add(m.size);
+            let cap = self.config.backup_blob_cap.unwrap_or(MAX_BACKUP_BLOB_BYTES);
+            if total > cap {
+                return Err(Error::invalid(
+                    "backup",
+                    format!("attachments exceed {cap} bytes; export without attachments"),
+                ));
             }
             let chunks = m
                 .chunks
@@ -1815,23 +1833,13 @@ impl Core {
 
     /// Deletes this install's data (identity, database, blobs). Irreversible without a backup.
     pub fn wipe_data(dir: &Path) -> Result<()> {
-        for name in [
-            identity::KEY_FILE,
-            DB_FILE,
-            "hermod.db-wal",
-            "hermod.db-shm",
-        ] {
-            match fs::remove_file(dir.join(name)) {
-                Ok(()) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => return Err(e.into()),
-            }
-        }
-        match fs::remove_dir_all(dir.join("blobs")) {
-            Ok(()) => Ok(()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(e.into()),
-        }
+        swap::wipe(dir)
+    }
+
+    /// Replaces this install's data with the complete install staged in `staged` (same filesystem).
+    /// An interruption is finished or undone by the next [`Core::open`], never left half-way.
+    pub fn replace_data(dir: &Path, staged: &Path) -> Result<()> {
+        swap::replace(dir, staged)
     }
 
     // ---- local settings and legal ----

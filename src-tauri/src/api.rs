@@ -915,14 +915,8 @@ fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> 
 fn swap_in(dir: &std::path::Path, install: impl FnOnce(&std::path::Path) -> Res<()>) -> Res<()> {
     let probe = dir.with_extension("restore-check");
     let _ = std::fs::remove_dir_all(&probe);
-    let staged = install(&probe).and_then(|()| {
-        Core::wipe_data(dir).map_err(e)?;
-        for entry in std::fs::read_dir(&probe).map_err(e)? {
-            let name = entry.map_err(e)?.file_name();
-            std::fs::rename(probe.join(&name), dir.join(&name)).map_err(e)?;
-        }
-        Ok(())
-    });
+    // The core keeps the old data aside until the new is in, so an interruption is undone on the next open.
+    let staged = install(&probe).and_then(|()| Core::replace_data(dir, &probe).map_err(e));
     let _ = std::fs::remove_dir_all(&probe);
     staged
 }

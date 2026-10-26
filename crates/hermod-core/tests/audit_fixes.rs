@@ -357,3 +357,87 @@ fn restored_solo_space_is_not_held() {
     let restored = Core::open(fresh.path()).unwrap();
     restored.append(&s, post_msg("general", "r", "ok")).unwrap();
 }
+
+#[test]
+fn backup_with_too_many_attachment_bytes_is_refused_with_a_clear_error() {
+    let d = tempfile::tempdir().unwrap();
+    let cfg = hermod_core::CoreConfig {
+        backup_blob_cap: Some(10),
+        ..Default::default()
+    };
+    let a = Core::open_with(d.path(), cfg).unwrap();
+    let s = a.space_create("Team", "", "Team").unwrap().id;
+    let blob = a.blob_put_bytes("a.bin", &[7u8; 100]).unwrap();
+    let body = EventBody::MessagePost {
+        channel_id: "general".into(),
+        msg_id: "m".into(),
+        text: "file".into(),
+        reply_to: None,
+        attachments: vec![blob],
+        snap: None,
+        mentions: vec![],
+        preview: None,
+        target: None,
+        ext: None,
+    };
+    a.append(&s, body).unwrap();
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("a.bak");
+    let err = a.backup_export(&file, "correct horse battery", true).unwrap_err();
+    assert!(err.to_string().contains("export without attachments"), "{err}");
+    assert!(!file.exists());
+    a.backup_export(&file, "correct horse battery", false).unwrap();
+    assert!(file.exists());
+}
+
+#[test]
+fn truncated_or_damaged_backups_are_refused_and_leave_the_data_dir_empty() {
+    let (_d, a) = core();
+    a.space_create("Team", "", "Team").unwrap();
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("a.bak");
+    a.backup_export(&file, "correct horse battery", false).unwrap();
+    let whole = std::fs::read(&file).unwrap();
+    let cut = out.path().join("cut.bak");
+    for len in [0, 7, 40, whole.len() / 2, whole.len() - 1] {
+        std::fs::write(&cut, &whole[..len]).unwrap();
+        let fresh = tempfile::tempdir().unwrap();
+        assert!(Core::backup_import(fresh.path(), &cut, "correct horse battery").is_err());
+        assert!(!fresh.path().join("identity.key").exists());
+        assert!(!fresh.path().join("hermod.db").exists());
+    }
+    // A leftover temp file from a crashed export never replaces the real one.
+    std::fs::write(out.path().join("a.tmp"), b"half written").unwrap();
+    a.backup_export(&file, "correct horse battery", false).unwrap();
+    let fresh = tempfile::tempdir().unwrap();
+    Core::backup_import(fresh.path(), &file, "correct horse battery").unwrap();
+}
+
+#[test]
+fn replace_data_swaps_in_a_restore_and_open_sees_it() {
+    let (_d1, a) = core();
+    let s = a.space_create("Kept", "", "Team").unwrap().id;
+    let out = tempfile::tempdir().unwrap();
+    let file = out.path().join("a.bak");
+    a.backup_export(&file, "correct horse battery", false).unwrap();
+    let live = tempfile::tempdir().unwrap();
+    drop(Core::open(live.path()).unwrap());
+    let staged = tempfile::tempdir().unwrap();
+    Core::backup_import(staged.path(), &file, "correct horse battery").unwrap();
+    Core::replace_data(live.path(), staged.path()).unwrap();
+    let c = Core::open(live.path()).unwrap();
+    assert_eq!(c.user_id(), a.user_id());
+    assert!(c.space_report(&s).is_ok());
+}
+
+#[test]
+fn open_refuses_a_database_whose_key_file_vanished() {
+    let d = tempfile::tempdir().unwrap();
+    let a = Core::open(d.path()).unwrap();
+    let id = a.user_id();
+    drop(a);
+    std::fs::remove_file(d.path().join("identity.key")).unwrap();
+    assert!(Core::open(d.path()).is_err());
+    assert!(!d.path().join("identity.key").exists(), "no fresh identity was minted");
+    let _ = id;
+}
