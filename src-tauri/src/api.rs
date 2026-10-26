@@ -22,6 +22,10 @@ use hermod_core::retention::MAX_RETENTION_DAYS;
 
 /// Largest file accepted over the IPC bridge, checked before the body is parsed.
 pub const MAX_UPLOAD_BYTES: usize = 256 * 1024 * 1024;
+/// Largest file accepted as a JSON number array (the fallback for transports without a raw
+/// body). Parsing a JSON array costs many times its size, so this stays small; real uploads use
+/// the raw body up to `MAX_UPLOAD_BYTES`.
+pub const MAX_JSON_UPLOAD_BYTES: usize = 4 * 1024 * 1024;
 const MAX_EVENT_JSON: usize = 512 * 1024;
 const MAX_SIGNAL_BYTES: usize = 64 * 1024;
 const ADDR_WAIT: Duration = Duration::from_secs(3);
@@ -509,7 +513,6 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             a.get("options").unwrap_or(&Value::Null),
             a.get("moves").unwrap_or(&Value::Null),
         ),
-        "read_markers" => to_json(blk(&live, |c| c.read_markers().map_err(e)).await?),
         "block_user" => {
             let u = user_arg(a, "userId")?;
             blk(&live, move |c| c.block_user(&u).map_err(e)).await?;
@@ -820,8 +823,8 @@ fn bytes_arg(a: &Value, key: &str) -> Res<Vec<u8>> {
         .get(key)
         .and_then(Value::as_array)
         .ok_or_else(|| format!("missing {key}"))?;
-    if arr.len() > MAX_UPLOAD_BYTES {
-        return Err("that file is too large".into());
+    if arr.len() > MAX_JSON_UPLOAD_BYTES {
+        return Err("that file is too large to send this way".into());
     }
     arr.iter()
         .map(|v| {
@@ -852,8 +855,12 @@ async fn save_bytes(ctx: &Arc<Ctx>, a: &Value, bytes: Vec<u8>) -> Res<Value> {
     else {
         return Ok(Value::Null);
     };
-    std::fs::write(&dest, bytes).map_err(|x| format!("could not save the file: {x}"))?;
-    Ok(json!(dest.to_string_lossy()))
+    let shown = dest.to_string_lossy().into_owned();
+    tokio::task::spawn_blocking(move || std::fs::write(&dest, bytes))
+        .await
+        .map_err(e)?
+        .map_err(|x| format!("could not save the file: {x}"))?;
+    Ok(json!(shown))
 }
 
 /// Where a backup goes: the app asks the person with the save dialog (the webview names no

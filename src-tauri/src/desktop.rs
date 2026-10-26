@@ -138,6 +138,11 @@ fn blob_response(app: &AppHandle, req: &Request<Vec<u8>>) -> BoxFut<Response<Vec
         .get("range")
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
+    let origin = req
+        .headers()
+        .get("origin")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
     Box::pin(async move {
         let plain = |status: u16| {
             Response::builder()
@@ -150,7 +155,7 @@ fn blob_response(app: &AppHandle, req: &Request<Vec<u8>>) -> BoxFut<Response<Vec
         };
         let r = blob::serve(&ctx, &hash, range.as_deref()).await;
         let mut b = Response::builder().status(r.status);
-        for (k, v) in r.headers() {
+        for (k, v) in r.headers(origin.as_deref()) {
             b = b.header(k, v);
         }
         b.body(r.body).unwrap_or_else(|_| plain(500))

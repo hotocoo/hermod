@@ -71,8 +71,17 @@ pub struct BlobResponse {
     pub body: Vec<u8>,
 }
 
+/// Origins of the app's own pages: the only ones a blob response grants cross-origin reads
+/// (captions are fetched, everything else loads through img/video/audio).
+pub const APP_ORIGINS: &[&str] = &[
+    "tauri://localhost",
+    "http://tauri.localhost",
+    "http://localhost:3000",
+];
+
 impl BlobResponse {
-    pub fn headers(&self) -> Vec<(&'static str, String)> {
+    /// `origin` is the request's Origin header; CORS is granted only to the app's own origins.
+    pub fn headers(&self, origin: Option<&str>) -> Vec<(&'static str, String)> {
         let mut h = vec![
             ("Content-Type", self.mime.clone()),
             ("Accept-Ranges", "bytes".to_string()),
@@ -82,7 +91,6 @@ impl BlobResponse {
                 "private, max-age=31536000, immutable".to_string(),
             ),
             ("X-Content-Type-Options", "nosniff".to_string()),
-            ("Access-Control-Allow-Origin", "*".to_string()),
             ("Cross-Origin-Resource-Policy", "cross-origin".to_string()),
             // A blob is data: whatever it is, it may not run script or load anything.
             (
@@ -90,6 +98,10 @@ impl BlobResponse {
                 "default-src 'none'; style-src 'unsafe-inline'; sandbox".to_string(),
             ),
         ];
+        if let Some(o) = origin.filter(|o| APP_ORIGINS.contains(o)) {
+            h.push(("Access-Control-Allow-Origin", o.to_string()));
+            h.push(("Vary", "Origin".to_string()));
+        }
         match (self.status, self.range) {
             (206, Some((a, b))) => {
                 h.push(("Content-Range", format!("bytes {a}-{b}/{}", self.total)))

@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: blob: hermod-blob: http://hermod-blob.localhost; media-src 'self' data: blob: hermod-blob: http://hermod-blob.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost hermod-blob: http://hermod-blob.localhost; base-uri 'none'; form-action 'none'"
+      "csp": "default-src 'self'; img-src 'self' data: blob: hermod-blob: http://hermod-blob.localhost; media-src 'self' data: blob: hermod-blob: http://hermod-blob.localhost; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost hermod-blob: http://hermod-blob.localhost; base-uri 'none'; form-action 'none'"
     }
   },
   "bundle": {
