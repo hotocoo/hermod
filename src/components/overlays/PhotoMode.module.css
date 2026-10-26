@@ -21,7 +21,7 @@
 .label {
   font-family: var(--font-heading);
   font-style: italic;
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 
 .saveBtn {
@@ -35,7 +35,7 @@
   color: #f3ede3;
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .saveBtn:hover {
   background: rgba(225,173,102,.16) !important;
@@ -47,7 +47,7 @@
   border-radius: 20px;
   background: transparent;
   color: #f3ede3;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .doneBtn:hover {
   border-color: #f3ede3 !important;

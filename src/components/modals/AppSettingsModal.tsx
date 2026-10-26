@@ -24,7 +24,7 @@ const TABS = [
   ['updates', 'Updates'], ['network', 'Network'], ['logs', 'Logs'], ['identity', 'Identity'],
 ] as const;
 type TabId = (typeof TABS)[number][0];
-const SCALES = [100, 115, 130, 150];
+const SCALES = [100, 115, 130, 150, 200];
 const MIN_PASS = 8;
 const LOG_LINES = 1000;
 

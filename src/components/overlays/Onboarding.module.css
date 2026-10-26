@@ -25,14 +25,14 @@
   margin: 8px 0 8px;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 34px;
+  font-size: 2.125rem;
   line-height: 1.1;
   animation: hm-fade 400ms ease both;
 }
 
 .text {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.6;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
   text-wrap: pretty;
@@ -61,7 +61,7 @@
   padding: 8px 12px;
   border: 0;
   background: transparent;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
@@ -76,7 +76,7 @@
   color: var(--color-accent-700);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 16px;
+  font-size: 1rem;
 }
 .nextBtn:hover {
   background: color-mix(in srgb,var(--color-accent) 12%,transparent) !important;

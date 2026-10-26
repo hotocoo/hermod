@@ -1,14 +1,14 @@
 .page { flex: 1; min-height: 0; display: grid; grid-template-columns: 220px minmax(0, 1fr); }
 .side { padding: 18px 14px; border-right: 1px solid var(--color-divider); overflow: auto; }
 .sideHead { padding: 0 8px 8px; }
-.board { display: flex; justify-content: space-between; width: 100%; padding: 8px; border: 0; border-radius: 6px; font-size: 14px; text-align: left; }
+.board { display: flex; justify-content: space-between; width: 100%; padding: 8px; border: 0; border-radius: 6px; font-size: 0.875rem; text-align: left; }
 .board:hover { background: color-mix(in srgb, var(--color-text) 5%, transparent) !important; }
-.count { font-size: 12px; font-variant-numeric: tabular-nums; }
+.count { font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .newBtn { margin: 10px 8px 0; }
 .main { overflow: auto; padding: 20px 24px; }
 .head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
-.name { margin: 0; font-family: var(--font-heading); font-weight: 400; font-size: 30px; }
-.meta { font-size: 13px; }
+.name { margin: 0; font-family: var(--font-heading); font-weight: 400; font-size: 1.875rem; }
+.meta { font-size: 0.8125rem; }
 .none { font-style: italic; }
 .cols { columns: 3 180px; column-gap: 16px; }
 .pin { break-inside: avoid; margin-bottom: 16px; }
@@ -18,8 +18,8 @@
   transition: transform 420ms cubic-bezier(.22,1,.36,1);
 }
 .pinArt:hover { transform: translateY(-3px); }
-.pinLabel { position: absolute; left: 8px; bottom: 8px; font-size: 11px; }
-.pinTitle { font-size: 13px; margin-top: 6px; }
+.pinLabel { position: absolute; left: 8px; bottom: 8px; font-size: 0.6875rem; }
+.pinTitle { font-size: 0.8125rem; margin-top: 6px; }
 .grow { flex: 1; }
 button.pinArt { display: block; width: 100%; padding: 0; text-align: left; }
 .pinImg { display: block; width: 100%; height: auto; }

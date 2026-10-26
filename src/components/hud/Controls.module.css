@@ -15,7 +15,7 @@
 
 .period {
   font-family: var(--font-heading);
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.1;
 }
 
@@ -41,7 +41,7 @@
   transform: translateX(-50%);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--color-accent-text);
 }
 
@@ -51,7 +51,7 @@
   bottom: 6px;
   transform: translateX(-50%);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
@@ -61,7 +61,7 @@
   left: 7px;
   transform: translateY(-50%);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 
@@ -71,7 +71,7 @@
   right: 7px;
   transform: translateY(-50%);
   font-family: var(--font-heading);
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: color-mix(in srgb,var(--color-text) 62%,transparent);
 }
 

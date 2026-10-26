@@ -10,8 +10,8 @@
 }
 .wide { width: min(760px, 100%); }
 .head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
-.kicker { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--color-accent-700); }
-.title { margin: 4px 0 0; font-family: var(--font-heading); font-size: 28px; line-height: 1.1; font-weight: 400; }
+.kicker { font-size: 0.625rem; letter-spacing: .16em; text-transform: uppercase; color: var(--color-accent-700); }
+.title { margin: 4px 0 0; font-family: var(--font-heading); font-size: 1.75rem; line-height: 1.1; font-weight: 400; }
 .close {
   flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%;
   border: 1px solid var(--color-divider); background: transparent;

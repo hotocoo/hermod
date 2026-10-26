@@ -1,31 +1,31 @@
 .page { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 260px; }
 .main { overflow: auto; padding: 16px 20px 24px; }
 .head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.title { margin: 0; font-family: var(--font-heading); font-weight: 400; font-size: 28px; }
-.sub { font-size: 13px; }
+.title { margin: 0; font-family: var(--font-heading); font-weight: 400; font-size: 1.75rem; }
+.sub { font-size: 0.8125rem; }
 .grow { flex: 1; }
 .grid { display: grid; grid-template-columns: 44px repeat(5, minmax(0, 1fr)); border-top: 1px solid var(--color-divider); }
 .body { position: relative; height: 520px; }
-.dayCell { padding: 8px 8px 6px; border-left: 1px solid var(--color-divider); font-size: 12px; }
+.dayCell { padding: 8px 8px 6px; border-left: 1px solid var(--color-divider); font-size: 0.75rem; }
 .dayName { color: inherit; }
-.dayNum { font-family: var(--font-heading); font-size: 18px; }
-.hour { height: 52px; font-size: 10px; font-variant-numeric: tabular-nums; transform: translateY(-6px); }
+.dayNum { font-family: var(--font-heading); font-size: 1.125rem; }
+.hour { height: 52px; font-size: 0.625rem; font-variant-numeric: tabular-nums; transform: translateY(-6px); }
 .col { position: relative; border-left: 1px solid var(--color-divider); background: repeating-linear-gradient(180deg, transparent 0 51px, var(--color-divider) 51px 52px); }
 .event {
   position: absolute; left: 4px; right: 4px; padding: 5px 7px; border: 1px solid var(--color-divider); border-radius: 6px; text-align: left; overflow: hidden;
-  font-size: 12px; line-height: 1.3; color: var(--color-text);
+  font-size: 0.75rem; line-height: 1.3; color: var(--color-text);
   transition: transform 300ms linear(0,0.08 2.5%,0.3 6%,0.62 11%,0.86 16%,0.99 22%,1.04 28%,1.03 36%,1.01 46%,1);
 }
 .event:hover { transform: scale(1.02); }
 .evT { font-weight: 600; }
-.evSub { display: block; font-size: 10px; }
+.evSub { display: block; font-size: 0.625rem; }
 .now { position: absolute; left: 0; right: 0; height: 1px; background: var(--color-accent); }
 .nowDot { position: absolute; left: -4px; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent); }
 .aside { padding: 20px 18px; border-left: 1px solid var(--color-divider); }
 .detail { animation: hm-rise 400ms cubic-bezier(.22,1,.36,1) both; }
-.evTitle { margin: 6px 0 6px; font-family: var(--font-heading); font-weight: 400; font-size: 26px; line-height: 1.1; }
-.note { margin: 0 0 12px; font-size: 13px; line-height: 1.55; }
+.evTitle { margin: 6px 0 6px; font-family: var(--font-heading); font-weight: 400; font-size: 1.625rem; line-height: 1.1; }
+.note { margin: 0 0 12px; font-size: 0.8125rem; line-height: 1.55; }
 .faces { display: flex; padding-left: 6px; margin-bottom: 14px; }
-.face { width: 28px; height: 28px; margin-left: -6px; background: var(--color-bg); border: 1px solid var(--color-divider); font-size: 11px; }
-.pick { font-style: italic; font-size: 13px; }
+.face { width: 28px; height: 28px; margin-left: -6px; background: var(--color-bg); border: 1px solid var(--color-divider); font-size: 0.6875rem; }
+.pick { font-style: italic; font-size: 0.8125rem; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }

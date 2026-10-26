@@ -1,10 +1,10 @@
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin: 0 0 14px; }
-.stat dt { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--color-accent-700); }
-.stat dd { margin: 2px 0 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.stat dt { font-size: 0.625rem; letter-spacing: .12em; text-transform: uppercase; color: var(--color-accent-700); }
+.stat dd { margin: 2px 0 0; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
 .wide { grid-column: 1 / -1; }
-.h { margin: 14px 0 4px; font-family: var(--font-heading); font-size: 20px; }
+.h { margin: 14px 0 4px; font-family: var(--font-heading); font-size: 1.25rem; }
 .slider { display: block; padding: 8px 0; border-top: 1px solid var(--color-divider); }
-.sliderTop { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.sliderTop { display: flex; justify-content: space-between; font-size: 0.8125rem; margin-bottom: 4px; }
 .slider input[type=range] { width: 100%; accent-color: var(--color-accent); }
-.empty, .note { font-size: 13px; line-height: 1.5; color: color-mix(in srgb, var(--color-text) 70%, transparent); margin: 0 0 8px; }
-.limits { padding-left: 18px; margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.empty, .note { font-size: 0.8125rem; line-height: 1.5; color: color-mix(in srgb, var(--color-text) 70%, transparent); margin: 0 0 8px; }
+.limits { padding-left: 18px; margin: 4px 0 0; font-size: 0.7813rem; line-height: 1.5; color: color-mix(in srgb, var(--color-text) 70%, transparent); }
