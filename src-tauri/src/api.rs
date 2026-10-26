@@ -899,22 +899,22 @@ async fn export_target(ctx: &Arc<Ctx>, a: &Value, label: &str) -> Res<Option<Pat
 }
 
 /// Restore into a scratch dir (this proves the file and passphrase), then swap it in. Reading
-/// and decrypting the backup happens once, and the live data is untouched until it succeeds.
+/// and decrypting the backup happens once; the live data is set aside and deleted only after
+/// every staged file is in place.
 fn restore_backup(dir: &std::path::Path, file: &std::path::Path, pass: &str) -> Res<()> {
     let probe = dir.with_extension("restore-check");
     let _ = std::fs::remove_dir_all(&probe);
-    let staged = Core::backup_import(&probe, file, pass)
-        .map_err(|x| format!("cannot restore this backup: {x}"))
-        .and_then(|()| {
-            Core::wipe_data(dir).map_err(e)?;
-            for entry in std::fs::read_dir(&probe).map_err(e)? {
-                let name = entry.map_err(e)?.file_name();
-                std::fs::rename(probe.join(&name), dir.join(&name)).map_err(e)?;
-            }
-            Ok(())
-        });
-    let _ = std::fs::remove_dir_all(&probe);
-    staged
+    if let Err(x) = Core::backup_import(&probe, file, pass) {
+        let _ = std::fs::remove_dir_all(&probe);
+        return Err(format!("cannot restore this backup: {x}"));
+    }
+    let aside = dir.with_extension("restore-old");
+    // On a failed swap the old data is back in place and the staged copy stays in `probe`.
+    crate::restore::swap_data(dir, &probe, &aside, &|a, b| std::fs::rename(a, b))?;
+    if let Err(x) = std::fs::remove_dir_all(&probe) {
+        tracing::warn!("could not remove the restore scratch folder: {x}");
+    }
+    Ok(())
 }
 
 fn write_blob(c: &Core, hash: &str, dest: &std::path::Path) -> Res<()> {

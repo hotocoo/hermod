@@ -36,6 +36,15 @@ pub use crate::projections::AuditEntry;
 
 /// Database file name inside the app data dir.
 pub const DB_FILE: &str = "hermod.db";
+/// Everything in a data dir that is this install's data: identity, database (with its journal
+/// files) and blobs. Wiping and restoring touch exactly these.
+pub const DATA_ENTRIES: [&str; 5] = [
+    identity::KEY_FILE,
+    DB_FILE,
+    "hermod.db-wal",
+    "hermod.db-shm",
+    "blobs",
+];
 /// Scratch directory inside the data dir where a backup is unpacked before being moved into place.
 const RESTORE_DIR: &str = ".restore";
 /// Label the UI uses for the home space.
@@ -1558,23 +1567,20 @@ impl Core {
 
     /// Deletes this install's data (identity, database, blobs). Irreversible without a backup.
     pub fn wipe_data(dir: &Path) -> Result<()> {
-        for name in [
-            identity::KEY_FILE,
-            DB_FILE,
-            "hermod.db-wal",
-            "hermod.db-shm",
-        ] {
-            match fs::remove_file(dir.join(name)) {
+        for name in DATA_ENTRIES {
+            let p = dir.join(name);
+            let r = if p.is_dir() {
+                fs::remove_dir_all(&p)
+            } else {
+                fs::remove_file(&p)
+            };
+            match r {
                 Ok(()) => {}
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
                 Err(e) => return Err(e.into()),
             }
         }
-        match fs::remove_dir_all(dir.join("blobs")) {
-            Ok(()) => Ok(()),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(e.into()),
-        }
+        Ok(())
     }
 
     // ---- local settings and legal ----

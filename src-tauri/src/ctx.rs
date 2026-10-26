@@ -59,6 +59,9 @@ const STATUS_EVERY: Duration = Duration::from_secs(1);
 /// the "waiting to sync" count survives a restart.
 const UNSENT_KEY: &str = "unsent_events";
 const STOP_GRACE: Duration = Duration::from_secs(3);
+/// How long a data swap waits for in-flight work to let go of the database, and how often it looks.
+const CLOSE_WAIT: Duration = Duration::from_secs(10);
+const CLOSE_POLL: Duration = Duration::from_millis(25);
 
 /// One UI event (`hermod://changed`, `hermod://node`, ...).
 #[derive(Debug, Clone)]
@@ -147,6 +150,9 @@ struct NodeRt {
 pub struct Live {
     pub core: Arc<Core>,
     node: tokio::sync::Mutex<Option<NodeRt>>,
+    /// Held for the whole of `start_node`, so two starts cannot race while `node` stays free for
+    /// readers (status, publish) during the slow network start.
+    starting: tokio::sync::Mutex<()>,
     mime: Arc<Mutex<HashMap<String, String>>>,
     /// Complete blobs being served: their manifest and content type, so a Range request does not
     /// re-read the manifest, re-check every chunk and re-hash chunk 0 each time.
@@ -302,6 +308,22 @@ struct PendingLink {
 /// Start of `Error::KeyUnavailable`'s text; the UI matches it too.
 const KEY_UNAVAILABLE_PREFIX: &str = "identity key unavailable";
 
+const BUSY_MSG: &str = "Hermod is still busy with your data, try again in a moment";
+
+/// Waits until nothing but `live` itself holds the database (tasks mid-query, the node's store),
+/// then drops it so SQLite is closed. Hands `live` back if others still hold it after
+/// [`CLOSE_WAIT`]. No new holder can appear: callers hold the `live` write lock.
+async fn release(live: Arc<Live>) -> Result<(), Arc<Live>> {
+    let deadline = std::time::Instant::now() + CLOSE_WAIT;
+    while Arc::strong_count(&live) > 1 || Arc::strong_count(&live.core) > 1 {
+        if std::time::Instant::now() >= deadline {
+            return Err(live);
+        }
+        tokio::time::sleep(CLOSE_POLL).await;
+    }
+    Ok(())
+}
+
 /// Open failures that leave the app running in a limited state (recovery screen) instead of
 /// failing to start: the key cannot be read, but backup restore and reset still work.
 fn is_limited(msg: &str) -> bool {
@@ -327,6 +349,7 @@ fn open_live(dir: &Path, unlock: &Unlock) -> Result<Arc<Live>, String> {
     Ok(Arc::new(Live {
         core: Arc::new(core),
         node: tokio::sync::Mutex::new(None),
+        starting: tokio::sync::Mutex::new(()),
         mime: Arc::new(Mutex::new(HashMap::new())),
         blob_info: Mutex::new(HashMap::new()),
         online: Arc::new(Mutex::new(HashMap::new())),
@@ -373,6 +396,9 @@ impl Ctx {
             unlock: Mutex::new(unlock),
             limited: Mutex::new(limited),
         });
+        // Scheduled messages and automations are due whether or not the node runs, so the
+        // scheduler lives on the app runtime and holds the Ctx weakly (it ends with it).
+        tokio::spawn(crate::scheduler::run(Arc::downgrade(&ctx)));
         if open {
             ctx.finish_open().await;
         }
@@ -504,8 +530,8 @@ impl Ctx {
     /// Start the node (idempotent). Refuses before the Terms are accepted.
     pub async fn start_node(self: &Arc<Self>) -> Result<(), String> {
         let live = self.live().await?;
-        let mut slot = live.node.lock().await;
-        if slot.is_some() {
+        let _starting = live.starting.lock().await;
+        if live.node.lock().await.is_some() {
             return Ok(());
         }
         let legal = live.core.legal_status().map_err(|e| e.to_string())?;
@@ -545,16 +571,18 @@ impl Ctx {
             live.touched.clone(),
             events,
         ));
-        rt.spawn(crate::scheduler::run(self.clone()));
         rt.spawn(notify::run(live.core.clone(), live.mime.clone(), nrx));
+        // Stored before the joins so the node mutex is never held across a network await.
+        *live.node.lock().await = Some(NodeRt {
+            rt,
+            handle: handle.clone(),
+        });
         for sp in joined {
             if let Err(e) = handle.join_space(sp).await {
                 tracing::warn!("join space failed: {e}");
             }
         }
         tracing::info!("node started, peer id {}", handle.peer_id());
-        *slot = Some(NodeRt { rt, handle });
-        drop(slot);
         self.emit("node", json!({ "status": self.node_view().await }));
         Ok(())
     }
@@ -589,7 +617,18 @@ impl Ctx {
                 let _ =
                     tokio::task::spawn_blocking(move || n.rt.shutdown_timeout(STOP_GRACE)).await;
             }
-            drop(live);
+            // SQLite stays open while any task still holds the Core; swapping files under it
+            // would corrupt data, so wait for them, and put everything back if they linger.
+            if let Err(live) = release(live).await {
+                *guard = Some(live);
+                drop(guard);
+                if self.legal_accepted().await
+                    && let Err(e) = self.start_node().await
+                {
+                    tracing::error!("node did not restart: {e}");
+                }
+                return Err(BUSY_MSG.into());
+            }
         }
         let dir = self.dir.clone();
         let unlock = lock(&self.unlock).clone();
