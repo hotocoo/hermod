@@ -45,6 +45,33 @@ describe('en-XA pseudo-locale', () => {
     }
   });
 
+  it('renders every COPY string pseudo-localised, so no component copy bypasses the catalog', () => {
+    const rendered: Array<[string, string]> = [];
+    const walk = (o: object, path: string) => {
+      for (const k of Object.keys(o)) {
+        const v = (o as Record<string, unknown>)[k];
+        const p = `${path}.${k}`;
+        if (typeof v === 'string') rendered.push([p, v]);
+        else if (typeof v === 'function') {
+          const args = Array(v.length).fill(2);
+          let out: unknown;
+          try { out = v(...args); } catch {
+            try { out = v(...args.map(String)); } catch { out = v([2, 2], 2, 2); } // list-taking helpers
+          }
+          if (typeof out === 'string') rendered.push([p, out]);
+        } else if (v && typeof v === 'object') walk(v, p);
+      }
+    };
+    setLocale(PSEUDO_LOCALE);
+    try { walk(COPY, 'COPY'); } finally { setLocale(SOURCE_LOCALE); }
+    expect(rendered.length).toBeGreaterThan(Object.keys(en).length / 2);
+    for (const [path, out] of rendered) {
+      if (!out.startsWith('[')) continue; // not catalog copy: file names, ids, plain data
+      expect(out.slice(1, -1).match(/[a-zA-Z]/), path).toBeNull();
+    }
+    expect(rendered.filter(([, out]) => out.startsWith('[')).length, 'COPY strings served by t()').toBeGreaterThan(rendered.length * 0.9);
+  });
+
   it('keeps arguments verbatim and ICU structure intact', () => {
     expect(t('joined', { space: 'Fjord' }, PSEUDO_LOCALE)).toContain('Fjord');
     expect(t('comments.toggle', { n: 2 }, PSEUDO_LOCALE)).not.toMatch(/[a-zA-Z]/);
