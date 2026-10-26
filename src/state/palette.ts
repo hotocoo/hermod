@@ -1,5 +1,5 @@
 /** Command palette: item catalogue and ranking. `go` runs the action; callers close the palette. */
-import { LIMITS, PALETTE_JUMP_GROUP } from '../config/app';
+import { LIMITS, PALETTE_JUMP_GROUP, SEARCH_MIN_CHARS } from '../config/app';
 import { COPY } from '../config/copy';
 import { PALETTE_GROUPS as G } from '../config/ui';
 import type { Seed } from '../lib/data/types';
@@ -13,17 +13,25 @@ export interface PaletteItem { group: string; label: string; sub: string; icon: 
 
 const HIT_ICON: Record<SearchHit['kind'], string> = { message: 'chat', post: 'compass', note: 'feather', doc: 'doc', card: 'board', snap: 'line', event: 'calendar', ticket: 'list' };
 
-function hitItem(s: AppStore, seed: Seed, h: SearchHit): PaletteItem {
+export function hitItem(s: AppStore, seed: Seed, h: SearchHit): PaletteItem {
   const sp = spaceOf(s.spaces, h.space_id);
   return {
     group: G.matches, label: h.title || h.snippet, sub: `${sp.name} · ${personOf(seed, h.by).name} · ${h.snippet}`, icon: HIT_ICON[h.kind] ?? 'search',
-    go: () => {
-      if (h.kind === 'snap') s.openSnap(sp.id, h.id);
-      else if (h.kind === 'ticket') s.deskOpen(sp.id, h.id);
-      else if (h.channel_id) { if (h.kind === 'message') s.jumpToMessage(sp.id, h.channel_id, h.id); else s.goChannel(sp.id, h.channel_id); }
-      else s.goSpace(sp.id);
-    },
+    go: () => hitJump(s, sp.id, h),
   };
+}
+
+/** Opens the object a search hit points at: its section and selection, or the message in its channel. */
+export function hitJump(s: AppStore, sp: string, h: SearchHit): void {
+  if (h.kind === 'snap') { s.openSnap(sp, h.id); return; }
+  if (h.kind === 'ticket') { s.deskOpen(sp, h.id); return; }
+  if (h.kind === 'message' && h.channel_id) { s.jumpToMessage(sp, h.channel_id, h.id); return; }
+  if (h.channel_id) { s.goChannel(sp, h.channel_id); return; }
+  s.goSpace(sp);
+  if (h.kind === 'post') { s.goSection('feed'); s.setGalTab('feed'); return; }
+  if (h.kind === 'card') { s.goSection('board'); s.setShopTab('board'); return; }
+  if (h.kind === 'doc') { s.goSection('board'); s.setShopTab('docs'); s.selectDoc(h.id); return; }
+  if (h.kind === 'event') { s.goSection('board'); s.setShopTab('cal'); s.selectEvent(h.id); }
 }
 
 export function paletteItems(s: AppStore, seed: Seed): PaletteItem[] {
@@ -83,5 +91,6 @@ export function paletteResults(s: AppStore, seed: Seed): PaletteItem[] {
     return [...here, ...(room ? [room] : []), ...actions].map((x) => ({ ...x, group: PALETTE_JUMP_GROUP }));
   }
   const local = items.filter((i) => `${i.label} ${i.sub}`.toLowerCase().includes(q)).slice(0, LIMITS.paletteResults);
-  return [...local, ...s.hits.map((h) => hitItem(s, seed, h))];
+  const seeAll: PaletteItem[] = q.length >= SEARCH_MIN_CHARS ? [{ group: G.matches, label: COPY.paletteSeeAll, sub: s.q.trim(), icon: 'search', go: () => s.openModal({ kind: 'search' }) }] : [];
+  return [...local, ...s.hits.map((h) => hitItem(s, seed, h)), ...seeAll];
 }

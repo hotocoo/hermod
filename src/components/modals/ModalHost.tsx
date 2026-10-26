@@ -13,6 +13,7 @@ import { ForwardModal, GalleryModal, ScheduleModal } from './MessagingModals';
 import { NewSnapshotModal } from './NewSnapshotModal';
 import { NewSpaceModal } from './NewSpaceModal';
 import { PromptDialog } from './PromptDialog';
+import { SearchModal } from './SearchModal';
 import { ShortcutsModal } from './ShortcutsModal';
 import { SpaceSettingsModal } from './SpaceSettingsModal';
 
@@ -27,6 +28,7 @@ export function ModalHost() {
       {modal?.kind === 'spaceSettings' && <SpaceSettingsModal space={modal.space} />}
       {modal?.kind === 'appSettings' && <AppSettingsModal tab={modal.tab} />}
       {modal?.kind === 'shortcuts' && <ShortcutsModal />}
+      {modal?.kind === 'search' && <SearchModal />}
       {modal?.kind === 'about' && <AboutModal />}
       {modal?.kind === 'lightbox' && <LightboxModal blob={modal.blob} />}
       {modal?.kind === 'composePost' && <ComposePostModal />}

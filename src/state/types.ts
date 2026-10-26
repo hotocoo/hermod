@@ -1,5 +1,5 @@
 /** Store shape: one interface per slice (data + actions). AppStore is their intersection. */
-import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit } from '../lib/bridge/types';
+import type { BlobRef, IdentityInfo, LegalStatus, NodeStatus, Role, SearchHit, SearchKind } from '../lib/bridge/types';
 import type { Seed, Space, SectionId } from '../lib/data/types';
 import type { Theme, Palette } from '../lib/theme';
 import type { MotionMode } from '../lib/prefs';
@@ -190,10 +190,11 @@ export interface RavenSlice {
 }
 
 export interface OverlaySlice {
-  drawer: DrawerId | null; palette: boolean; q: string; pi: number; hits: SearchHit[]; toast: ToastState | null;
+  drawer: DrawerId | null; palette: boolean; q: string; pi: number; hits: SearchHit[]; searchSpace: string; searchKinds: SearchKind[]; toast: ToastState | null;
   profile: boolean; profEdit: boolean; prof: Profile | null; profTab: string; onb: number;
   toggleDrawer(id: DrawerId): void; closeDrawer(): void;
   openPalette(): void; closePalette(): void; togglePalette(): void; setQ(v: string): void; setPi(i: number): void;
+  setSearchSpace(id: string): void; toggleSearchKind(k: SearchKind): void;
   runResult(i: number): void;
   showToast(text: string, ms?: number, kind?: ToastState['kind']): void;
   stepOnb(n: number): void; replayWelcome(): void;
