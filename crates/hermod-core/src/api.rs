@@ -18,7 +18,7 @@ use crate::blobs::BlobStore;
 use crate::crypto::{SpaceKey, random_bytes};
 use crate::device;
 use crate::error::{Error, Result};
-use crate::event::{BlobRef, EventBody, KeyWrap, Role, SignedEvent};
+use crate::event::{BlobRef, EventBody, KeyWrap, Role, SignedEvent, SnapFileIn};
 use crate::growth::GrowthConfig;
 use crate::identity::{self, Identity};
 use crate::ids::{SpaceId, UserId, hex_encode};
@@ -31,6 +31,7 @@ use crate::projections::{
 };
 use crate::ratelimit::RateConfig;
 use crate::search::SearchHit;
+use crate::snapdir::{self, SnapPlan};
 use crate::store::{Ingested, Source, SpaceRow, Store};
 
 pub use crate::projections::AuditEntry;
@@ -1319,30 +1320,54 @@ impl Core {
 
     // ---- skein seals ----
 
-    /// Checks that every blob a snap references is present and hashes correctly (K-002, K-009).
-    pub fn snap_verify(&self, space: &SpaceId, snap_id: &str) -> Result<SnapVerify> {
+    /// The files of a snap, or `None` when no such snap exists.
+    pub fn snap_files(&self, space: &SpaceId, snap_id: &str) -> Result<Option<Vec<SnapFileIn>>> {
         let inner = self.lock();
         let row = inner.row(space)?;
-        let mut files = Vec::new();
-        for ev in inner.store.load_opened(&row)? {
-            if let EventBody::SnapCreate {
-                snap_id: id,
-                files: f,
-                ..
-            } = ev.body
-                && id == snap_id
-            {
-                files = f;
-                break;
-            }
-        }
-        if files.is_empty()
-            && !inner.store.load_opened(&row)?.iter().any(
-                |e| matches!(&e.body, EventBody::SnapCreate { snap_id: id, .. } if id == snap_id),
-            )
-        {
-            return Err(Error::NotFound(format!("snap {snap_id}")));
-        }
+        Ok(inner
+            .store
+            .load_opened(&row)?
+            .into_iter()
+            .find_map(|ev| match ev.body {
+                EventBody::SnapCreate {
+                    snap_id: id, files, ..
+                } if id == snap_id => Some(files),
+                _ => None,
+            }))
+    }
+
+    /// Hashes a picked folder into blobs and plans it against its parent snap (K-003).
+    /// A parent that is not a file snap (a weave, or none) counts as empty.
+    pub fn snap_plan_folder(
+        &self,
+        space: &SpaceId,
+        root: &Path,
+        parent: Option<&str>,
+    ) -> Result<SnapPlan> {
+        let before = match parent {
+            Some(p) => self.snap_files(space, p)?.unwrap_or_default(),
+            None => Vec::new(),
+        };
+        let new = snapdir::walk_folder(root)?
+            .into_iter()
+            .map(|(rel, abs)| Ok((rel, self.blob_put_path(&abs)?)))
+            .collect::<Result<Vec<_>>>()?;
+        snapdir::plan(&self.blobs, &before, new)
+    }
+
+    /// Writes a snap's files into a new or empty folder (K-010); returns the file count.
+    pub fn snap_export(&self, space: &SpaceId, snap_id: &str, dest: &Path) -> Result<u32> {
+        let files = self
+            .snap_files(space, snap_id)?
+            .ok_or_else(|| Error::NotFound(format!("snap {snap_id}")))?;
+        snapdir::export(&self.blobs, &files, dest)
+    }
+
+    /// Checks that every blob a snap references is present and hashes correctly (K-002, K-009).
+    pub fn snap_verify(&self, space: &SpaceId, snap_id: &str) -> Result<SnapVerify> {
+        let files = self
+            .snap_files(space, snap_id)?
+            .ok_or_else(|| Error::NotFound(format!("snap {snap_id}")))?;
         let mut out = SnapVerify {
             ok: true,
             missing: Vec::new(),

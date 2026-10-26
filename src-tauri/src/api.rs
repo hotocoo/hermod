@@ -11,6 +11,7 @@ use std::time::Duration;
 use hermod_core::api::InviteOptions;
 use hermod_core::event::Role;
 use hermod_core::ids::{self, SpaceId, UserId};
+use hermod_core::textdiff;
 use hermod_core::{BlobRef, Core, EventBody, ProfileInput, SignedEvent};
 use serde_json::{Value, json};
 
@@ -415,6 +416,86 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                 }
             })
         }
+        "pick_folder" => {
+            let shell = ctx
+                .shell
+                .clone()
+                .ok_or("folder picking is only available in the desktop app")?;
+            let picked = tokio::task::spawn_blocking(move || shell.pick_folder())
+                .await
+                .map_err(e)??;
+            Ok(match picked {
+                None => Value::Null,
+                Some(p) => {
+                    let s = p.to_string_lossy().into_owned();
+                    ctx.allow_path(p);
+                    json!(s)
+                }
+            })
+        }
+        "snap_scan_folder" => {
+            let (id, _) = space_of(&live, a).await?;
+            let path = PathBuf::from(str_arg(a, "path")?);
+            if !ctx.path_allowed(&path) {
+                return Err("choose the folder with the folder picker first".into());
+            }
+            let parent = opt_str(a, "parent");
+            // Line counts diff against the parent's text files, so hold those locally first.
+            if let Some(p) = parent.clone() {
+                let sid = id;
+                let before = blk(&live, move |c| c.snap_files(&sid, &p).map_err(e)).await?;
+                let small = before
+                    .iter()
+                    .flatten()
+                    .filter_map(|f| f.blob.as_ref())
+                    .filter(|b| b.size <= textdiff::MAX_DIFF_BYTES);
+                for b in small {
+                    blob::ensure_local(ctx, &b.hash).await?;
+                }
+            }
+            let plan = blk(&live, move |c| {
+                c.snap_plan_folder(&id, &path, parent.as_deref()).map_err(e)
+            })
+            .await?;
+            live.remember_blobs(plan.files.iter().filter_map(|f| f.blob.as_ref()));
+            Ok(
+                json!({ "files": plan.files, "added": plan.added, "removed": plan.removed, "changed": plan.changed }),
+            )
+        }
+        "snap_verify" => {
+            let (id, _) = space_of(&live, a).await?;
+            let snap = str_arg(a, "snapId")?;
+            let v = blk(&live, move |c| c.snap_verify(&id, &snap).map_err(e)).await?;
+            to_json(v)
+        }
+        "snap_export" => {
+            let (id, _) = space_of(&live, a).await?;
+            let snap = str_arg(a, "snapId")?;
+            let shell = ctx
+                .shell
+                .clone()
+                .ok_or("saving is only available in the desktop app")?;
+            let (sid, sn) = (id, snap.clone());
+            let files = blk(&live, move |c| {
+                c.snap_files(&sid, &sn)
+                    .map_err(e)?
+                    .ok_or_else(|| "snapshot not found".to_string())
+            })
+            .await?;
+            let suggested = clean_name(&snap);
+            let Some(dest) = tokio::task::spawn_blocking(move || shell.save_dialog(&suggested))
+                .await
+                .map_err(e)??
+            else {
+                return Ok(Value::Null);
+            };
+            for b in files.iter().filter_map(|f| f.blob.as_ref()) {
+                blob::ensure_local(ctx, &b.hash).await?;
+            }
+            let d = dest.clone();
+            let n = blk(&live, move |c| c.snap_export(&id, &snap, &d).map_err(e)).await?;
+            Ok(json!({ "path": dest.to_string_lossy(), "files": n }))
+        }
         "blob_save_as" => {
             let hash = str_arg(a, "hash")?;
             let suggested =
@@ -433,6 +514,20 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
             let d = dest.clone();
             blk(&live, move |c| write_blob(c, &hash, &d)).await?;
             Ok(json!(dest.to_string_lossy()))
+        }
+        "diff_blobs" => {
+            let (from, to) = (opt_str(a, "from"), opt_str(a, "to"));
+            for h in from.iter().chain(to.iter()) {
+                if !blob::is_hash(h) {
+                    return Err("invalid blob hash".into());
+                }
+                blob::ensure_local(ctx, h).await?;
+            }
+            let d = blk(&live, move |c| {
+                textdiff::diff_blobs(c.blobs(), from.as_deref(), to.as_deref()).map_err(e)
+            })
+            .await?;
+            serde_json::to_value(d).map_err(e)
         }
         "save_file" => save_bytes(ctx, a, bytes_arg(a, "bytes")?).await,
 

@@ -1,5 +1,5 @@
 import type {
-  AuditRow, BlobRef, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, KeyMode, InviteOptions,
+  AuditRow, BlobDiff, BlobRef, SnapExported, SnapPlan, SnapVerify, BlockedUser, BridgeEventName, BridgeEvents, DeviceInfo, DeviceLink, EventBody, IdentityInfo, KeyMode, InviteOptions,
   InviteOut, InviteRecord, LegalStatus, Member, NodeSettings, NodeSettingsView, NodeStatus, NotifySettings, OutboxStatus,
   PickOptions, ProfileInput, RetentionSetting, Role, SearchHit, SearchOptions, SpaceExportResult, SpaceSummary, StorageUsage, UpdateInfo,
 } from './types';
@@ -44,7 +44,17 @@ export interface Bridge {
   /** Native file picker (Tauri only); resolves to paths for `blobPut`, or null when cancelled. */
   pickFiles(opts?: PickOptions): Promise<string[] | null>;
   blobSaveAs(hash: string, suggestedName: string): Promise<string | null>;
+  /** Line hunks between two stored blobs; a null side is an empty file (added or removed). */
+  diffBlobs(from: string | null, to: string | null): Promise<BlobDiff>;
   saveFile(suggestedName: string, bytes: Uint8Array): Promise<string | null>;
+  /** Native folder picker (Tauri only); resolves to the folder path for `snapScanFolder`, or null when cancelled. */
+  pickFolder(): Promise<string | null>;
+  /** Hashes a picked folder into blobs and counts adds/dels/changes against the parent snapshot (K-003). */
+  snapScanFolder(spaceId: string, path: string, parent?: string): Promise<SnapPlan>;
+  /** Re-hashes the snapshot's stored files (K-002, K-009). */
+  snapVerify(spaceId: string, snapId: string): Promise<SnapVerify>;
+  /** Writes every file of the snapshot into a new folder chosen by the user; null when cancelled (K-010). */
+  snapExport(spaceId: string, snapId: string): Promise<SnapExported | null>;
 
   nodeStatus(): Promise<NodeStatus>;
   nodeSettingsGet(): Promise<NodeSettingsView>;
@@ -166,6 +176,11 @@ export function createBridge(t: Transport): Bridge {
     blobPutBytes: (name, bytes) => bytesCall('blob_put_bytes', { name }, bytes),
     pickFiles: (opts = {}) => call('pick_files', { multiple: !!opts.multiple, accept: opts.accept ?? [] }),
     blobSaveAs: (hash, suggestedName) => call('blob_save_as', { hash, suggestedName }),
+    diffBlobs: (from, to) => call('diff_blobs', { from, to }),
+    pickFolder: () => call('pick_folder'),
+    snapScanFolder: (spaceId, path, parent) => call('snap_scan_folder', { spaceId, path, parent: parent ?? null }),
+    snapVerify: (spaceId, snapId) => call('snap_verify', { spaceId, snapId }),
+    snapExport: (spaceId, snapId) => call('snap_export', { spaceId, snapId }),
     saveFile: (suggestedName, bytes) => bytesCall('save_file', { suggestedName }, bytes),
     nodeStatus: () => call('node_status'),
     nodeSettingsGet: () => call('node_settings_get'),

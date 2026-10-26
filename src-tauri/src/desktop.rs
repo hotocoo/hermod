@@ -86,6 +86,15 @@ impl Shell for TauriShell {
             .transpose()
     }
 
+    fn pick_folder(&self) -> Result<Option<PathBuf>, String> {
+        self.0
+            .dialog()
+            .file()
+            .blocking_pick_folder()
+            .map(|f| f.into_path().map_err(|e| e.to_string()))
+            .transpose()
+    }
+
     fn save_dialog(&self, suggested: &str) -> Result<Option<PathBuf>, String> {
         self.0
             .dialog()

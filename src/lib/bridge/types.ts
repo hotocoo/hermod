@@ -4,6 +4,10 @@
  */
 
 export interface BlobRef { hash: string; size: number; name: string; mime: string }
+/** `diff_blobs` result: line hunks (1-based starts, row `t` is '+', '-' or ' '), or why there are none. */
+export interface DiffRow { t: string; s: string }
+export interface DiffHunk { old_start: number; new_start: number; rows: DiffRow[] }
+export type BlobDiff = { state: 'text'; hunks: DiffHunk[] } | { state: 'binary' } | { state: 'too_large' };
 
 export type Role = 'owner' | 'admin' | 'member' | 'guest';
 export type SpaceKind = 'Team' | 'Community' | 'Friends';
@@ -90,6 +94,12 @@ export interface AgendaItemIn { text: string; who: string }
 export interface ColumnIn { col_id: string; name: string }
 export interface DocBlockIn { k: 'h' | 'p' | 'q' | 't'; text: string; done?: boolean }
 export interface SnapFileIn { path: string; blob?: BlobRef; adds: number; dels: number }
+/** `snap_verify` result: files whose blob is not fully local, and files whose stored bytes no longer match their hash. */
+export interface SnapVerify { ok: boolean; missing: string[]; corrupt: string[] }
+/** `snap_scan_folder` result: the files for `snap.create` (removed files carry no blob) and the change counts against the parent. */
+export interface SnapPlan { files: SnapFileIn[]; added: number; removed: number; changed: number }
+/** `snap_export` result: the folder written and how many files it holds. */
+export interface SnapExported { path: string; files: number }
 export type DocOp = 'insert' | 'update' | 'delete' | 'toggle';
 
 export type EventBody =

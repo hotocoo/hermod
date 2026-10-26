@@ -1013,6 +1013,74 @@ fn snap_seal_covers_files_and_verification_flags_missing_blobs() {
 }
 
 #[test]
+fn snap_verify_flags_a_tampered_blob_and_export_and_folder_plan_work() {
+    let (d, c) = core();
+    let s = c.space_create("Tamper", "", "Team").unwrap().id;
+    let folder = tempfile::tempdir().unwrap();
+    std::fs::write(folder.path().join("a.txt"), b"one\ntwo\n").unwrap();
+    std::fs::write(folder.path().join(".secret"), b"hidden").unwrap();
+    let plan = c.snap_plan_folder(&s, folder.path(), None).unwrap();
+    assert_eq!((plan.added, plan.removed, plan.changed), (1, 0, 0));
+    let mk = |id: &str, files: Vec<hermod_core::event::SnapFileIn>, parent: Option<&str>| {
+        c.append(
+            &s,
+            EventBody::SnapCreate {
+                snap_id: id.into(),
+                line_id: "main".into(),
+                title: id.into(),
+                kind: "Files".into(),
+                files,
+                parent: parent.map(String::from),
+            },
+        )
+        .unwrap()
+    };
+    mk("s1", plan.files, None);
+    // Edit one line and add a file: the second plan counts both against s1.
+    std::fs::write(folder.path().join("a.txt"), b"one\n2\n").unwrap();
+    std::fs::write(folder.path().join("b.txt"), b"x\n").unwrap();
+    let p2 = c.snap_plan_folder(&s, folder.path(), Some("s1")).unwrap();
+    assert_eq!((p2.added, p2.removed, p2.changed), (1, 0, 1));
+    let a = p2.files.iter().find(|f| f.path == "a.txt").unwrap();
+    assert_eq!((a.adds, a.dels), (1, 1));
+    let out = tempfile::tempdir().unwrap().keep().join("copy");
+    assert_eq!(c.snap_export(&s, "s1", &out).unwrap(), 1);
+    assert_eq!(std::fs::read(out.join("a.txt")).unwrap(), b"one\ntwo\n");
+    assert!(
+        c.snap_export(&s, "s1", &out).is_err(),
+        "non-empty target refused"
+    );
+    assert!(c.snap_verify(&s, "s1").unwrap().ok);
+    // Flip the stored bytes of the one chunk: the seal check must flag the file.
+    let blob = chunk_holding(d.path(), b"one\ntwo\n");
+    std::fs::write(&blob, b"tampered").unwrap();
+    let bad = c.snap_verify(&s, "s1").unwrap();
+    assert!(
+        !bad.ok && bad.corrupt == vec!["a.txt".to_string()],
+        "{bad:?}"
+    );
+}
+
+/// The stored chunk file under a store dir whose bytes equal `data`.
+fn chunk_holding(dir: &std::path::Path, data: &[u8]) -> std::path::PathBuf {
+    fn walk(p: &std::path::Path, out: &mut Vec<std::path::PathBuf>) {
+        for e in std::fs::read_dir(p).unwrap() {
+            let p = e.unwrap().path();
+            if p.is_dir() {
+                walk(&p, out);
+            } else {
+                out.push(p);
+            }
+        }
+    }
+    let mut v = Vec::new();
+    walk(&dir.join("blobs/chunks"), &mut v);
+    v.into_iter()
+        .find(|p| std::fs::read(p).unwrap() == data)
+        .expect("chunk on disk")
+}
+
+#[test]
 fn map_style_folds_validates_and_clears() {
     let upd = |m: Option<&str>| EventBody::SpaceUpdate {
         name: None,

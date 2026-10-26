@@ -66,6 +66,8 @@
 .lnNum{text-align:right;padding-right:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:color-mix(in srgb,var(--color-text) 38%,transparent)}
 .lnMark{font-family:ui-monospace,Menlo,monospace}
 .lnText{white-space:pre-wrap}
+.hunkHead{padding:3px 14px;font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent);background:color-mix(in srgb,var(--color-text) 4%,transparent)}
+.diffNote{display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:13px;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
 .audio{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:16px}
 .audioLabel{font-size:11px;margin-bottom:6px;color:color-mix(in srgb,var(--color-text) 55%,transparent)}
 .audioAfterLabel{color:var(--color-accent-700)}
@@ -81,3 +83,7 @@
 .freshLine{max-width:440px;margin:0 auto 18px;font-size:14px;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
 .modalFiles{margin:0;padding:0;list-style:none;font-size:13px}
 .modalFiles li{padding:4px 0;border-bottom:1px solid var(--color-divider)}
+.sealOk{color:var(--color-accent-700,inherit);font-size:12px}
+.sealWarn{color:#a2352b;font-size:12px;font-weight:600}
+.sealNote{margin:8px 0 0;font-size:12px;color:color-mix(in srgb,var(--color-text) 66%,transparent)}
+.exportRow{display:flex;align-items:center;gap:10px;margin-top:12px}

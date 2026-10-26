@@ -2,7 +2,8 @@
 import { useState, type FormEvent } from 'react';
 import { Dialog } from '@/components/ui/Dialog';
 import f from '@/components/ui/form.module.css';
-import { errorMessage } from '@/lib/bridge';
+import { COPY } from '@/config/copy';
+import { errorMessage, getBridge, type SnapPlan } from '@/lib/bridge';
 import { humanSize, pickAndStore, type Stored } from '@/lib/upload';
 import { appendEvent, uid } from '@/state/act';
 import { useAppStore } from '@/state/store';
@@ -25,18 +26,33 @@ export function NewSnapshotModal() {
   const [title, setTitle] = useState('');
   const lines = sk?.lines ?? [{ id: MAIN, name: MAIN, note: '', ahead: 0 }];
   const [line, setLine] = useState(curLine && curLine !== 'all' ? curLine : lines[0].id);
+  const [plan, setPlan] = useState<SnapPlan | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const ok = !!title.trim() && files.length > 0 && !busy;
+  const ok = !!title.trim() && (files.length > 0 || !!plan) && !busy;
 
+  /** Newest file snapshot on the line; a weave holds no files to compare against. */
+  const parentOf = (l: string) => sk?.snaps.find((q) => q.line === l && !q.weaveOf)?.id;
   const pick = async () => {
-    try { const got = await pickAndStore('*/*', true); setFiles((x) => [...x, ...got]); } catch (e) { setErr(errorMessage(e)); }
+    try { const got = await pickAndStore('*/*', true); setPlan(null); setFiles((x) => [...x, ...got]); } catch (e) { setErr(errorMessage(e)); }
+  };
+  const pickFolder = async () => {
+    setErr('');
+    try {
+      const b = getBridge();
+      const path = await b.pickFolder();
+      if (!path) return;
+      setBusy(true);
+      setPlan(await b.snapScanFolder(space, path, parentOf(line)));
+      setFiles([]);
+    } catch (e) { setErr(errorMessage(e)); }
+    setBusy(false);
   };
   const submit = async (e: FormEvent) => {
     e.preventDefault(); if (!ok) return;
     setBusy(true);
-    const parent = sk?.snaps.find((q) => q.line === line)?.id;
-    const out = await Promise.all(files.map(async (st) => ({ path: st.blob.name, blob: st.blob, adds: await textLines(st), dels: 0 })));
+    const parent = parentOf(line);
+    const out = plan ? plan.files : await Promise.all(files.map(async (st) => ({ path: st.blob.name, blob: st.blob, adds: await textLines(st), dels: 0 })));
     const done = await appendEvent(useAppStore.getState, space, { t: 'snap.create', snap_id: uid('s'), line_id: line, title: title.trim(), kind: 'Files', files: out, parent });
     setBusy(false);
     if (done) close();
@@ -56,8 +72,12 @@ export function NewSnapshotModal() {
         </div>
         <div className={f.field}>
           <span className={f.label}>Files (required)</span>
-          <ul className={s.modalFiles}>{files.map((x) => <li key={x.blob.hash}>{x.blob.name} · {humanSize(x.blob.size)}</li>)}</ul>
-          <div><button type="button" className="btn btn-secondary" onClick={() => { void pick(); }}>Choose files</button></div>
+          <ul className={s.modalFiles}>{files.map((x) => <li key={x.blob.hash}>{x.blob.name} · {humanSize(x.blob.size)}</li>)}{(plan?.files ?? []).map((x) => <li key={x.path}>{x.path} · +{x.adds} / −{x.dels}</li>)}</ul>
+          {plan && <p className={s.sealNote}>{COPY.snapFolder.summary(plan.added, plan.removed, plan.changed)}</p>}
+          <div>
+            <button type="button" className="btn btn-secondary" onClick={() => { void pick(); }}>Choose files</button>
+            {getBridge().kind === 'tauri' && <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => { void pickFolder(); }}>{COPY.snapFolder.choose}</button>}
+          </div>
         </div>
         {err && <p role="alert" className={f.error}>{err}</p>}
         <div className={f.actions}>
