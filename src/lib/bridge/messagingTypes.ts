@@ -25,7 +25,9 @@ export interface ChannelSettingsIn {
 export interface MsgView {
   lp: number; quote?: QuoteRef; fwd?: Forward; kind?: MsgKind; voice?: VoiceMeta; sticker?: string; poll?: string;
   viewOnce?: boolean; opened?: string[]; viewed?: boolean; expires?: number; title?: string; tags?: string[]; seenBy?: string[];
-  everyone?: boolean; here?: boolean; auto?: AutoRef; threadState?: 'open' | 'archived';
+  everyone?: boolean; here?: boolean; admins?: boolean; owners?: boolean;
+  /** A group mention (@everyone, @here, @admins, @owners) that reaches me, resolved by the core from my role. */
+  pingsMe?: boolean; auto?: AutoRef; threadState?: 'open' | 'archived';
   preview?: { url: string; title: string; description: string; image?: BlobRef };
 }
 export interface ChannelCfgView {

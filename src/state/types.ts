@@ -114,6 +114,8 @@ export interface ChatSlice {
   react(key: string, mid: string, l: string): Promise<void>;
   startEdit(id: string, text: string): void; setEditDraft(v: string): void; saveEdit(): Promise<void>; cancelEdit(): void;
   deleteMessage(id: string): Promise<void>;
+  /** E-006: ask for a reason, then send `content.report` for a message or post. */
+  reportContent(id: string, space: string): Promise<void>;
   attachFiles(files: File[]): Promise<void>; attachNative(): Promise<void>; detach(hash: string): void;
   newChannel(): Promise<void>;
   toggleThread(id: string): void; closeThread(): void;

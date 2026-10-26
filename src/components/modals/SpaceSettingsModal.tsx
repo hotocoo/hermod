@@ -1,9 +1,11 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { errorMessage, getBridge, type AuditRow, type Member, type Role } from '@/lib/bridge';
+import { COPY } from '@/config/copy';
+import { exportRows, toCsv, toJson } from '@/lib/auditExport';
+import { errorMessage, getBridge, type AuditRow, type Member, type ReportRow, type Role } from '@/lib/bridge';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
-import { nicksIn, profilesIn } from '@/state/selectors';
+import { displayName, nicksIn, profilesIn } from '@/state/selectors';
 import { lastSeenLabel, statusOf } from '@/state/presence';
 import { useAppStore } from '@/state/store';
 import { PresenceDot } from '@/components/ui/PresenceDot';
@@ -146,6 +148,23 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
   const toast = useAppStore((s) => s.showToast);
   const [rows, setRows] = useState<AuditRow[] | null>(null);
   const [days, setDays] = useState('');
+  const seed = useAppStore((s) => s.seed);
+  const confirm = useAppStore((s) => s.confirmAction);
+  const nameOf = (id: string) => (seed ? displayName(seed, space, id) : id.slice(0, 8));
+  const [reports, setReports] = useState<ReportRow[] | null>(null);
+  const loadReports = useCallback(() => { getBridge().reportsList(space).then(setReports).catch((e) => { setReports([]); toast(errorMessage(e), undefined, 'error'); }); }, [space, toast]);
+  useEffect(() => { if (admin) loadReports(); }, [admin, loadReports]);
+  const removeReported = async (r: ReportRow) => {
+    if (!await confirm({ ...COPY.report.removeConfirm, danger: true })) return;
+    if (await appendEvent(useAppStore.getState, space, { t: 'content.remove', target_id: r.target, reason: r.reason || undefined })) loadReports();
+  };
+  const save = async (kind: 'csv' | 'json') => {
+    const data = exportRows(rows ?? [], nameOf);
+    try {
+      const saved = await getBridge().saveFile(COPY.audit.fileName(kind), new TextEncoder().encode(kind === 'csv' ? toCsv(data) : toJson(data)));
+      if (saved) toast(COPY.audit.exported);
+    } catch (e) { toast(errorMessage(e), undefined, 'error'); }
+  };
   useEffect(() => { if (admin) getBridge().auditList(space).then(setRows).catch((e) => { setRows([]); toast(errorMessage(e), undefined, 'error'); }); }, [admin, space, toast]);
   const setRetention = async (v: string) => {
     setDays(v);
@@ -162,11 +181,23 @@ function Safety({ space, admin }: { space: string; admin: boolean }) {
       </div>
       {admin && (
         <div className={f.scroll}>
+          <h3 style={{ fontSize: 18 }}>{COPY.report.queue}</h3>
+          {!reports ? <p className={f.note}>Loading…</p> : reports.length === 0 ? <p className={f.note}>{COPY.report.queueEmpty}</p> : (
+            <table className={f.table}>
+              <thead><tr><th scope="col">When</th><th scope="col">Reported by</th><th scope="col">Reason</th><th scope="col">Action</th></tr></thead>
+              <tbody>{reports.map((r) => <tr key={r.id}><td>{new Date(r.ts).toLocaleString()}</td><td>{nameOf(r.by)}</td><td>{r.reason || COPY.report.noReason}</td><td><button type="button" className="btn btn-secondary" aria-label={COPY.report.removeLabel(nameOf(r.by))} onClick={() => { void removeReported(r); }}>Remove content</button></td></tr>)}</tbody>
+            </table>
+          )}
           <h3 style={{ fontSize: 18 }}>Audit log</h3>
+          <div>
+            <span className={f.note}>{COPY.audit.export}: </span>
+            <button type="button" className="btn btn-secondary" disabled={!rows?.length} aria-label={COPY.audit.exportLabel(COPY.audit.csv)} onClick={() => { void save('csv'); }}>{COPY.audit.csv}</button>{' '}
+            <button type="button" className="btn btn-secondary" disabled={!rows?.length} aria-label={COPY.audit.exportLabel(COPY.audit.json)} onClick={() => { void save('json'); }}>{COPY.audit.json}</button>
+          </div>
           {!rows ? <p className={f.note}>Loading…</p> : rows.length === 0 ? <p className={f.note}>Nothing recorded yet.</p> : (
             <table className={f.table}>
               <thead><tr><th scope="col">When</th><th scope="col">What</th><th scope="col">By</th></tr></thead>
-              <tbody>{rows.map((r, i) => <tr key={i}><td>{new Date(r.ts).toLocaleString()}</td><td>{r.kind}{r.detail ? `: ${r.detail}` : ''}</td><td>{r.by.slice(0, 8)}</td></tr>)}</tbody>
+              <tbody>{rows.map((r, i) => <tr key={i}><td>{new Date(r.ts).toLocaleString()}</td><td>{r.kind}{r.detail ? `: ${r.detail}` : ''}</td><td>{nameOf(r.by)}</td></tr>)}</tbody>
             </table>
           )}
         </div>

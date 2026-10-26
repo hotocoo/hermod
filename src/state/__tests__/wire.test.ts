@@ -38,6 +38,15 @@ describe('wired actions send the field names the core expects', () => {
     expect(eventAppend).toHaveBeenCalledWith(SPACE, { t: 'post.delete', post_id: 'p1' });
   });
 
+  it('content.report carries target_id and the typed reason; an empty reason is omitted', async () => {
+    useAppStore.setState({ ask: async () => ({ reason: '  spam  ' }) });
+    await useAppStore.getState().reportContent('p1', SPACE);
+    expect(eventAppend).toHaveBeenCalledWith(SPACE, { t: 'content.report', target_id: 'p1', reason: 'spam' });
+    useAppStore.setState({ ask: async () => ({ reason: ' ' }) });
+    await useAppStore.getState().reportContent('p1', SPACE);
+    expect(eventAppend).toHaveBeenLastCalledWith(SPACE, { t: 'content.report', target_id: 'p1', reason: undefined });
+  });
+
   it('event.cancel carries ev_id', async () => {
     await useAppStore.getState().cancelEvent();
     expect(eventAppend).toHaveBeenCalledWith(SPACE, { t: 'event.cancel', ev_id: 'e1' });

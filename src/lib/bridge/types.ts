@@ -50,6 +50,8 @@ export interface SearchHit { kind: SearchKind; space_id: string; channel_id?: st
 export interface SearchOptions { space?: string; kinds?: SearchKind[]; limit?: number }
 
 export interface StorageUsage { total_bytes: number; cache_for_others_bytes: number; per_space: { space_id: string; name: string; bytes: number }[] }
+/** E-006: one content report, visible to admins only. */
+export interface ReportRow { id: string; ts: number; space_id: string; by: string; target: string; reason: string }
 export interface AuditRow { ts: number; space_id: string; kind: string; by: string; subject?: string; detail?: string }
 export interface OutboxStatus { pending: number; peers: number }
 export interface NotifySettings {

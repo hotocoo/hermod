@@ -613,3 +613,26 @@ test('the palette Explore group jumps to a channel in another Space (M-046)', as
   await input.press('Enter');
   await expect(a.getByLabel('Message', { exact: true })).toHaveAttribute('placeholder', 'Write to #general', { timeout: 30_000 });
 });
+
+// E-006 / E-008: a member reports a message; the admin sees it in the Safety queue, and the audit log names people.
+test('a reported message reaches the admin queue and the audit log names its authors (E-006, E-008)', async () => {
+  test.setTimeout(420_000);
+  for (const p of [a, b]) {
+    await p.getByRole('navigation', { name: 'Spaces' }).getByRole('button', { name: space }).click();
+    await expect(async () => { await enterSection(p, 'chat'); }).toPass({ timeout: 90_000 });
+  }
+  const text = unique('report me');
+  const reason = unique('rude');
+  await say(a, text);
+  await expect(msg(b, text).first()).toBeVisible({ timeout: 45_000 });
+  await act(b, text, 'Report to admins');
+  const ask = b.getByRole('dialog');
+  await ask.getByLabel('What is wrong with it?').fill(reason);
+  await ask.getByRole('button', { name: 'Send report' }).click();
+  const sd = await openSpaceSettings(a, 'Safety');
+  await expect(sd.getByRole('row', { name: new RegExp(reason) })).toBeVisible({ timeout: 45_000 });
+  await expect(sd.getByRole('button', { name: 'Export audit log as CSV' })).toBeEnabled();
+  await expect(sd.getByRole('button', { name: 'Export audit log as JSON' })).toBeEnabled();
+  await expect(sd.getByRole('row').filter({ hasText: /Ada Tester|Bea/ }).first()).toBeVisible();
+  await sd.getByRole('button', { name: 'Close' }).click();
+});

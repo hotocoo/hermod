@@ -19,7 +19,7 @@ export function diffArrivals(prev: Seed, next: Seed, me: string, blocked: Record
       if (seen.has(m.id) || blocked[m.by]) continue;
       // R-006: a scheduled send goes out on its own, so it flies a raven even though it is mine.
       if ((m.by === me || m.by === SYSTEM_ID) && !mine?.has(m.id)) continue;
-      out.push({ kind: 'message', by: m.by, sp, ch, text: m.text, id: m.id, mentionsMe: !!myName && m.text.includes(`@${myName}`) });
+      out.push({ kind: 'message', by: m.by, sp, ch, text: m.text, id: m.id, mentionsMe: !!m.ext?.pingsMe || (!!myName && m.text.includes(`@${myName}`)) });
     }
   }
   const lb = coll(prev, 'letters'); const la = coll(next, 'letters');

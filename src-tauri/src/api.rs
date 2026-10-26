@@ -541,6 +541,15 @@ async fn dispatch(ctx: &Arc<Ctx>, name: &str, a: &Value) -> Res<Value> {
                     .collect(),
             ))
         }
+        "reports_list" => {
+            let (id, label) = space_of(&live, a).await?;
+            let rows = blk(&live, move |c| c.reports_list(&id).map_err(e)).await?;
+            Ok(Value::Array(
+                rows.into_iter()
+                    .map(|r| json!({ "id": r.id, "ts": r.ts, "space_id": label, "by": r.by, "target": r.target, "reason": r.reason }))
+                    .collect(),
+            ))
+        }
         "log_tail" => {
             let n = opt_u64(a, "lines")
                 .unwrap_or(200)
