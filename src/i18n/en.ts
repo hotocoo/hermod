@@ -213,7 +213,6 @@ export const en = {
   'licensesUnavailable': 'The license list is not available in this build.',
   'licensesSummary': '{crates} Rust crates and {npm} npm packages',
   'removeMessage': 'Remove message (admin)',
-  'joinNoDirectory': 'Hermod has no search for Spaces. Ask someone for an invite.',
   'powTitle': 'Join proof of work',
   'powNote': 'New members spend a moment of computer time before their join request is accepted, which slows join spam. Applies to invites made after you change it. Pick Off to skip it.',
   'powLabel': 'Work required to join',

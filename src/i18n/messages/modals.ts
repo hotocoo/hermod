@@ -165,7 +165,7 @@ export const modalsMessages = {
   'ui.modals.newSnapshotModalText.cancel': 'Cancel',
   'ui.modals.newSnapshotModalText.saving': 'Saving…',
   'ui.modals.newSnapshotModalText.takeSnapshot': 'Take snapshot',
-  'ui.modals.promptDialogText.required': '(required)',
+  'ui.modals.promptDialogText.required': ' (required)',
   'ui.modals.promptDialogText.cancel': 'Cancel',
   'ui.modals.shortcutsModalText.keyboardShortcuts': 'Keyboard shortcuts',
   'ui.modals.shortcutsModalText.keys': 'Keys',

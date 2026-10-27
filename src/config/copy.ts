@@ -242,7 +242,6 @@ export const COPY = {
   get licensesUnavailable() { return t('licensesUnavailable'); },
   licensesSummary: (crates: number, npm: number) => t('licensesSummary', { crates, npm }),
   get removeMessage() { return t('removeMessage'); },
-  get joinNoDirectory() { return t('joinNoDirectory'); },
   get powTitle() { return t('powTitle'); },
   get powNote() { return t('powNote'); },
   get powLabel() { return t('powLabel'); },

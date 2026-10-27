@@ -91,7 +91,7 @@ export const shellMessages = {
   'ui.shell.gate.space.kindFriends': 'Friends',
   'ui.shell.gate.space.create': 'Create Space',
   'ui.shell.gate.space.inviteField': 'Invite link or code',
-  'ui.shell.gate.space.noDirectory': 'Hermod has no public directory. A Space can only be joined with an invite from one of its members.',
+  'ui.shell.gate.space.noDirectory': 'Hermod has no search for Spaces. Ask someone for an invite.',
   'ui.shell.gate.terms.kicker': 'Before you start',
   'ui.shell.gate.terms.title': 'Terms, privacy and sharing',
   'ui.shell.gate.terms.lead': 'Hermod has no company server. Your install is also a small peer that helps other people connect. Please read both texts, then agree below.',
