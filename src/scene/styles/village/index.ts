@@ -17,6 +17,7 @@ import { ImpostorBank, IMPOSTOR_FADE, IMPOSTOR_FROM, impostorSwitch } from '../s
 import { InstancedBank, loadGlb, preferUltraAssets, type Placement, windowMats as propWindows } from '../shared/instanced';
 import { groupPlacements } from './placements';
 import { generateVillagePlan } from './plan';
+import { declash, type Footprint } from './declash';
 import { buildVillagePaths } from './paths';
 import { buildVillageTerrain } from './terrain';
 import { buildVillageWater } from './water';
@@ -48,6 +49,16 @@ function buildSite(ctx: StyleCtx): StyleSite {
   const contactDecal = (hw: number, hd: number) => { const m = new THREE.Mesh(decalGeo, decalMat); m.scale.set(hw * 2, 1, hd * 2); m.position.y = CONTACT.y; m.renderOrder = 1; m.userData.noAO = true; m.raycast = () => undefined; return m; };
 
   // plan: deterministic layout per (seed, tier, levels, houses)
+  /** Loaded authored buildings, re-fitted together whenever one arrives or is replaced (declash.ts). */
+  const fitted = new Map<SectionId, { a: ReturnType<typeof instantiate>; g: THREE.Group; fp: Footprint }>();
+  const refit = () => {
+    const list = [...fitted.values()]; const s = declash(list.map((e) => e.fp));
+    list.forEach(({ a, g }, i) => {
+      const k = s[i]; a.group.scale.setScalar(k);
+      if (a.door) g.userData.door = { x: a.door.x * k, y: a.door.y * k + 0.3, z: a.door.z * k };
+      g.userData.anchorY = a.top * k + 0.4; g.userData.perchY = a.top * k + 0.02;
+    });
+  };
   const plan = generateVillagePlan({ seed: info.id, tier: ctx.growth.tier, levels: ctx.growth.levels, houses: ctx.growth.houses, season: seasonNow() });
   let housesKey = ctx.growth.houses.map((h) => h.user_id + ':' + h.plot_index).join(',');
   const TEXN = ctx.tier === 'ultra' ? 4096 : 2048; const tex = fallbackTextureSet(64); pending.push(applyAuthoredTerrain(tex, 'village', TEXN, getSiteKtx2()).then(() => undefined, () => undefined)); // procedural pixels only until the authored Blender maps are in
@@ -110,6 +121,7 @@ function buildSite(ctx: StyleCtx): StyleSite {
   const site: StyleSite = {
     group, plotAnchors: anchors, cameraPresets, radius: plan.R, tier: plan.tier, heightAt: (x, z) => heightAt(x, z),
     makeBuilding(id, level, built) {
+      fitted.delete(id);
       const g = built ? WK.builders[id]({ level }) : buildEmpty(id);
       if (built) {
         const [hw, hd] = CT[id]; const grow = 1 + (level - 1) * 0.28; g.add(contactDecal(hw * grow, hd * grow));
@@ -117,9 +129,9 @@ function buildSite(ctx: StyleCtx): StyleSite {
         const procedural = g.children.filter((c) => !c.userData.noAO);
         pending.push(loadVillageGlb(id).then((scene) => {
           if (disposed) return; const a = instantiate(scene, id, level); if (!a.group.children.length) return;
-          procedural.forEach((c) => { c.visible = false; }); g.add(a.group);
-          if (a.door) g.userData.door = { x: a.door.x, y: a.door.y + 0.3, z: a.door.z };
-          g.userData.anchorY = a.top + 0.4; g.userData.doors = []; g.userData.perchY = a.top + 0.02;
+          procedural.forEach((c) => { c.visible = false; }); g.add(a.group); g.userData.doors = [];
+          const bb = new THREE.Box3().setFromObject(a.group); const p = plan.plots[id];
+          fitted.set(id, { a, g, fp: { x: p.x, z: p.z, yaw: p.yaw, x0: bb.min.x, x1: bb.max.x, z0: bb.min.z, z1: bb.max.z } }); refit();
         }).catch(() => undefined));
       }
       return g;

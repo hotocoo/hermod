@@ -24,6 +24,8 @@ export const PLOT_IDS: readonly SectionId[] = SECTION_ORDER;
 export const plotYaw = (x: number, z: number): number => Math.atan2(-x, -z);
 /** Door distance in front of a plot's centre (the building's local door z). */
 export const DOOR_DIST = 1.8;
+/** Authored building fit (declash.ts): clear space kept between neighbours (world units), smallest allowed scale, clash passes and bisection steps per clash. */
+export const BUILDING_FIT = { gap: 0.25, minScale: 0.5, rounds: 8, searchSteps: 14 } as const;
 /** Blocking radius per plot (CONTACT footprint plus a walkway). */
 export const plotRadius = (id: SectionId): number => Math.max(...(CONTACT[id] as readonly number[])) + 0.5;
 export const POND = { x: POND_POS.x, z: POND_POS.z, r: 2.0 } as const;
