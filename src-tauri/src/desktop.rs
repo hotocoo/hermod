@@ -309,7 +309,7 @@ mod tests {
     #[test]
     fn log_rotates_past_the_size_bound_and_keeps_the_configured_count() {
         let dir = tempfile::tempdir().unwrap();
-        let app = tauri::test::mock_app();
+        let app = tauri::test::mock_app(); // no-fake: allow (unit-test Tauri harness)
         let plugin = log_builder([Target::new(TargetKind::Folder {
             path: dir.path().to_path_buf(),
             file_name: Some(LOG_FILE.into()),
