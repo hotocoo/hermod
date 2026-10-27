@@ -37,6 +37,8 @@ export type WeatherKind = (typeof WEATHER_KINDS)[number];
 export const WEATHER_TARGETS: Readonly<Record<WeatherKind, readonly [number, number, number, number, number, number]>> = {
   clear: [0, 0, 0, 0, 1, 0.25], rain: [1, 0, 0.25, 0.8, 0, 0.6], snow: [0, 1, 0.3, 0.6, 0.15, 0.35], fog: [0, 0, 1, 0.35, 0.2, 0.1], storm: [1.6, 0, 0.4, 1, 0, 1.3],
 };
+/** Storm lightning: one soft rise-and-fade per bolt, never a strobe (WCAG 2.3.1: at most 3 flashes a second). Gap in seconds between bolts is minGap + random * spread; decay is flash units per second; bolt and hemi are the peak extra light. */
+export const LIGHTNING = { minGap: 6, spread: 8, decay: 1.6, bolt: 520, hemi: 0.8 } as const;
 export const WEATHER_PARTICLES = { box: { x: 20, y: 26 }, rain: 1600, snow: 2200, motes: 260, maxSplashes: 60 } as const;
 
 export type Rgb = readonly [number, number, number];
@@ -80,7 +82,7 @@ export interface QualitySpec {
 }
 /** Quality tiers. Auto-detected from the GPU string, device pixel ratio and core count, then downgraded when fps stays low. */
 export const QUALITY: Readonly<Record<QualityTier, QualitySpec>> = {
-  low: { pixelRatio: 1, shadowMap: 1024, shadowRadius: 2, post: false, msaa: 0, ao: false, bloom: false, taa: false, godRays: false, grass: 2200, anisotropy: 2, texSize: 512, lampLights: 0, dof: false, motionBlur: false, smallShadows: false, env: true, interiorShadow: false, treeDensity: 0.7, gi: null },
+  low: { pixelRatio: 0.75, shadowMap: 512, shadowRadius: 2, post: false, msaa: 0, ao: false, bloom: false, taa: false, godRays: false, grass: 2200, anisotropy: 2, texSize: 512, lampLights: 0, dof: false, motionBlur: false, smallShadows: false, env: true, interiorShadow: false, treeDensity: 0.7, gi: null },
   medium: { pixelRatio: 1.25, shadowMap: 2048, shadowRadius: 3, post: true, msaa: 2, ao: false, bloom: true, taa: false, godRays: false, grass: 4500, anisotropy: 4, texSize: 1024, lampLights: 2, dof: false, motionBlur: false, smallShadows: true, env: true, interiorShadow: false, treeDensity: 0.85, gi: null },
   high: { pixelRatio: 1.5, shadowMap: 2048, shadowRadius: 3.5, post: true, msaa: 2, ao: false, bloom: true, taa: true, godRays: false, grass: 7000, anisotropy: 8, texSize: 1024, lampLights: 5, dof: true, motionBlur: false, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 3, cube: 16, perFrame: 2, bounces: 0 } },
   ultra: { pixelRatio: 2, shadowMap: 4096, shadowRadius: 4, post: true, msaa: 4, ao: true, bloom: true, taa: true, godRays: true, grass: 9500, anisotropy: 16, texSize: 2048, lampLights: 5, dof: true, motionBlur: true, smallShadows: true, env: true, interiorShadow: true, treeDensity: 1, gi: { spacing: 2, cube: 16, perFrame: 6, bounces: 1 } },
@@ -88,7 +90,7 @@ export const QUALITY: Readonly<Record<QualityTier, QualitySpec>> = {
 /** Probe GI volume: world-space padding around the island, vertical extent, hours of sky change that trigger a rebake, indirect strength. */
 export const GI = { minRoomMs: 2, probeSmallR: 1, fitStableFrames: 24, pad: 3, floor: -0.5, height: 10, rebakeHours: 0.6, rebakeEmissiveDelta: 0.35, interactBudgetMs: 1, frameBudgetMs: 8, busySpeed: 0.1, busyTurn: 0.1, maxFrameMs: 20, hemiScale: 0.62, envScale: 0.7, near: 0.2, far: 60 } as const;
 /** Progressive path traced stills (photo mode, postcard, ultra idle refine): sample budgets, idle delay, bounces, denoise strength. */
-export const STILL = { giWaitMs: 40000, idleMs: 2000, settleMs: 400, tilesIdle: 4, tilesPhoto: 2, idleTier: 'ultra' as QualityTier, photoSamples: 192, idleSamples: 512, maxTriangles: 2_500_000, exportSamples: 384, bounces: 4, samplesPerFrame: 1, denoise: { radius: 2, sigmaColor: 0.35, fadeSamples: 160 }, fireflyClamp: 8 } as const;
+export const STILL = { giWaitMs: 40000, idleMs: 2000, settleMs: 400, tilesIdle: 4, tilesPhoto: 2, /** Tier that path traces while the camera rests, or null: swapping between the raster frame and a noisy, refining trace on every tiny camera move read as flashing, and the BVH build stalled frames, so only photo mode traces. */ idleTier: null as QualityTier | null, photoSamples: 192, idleSamples: 512, maxTriangles: 2_500_000, exportSamples: 384, bounces: 4, samplesPerFrame: 1, denoise: { radius: 2, sigmaColor: 0.35, fadeSamples: 160 }, fireflyClamp: 8 } as const;
 /** User frame cap (T-018). `fps` 0 = uncapped; `low` is the low-power mode. `slackMs` forgives requestAnimationFrame jitter so a 60 fps cap on a 60 Hz display does not skip every other frame. */
 export const FRAME_LIMIT = {
   defaultId: 'off', slackMs: 2,
