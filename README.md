@@ -8,9 +8,45 @@ Website and downloads: https://hotocoo.github.io/hermod/
 
 ![The island town of a Space called Lantern Makers, with the Commons, Gallery and Workshop raised](docs/screenshots/town.jpg)
 
-| Chat | Board | All your Spaces |
+## What is inside
+
+Every Space is an island town. Each building is one part of the Space, and it grows as members use it.
+
+### Talk
+
+| Chat in the Commons | Direct messages |
+|---|---|
+| ![Chat in the Commons between two members, with a heart reaction](docs/screenshots/chat.jpg) | ![A one-to-one conversation between Ada and Bo, three synced messages](docs/screenshots/direct-messages.jpg) |
+| Channels, threads, reactions, markdown, code blocks and spoilers. | One-to-one and group DMs, synced straight between devices. |
+
+| The Hearth | Ravens |
+|---|---|
+| ![A Hearth meeting called Saturday market prep with both peers, an agenda and a shared note](docs/screenshots/hearth.jpg) | ![The Rookery drawer listing raven letters from Bo](docs/screenshots/rookery.jpg) |
+| Voice and video calls peer to peer. A call becomes a meeting with an agenda, shared notes and recording. | Messages from your other Spaces arrive as letters carried by ravens. |
+
+### Share
+
+| The Gallery feed | The Loom (Skein) |
+|---|---|
+| ![The Gallery feed with two photo posts and a note](docs/screenshots/feed.jpg) | ![The Skein ledger with a sealed snapshot, an image file and a text diff](docs/screenshots/skein.jpg) |
+| Photos, notes and stories, with media sent over the mesh. | Versioned file snapshots with signed seals and line diffs. |
+
+### Plan and work
+
+| Board | Docs | Calendar |
 |---|---|---|
-| ![Chat in the Commons between two members, with a heart reaction](docs/screenshots/chat.jpg) | ![A task board in the Workshop with cards in To do and Doing](docs/screenshots/board.jpg) | ![The archipelago view with a shared island and a personal Home island](docs/screenshots/islands.jpg) |
+| ![A task board in the Workshop with cards in To do and Doing](docs/screenshots/board.jpg) | ![The Lantern care manual doc with a to-do list and its version history](docs/screenshots/docs.jpg) | ![The calendar week view with Saturday market setup and a Join in the Hearth button](docs/screenshots/calendar.jpg) |
+
+| The Counting House | The Games Hall |
+|---|---|
+| ![The help desk with three open tickets and a reply on the selected one](docs/screenshots/desk.jpg) | ![A chess game in progress between Ada and Bo](docs/screenshots/arcade.jpg) |
+| A help desk: tickets, assignees, replies and satisfaction. | Chess, connect four, polls, quizzes, kudos and more, played live between members. |
+
+### Find and control
+
+| Search | All your Spaces | Network |
+|---|---|---|
+| ![The search results page for lantern, with hits across a snapshot, a message, a post and a doc](docs/screenshots/search.jpg) | ![The archipelago view with a shared island and a personal Home island](docs/screenshots/islands.jpg) | ![The network drawer with peers, bandwidth and the What you share sliders](docs/screenshots/network.jpg) |
 
 Screenshots are taken headless from the real app (two local peers, content typed through the UI) with `npm run shots`.
 
@@ -58,9 +94,9 @@ npx playwright test    # UI end-to-end tests
 
 ## Release process
 
-1. Bump the version in `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`.
-2. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`. Tags with a suffix such as `-beta.1` are published as pre-releases.
-3. The `release` workflow builds macOS (Apple silicon and Intel), Linux and Windows installers, signs updater artifacts, and publishes the release with `latest.json`.
+1. Bump the version in `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, `crates/hermod-core/Cargo.toml` and `crates/hermod-node/Cargo.toml`. The release fails if the tag and any of these disagree.
+2. Tag and push: `git tag -a vX.Y.Z -m "Hermod vX.Y.Z" && git push origin vX.Y.Z`. Tags with a suffix such as `-beta.1` are published as pre-releases.
+3. The `release` workflow runs the Rust and web checks (the end-to-end suite runs on every push to `main` instead), then builds macOS (Apple silicon and Intel), Linux and Windows installers, signs updater artifacts, and publishes the release with `latest.json`.
 
 Repository secrets needed: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty if the key has none). Optional for macOS signing: `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`, `APPLE_TEAM_ID`.
 

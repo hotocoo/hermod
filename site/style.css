@@ -31,6 +31,7 @@ section h2{font-size:clamp(2rem,4vw,2.8rem);margin:0 0 1rem}
 .shots{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem 1rem}
 @media(max-width:46rem){.shots{grid-template-columns:1fr}}
 .shot{margin:0}
+.shot.wide{grid-column:1/-1}
 .shot img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border:1px solid var(--line);border-radius:.5rem}
 .shot figcaption{color:var(--muted);font-size:.95rem;margin-top:.5rem}
 .card{background:var(--card);border:1px solid var(--line);border-radius:.6rem;padding:1.5rem}
