@@ -105,6 +105,7 @@ export const COPY = {
     get binary() { return t('fileDiff.binary'); },
     get tooLarge() { return t('fileDiff.tooLarge'); },
     get unchanged() { return t('fileDiff.unchanged'); },
+    get fileIcon() { return t('fileDiff.fileIcon'); },
     failed: (why: string) => t('fileDiff.failed', { why }),
     get retry() { return t('fileDiff.retry'); },
     hunk: (n: number) => t('fileDiff.hunk', { n }),

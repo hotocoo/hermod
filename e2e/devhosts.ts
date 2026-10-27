@@ -70,6 +70,9 @@ export async function freshDevhosts(): Promise<void> {
   await Promise.all(running.map(({ proc }, i) => listening(proc, PORTS[i])));
 }
 
+/** Data directory of one running devhost (index into A, B, FRESH), for specs that tamper with its blob files. */
+export const devhostDir = (i: number): string => running[i].dir;
+
 /** Takes one devhost (index into A, B, FRESH) offline, keeping its data dir so `startDevhost` brings back the same identity. */
 export async function stopDevhost(i: number): Promise<void> {
   const { proc } = running[i];

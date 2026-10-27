@@ -5,8 +5,12 @@ import { diffLineVm } from '@/state/vm/skein';
 import { blobUrl } from '@/lib/upload';
 import { useAppStore } from '@/state/store';
 import type { BlobDiff, BlobRef } from '@/lib/bridge';
+import { Icon } from '@/components/ui/Icon';
 import { Swatch, type SwatchData } from './Swatch';
 import s from './skein.module.css';
+
+/** Size of the file icon shown for a stored file that has no image preview (K-005). */
+const FILE_GLYPH_PX = 32;
 
 interface DiffLineData { s: string; mark: string; n: number; bg: string; fg: string; strike: string; markFg: string }
 export interface SkeinFileData {
@@ -86,6 +90,7 @@ export function FileDiff({ f }: { f: SkeinFileData }) {
       </div>
       
       {f.previewUrl && <img className={s.preview} src={f.previewUrl} alt={f.path} />}
+      {f.blob && !f.previewUrl && <span className={s.fileGlyph} role="img" aria-label={COPY.fileDiff.fileIcon}><Icon name="doc" size={FILE_GLYPH_PX} /></span>}
       {f.blob && <button type="button" className={s.dl} onClick={() => { void download(f.blob as BlobRef); }}>{COPY.ui.panel.sections.fileDownload(f.blob.name)}</button>}
       {f.isSwatch && <div className={s.swatches}>{f.swatches.map((w) => <Swatch key={w.n} w={w} />)}</div>}
       {f.isCode && f.lines.length > 0 && (

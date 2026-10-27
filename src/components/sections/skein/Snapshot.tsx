@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { SEAL } from '@/config/app';
 import { COPY } from '@/config/copy';
 import { errorMessage, getBridge } from '@/lib/bridge';
 import { sealView, type SealView } from '@/state/snapVerify';
@@ -18,15 +19,23 @@ type Checked = { key: string; view: SealView };
 function useSeal(space: string, sel: SnapshotData): SealView {
   const [res, setRes] = useState<Checked | null>(null);
   const key = `${space}:${sel.id}`;
+  const [again, setAgain] = useState<{ key: string; n: number }>({ key, n: 0 });
+  const rechecks = again.key === key ? again.n : 0; // a different snapshot starts counting from zero
   const wanted = !sel.noFiles;
   useEffect(() => {
     if (!wanted) return;
-    let live = true;
+    let live = true; let timer: ReturnType<typeof setTimeout> | undefined;
     getBridge().snapVerify(space, sel.id)
-      .then((v) => { if (live) setRes({ key, view: sealView(v) }); })
+      .then((v) => {
+        if (!live) return;
+        const view = sealView(v);
+        setRes({ key, view });
+        // Files still arriving from a peer: look again, so the seal settles without reopening the snapshot.
+        if (view.s === 'partial' && rechecks < SEAL.maxRechecks) timer = setTimeout(() => { setAgain({ key, n: rechecks + 1 }); }, SEAL.recheckMs);
+      })
       .catch((e: unknown) => { if (live) setRes({ key, view: { s: 'error', why: errorMessage(e) } }); });
-    return () => { live = false; };
-  }, [wanted, space, sel.id, key]);
+    return () => { live = false; clearTimeout(timer); };
+  }, [wanted, space, sel.id, key, rechecks]);
   return res && res.key === key ? res.view : { s: 'checking' };
 }
 

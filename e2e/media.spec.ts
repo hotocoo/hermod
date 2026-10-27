@@ -252,6 +252,18 @@ test.describe('live', () => {
     await b.getByRole('button', { name: 'Send a heart' }).click();
     await expect(a.locator('[aria-hidden="true"] span').filter({ hasText: '♥' }).first()).toBeVisible({ timeout: 30_000 });
 
+    // V-012: a line from each side shows in the live chat of both viewers, and the box clears after sending.
+    const chat = (p: Page) => p.getByRole('complementary', { name: 'Live chat' });
+    const fromViewer = unique('hello from the viewer');
+    const fromHost = unique('hello from the host');
+    await b.getByLabel('Live chat message').fill(fromViewer);
+    await b.getByLabel('Live chat message').press('Enter');
+    await expect(b.getByLabel('Live chat message')).toHaveValue('');
+    for (const p of [a, b]) await expect(chat(p).getByText(fromViewer)).toBeVisible({ timeout: 30_000 });
+    await a.getByLabel('Live chat message').fill(fromHost);
+    await a.getByLabel('Live chat message').press('Enter');
+    for (const p of [a, b]) await expect(chat(p).getByText(fromHost)).toBeVisible({ timeout: 30_000 });
+
     // V-014: the viewer follows the host from the live byline, and the host's posts land under Following.
     await expect(b.getByRole('button', { name: 'Follow', exact: true })).toHaveAttribute('aria-pressed', 'false');
     await b.getByRole('button', { name: 'Follow', exact: true }).click();
@@ -308,6 +320,147 @@ test.describe('video on demand', () => {
     expect(await player.evaluate((v: HTMLVideoElement) => v.currentTime)).toBeGreaterThanOrEqual(middleAt);
     await expect(middle).toHaveAttribute('aria-current', 'true', { timeout: 15_000 });
     await expect(b.getByRole('button', { name: /Intro/ })).not.toHaveAttribute('aria-current');
+  });
+});
+
+/** Publishes a short clip as a video post from `page` (the open feed building, For you tab). */
+async function publishClip(page: Page, title: string): Promise<void> {
+  const clip = await recordClip(page);
+  await enterSection(page, 'feed', false);
+  await tab(page, 'For you');
+  await page.getByRole('button', { name: /New post/ }).first().click();
+  const dlg = page.getByRole('dialog', { name: /New post/ });
+  await dlg.locator('label.seg-opt', { hasText: 'Video' }).click();
+  await chooseWith(page, () => dlg.getByRole('button', { name: 'Choose a video' }).click(), { name: 'clip.webm', mimeType: 'video/webm', buffer: clip });
+  await expect(dlg.getByText(/clip\.webm/)).toBeVisible({ timeout: 30_000 });
+  await dlg.getByLabel(/^Title/).fill(title);
+  await dlg.getByRole('button', { name: 'Publish' }).click();
+  await expect(dlg).toBeHidden({ timeout: 60_000 });
+}
+
+test.describe('video player (V-001, V-006..V-010)', () => {
+  const first = unique('Newer reel');
+  const second = unique('Older reel');
+  /** Titles carry a unique suffix; 'Demo reel' is the video the earlier test published. */
+  const player = (p: Page, title: string) => p.locator(`video[aria-label^="${title}"]`);
+  const library = async (p: Page) => {
+    await enterSection(p, 'feed', false);
+    await tab(p, 'Watch');
+    if (await p.getByRole('button', { name: 'All videos' }).isVisible()) await p.getByRole('button', { name: 'All videos' }).click();
+  };
+  const open = async (p: Page, title: string) => {
+    await library(p);
+    await p.getByRole('button', { name: new RegExp(title) }).first().click({ timeout: 60_000 });
+    await expect(player(p, title)).toBeVisible();
+  };
+
+  test('V-001: the gallery tab strip lists every tab and the chosen tab is kept when the building is left and re-entered', async () => {
+    await enterSection(b, 'feed', false);
+    // The first tablist is the section switcher in the header; the second is the building's tab strip.
+    const strip = panel(b).getByRole('tablist').nth(1);
+    for (const name of ['For you', 'Watch', 'Live', 'Stories', 'Boards']) await expect(strip.getByRole('tab', { name, exact: true })).toBeVisible();
+    await tab(b, 'Stories');
+    await expect(strip.getByRole('tab', { name: 'Stories', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await toIsland(b);
+    await enterSection(b, 'feed', false);
+    await expect(strip.getByRole('tab', { name: 'Stories', exact: true })).toHaveAttribute('aria-selected', 'true');
+    await tab(b, 'Live');
+    await toIsland(b);
+    await enterSection(b, 'feed', false);
+    await expect(strip.getByRole('tab', { name: 'Live', exact: true })).toHaveAttribute('aria-selected', 'true');
+    // The Docs and Calendar tabs of the strip live in the Board building.
+    await enterSection(b, 'board');
+    for (const name of ['Docs', 'Calendar']) await expect(panel(b).getByRole('tablist').nth(1).getByRole('tab', { name, exact: true })).toBeVisible();
+  });
+
+  test('V-006: the speed chip cycles 1, 1.25, 1.5, 2, 0.5 and the video really plays at that rate', async () => {
+    await open(b, 'Demo reel');
+    const rate = () => player(b, 'Demo reel').evaluate((v: HTMLVideoElement) => v.playbackRate);
+    for (const [label, value] of [['1.25', 1.25], ['1.5', 1.5], ['2', 2], ['0.5', 0.5], ['1', 1]] as const) {
+      await b.getByRole('button', { name: /^Playback speed/ }).click();
+      await expect(b.getByRole('button', { name: `Playback speed ${label}×` })).toBeVisible();
+      expect(await rate()).toBe(value);
+    }
+  });
+
+  test('V-007: theater mode widens the player and toggles back, locally', async () => {
+    const box = () => player(b, 'Demo reel').evaluate((v) => v.getBoundingClientRect().width);
+    const before = await box();
+    await b.getByRole('button', { name: 'Theater' }).click();
+    await expect.poll(box).toBeGreaterThan(before);
+    await b.getByRole('button', { name: 'Theater' }).click();
+    await expect.poll(box).toBe(before);
+    // Local: A's own player is not affected by B's toggle.
+    await b.getByRole('button', { name: 'Theater' }).click();
+    await open(a, 'Demo reel');
+    const aBefore = await player(a, 'Demo reel').evaluate((v) => v.getBoundingClientRect().width);
+    expect(aBefore).toBeLessThan(await box());
+    await b.getByRole('button', { name: 'Theater' }).click();
+  });
+
+  test('V-010: a like on the video shows for both viewers and toggles off', async () => {
+    const like = (p: Page) => p.getByRole('button', { name: 'Like' });
+    await expect(like(b)).toHaveAttribute('aria-pressed', 'false');
+    await like(b).click();
+    await expect(like(b)).toHaveAttribute('aria-pressed', 'true');
+    await expect(like(b)).toContainText('1');
+    await expect(like(a)).toContainText('1', { timeout: 60_000 });
+    await expect(like(a)).toHaveAttribute('aria-pressed', 'false');
+    await like(b).click();
+    await expect(like(a)).toContainText('0', { timeout: 60_000 });
+  });
+
+  test('V-009: Down and Up move between shorts', async () => {
+    await publishClip(a, first);
+    await library(b);
+    // Newest short first: the row is ordered like the library.
+    await expect(b.getByRole('button', { name: new RegExp(first) })).toBeVisible({ timeout: 60_000 });
+    await b.getByRole('button', { name: new RegExp(first) }).first().click();
+    await expect(player(b, first)).toBeVisible();
+    await b.keyboard.press('ArrowDown');
+    await expect(player(b, 'Demo reel')).toBeVisible();
+    await b.keyboard.press('ArrowUp');
+    await expect(player(b, first)).toBeVisible();
+    // The first short has none before it: Up stays put.
+    await b.keyboard.press('ArrowUp');
+    await expect(player(b, first)).toBeVisible();
+    // Moving to another short starts it playing (the Pause control shows).
+    await b.keyboard.press('ArrowDown');
+    await expect(player(b, 'Demo reel')).toBeVisible();
+    await expect(b.getByRole('button', { name: 'Pause' })).toBeVisible({ timeout: 30_000 });
+  });
+
+  test('V-008: Up next lists the other videos and the next one plays when this one ends', async () => {
+    await publishClip(a, second);
+    await open(b, first);
+    // `first` is newer than Demo reel and `second` is newest of all, so the order is second, first, Demo reel.
+    await expect(b.getByText('Up next')).toBeVisible();
+    await expect(b.getByRole('button', { name: new RegExp('Demo reel') }).first()).toBeVisible();
+    await b.getByRole('button', { name: 'Play', exact: true }).click();
+    await expect(player(b, 'Demo reel')).toBeVisible({ timeout: 60_000 });
+    await expect(b.getByRole('button', { name: 'Pause' })).toBeVisible({ timeout: 30_000 });
+  });
+});
+
+test.describe('calendar join (V-031)', () => {
+  test('"Join in the Hearth" on an event enters the Hearth and starts the meeting with its title and agenda', async () => {
+    const title = unique('Kiln sync');
+    const [item1, item2] = [unique('check vents'), unique('order clay')];
+    await enterSection(a, 'board');
+    await tab(a, 'Calendar');
+    await a.getByRole('button', { name: /New meeting/ }).first().click();
+    await a.getByLabel('Title (required)').fill(title);
+    await a.getByLabel('Note').fill(`${item1}\n${item2}`);
+    await a.getByRole('button', { name: 'Add to calendar' }).click();
+    await expect(a.getByRole('heading', { name: title })).toBeVisible();
+    await a.getByRole('button', { name: /Join in the Hearth/ }).click();
+    // The Hearth opens with the call up and the event's own title and note lines as agenda items.
+    await expect(a.getByText(title).first()).toBeVisible({ timeout: 60_000 });
+    await expect(a.getByRole('button', { name: new RegExp(item1) })).toBeVisible({ timeout: 30_000 });
+    await expect(a.getByRole('button', { name: new RegExp(item2) })).toBeVisible();
+    // B sees the same meeting from the room, over the real P2P sync.
+    await enterSection(b, 'hearth', false);
+    await expect(b.getByText(title).first()).toBeVisible({ timeout: 60_000 });
   });
 });
 

@@ -148,10 +148,13 @@ export const LIMITS = {
   previewDesc: 300,
 } as const;
 
+/** Seal check of a snapshot whose files are still arriving from a peer: look again every `recheckMs`, at most `maxRechecks` times (K-009). */
+export const SEAL = { recheckMs: 2000, maxRechecks: 15 } as const;
+
 export const MEDIA = {
   skipSec: 10,
   captionSec: 6,
-  speedCycle: { 1: 1.25, 1.25: 1.5, 1.5: 2, 2: 0.75, 0.75: 1 } as Record<number, number>,
+  speedCycle: { 1: 1.25, 1.25: 1.5, 1.5: 2, 2: 0.5, 0.5: 1 } as Record<number, number>,
   nextUpCount: 3,
   storyBarMs: 5000,
 } as const;

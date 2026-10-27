@@ -74,6 +74,7 @@ export const panelCopy = {
     get videoTheater() { return t('ui.panel.panel.videoTheater'); },
     get videoFull() { return t('ui.panel.panel.videoFull'); },
     get videoAll() { return t('ui.panel.panel.videoAll'); },
+    get videoLike() { return t('ui.panel.panel.videoLike'); },
     get videoChapters() { return t('ui.panel.panel.videoChapters'); },
     get videoUpNext() { return t('ui.panel.panel.videoUpNext'); },
     //PANEL

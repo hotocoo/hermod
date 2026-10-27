@@ -69,6 +69,7 @@ export const panelMessages = {
   'ui.panel.panel.videoTheater': 'Theater',
   'ui.panel.panel.videoFull': 'Full screen',
   'ui.panel.panel.videoAll': 'All videos',
+  'ui.panel.panel.videoLike': 'Like',
   'ui.panel.panel.videoChapters': 'Chapters',
   'ui.panel.panel.videoUpNext': 'Up next',
   'ui.panel.sections.boardBare': 'The workbench is bare',
