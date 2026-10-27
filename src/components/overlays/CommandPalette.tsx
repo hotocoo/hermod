@@ -29,14 +29,14 @@ export function CommandPalette({ vm }: { vm: ViewModel }) {
 
   return palette ? (
     <div className={s.backdrop} onClick={closePalette}>
-      <div ref={box} className={s.dialog} onClick={stop} onKeyDown={trap} role="dialog" aria-modal="true" aria-label="Search everything">
+      <div ref={box} className={s.dialog} onClick={stop} onKeyDown={trap} role="dialog" aria-modal="true" aria-label={COPY.ui.shell.commandPaletteText.searchEverything}>
         <div className={s.searchRow}>
           <span className={s.searchIcon}>{icL.search}</span>
-          <input className={s.input} ref={palRef} value={q} onChange={onQ} placeholder="Search people, channels, messages, documents…" aria-label="Search"
+          <input className={s.input} ref={palRef} value={q} onChange={onQ} placeholder={COPY.ui.shell.commandPaletteText.searchPeopleChannelsMessagesDocuments} aria-label={COPY.ui.shell.commandPaletteText.search}
             role="combobox" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" aria-activedescendant={active >= 0 ? `palette-${active}` : undefined} />
-          <span className={s.escKey}>esc</span>
+          <span className={s.escKey}>{COPY.ui.shell.commandPaletteText.esc}</span>
         </div>
-        <div className={s.results} id="palette-list" role="listbox" aria-label="Results">
+        <div className={s.results} id="palette-list" role="listbox" aria-label={COPY.ui.shell.commandPaletteText.results}>
           {noResults ? (
             <div className={s.empty} role="status"><EmptyNote {...(q.trim().length < 2 ? COPY.empty.paletteIdle : COPY.empty.paletteNone)} /></div>
           ) : null}
@@ -54,10 +54,10 @@ export function CommandPalette({ vm }: { vm: ViewModel }) {
           ))}
         </div>
         <div className={s.footer}>
-          <span>Up and down to move</span>
-          <span>Enter to open</span>
-          <span>Alt 1 to 5 sections</span>
-          <span>Alt up and down Spaces</span>
+          <span>{COPY.ui.shell.commandPaletteText.upAndDownToMove}</span>
+          <span>{COPY.ui.shell.commandPaletteText.enterToOpen}</span>
+          <span>{COPY.ui.shell.commandPaletteText.alt1To5Sections}</span>
+          <span>{COPY.ui.shell.commandPaletteText.altUpAndDownSpaces}</span>
         </div>
       </div>
     </div>

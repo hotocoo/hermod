@@ -65,10 +65,10 @@ export const createCallSlice: StateCreator<AppStore, [], [], CallSlice> = (set, 
     makeMeeting: async () => {
       const s = get(); if (!s.call) return;
       const v = await s.ask({
-        title: 'Make it a meeting', kicker: curSpace(s).name, submit: 'Start meeting',
+        title: COPY.ui.stateMsgs.meeting.title, kicker: curSpace(s).name, submit: COPY.ui.stateMsgs.meeting.submit,
         fields: [
-          { key: 'topic', label: 'Topic', placeholder: 'What is this meeting about', required: true },
-          { key: 'agenda', label: 'Agenda, one item per line', placeholder: 'First thing\nSecond thing', multiline: true },
+          { key: 'topic', label: COPY.ui.stateMsgs.common.topic, placeholder: COPY.ui.stateMsgs.meeting.topicPh, required: true },
+          { key: 'agenda', label: COPY.ui.stateMsgs.meeting.agendaLabel, placeholder: COPY.ui.stateMsgs.meeting.agendaPh, multiline: true },
         ],
       });
       if (!v) return;

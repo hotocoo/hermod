@@ -8,6 +8,7 @@ import { kindInfo } from '@/config/arcade';
 import { Icon } from '@/components/ui/Icon';
 import { drawAction, joinGame, leaveGame, resignGame, sendMove } from './actions';
 import type { RendererProps } from './games/types';
+import { COPY } from '@/config/copy';
 import s from './arcade.module.css';
 
 const load = <K extends string>(kind: K, f: () => Promise<{ default: ComponentType<RendererProps> }>) => [kind, lazy(f)] as const;
@@ -31,14 +32,15 @@ interface Props { game: Game; space: string; me: string; seed: Seed; onBack: () 
 function resultLine(g: Game, seed: Seed, me: string): string {
   const r = g.result;
   if (!r) return '';
-  if (r.verdict === 'draw') return `Draw (${r.reason.replace(/_/g, ' ')})`;
-  if (r.verdict === 'completed') return 'Finished';
-  const you = r.winner === me;
-  return `${you ? 'You won' : `${seatName(seed, r.winner)} won`} (${r.reason.replace(/_/g, ' ')})`;
+  const reason = r.reason.replace(/_/g, ' ');
+  if (r.verdict === 'draw') return COPY.ui.arcade.game.drawResult(reason);
+  if (r.verdict === 'completed') return COPY.ui.arcade.finished;
+  return r.winner === me ? COPY.ui.arcade.game.youWon(reason) : COPY.ui.arcade.game.whoWonReason(seatName(seed, r.winner), reason);
 }
 
 /** One table: seats, status, the kind's board, resign and draw controls, and the move list. */
 export function GamePage({ game: g, space, me, seed, onBack }: Props) {
+  const C = COPY.ui.arcade;
   const confirm = useAppStore((st) => st.confirmAction);
   const k = kindInfo(g.kind);
   const Renderer = RENDERERS[g.kind];
@@ -48,11 +50,11 @@ export function GamePage({ game: g, space, me, seed, onBack }: Props) {
   const turnName = g.turn !== null ? seatName(seed, g.seats[g.turn]) : '';
   const hot = g.status === 'active' && g.turn === seat && joined;
   const status = g.status === 'done' ? resultLine(g, seed, me)
-    : g.status === 'waiting' ? (g.seats.some((u) => u === null) ? 'Waiting for a player to sit down' : 'Starting')
-    : realtime ? 'Round in play' : hot ? 'Your move' : g.turn !== null ? `${turnName} to move` : 'In play';
+    : g.status === 'waiting' ? (g.seats.some((u) => u === null) ? C.game.waitingSit : C.game.starting)
+    : realtime ? C.game.roundInPlay : hot ? C.yourMove : g.turn !== null ? C.game.toMove(turnName) : C.lobby.inPlay;
 
   const resign = async () => {
-    if (await confirm({ title: 'Resign this game?', body: 'The other player wins and ratings change.', confirm: 'Resign', danger: true })) void resignGame(space, g.id);
+    if (await confirm({ title: C.game.resignTitle, body: C.game.resignBody, confirm: C.game.resign, danger: true })) void resignGame(space, g.id);
   };
   const moves = g.moves;
   const rows: { n: number; a?: string; b?: string }[] = [];
@@ -61,51 +63,51 @@ export function GamePage({ game: g, space, me, seed, onBack }: Props) {
   return (
     <>
       <div className={s.gameHead}>
-        <button type="button" className={s.back} onClick={onBack} data-testid="game-back"><Icon name="reply" size={14} />Lobby</button>
+        <button type="button" className={s.back} onClick={onBack} data-testid="game-back"><Icon name="reply" size={14} />{C.game.lobby}</button>
         <div className={s.grow}>
           <h3 className={s.title} style={{ fontSize: 22 }}>{g.title || k.label}</h3>
-          <div className={s.cardMeta}>{k.label}{g.moveCount ? ` · ${g.moveCount} moves` : ''}</div>
+          <div className={s.cardMeta}>{k.label}{g.moveCount ? ` · ${C.game.moveCount(g.moveCount)}` : ''}</div>
         </div>
       </div>
       <div className={s.gameBody}>
         <div className={s.stage}>
           <div className={`${s.status} ${hot || g.status === 'done' ? s.statusHot : ''}`} role="status" aria-live="polite" data-testid="game-status">{status}</div>
           {Renderer ? (
-            <Suspense fallback={<p className={s.empty}>Loading board</p>}>
+            <Suspense fallback={<p className={s.empty}>{C.game.loadingBoard}</p>}>
               <Renderer game={g} space={space} me={me} seed={seed} seat={seat} move={(body) => sendMove(space, g, body)} />
             </Suspense>
-          ) : <p className={s.empty}>This game kind is not available in this version.</p>}
+          ) : <p className={s.empty}>{C.game.unavailable}</p>}
         </div>
-        <aside className={s.side} aria-label="Game details">
-          <section aria-label="Players">
-            <h4 className={s.sectionHead}>Players</h4>
+        <aside className={s.side} aria-label={C.game.details}>
+          <section aria-label={C.game.players}>
+            <h4 className={s.sectionHead}>{C.game.players}</h4>
             <ul className={s.list}>
               {g.seats.map((u, i) => (
                 <li key={i} className={s.seatRow} data-turn={g.status === 'active' && g.turn === i}>
                   {!realtime && <span className={s.seatDot} style={{ background: i === 0 ? '#fff' : '#222' }} aria-hidden="true" />}
-                  <span style={{ flex: 1 }}>{u ? seatName(seed, u) : 'Open seat'}{u === me ? ' (you)' : ''}</span>
-                  {!realtime && <span className={s.cardMeta}>{i === 0 ? (k.firstName ?? 'First') : 'Second'}</span>}
+                  <span style={{ flex: 1 }}>{u === me ? C.game.seatYou(seatName(seed, u)) : u ? seatName(seed, u) : C.game.openSeat}</span>
+                  {!realtime && <span className={s.cardMeta}>{i === 0 ? (k.firstName ?? C.first) : C.second}</span>}
                 </li>
               ))}
             </ul>
           </section>
           <div className={s.bar}>
-            {!joined && g.status !== 'done' && g.seats.some((u) => u === null) && <button type="button" className="btn btn-primary" onClick={() => { void joinGame(space, g.id); }} data-testid="sit-down">Sit down</button>}
-            {joined && g.status === 'waiting' && <button type="button" className="btn btn-secondary" onClick={() => { void leaveGame(space, g.id); }}>Leave table</button>}
-            {joined && g.status === 'active' && !realtime && <button type="button" className="btn btn-secondary" onClick={() => { void resign(); }} data-testid="resign">Resign</button>}
-            {joined && g.status === 'active' && !realtime && g.drawOffer === null && <button type="button" className="btn btn-secondary" onClick={() => { void drawAction(space, g.id, 'offer'); }} data-testid="offer-draw">Offer draw</button>}
-            {joined && g.status === 'active' && g.drawOffer === seat && <span className={s.chip}>Draw offered</span>}
+            {!joined && g.status !== 'done' && g.seats.some((u) => u === null) && <button type="button" className="btn btn-primary" onClick={() => { void joinGame(space, g.id); }} data-testid="sit-down">{C.game.sitDown}</button>}
+            {joined && g.status === 'waiting' && <button type="button" className="btn btn-secondary" onClick={() => { void leaveGame(space, g.id); }}>{C.game.leaveTable}</button>}
+            {joined && g.status === 'active' && !realtime && <button type="button" className="btn btn-secondary" onClick={() => { void resign(); }} data-testid="resign">{C.game.resign}</button>}
+            {joined && g.status === 'active' && !realtime && g.drawOffer === null && <button type="button" className="btn btn-secondary" onClick={() => { void drawAction(space, g.id, 'offer'); }} data-testid="offer-draw">{C.game.offerDraw}</button>}
+            {joined && g.status === 'active' && g.drawOffer === seat && <span className={s.chip}>{C.game.drawOffered}</span>}
           </div>
           {joined && g.status === 'active' && g.drawOffer !== null && g.drawOffer !== seat && (
             <div className={s.card} data-hot="true" role="alert">
-              <span className={s.cardMain}>{seatName(seed, g.seats[g.drawOffer])} offers a draw</span>
-              <button type="button" className="btn btn-primary" onClick={() => { void drawAction(space, g.id, 'accept'); }} data-testid="accept-draw">Accept</button>
-              <button type="button" className="btn btn-secondary" onClick={() => { void drawAction(space, g.id, 'decline'); }}>Decline</button>
+              <span className={s.cardMain}>{C.game.offersDraw(seatName(seed, g.seats[g.drawOffer]))}</span>
+              <button type="button" className="btn btn-primary" onClick={() => { void drawAction(space, g.id, 'accept'); }} data-testid="accept-draw">{C.game.accept}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { void drawAction(space, g.id, 'decline'); }}>{C.game.decline}</button>
             </div>
           )}
           {!realtime && rows.length > 0 && (
-            <section aria-label="Move history">
-              <h4 className={s.sectionHead}>Moves</h4>
+            <section aria-label={C.game.moveHistory}>
+              <h4 className={s.sectionHead}>{C.game.moves}</h4>
               <ol className={s.moves}>
                 {rows.map((r) => (<li key={r.n} style={{ display: 'contents' }}><span className={s.moveN}>{r.n}.</span><span>{r.a}</span><span>{r.b ?? ''}</span></li>))}
               </ol>
@@ -122,11 +124,11 @@ function moveLabel(kind: string, m: Record<string, unknown>): string {
   switch (kind) {
     case 'chess': return `${String(m.from)}-${String(m.to)}${m.promo ? `=${String(m.promo).toUpperCase()}` : ''}`;
     case 'checkers': return Array.isArray(m.path) ? (m.path as number[]).map((n) => `${'abcdefgh'[n % 8]}${Math.floor(n / 8) + 1}`).join('x') : '';
-    case 'connect4': return `col ${Number(m.col) + 1}`;
-    case 'tictactoe': return `cell ${Number(m.cell) + 1}`;
-    case 'go9': return m.pass ? 'pass' : `${'ABCDEFGHJ'[Number(m.at) % 9]}${9 - Math.floor(Number(m.at) / 9)}`;
-    case 'wordle_duel': return m.commit ? 'sealed word' : m.guess ? String(m.guess) : m.fb ? 'feedback' : 'reveal';
-    case 'battleship': return m.commit ? 'sealed fleet' : m.shot !== undefined ? `shot ${'ABCDEFGHIJ'[Number(m.shot) % 10]}${Math.floor(Number(m.shot) / 10) + 1}` : m.res ? String(m.res) : 'reveal';
+    case 'connect4': return COPY.ui.arcade.move.col(Number(m.col) + 1);
+    case 'tictactoe': return COPY.ui.arcade.move.cell(Number(m.cell) + 1);
+    case 'go9': return m.pass ? COPY.ui.arcade.move.pass : `${'ABCDEFGHJ'[Number(m.at) % 9]}${9 - Math.floor(Number(m.at) / 9)}`;
+    case 'wordle_duel': return m.commit ? COPY.ui.arcade.move.sealedWord : m.guess ? String(m.guess) : m.fb ? COPY.ui.arcade.move.feedback : COPY.ui.arcade.move.reveal;
+    case 'battleship': return m.commit ? COPY.ui.arcade.move.sealedFleet : m.shot !== undefined ? COPY.ui.arcade.move.shot(`${'ABCDEFGHIJ'[Number(m.shot) % 10]}${Math.floor(Number(m.shot) / 10) + 1}`) : m.res ? String(m.res) : COPY.ui.arcade.move.reveal;
     default: return '';
   }
 }

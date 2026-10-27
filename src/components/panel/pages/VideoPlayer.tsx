@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { COPY } from '@/config/copy';
 import { getBridge } from '@/lib/bridge';
 import { fmtSec } from '@/lib/format';
 import { loadCaptions, mediaBridgeFrom, vttTrackUrl } from '@/lib/media';
@@ -84,18 +85,18 @@ function VideoPlayerBody({ vm }: VmProps) {
               onEnded={() => { setPlaying(false); if (vm.nextVideoId) vm.openVideo(vm.nextVideoId); }}
               onError={() => setFailed(true)}
             >
-              {track && <track kind="captions" src={track} srcLang="en" label="Captions" />}
+              {track && <track kind="captions" src={track} srcLang="en" label={COPY.ui.panel.panel.videoCaptions} />}
             </video>
           ) : (
             <div className={s.missing} role="status">
-              <p>This video is still arriving from another member.</p>
-              <button type="button" className="btn btn-secondary" onClick={() => { setRetry((n) => n + 1); setFailed(false); setT(0); setPlaying(false); }}>Try again</button>
+              <p>{COPY.ui.panel.panel.videoArriving}</p>
+              <button type="button" className="btn btn-secondary" onClick={() => { setRetry((n) => n + 1); setFailed(false); setT(0); setPlaying(false); }}>{COPY.ui.panel.panel.videoRetry}</button>
             </div>
           )}
           <div className={s.controls}>
             <div
-              onClick={onSeekClick} onKeyDown={onSeekKey} role="slider" aria-label="Seek" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
-              aria-valuetext={`${fmtSec(t)} of ${fmtSec(total)}`} tabIndex={0} className={s.seek}
+              onClick={onSeekClick} onKeyDown={onSeekKey} role="slider" aria-label={COPY.ui.panel.panel.videoSeek} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
+              aria-valuetext={COPY.ui.panel.panel.videoSeekText(fmtSec(t), fmtSec(total))} tabIndex={0} className={s.seek}
             >
               <div className={s.track} />
               {total > 0 && vid.chapters.map((chm) => <span key={chm.n} className={s.chapMark} style={{ left: `${(chm.t0 / total) * 100}%` }} />)}
@@ -103,32 +104,32 @@ function VideoPlayerBody({ vm }: VmProps) {
               <span className={s.knob} style={{ left: `${pct}%` }} />
             </div>
             <div className={s.row}>
-              <button type="button" onClick={toggle} aria-label={playing ? 'Pause' : 'Play'} className={s.play}>{playing ? vm.ic.pause : vm.ic.play}</button>
-              <button type="button" onClick={() => seek(t - 10)} className={s.skip} aria-label="Back 10 seconds">−10s</button>
-              <button type="button" onClick={() => seek(t + 10)} className={s.skip} aria-label="Forward 10 seconds">+10s</button>
+              <button type="button" onClick={toggle} aria-label={playing ? COPY.ui.panel.panel.videoPause : COPY.ui.panel.panel.videoPlay} className={s.play}>{playing ? vm.ic.pause : vm.ic.play}</button>
+              <button type="button" onClick={() => seek(t - 10)} className={s.skip} aria-label={COPY.ui.panel.panel.videoBack}>{COPY.ui.panel.panel.videoBackText}</button>
+              <button type="button" onClick={() => seek(t + 10)} className={s.skip} aria-label={COPY.ui.panel.panel.videoForward}>{COPY.ui.panel.panel.videoForwardText}</button>
               <span>{fmtSec(t)} / {fmtSec(total)}</span>{chapNow && <span className={s.chapNow}>· {chapNow.n}</span>}
               <span className={s.grow} />
-              {track && <button type="button" onClick={vm.toggleCc} aria-pressed={vm.ccOn} aria-label="Captions" className={s.chip} style={{ borderColor: vm.ccBd }}>CC</button>}
-              <button type="button" onClick={vm.cycleSpeed} className={s.chip} aria-label={`Playback speed ${vm.speedText}`}>{vm.speedText}</button>
-              <button type="button" onClick={vm.toggleTheater} aria-label="Theater" className={s.theater}>{vm.theaterIcon}</button>
-              <button type="button" onClick={full} aria-label="Full screen" className={s.theater}>{vm.ic.expand}</button>
+              {track && <button type="button" onClick={vm.toggleCc} aria-pressed={vm.ccOn} aria-label={COPY.ui.panel.panel.videoCaptions} className={s.chip} style={{ borderColor: vm.ccBd }}>{COPY.ui.panel.videoPlayerText.cc}</button>}
+              <button type="button" onClick={vm.cycleSpeed} className={s.chip} aria-label={COPY.ui.panel.panel.videoSpeed(vm.speedText)}>{vm.speedText}</button>
+              <button type="button" onClick={vm.toggleTheater} aria-label={COPY.ui.panel.panel.videoTheater} className={s.theater}>{vm.theaterIcon}</button>
+              <button type="button" onClick={full} aria-label={COPY.ui.panel.panel.videoFull} className={s.theater}>{vm.ic.expand}</button>
             </div>
           </div>
         </div>
         <h2 className={s.title}>{vid.title}</h2>
         <div className={`${s.byline} ${c.muted}`}>
           <span className={`${s.face} ${c.avatar}`}>{vid.initials}</span>
-          <span><b className={s.strong}>{vid.by}</b> · {vid.views} views · {vid.when}</span>
+          <span><b className={s.strong}>{vid.by}</b> · {COPY.ui.panel.panel.videoViews(String(vid.views))} · {vid.when}</span>
           <span className={s.grow} />
           <button type="button" onClick={vm.likeVid} className={c.btn} aria-pressed={!!vid.liked} style={{ color: vm.vidLikeFg }}>{vm.icS.heart} {vm.vidLikes}</button>
-          <button type="button" onClick={vm.closeVid} className={c.btn}>{vm.icS.left} All videos</button>
+          <button type="button" onClick={vm.closeVid} className={c.btn}>{vm.icS.left} {COPY.ui.panel.panel.videoAll}</button>
         </div>
         {vid.desc && <p className={s.desc}>{vid.desc}</p>}
       </div>
       <aside>
         {vid.chapters.length > 0 && (
           <>
-            <div className={`${c.kicker} ${s.asideHead}`}>Chapters</div>
+            <div className={`${c.kicker} ${s.asideHead}`}>{COPY.ui.panel.panel.videoChapters}</div>
             {vid.chapters.map((ch2) => (
               <button type="button" key={ch2.n} onClick={() => { seek(ch2.t0); void el.current?.play(); }} className={s.chapter} aria-current={chapNow?.t0 === ch2.t0 ? true : undefined} style={chapNow?.t0 === ch2.t0 ? { background: 'color-mix(in srgb, var(--color-accent) 10%, transparent)' } : undefined}>
                 <span className={`${s.chapT} ${c.muted}`}>{ch2.t}</span>{ch2.n}
@@ -136,7 +137,7 @@ function VideoPlayerBody({ vm }: VmProps) {
             ))}
           </>
         )}
-        {vm.upNext.length > 0 && <div className={`${c.kicker} ${s.asideHead} ${s.upHead}`}>Up next</div>}
+        {vm.upNext.length > 0 && <div className={`${c.kicker} ${s.asideHead} ${s.upHead}`}>{COPY.ui.panel.panel.videoUpNext}</div>}
         {vm.upNext.map((u) => (
           <button type="button" key={u.title} onClick={u.onClick} className={s.next}>
             <span className={`${s.thumb} ${c.stage}`}><span className={s.thumbDur}>{u.dur}</span></span>

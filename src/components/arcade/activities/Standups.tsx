@@ -22,9 +22,9 @@ export function Standups({ view, space, me, seed }: ActivityProps) {
   return (
     <>
       <form className={s.formCol} onSubmit={(e) => { void submit(e); }} style={{ maxWidth: 560 }} data-testid="standup-form">
-        <h3 className={s.sectionHead}>Your standup for {today()}</h3>
-        {field('su-y', 'Yesterday', y, setY)}{field('su-t', 'Today', t, setT)}{field('su-b', 'Blockers', b, setB)}
-        <div><button type="submit" className="btn btn-primary" disabled={busy || !(y.trim() || t.trim())}>{mineToday ? 'Update' : 'Post'}</button></div>
+        <h3 className={s.sectionHead}>{COPY.ui.arcade.activitiesMore.standupFor(today())}</h3>
+        {field('su-y', COPY.ui.arcade.standup.yesterday, y, setY)}{field('su-t', COPY.ui.arcade.standup.today, t, setT)}{field('su-b', COPY.ui.arcade.standup.blockers, b, setB)}
+        <div><button type="submit" className="btn btn-primary" disabled={busy || !(y.trim() || t.trim())}>{mineToday ? COPY.ui.arcade.standupsText.update : COPY.ui.arcade.standupsText.post}</button></div>
       </form>
       {view && view.standups.length === 0 && <EmptyNote {...COPY.standupsEmpty} />}
       {view?.standups.map((d) => (
@@ -32,7 +32,7 @@ export function Standups({ view, space, me, seed }: ActivityProps) {
           <h3 className={s.sectionHead}>{d.day}</h3>
           <ul className={s.list}>{d.posts.map((p) => (
             <li key={p.user} className={s.card} style={{ display: 'block' }}><div className={s.cardTitle}>{seatName(seed, p.user)}</div>
-              <div className={s.cardMeta}>Yesterday: {p.yesterday || 'nothing'}</div><div className={s.cardMeta}>Today: {p.today || 'nothing'}</div>{p.blockers && <div className={s.cardMeta}>Blockers: {p.blockers}</div>}</li>
+              <div className={s.cardMeta}>{COPY.ui.arcade.activitiesMore.yesterday(p.yesterday || COPY.ui.arcade.standupsText.nothing)}</div><div className={s.cardMeta}>{COPY.ui.arcade.activitiesMore.today(p.today || COPY.ui.arcade.standupsText.nothing)}</div>{p.blockers && <div className={s.cardMeta}>{COPY.ui.arcade.activitiesMore.blockers(p.blockers)}</div>}</li>
           ))}</ul>
         </section>
       ))}

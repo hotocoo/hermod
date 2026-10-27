@@ -1,3 +1,4 @@
+import { COPY } from '@/config/copy';
 import type { ViewModel } from '@/state/viewModel';
 import { DrawerFrame } from './DrawerFrame';
 import s from './SkyDrawer.module.css';
@@ -6,14 +7,8 @@ export function SkyDrawer({ vm }: { vm: ViewModel }) {
   const { autoWxBd, autoWxBg, autoWxKnob, autoWxX, clockModes, clockText, closeDrawer, drawerSky, hourVal, icS, onHour, period, presets, space, toggleAutoWx, weathers } = vm;
   return drawerSky ? (
     <DrawerFrame
-      label="Sky and weather"
-      kicker={(
-        <>
-          The sky over
-          {' '}
-          {space.name}
-        </>
-      )}
+      label={COPY.ui.shell.drawers.sky.label}
+      kicker={COPY.ui.shell.drawers.sky.kicker(space.name)}
       headExtra={(
         <>
           <div className={s.clock}>{clockText}</div>
@@ -24,7 +19,7 @@ export function SkyDrawer({ vm }: { vm: ViewModel }) {
       onClose={closeDrawer}
     >
       <div className={s.timeWrap}>
-        <input className={s.slider} type="range" min="0" max="24" step="0.05" value={hourVal} onChange={onHour} aria-label="Time of day" />
+        <input className={s.slider} type="range" min="0" max="24" step="0.05" value={hourVal} onChange={onHour} aria-label={COPY.ui.shell.drawers.sky.timeOfDay} />
         <div className={s.ticks}>
           <span>00</span>
           <span>06</span>
@@ -47,7 +42,7 @@ export function SkyDrawer({ vm }: { vm: ViewModel }) {
         ))}
       </div>
       <div className={s.divider} />
-      <div className={s.sectionLabel}>Weather</div>
+      <div className={s.sectionLabel}>{COPY.ui.shell.drawers.sky.weather}</div>
       <div className={s.weatherGrid}>
         {weathers.map((w) => (
           <button className={s.weatherBtn} style={{ border: `1px solid ${w.bd}`, background: w.bg, color: w.fg }} onClick={w.onClick} aria-pressed={w.on === 'true'} key={w.label}>
@@ -58,8 +53,8 @@ export function SkyDrawer({ vm }: { vm: ViewModel }) {
       </div>
       <button className={s.autoRow} onClick={toggleAutoWx}>
         <span className={s.autoText}>
-          <span className={s.autoLabel}>Follow the forecast</span>
-          <span className={s.autoSub}>Weather changes on its own every minute or so</span>
+          <span className={s.autoLabel}>{COPY.ui.shell.drawers.sky.follow}</span>
+          <span className={s.autoSub}>{COPY.ui.shell.drawers.sky.followSub}</span>
         </span>
         <span className={s.switchTrack} style={{ border: `1px solid ${autoWxBd}`, background: autoWxBg }}>
           <span className={s.switchKnob} style={{ background: autoWxKnob, transform: `translateX(${autoWxX})` }} />

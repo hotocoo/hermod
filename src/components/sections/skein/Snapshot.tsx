@@ -55,18 +55,18 @@ export function Snapshot({ sel, T, expert, icChat }: Props) {
   };
   return (
     <div className={s.detail}>
-      <div className={s.selKicker}>{sel.kind} {T.snapshot} on {sel.line}</div>
+      <div className={s.selKicker}>{COPY.ui.panel.sections.snapKicker(sel.kind, T.snapshot, sel.line)}</div>
       <h3 className={s.selTitle}>{sel.title}</h3>
       <div className={s.selMeta}>
         <span>{sel.by} · {sel.when}</span>
-        <span className={s.tnum}><span className={s.adds}>+{sel.adds}</span> / −{sel.dels} across {sel.fileCount} files</span>
-        {sel.hasLink && <button type="button" className={s.link} onClick={sel.openLink}>{icChat} Talked about in {sel.linked}</button>}
+        <span className={s.tnum}><span className={s.adds}>+{sel.adds}</span> {COPY.ui.panel.sections.snapAcross(String(sel.dels), String(sel.fileCount))}</span>
+        {sel.hasLink && <button type="button" className={s.link} onClick={sel.openLink}>{icChat} {COPY.ui.panel.sections.snapTalked(sel.linked)}</button>}
       </div>
       <div className={s.sealBox}>
         <span className={s.sealLabel}>{T.seal}</span>
         <span className={s.mono}>{sel.sealShort}</span>
-        {!expert && <span className={`${s.dim} ${s.plainNote}`}>A fingerprint of exactly what’s inside. If anything changed, the seal would too.</span>}
-        {expert && <span className={`${s.mono} ${s.dim}`}>blake3:{sel.seal} · parent {sel.parent}</span>}
+        {!expert && <span className={`${s.dim} ${s.plainNote}`}>{COPY.ui.panel.sections.snapPlainNote}</span>}
+        {expert && <span className={`${s.mono} ${s.dim}`}>{COPY.ui.panel.sections.snapExpertSeal(sel.seal, sel.parent)}</span>}
       </div>
       {!sel.noFiles && <SealStatus v={seal} />}
       {!sel.noFiles && getBridge().kind === 'tauri' && (
@@ -80,7 +80,7 @@ export function Snapshot({ sel, T, expert, icChat }: Props) {
           <div><span className={s.adds}>$</span> {sel.cliWeave}</div>
         </div>
       )}
-      {sel.noFiles && <p className={s.noFiles}>This {T.snapshot} joins {sel.weaveOf} into the main line. Every earlier version is still here, one click away.</p>}
+      {sel.noFiles && <p className={s.noFiles}>{COPY.ui.panel.sections.snapNoFiles(T.snapshot, sel.weaveOf ?? '')}</p>}
       {sel.files.map((f) => <FileDiff key={f.path} f={f} />)}
     </div>
   );

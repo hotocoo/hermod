@@ -5,6 +5,7 @@ import f from '@/components/ui/form.module.css';
 import type { Seed } from '@/lib/data/types';
 import { ARCADE_LIMITS, KINDS, kindInfo } from '@/config/arcade';
 import { createGame } from './actions';
+import { COPY } from '@/config/copy';
 import s from './arcade.module.css';
 
 interface Props { space: string; seed: Seed; me: string; onClose: () => void; onCreated: (id: string) => void }
@@ -23,6 +24,7 @@ export function CreateGameDialog({ space, seed, me, onClose, onCreated }: Props)
   const rt = typeof info.seats === 'object' ? info.seats : null;
   const members = useMemo(() => Object.entries(seed.people).filter(([id]) => id !== me && id !== 'system'), [seed, me]);
 
+  const C = COPY.ui.arcade;
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (busy) return;
@@ -38,9 +40,9 @@ export function CreateGameDialog({ space, seed, me, onClose, onCreated }: Props)
   };
 
   return (
-    <Dialog title="New game" kicker="The Games Hall" onClose={onClose} wide initialFocus="[data-first-kind]">
+    <Dialog title={C.newGame} kicker={C.hall} onClose={onClose} wide initialFocus="[data-first-kind]">
       <form className={s.formCol} onSubmit={(e) => { void submit(e); }} data-testid="create-game-form">
-        <div role="radiogroup" aria-label="Game" className={s.kindGrid}>
+        <div role="radiogroup" aria-label={C.create.gameGroup} className={s.kindGrid}>
           {KINDS.map((k, i) => (
             <button key={k.kind} type="button" role="radio" aria-checked={kind === k.kind} className={s.kindBtn} onClick={() => setKind(k.kind)}
               data-first-kind={i === 0 ? '' : undefined} data-testid={`kind-${k.kind}`}>
@@ -49,29 +51,29 @@ export function CreateGameDialog({ space, seed, me, onClose, onCreated }: Props)
           ))}
         </div>
         <div className={f.field}>
-          <label className={f.label} htmlFor={`${uid}-t`}>Title (optional)</label>
+          <label className={f.label} htmlFor={`${uid}-t`}>{C.create.titleOptional}</label>
           <input id={`${uid}-t`} className="input" maxLength={ARCADE_LIMITS.titleMax} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={info.label} />
         </div>
         {!rt && (
           <div className={f.row}>
             <div className={f.field}>
-              <label className={f.label} htmlFor={`${uid}-s`}>You play</label>
+              <label className={f.label} htmlFor={`${uid}-s`}>{C.create.youPlay}</label>
               <select id={`${uid}-s`} className="input" value={side} onChange={(e) => setSide(e.target.value as typeof side)}>
-                <option value="first">{info.firstName ?? 'First'} (moves first)</option>
-                <option value="second">Second</option>
-                {!opponent && <option value="random">Random</option>}
+                <option value="first">{C.create.movesFirst(info.firstName ?? C.first)}</option>
+                <option value="second">{C.second}</option>
+                {!opponent && <option value="random">{C.create.random}</option>}
               </select>
             </div>
             <div className={f.field}>
-              <label className={f.label} htmlFor={`${uid}-o`}>Challenge</label>
+              <label className={f.label} htmlFor={`${uid}-o`}>{C.create.challenge}</label>
               <select id={`${uid}-o`} className="input" value={opponent} onChange={(e) => { setOpponent(e.target.value); if (e.target.value && side === 'random') setSide('first'); }}>
-                <option value="">Anyone (open table)</option>
+                <option value="">{C.create.anyone}</option>
                 {members.map(([id, p]) => <option key={id} value={id}>{p.name}</option>)}
               </select>
             </div>
             {kind === 'go9' && (
               <div className={f.field}>
-                <label className={f.label} htmlFor={`${uid}-k`}>Komi</label>
+                <label className={f.label} htmlFor={`${uid}-k`}>{C.create.komi}</label>
                 <input id={`${uid}-k`} className="input" type="number" min={0} max={20} step={0.5} value={komi} onChange={(e) => setKomi(e.target.value)} style={{ width: 90 }} />
               </div>
             )}
@@ -79,13 +81,13 @@ export function CreateGameDialog({ space, seed, me, onClose, onCreated }: Props)
         )}
         {rt && (
           <div className={f.field}>
-            <label className={f.label} htmlFor={`${uid}-n`}>Seats ({rt.min} to {rt.max})</label>
+            <label className={f.label} htmlFor={`${uid}-n`}>{C.create.seatsRange(rt.min, rt.max)}</label>
             <input id={`${uid}-n`} className="input" type="number" min={rt.min} max={rt.max} value={seats} onChange={(e) => setSeats(Math.min(rt.max, Math.max(rt.min, Number(e.target.value) || rt.def)))} style={{ width: 90 }} />
           </div>
         )}
         <div className={f.actions}>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn btn-primary" disabled={busy} data-testid="create-game-submit">Open table</button>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>{C.cancel}</button>
+          <button type="submit" className="btn btn-primary" disabled={busy} data-testid="create-game-submit">{C.create.openTable}</button>
         </div>
       </form>
     </Dialog>

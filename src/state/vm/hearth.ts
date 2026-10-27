@@ -20,7 +20,7 @@ export function hearthVm(x: Ctx) {
     const share = mine ? !!(call && call.share) : !!room?.share?.[p];
     const spk = !!s.talking[p]; // every voice above the threshold lights its own ring, not only the sticky spotlight speaker
     return {
-      id: p, name: mine ? 'You' : P(p).name, first: mine ? 'You' : firstName(P(p).name), initials: P(p).i, av: P(p).av ?? '', isMe: mine, cam, share, noCam: !cam && !share, speaking: spk, muted,
+      id: p, name: mine ? COPY.ui.stateMsgs.common.you : P(p).name, first: mine ? COPY.ui.stateMsgs.common.you : firstName(P(p).name), initials: P(p).i, av: P(p).av ?? '', isMe: mine, cam, share, noCam: !cam && !share, speaking: spk, muted,
       ring: spk ? ACCENT : 'transparent',
       glow: spk ? `0 0 0 1px ${ACCENT}, 0 0 32px ${mixAccent(35)}` : `0 0 0 1px ${DIVIDER}`,
       scale: spk ? '1.04' : '1', anim: anim(i, 'hm-scale'),
@@ -29,12 +29,12 @@ export function hearthVm(x: Ctx) {
   });
   // A shared screen is the spotlight: it leads the grid and spans the full row.
   const tiles = [...tilesAll.filter((t) => t.share), ...tilesAll.filter((t) => !t.share)];
-  const faces = room ? room.inRoom.map((p) => ({ initials: P(p).i, av: P(p).av ?? '', name: P(p).name, first: p === me ? 'You' : firstName(P(p).name), speaking: p === speaking, ring: ringOf(p === speaking) })) : [];
+  const faces = room ? room.inRoom.map((p) => ({ initials: P(p).i, av: P(p).av ?? '', name: P(p).name, first: p === me ? COPY.ui.stateMsgs.common.you : firstName(P(p).name), speaking: p === speaking, ring: ringOf(p === speaking) })) : [];
   const count = roomCount(room);
   const full = count >= MEDIA.call.maxParticipants;
   const hearth = room ? {
     name: room.name, topic: room.topic, count, full, fullLine: full ? COPY.hearthFull(MEDIA.call.maxParticipants) : '', empty: count === 0, notEmpty: count > 0,
-    line: count === 0 ? 'Nobody’s here yet. Pull up a chair and the room will light up.' : (count === 1 ? 'One person by the fire.' : `${count} people by the fire. Drop in, no invite needed.`),
+    line: count === 0 ? COPY.ui.stateMsgs.hearth.lineEmpty : (count === 1 ? COPY.ui.stateMsgs.hearth.lineOne : COPY.ui.stateMsgs.hearth.lineMany(count)),
     extra: room.extra ? `+${room.extra}` : '', hasExtra: !!room.extra, faces,
   } : null;
 
@@ -47,13 +47,13 @@ export function hearthVm(x: Ctx) {
     return {
       space: cSpace?.name ?? '', room: cRoom?.name ?? '', elapsed: dur(s.now - call.at), meetElapsed: meeting ? dur(s.now - meeting.at) : '00:00',
       muted: call.muted, cam: call.cam, share: call.share, meeting: !!meeting, notMeeting: !meeting,
-      title, kicker: meeting ? 'Meeting' : 'Drop-in room',
+      title, kicker: meeting ? COPY.ui.stateMsgs.hearth.kickerMeeting : COPY.ui.stateMsgs.hearth.kickerDropIn,
       micIcon: call.muted ? I('micOff', 20, 1.6) : I('mic', 20, 1.6), camIcon: call.cam ? I('video', 20, 1.6) : I('videoOff', 20, 1.6),
       micBg: sw(call.muted).bg, micBd: sw(call.muted).bd, micFg: sw(call.muted).fg,
       camBg: sw(!call.cam).bg, camBd: sw(!call.cam).bd, camFg: sw(!call.cam).fg,
       shareBd: ringOf(call.share), shareFg: call.share ? ACCENT_700 : TEXT,
-      micLabel: call.muted ? 'Unmute' : 'Mute', camLabel: call.cam ? 'Camera off' : 'Camera on', shareLabel: call.share ? 'Stop sharing' : 'Share screen',
-      speakingName: speaking ? (speaking === me ? 'You' : firstName(P(speaking).name)) : '', away: call.space !== s.space || s.section !== 'hearth',
+      micLabel: call.muted ? COPY.ui.stateMsgs.hearth.unmute : COPY.ui.stateMsgs.hearth.mute, camLabel: call.cam ? COPY.ui.stateMsgs.hearth.camOff : COPY.ui.stateMsgs.hearth.camOn, shareLabel: call.share ? COPY.ui.stateMsgs.hearth.stopShare : COPY.ui.stateMsgs.hearth.shareScreen,
+      speakingName: speaking ? (speaking === me ? COPY.ui.stateMsgs.common.you : firstName(P(speaking).name)) : '', away: call.space !== s.space || s.section !== 'hearth',
     };
   })() : null;
 

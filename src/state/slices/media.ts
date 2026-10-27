@@ -30,7 +30,7 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
       if (await appendEvent(get, spaceFor(space), { t: 'save.toggle', target_id: id }) && !was) get().showToast(COPY.savedToBoard);
     },
     deletePost: async (id, space) => {
-      const ok = await get().confirmAction({ title: 'Delete this post?', body: 'It disappears for everyone in this Space.', confirm: 'Delete', danger: true });
+      const ok = await get().confirmAction({ title: COPY.ui.stateMsgs.media.deletePostTitle, body: COPY.ui.stateMsgs.media.deletePostBody, confirm: COPY.ui.stateMsgs.common.delete, danger: true });
       if (ok) await appendEvent(get, spaceFor(space), { t: 'post.delete', post_id: id });
     },
     commentPost: async (id, space, text) => {
@@ -67,7 +67,7 @@ export const createMediaSlice: StateCreator<AppStore, [], [], MediaSlice> = (set
     },
     goLive: async () => {
       const s = get();
-      const v = await s.ask({ title: 'Go live', kicker: 'Live', submit: 'Start', fields: [{ key: 'title', label: 'Title', placeholder: 'What are you sharing', required: true }], note: COPY.liveNote });
+      const v = await s.ask({ title: COPY.ui.stateMsgs.media.liveTitle, kicker: COPY.ui.stateMsgs.media.liveKicker, submit: COPY.ui.stateMsgs.media.liveSubmit, fields: [{ key: 'title', label: COPY.ui.stateMsgs.common.title, placeholder: COPY.ui.stateMsgs.media.livePh, required: true }], note: COPY.liveNote });
       if (!v) return;
       const liveId = uid('l');
       if (await appendEvent(get, s.space, { t: 'live.start', live_id: liveId, title: v.title.trim() })) useMediaRt.setState({ hosting: { liveId, space: s.space }, hearts: 0 });

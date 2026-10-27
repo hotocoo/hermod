@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import f from '@/components/ui/form.module.css';
 import { REALTIME } from '@/config/arcade';
+import { COPY } from '@/config/copy';
 import { wallMs } from '@/lib/clock';
 import { seatName } from '@/state/vm/arcade';
 import { reportResult } from '../../actions';
@@ -75,35 +76,35 @@ export default function TriviaGame({ game, space, me, seed, seat }: RendererProp
         <form className={s.formCol} style={{ width: '100%', maxWidth: 560 }} onSubmit={start} data-testid="trivia-setup">
           {draft.map((d, i) => (
             <fieldset key={i} className={s.qEdit}>
-              <legend className={s.sectionHead}>Question {i + 1}</legend>
-              <input className="input" aria-label={`Question ${i + 1}`} maxLength={200} value={d.q} onChange={(e) => setDraft((x) => x.map((y, k) => (k === i ? { ...y, q: e.target.value } : y)))} />
+              <legend className={s.sectionHead}>{COPY.ui.arcadeGames.trivia.question(i + 1)}</legend>
+              <input className="input" aria-label={COPY.ui.arcadeGames.trivia.question(i + 1)} maxLength={200} value={d.q} onChange={(e) => setDraft((x) => x.map((y, k) => (k === i ? { ...y, q: e.target.value } : y)))} />
               {d.options.map((o, k) => (
                 <div key={k} className={s.optRow}>
-                  <input type="radio" name={`ans-${i}`} aria-label={`Option ${k + 1} is correct`} checked={d.answer === k} onChange={() => setDraft((x) => x.map((y, n) => (n === i ? { ...y, answer: k } : y)))} />
-                  <input className="input" aria-label={`Question ${i + 1} option ${k + 1}`} maxLength={80} value={o} onChange={(e) => setDraft((x) => x.map((y, n) => (n === i ? { ...y, options: y.options.map((z, j) => (j === k ? e.target.value : z)) } : y)))} />
+                  <input type="radio" name={`ans-${i}`} aria-label={COPY.ui.arcadeGames.trivia.optionCorrect(k + 1)} checked={d.answer === k} onChange={() => setDraft((x) => x.map((y, n) => (n === i ? { ...y, answer: k } : y)))} />
+                  <input className="input" aria-label={COPY.ui.arcadeGames.trivia.questionOption(i + 1, k + 1)} maxLength={80} value={o} onChange={(e) => setDraft((x) => x.map((y, n) => (n === i ? { ...y, options: y.options.map((z, j) => (j === k ? e.target.value : z)) } : y)))} />
                 </div>
               ))}
             </fieldset>
           ))}
           <div className={f.actions}>
-            <button type="button" className="btn btn-secondary" disabled={draft.length >= 15} onClick={() => setDraft((x) => [...x, { q: '', options: ['', '', '', ''], answer: 0 }])}>Add question</button>
-            <button type="submit" className="btn btn-primary" disabled={!valid} data-testid="trivia-start">Start rush</button>
+            <button type="button" className="btn btn-secondary" disabled={draft.length >= 15} onClick={() => setDraft((x) => [...x, { q: '', options: ['', '', '', ''], answer: 0 }])}>{COPY.ui.arcadeGames.trivia.addQuestion}</button>
+            <button type="submit" className="btn btn-primary" disabled={!valid} data-testid="trivia-start">{COPY.ui.arcadeGames.trivia.startRush}</button>
           </div>
         </form>
       )}
-      {!isHost && !q && !finished && <p className={s.cardMeta}>Waiting for the host to start.</p>}
+      {!isHost && !q && !finished && <p className={s.cardMeta}>{COPY.ui.arcadeGames.trivia.waitingHost}</p>}
       {q && !finished && (
         <>
-          <p className={s.cardMeta}>Question {q.n + 1} of {q.of} · <span className={s.timer} aria-live="off">{left}s</span></p>
+          <p className={s.cardMeta}>{COPY.ui.arcadeGames.trivia.progress(q.n + 1, q.of)} <span className={s.timer} aria-live="off">{left}s</span></p>
           <div className={s.bigQ}>{q.q}</div>
-          <div className={s.opts} role="group" aria-label="Answers">
+          <div className={s.opts} role="group" aria-label={COPY.ui.arcadeGames.trivia.answers}>
             {q.options.map((o, i) => (
               <button key={i} type="button" className={`${s.opt} ${right === i ? s.optRight : ''}`} aria-pressed={mine === i} disabled={mine !== null || right !== null || seat < 0} onClick={() => pick(i)} data-testid={`trivia-opt-${i}`}>{o}</button>
             ))}
           </div>
         </>
       )}
-      {rows.length > 0 && <table className={s.table} aria-label="Scores"><tbody>{rows.map(([u, v]) => <tr key={u}><td>{name(u)}</td><td className={s.num}>{v}</td></tr>)}</tbody></table>}
+      {rows.length > 0 && <table className={s.table} aria-label={COPY.ui.arcadeGames.trivia.scores}><tbody>{rows.map(([u, v]) => <tr key={u}><td>{name(u)}</td><td className={s.num}>{v}</td></tr>)}</tbody></table>}
     </div>
   );
 }

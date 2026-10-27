@@ -1,3 +1,4 @@
+import { COPY } from '@/config/copy';
 import { useAppStore } from '@/state/store';
 import type { ViewModel } from '@/state/viewModel';
 import { DrawerFrame } from './DrawerFrame';
@@ -8,7 +9,7 @@ export function SettingsDrawer({ vm }: { vm: ViewModel }) {
   const openModal = useAppStore((st) => st.openModal);
   const { closeDrawer, drawerSet, icS, replayIntro, replayWelcome, settings } = vm;
   return drawerSet ? (
-    <DrawerFrame label="Settings" kicker="Settings" title="Make it yours" headGap="sm" closeIcon={icS.x} onClose={closeDrawer}>
+    <DrawerFrame label={COPY.ui.shell.drawers.settings.label} kicker={COPY.ui.shell.drawers.settings.kicker} title={COPY.ui.shell.drawers.settings.title} headGap="sm" closeIcon={icS.x} onClose={closeDrawer}>
       {settings.map((st) => (
         <button className={s.row} onClick={st.onClick} role="switch" aria-checked={st.on} key={st.label}>
           <span className={s.rowText}>
@@ -22,13 +23,13 @@ export function SettingsDrawer({ vm }: { vm: ViewModel }) {
       ))}
       <GraphicsQuality />
       <div className={s.actions}>
-        <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'appSettings' })}>App settings</button>
-        <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'shortcuts' })}>Keyboard shortcuts</button>
-        <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'about' })}>About Hermod</button>
+        <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'appSettings' })}>{COPY.ui.shell.drawers.settings.appSettings}</button>
+        <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'shortcuts' })}>{COPY.ui.shell.drawers.settings.shortcuts}</button>
+        <button className={s.flyoverBtn} onClick={() => openModal({ kind: 'about' })}>{COPY.ui.shell.drawers.settings.about}</button>
       </div>
       <div className={s.actions}>
-        <button className={s.welcomeBtn} onClick={replayWelcome}>Replay the welcome</button>
-        <button className={s.flyoverBtn} onClick={replayIntro}>Replay the flyover</button>
+        <button className={s.welcomeBtn} onClick={replayWelcome}>{COPY.ui.shell.drawers.settings.replayWelcome}</button>
+        <button className={s.flyoverBtn} onClick={replayIntro}>{COPY.ui.shell.drawers.settings.replayFlyover}</button>
       </div>
     </DrawerFrame>
   ) : null;

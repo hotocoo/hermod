@@ -1,4 +1,5 @@
 'use client';
+import { COPY } from '@/config/copy';
 import type { DeskField } from '@/state/deskTypes';
 
 interface Props { f: DeskField; value: string; onChange: (v: string) => void; id: string; onBlurCommit?: () => void }
@@ -11,7 +12,7 @@ export function FieldInput({ f, value, onChange, id, onBlurCommit }: Props) {
   if (f.kind === 'select') {
     return (
       <select id={id} className="input" value={value} required={f.required} onChange={(e) => { onChange(e.target.value); onBlurCommit?.(); }}>
-        <option value="">{f.required ? 'Choose' : 'None'}</option>
+        <option value="">{f.required ? COPY.ui.desk.field.choose : COPY.ui.desk.field.none}</option>
         {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
     );

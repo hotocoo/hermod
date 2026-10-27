@@ -1,5 +1,6 @@
 /** Help Desk projection shapes (docs/ARCHITECTURE.md section 11.1): what the `desk` collection holds per space. */
 import type { BlobRef } from '../lib/bridge/types';
+import { COPY } from '../config/copy';
 
 export const TICKET_STATUSES = ['new', 'open', 'pending', 'on_hold', 'solved', 'closed'] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
@@ -42,8 +43,8 @@ export interface DeskView {
   config: DeskConfig; agent: boolean; admin: boolean; agents: string[]; tickets: Ticket[]; views: DeskSavedView[]; macros: DeskMacro[]; stats: DeskStats | null;
 }
 
-export const STATUS_LABEL: Record<TicketStatus, string> = { new: 'New', open: 'Open', pending: 'Pending', on_hold: 'On hold', solved: 'Solved', closed: 'Closed' };
-export const PRIORITY_LABEL: Record<TicketPriority, string> = { low: 'Low', normal: 'Normal', high: 'High', urgent: 'Urgent' };
-export const LINK_LABEL: Record<LinkKind, string> = { duplicate: 'Duplicate of', relates: 'Related to', blocks: 'Blocks', child: 'Child of' };
-export const INVERSE_LINK_LABEL: Record<LinkKind, string> = { duplicate: 'Duplicated by', relates: 'Related to', blocks: 'Blocked by', child: 'Parent of' };
+export const STATUS_LABEL: Record<TicketStatus, string> = { get new() { return COPY.ui.stateMsgs.status.new; }, get open() { return COPY.ui.stateMsgs.status.open; }, get pending() { return COPY.ui.stateMsgs.status.pending; }, get on_hold() { return COPY.ui.stateMsgs.status.onHold; }, get solved() { return COPY.ui.stateMsgs.status.solved; }, get closed() { return COPY.ui.stateMsgs.status.closed; } };
+export const PRIORITY_LABEL: Record<TicketPriority, string> = { get low() { return COPY.ui.stateMsgs.priority.low; }, get normal() { return COPY.ui.stateMsgs.priority.normal; }, get high() { return COPY.ui.stateMsgs.priority.high; }, get urgent() { return COPY.ui.stateMsgs.priority.urgent; } };
+export const LINK_LABEL: Record<LinkKind, string> = { get duplicate() { return COPY.ui.stateMsgs.link.duplicate; }, get relates() { return COPY.ui.stateMsgs.link.relates; }, get blocks() { return COPY.ui.stateMsgs.link.blocks; }, get child() { return COPY.ui.stateMsgs.link.child; } };
+export const INVERSE_LINK_LABEL: Record<LinkKind, string> = { get duplicate() { return COPY.ui.stateMsgs.link.duplicateInv; }, get relates() { return COPY.ui.stateMsgs.link.relatesInv; }, get blocks() { return COPY.ui.stateMsgs.link.blocksInv; }, get child() { return COPY.ui.stateMsgs.link.childInv; } };
 export const isTerminal = (s: TicketStatus): boolean => s === 'solved' || s === 'closed';

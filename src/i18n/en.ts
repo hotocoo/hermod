@@ -1,4 +1,14 @@
 /** Source catalog (W-007). Values are ICU MessageFormat: `{name}`, `{n, plural, ...}`, `{x, select, ...}`. `en` is complete; other locales fall back to it key by key. */
+import { arcadeGamesMessages } from './messages/arcadeGames';
+import { arcadeMessages } from './messages/arcade';
+import { chatMessages } from './messages/chat';
+import { deskMessages } from './messages/desk';
+import { modalsMessages } from './messages/modals';
+import { panelMessages } from './messages/panel';
+import { settingsModalsMessages } from './messages/settingsModals';
+import { shellMessages } from './messages/shell';
+import { stateMsgsMessages } from './messages/stateMsgs';
+
 export const en = {
   'card.unassigned': 'Nobody',
   'card.duePlaceholder': 'YYYY-MM-DD',
@@ -323,6 +333,15 @@ export const en = {
   'linkedDevices.acceptConfirmBody': 'Everything here is removed and this device becomes a second device of the identity that made the code.',
   'linkedDevices.acceptConfirm': 'Link and replace',
   'linkedDevices.firstOnly': 'Only the first device can link or revoke devices.',
+  ...settingsModalsMessages,
+  ...modalsMessages,
+  ...arcadeGamesMessages,
+  ...arcadeMessages,
+  ...chatMessages,
+  ...deskMessages,
+  ...panelMessages,
+  ...shellMessages,
+  ...stateMsgsMessages,
 } as const;
 
 export type MessageKey = keyof typeof en;

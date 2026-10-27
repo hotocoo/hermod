@@ -6,6 +6,7 @@ import type { DeskConfig, DeskMacro, MacroAction, Ticket, TicketPriority, Ticket
 import { curSpace, loadedMessages, meId, personOf } from '../selectors';
 import type { DeskScope, DeskSort, StatusMode } from '../vm/desk';
 import type { AppStore, DeskSlice } from '../types';
+import { COPY } from '../../config/copy';
 
 export interface NewTicket { queue: string; subject: string; body: string; priority: TicketPriority; fields: Record<string, string>; attachments: BlobRef[] }
 export interface TicketPatch {
@@ -90,15 +91,15 @@ export const createDeskSlice: StateCreator<AppStore, [], [], DeskSlice> = (set, 
       const msg = key ? loadedMessages(s, key).find((m) => m.id === msgId) : undefined;
       if (!msg || !seed) return;
       const agent = coll(seed, 'desk')[sp.id]?.agent ?? false;
-      const first = (msg.text.split('\n')[0] || 'Chat message').trim();
+      const first = (msg.text.split('\n')[0] || COPY.ui.stateMsgs.desk.chatMessage).trim();
       const subject = first.length > SUBJECT_FROM_MESSAGE ? `${first.slice(0, SUBJECT_FROM_MESSAGE - 1)}…` : first;
       const id = uid('tk');
       const ok = await send([
-        { t: 'ticket.create', ticket_id: id, queue_id: coll(seed, 'desk')[sp.id]?.config.queues[0]?.queue_id ?? '', subject, body: `${personOf(seed, msg.by).name} wrote in chat:\n\n${msg.text}`, priority: 'normal', fields: {}, attachments: msg.att ?? [] },
+        { t: 'ticket.create', ticket_id: id, queue_id: coll(seed, 'desk')[sp.id]?.config.queues[0]?.queue_id ?? '', subject, body: COPY.ui.stateMsgs.desk.wroteInChat(personOf(seed, msg.by).name, msg.text), priority: 'normal', fields: {}, attachments: msg.att ?? [] },
         ...(agent ? [{ t: 'ticket.link', ticket_id: id, kind: 'relates', target: msgId } as EventBody] : []),
       ], sp.id);
       if (!ok) return;
-      s.showToast('Ticket created from the message');
+      s.showToast(COPY.ui.stateMsgs.desk.fromMessage);
       set({ deskSel: id, deskPane: 'ticket' });
       if (meId(s)) s.goSection('desk');
     },

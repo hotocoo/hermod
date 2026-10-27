@@ -19,7 +19,7 @@ export function Tile({ t, micOff }: { t: TileData; micOff: ReactNode }) {
   useEffect(() => { if (el.current) el.current.srcObject = stream; }, [stream]);
   return (
     <div data-testid="tile" data-user={t.id} data-speaking={t.speaking} data-muted={t.muted} data-cam={t.cam} data-share={t.share} data-hand={hand} data-react={react} data-quality={poor ? 'poor' : undefined} className={`${s.tile} ${t.share ? s.tileShare : ''}`} style={{ boxShadow: t.glow, animation: t.anim }}>
-      <video ref={el} autoPlay playsInline muted={t.isMe} className={live ? (t.share ? s.screen : s.video) : s.videoHidden} aria-label={live ? `${t.name} ${t.share ? 'screen' : 'camera'}` : undefined} />
+      <video ref={el} autoPlay playsInline muted={t.isMe} className={live ? (t.share ? s.screen : s.video) : s.videoHidden} aria-label={live ? COPY.ui.panel.sections.tileMedia(t.name, t.share ? 'screen' : 'camera') : undefined} />
       {live && <div className={s.camTag}><span className={s.camLabel}>{t.label}</span></div>}
       {t.noCam && (
         <div className={s.noCam}>
@@ -27,7 +27,7 @@ export function Tile({ t, micOff }: { t: TileData; micOff: ReactNode }) {
         </div>
       )}
       {poor && <div className={s.poor} role="status">{COPY.poorLink}</div>}
-      {hand && <div className={s.hand} role="img" aria-label="Hand raised">✋</div>}
+      {hand && <div className={s.hand} role="img" aria-label={COPY.ui.panel.sections.tileHand}>✋</div>}
       {react && <div className={s.reaction} aria-hidden="true">{react}</div>}
       <div className={s.nameTag}>{t.name}{t.muted && <span className={s.muted}>{micOff}</span>}</div>
     </div>

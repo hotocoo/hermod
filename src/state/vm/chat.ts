@@ -7,6 +7,7 @@ import { channelUnread, channelsOf, chatKey, displayName, findSnap, isHomeSpace,
 import type { InputEvt, KeyEvt } from '../types';
 import type { Ctx } from './context';
 import { ACCENT, ACCENT_100, ACCENT_700, ACCENT_800, DIVIDER, TEXT, fgOf, mixAccent, mixText, ringOf } from './css';
+import { COPY } from '../../config/copy';
 
 const REACTION_QUICK = '👍';
 const enterToSend = (fn: () => void) => (e: KeyEvt) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fn(); } };
@@ -39,7 +40,7 @@ function messageVm(x: Ctx, m: Message, i: number, arr: Message[], key: string) {
       onClick: () => { void s.react(key, m.id, r.l); },
     })),
     hasRx: !!(m.rx && m.rx.length),
-    hasThread: thread.length > 0, threadCount: thread.length, threadLabel: `${thread.length}${thread.length === 1 ? ' reply' : ' replies'}`,
+    hasThread: thread.length > 0, threadCount: thread.length, threadLabel: COPY.ui.stateMsgs.vm.threadLabel(thread.length),
     threadFaces: thread.map((r) => r.by).filter((v, k, a) => a.indexOf(v) === k).slice(0, LIMITS.threadFaces).map((b) => ({ i: P(b).i })),
     threadOpen,
     replies: thread.map((r, j) => ({ name: P(r.by).name, initials: P(r.by).i, av: P(r.by).av ?? '', t: r.t, text: r.text, isMe: r.by === me, anim: anim(j) })),
@@ -106,7 +107,7 @@ export function chatVm(x: Ctx) {
     isChat: secOn('chat'), isHearth: secOn('hearth'), isFeed: secOn('feed'), isBoard: secOn('board'), isSkein: secOn('skein'), isDesk: secOn('desk'), isArcade: secOn('arcade'),
     sectionLabel: seed.sections[s.section].label,
     channels, chan, messages, hiddenMessages: start, pinned, hasMessages: raw.length > 0, noMessages: raw.length === 0,
-    emptyTitle: chan.name ? `It’s quiet in ${chan.isDm ? chan.name : `#${chan.name}`}` : 'No channel yet', emptyLine: 'Every good channel starts with one message. Say hi, share a link, or drop a file here.',
+    emptyTitle: chan.name ? COPY.ui.stateMsgs.vm.quietIn(chan.isDm ? chan.name : `#${chan.name}`) : COPY.ui.stateMsgs.vm.noChannel, emptyLine: COPY.ui.stateMsgs.vm.emptyChannel,
     onSend: () => { void s.send(); }, onDraftKey: enterToSend(() => { void s.send(); }),
     attached: s.attached[key] ?? [], detach: s.detach, attachFiles: s.attachFiles, attachNative: s.attachNative, newChannel: () => { void s.newChannel(); }, people: withNicks(seed, s.space), meId: meId(s), snapChoices, snapRef: s.snapRef, setSnapRef: s.setSnapRef,
     snapRefTitle: snapChoices.find((q) => q.id === s.snapRef)?.title ?? '', isHome: spaceHome,

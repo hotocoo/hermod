@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { COPY } from '@/config/copy';
 import type { Seed } from '@/lib/data/types';
 import {
   INVERSE_LINK_LABEL, LINK_KINDS, LINK_LABEL, PRIORITY_LABEL, STATUS_LABEL, TICKET_PRIORITIES, TICKET_STATUSES,
@@ -15,7 +16,7 @@ interface Props {
   onLink: (kind: LinkKind, target: string) => Promise<boolean>; onMerge: () => void; onOpenTicket: (id: string) => void;
 }
 
-const ago = (ms: number | null) => (ms == null ? 'none' : new Date(ms).toLocaleDateString());
+const ago = (ms: number | null) => (ms == null ? COPY.ui.desk.props.noDate : new Date(ms).toLocaleDateString());
 
 /** Agent side panel: status, priority, queue, assignee, tags, custom fields, due date, links and merge. */
 export function Properties({ desk, t, seed, me, update, onLink, onMerge, onOpenTicket }: Props) {
@@ -33,40 +34,40 @@ export function Properties({ desk, t, seed, me, update, onLink, onMerge, onOpenT
     if (await onLink(kind, dest)) setTarget('');
   };
   return (
-    <aside className={s.props} aria-label="Ticket properties" data-testid="properties">
+    <aside className={s.props} aria-label={COPY.ui.desk.props.label} data-testid="properties">
       <div className={s.fieldCol}>
-        <label className={s.label} htmlFor="p-status">Status</label>
+        <label className={s.label} htmlFor="p-status">{COPY.ui.desk.status}</label>
         <select id="p-status" className="input" value={t.status} onChange={(e) => update({ status: e.target.value as TicketStatus })} data-testid="prop-status">
           {TICKET_STATUSES.map((x) => <option key={x} value={x}>{STATUS_LABEL[x]}</option>)}
         </select>
       </div>
       <div className={s.fieldCol}>
-        <label className={s.label} htmlFor="p-prio">Priority</label>
+        <label className={s.label} htmlFor="p-prio">{COPY.ui.desk.priority}</label>
         <select id="p-prio" className="input" value={t.priority} onChange={(e) => update({ priority: e.target.value as TicketPriority })} data-testid="prop-priority">
           {TICKET_PRIORITIES.map((x) => <option key={x} value={x}>{PRIORITY_LABEL[x]}</option>)}
         </select>
       </div>
       <div className={s.fieldCol}>
-        <label className={s.label} htmlFor="p-queue">Queue</label>
+        <label className={s.label} htmlFor="p-queue">{COPY.ui.desk.queue}</label>
         <select id="p-queue" className="input" value={t.queue} onChange={(e) => update({ queue: e.target.value })}>
           {desk.config.queues.length === 0 && <option value="">{queueName(desk, '')}</option>}
           {desk.config.queues.map((q) => <option key={q.queue_id} value={q.queue_id}>{q.name}</option>)}
         </select>
       </div>
       <div className={s.fieldCol}>
-        <label className={s.label} htmlFor="p-assignee">Assignee</label>
+        <label className={s.label} htmlFor="p-assignee">{COPY.ui.desk.props.assignee}</label>
         <select id="p-assignee" className="input" value={t.assignee ?? ''} onChange={(e) => update({ assignee: e.target.value || null })} data-testid="prop-assignee">
-          <option value="">Unassigned</option>
+          <option value="">{COPY.ui.desk.unassigned}</option>
           {agentChoices(desk, seed, me).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
-        {t.assignee !== me && <button type="button" className={s.linkBtn} onClick={() => update({ assignee: me })} data-testid="take-ticket">Assign to me</button>}
+        {t.assignee !== me && <button type="button" className={s.linkBtn} onClick={() => update({ assignee: me })} data-testid="take-ticket">{COPY.ui.desk.assignToMe}</button>}
       </div>
       <div className={s.fieldCol}>
-        <span className={s.label}>Tags</span>
+        <span className={s.label}>{COPY.ui.desk.props.tags}</span>
         <div className={s.tagList}>
-          {t.tags.map((x) => <span key={x} className={s.chip}>{x}<button type="button" className={s.tagX} aria-label={`Remove tag ${x}`} onClick={() => update({ tagsRemove: [x] })}>×</button></span>)}
+          {t.tags.map((x) => <span key={x} className={s.chip}>{x}<button type="button" className={s.tagX} aria-label={COPY.ui.desk.props.removeTag(x)} onClick={() => update({ tagsRemove: [x] })}>×</button></span>)}
         </div>
-        <input className="input" value={tag} placeholder="Add tag, Enter" aria-label="Add tag" onChange={(e) => setTag(e.target.value)}
+        <input className="input" value={tag} placeholder={COPY.ui.desk.props.addTagPh} aria-label={COPY.ui.desk.props.addTag} onChange={(e) => setTag(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && tag.trim()) { e.preventDefault(); update({ tagsAdd: [tag.trim()] }); setTag(''); } }} />
       </div>
       {desk.config.fields.map((f) => (
@@ -78,14 +79,14 @@ export function Properties({ desk, t, seed, me, update, onLink, onMerge, onOpenT
         </div>
       ))}
       <div className={s.fieldCol}>
-        <label className={s.label} htmlFor="p-due">Due date</label>
+        <label className={s.label} htmlFor="p-due">{COPY.ui.desk.props.dueDate}</label>
         <input id="p-due" className="input" type="date" value={t.due ? new Date(t.due).toISOString().slice(0, 10) : ''}
           onChange={(e) => update({ due: e.target.value ? new Date(`${e.target.value}T12:00:00Z`).getTime() : null })} />
-        <span className={s.hint}>Current: {ago(t.due)}</span>
+        <span className={s.hint}>{COPY.ui.desk.props.current(ago(t.due))}</span>
       </div>
       <div className={s.fieldCol}>
-        <span className={s.label}>Links</span>
-        {t.links.length === 0 && <span className={s.hint}>None</span>}
+        <span className={s.label}>{COPY.ui.desk.props.links}</span>
+        {t.links.length === 0 && <span className={s.hint}>{COPY.ui.desk.props.linksNone}</span>}
         {t.links.map((l) => {
           const other = desk.tickets.find((x) => x.id === l.target);
           return (
@@ -96,14 +97,14 @@ export function Properties({ desk, t, seed, me, update, onLink, onMerge, onOpenT
           );
         })}
         <div className={s.rowForm}>
-          <select className="input" aria-label="Link kind" value={kind} onChange={(e) => setKind(e.target.value as LinkKind)}>{LINK_KINDS.map((k) => <option key={k} value={k}>{LINK_LABEL[k]}</option>)}</select>
-          <input className="input" aria-label="Link target" placeholder="#12 or card/message id" value={target} onChange={(e) => setTarget(e.target.value)}
+          <select className="input" aria-label={COPY.ui.desk.props.linkKind} value={kind} onChange={(e) => setKind(e.target.value as LinkKind)}>{LINK_KINDS.map((k) => <option key={k} value={k}>{LINK_LABEL[k]}</option>)}</select>
+          <input className="input" aria-label={COPY.ui.desk.props.linkTarget} placeholder={COPY.ui.desk.props.linkTargetPh} value={target} onChange={(e) => setTarget(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void addLink(); } }} />
-          <button type="button" className="btn btn-secondary" onClick={() => { void addLink(); }}>Link</button>
+          <button type="button" className="btn btn-secondary" onClick={() => { void addLink(); }}>{COPY.ui.desk.props.link}</button>
         </div>
       </div>
-      {t.merged_from.length > 0 && <span className={s.hint}>Merged here: {t.merged_from.map((id) => `#${desk.tickets.find((x) => x.id === id)?.number ?? '?'}`).join(', ')}</span>}
-      <button type="button" className="btn btn-secondary" onClick={onMerge} data-testid="merge-button">Merge into another ticket</button>
+      {t.merged_from.length > 0 && <span className={s.hint}>{COPY.ui.desk.props.mergedHere(t.merged_from.map((id) => `#${desk.tickets.find((x) => x.id === id)?.number ?? '?'}`).join(', '))}</span>}
+      <button type="button" className="btn btn-secondary" onClick={onMerge} data-testid="merge-button">{COPY.ui.desk.props.merge}</button>
     </aside>
   );
 }

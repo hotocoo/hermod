@@ -5,6 +5,7 @@ import { useAppStore } from '@/state/store';
 import type { Game, MoveBody } from '@/state/arcadeTypes';
 import { ARCADE_LIMITS } from '@/config/arcade';
 import { loadSecret, randomSalt, saveSecret, type FleetSecret, type QuizSecret, type WordSecret } from '@/state/arcadeSecrets';
+import { COPY } from '@/config/copy';
 
 const get = () => useAppStore.getState();
 const send = (space: string, body: EventBody) => appendEvent(get, space, body);
@@ -39,7 +40,7 @@ export async function commitWord(space: string, g: Game, word: string): Promise<
 /** Seals a battleship layout after the core confirms it is a legal fleet. */
 export async function commitFleet(space: string, g: Game, board: string): Promise<boolean> {
   const legal = await tool<boolean>('layout', { board });
-  if (!legal) { get().showToast('That fleet layout is not legal', undefined, 'error'); return false; }
+  if (!legal) { get().showToast(COPY.ui.arcade.actionsMore.fleetIllegal, undefined, 'error'); return false; }
   const salt = randomSalt();
   const hash = await tool<string>('commit', { parts: ['battleship', board, salt] });
   if (!hash) return false;
@@ -76,7 +77,7 @@ export async function createQuiz(space: string, d: QuizDraft): Promise<boolean> 
 export const answerQuiz = (space: string, id: string, answers: number[]) => send(space, { t: 'quiz.answer', quiz_id: id, answers });
 export function revealQuiz(space: string, id: string): Promise<boolean> {
   const secret = loadSecret<QuizSecret>(space, id);
-  if (!secret) { get().showToast('Only the device that created this quiz can reveal it', undefined, 'error'); return Promise.resolve(false); }
+  if (!secret) { get().showToast(COPY.ui.arcade.actionsMore.quizSecret, undefined, 'error'); return Promise.resolve(false); }
   return send(space, { t: 'quiz.reveal', quiz_id: id, answers: secret.answers.map((answer, i) => ({ answer, salt: secret.salts[i] })) });
 }
 export const canReveal = (space: string, id: string): boolean => loadSecret<QuizSecret>(space, id) !== null;

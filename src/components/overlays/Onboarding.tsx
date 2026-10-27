@@ -1,6 +1,7 @@
 import type { ViewModel } from '@/state/viewModel';
 import chrome from '../ui/chrome.module.css';
 import s from './Onboarding.module.css';
+import { COPY } from '@/config/copy';
 
 export function Onboarding({ vm }: { vm: ViewModel }) {
   const { icS, nextOnb, onb, onbDots, onbOn, skipOnb } = vm;
@@ -8,11 +9,7 @@ export function Onboarding({ vm }: { vm: ViewModel }) {
     <div className={s.root}>
       <div className={s.card}>
         <div className={chrome.kicker}>
-          Welcome ·
-          {' '}
-          {onb.n}
-          {' '}
-          of 3
+          {COPY.ui.shell.overlaysMore.welcomeStep(onb.n)}
         </div>
         <h2 className={s.title}>{onb.title}</h2>
         <p className={s.text}>{onb.text}</p>
@@ -22,7 +19,7 @@ export function Onboarding({ vm }: { vm: ViewModel }) {
               <span className={s.dot} style={{ width: d.w, background: d.bg }} key={i} />
             ))}
           </span>
-          <button className={s.skipBtn} onClick={skipOnb}>Skip</button>
+          <button className={s.skipBtn} onClick={skipOnb}>{COPY.ui.shell.onboardingText.skip}</button>
           <button className={s.nextBtn} onClick={nextOnb}>
             {onb.cta}
             {' '}

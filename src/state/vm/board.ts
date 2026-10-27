@@ -1,6 +1,7 @@
 import { anim } from '../../lib/format';
 import { findSnap, personOf } from '../selectors';
 import type { Ctx } from './context';
+import { COPY } from '../../config/copy';
 
 export function boardVm(x: Ctx) {
   const { s, seed, I } = x;
@@ -14,7 +15,7 @@ export function boardVm(x: Ctx) {
       cards: col.cards.map((cd) => ({
         id: cd.id, title: cd.title, tag: cd.tag, initials: personOf(seed, cd.by).i, name: personOf(seed, cd.by).name,
         assignee: cd.assignee ? personOf(seed, cd.assignee).name : '', due: cd.due ?? '',
-        hasSnap: !!cd.snap, snapTitle: cd.snap ? (findSnap(s, cd.snap)?.title ?? 'Snapshot not here yet') : '',
+        hasSnap: !!cd.snap, snapTitle: cd.snap ? (findSnap(s, cd.snap)?.title ?? COPY.ui.stateMsgs.vm.snapMissing) : '',
         moveTargets: bd.cols.filter((c) => c.id !== col.id).map((c) => ({ id: c.id, name: c.name })),
         onMoveTo: (colId: string) => { void s.moveCard(s.space, cd.id, colId); },
         onSnap: () => { if (cd.snap) s.openSnap(s.space, cd.snap); },

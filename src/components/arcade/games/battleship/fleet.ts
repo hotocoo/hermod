@@ -1,8 +1,8 @@
 /** Fleet layout helpers for battleship placement (UI side only; the core validates the sealed layout). */
 export const SIDE = 10;
 export const FLEET = [
-  { id: 'a', name: 'carrier', size: 5 }, { id: 'b', name: 'battleship', size: 4 }, { id: 'c', name: 'cruiser', size: 3 },
-  { id: 'd', name: 'submarine', size: 3 }, { id: 'e', name: 'destroyer', size: 2 },
+  { id: 'a', size: 5 }, { id: 'b', size: 4 }, { id: 'c', size: 3 },
+  { id: 'd', size: 3 }, { id: 'e', size: 2 },
 ] as const;
 
 export type Ships = (number[] | null)[];

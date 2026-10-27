@@ -1,5 +1,6 @@
 import { PRESENCE } from '../config/app';
 import { clock } from '../lib/format';
+import { COPY } from '../config/copy';
 /** Peer presence from `presence` ephemerals: pure reducers (state/slices/messaging uses them, unit-tested). */
 export interface PresenceEntry { at: number; away: boolean }
 export type PresenceMap = Record<string, PresenceEntry>;
@@ -40,8 +41,8 @@ export function lastSeenLabel(lastSeen: number | undefined, now = Date.now()): s
   if (!lastSeen) return null;
   const d = new Date(lastSeen);
   const t = new Date(now);
-  if (d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate()) return `Last seen ${clock(d)}`;
-  return `Last seen ${d.toLocaleDateString('en', { month: 'short', day: 'numeric' })}`;
+  if (d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate()) return COPY.ui.stateMsgs.presence.lastSeen(clock(d));
+  return COPY.ui.stateMsgs.presence.lastSeen(d.toLocaleDateString('en', { month: 'short', day: 'numeric' }));
 }
 
 /** Away once nothing has been touched for `idleMs`. */

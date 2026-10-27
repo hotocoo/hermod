@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from 'react';
 import type { VmProps } from '@/components/panel/types';
 import { Icon } from '@/components/ui/Icon';
+import { COPY } from '@/config/copy';
 import { getBridge } from '@/lib/bridge';
 import { humanSize } from '@/lib/upload';
 import { chatKey } from '@/state/selectors';
@@ -82,35 +83,35 @@ export function Composer({ vm }: VmProps) {
           <ComposeBars />
           {forum && (
             <div className={s.chips} style={{ gap: 8 }}>
-              <input className="input" aria-label="Post title" placeholder="Post title" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} style={{ flex: 2 }} />
-              <input className="input" aria-label="Tags, comma separated" placeholder={cfg?.tags?.length ? `Tags: ${cfg.tags.join(', ')}` : 'Tags, comma separated'} value={tags} onChange={(e) => setTags(e.target.value)} style={{ flex: 1 }} />
-              <button type="button" className="btn btn-primary" disabled={!title.trim()} onClick={publish}>Post</button>
+              <input className="input" aria-label={COPY.ui.chat.composer.postTitle} placeholder={COPY.ui.chat.composer.postTitle} value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} style={{ flex: 2 }} />
+              <input className="input" aria-label={COPY.ui.chat.composer.tags} placeholder={cfg?.tags?.length ? COPY.ui.chat.composer.tagsList(cfg.tags.join(', ')) : COPY.ui.chat.composer.tags} value={tags} onChange={(e) => setTags(e.target.value)} style={{ flex: 1 }} />
+              <button type="button" className="btn btn-primary" disabled={!title.trim()} onClick={publish}>{COPY.ui.chat.composer.post}</button>
             </div>
           )}
           {(vm.attached.length > 0 || vm.snapRef) && (
-            <ul className={s.chips} style={{ listStyle: 'none', margin: 0 }} aria-label="Attached">
+            <ul className={s.chips} style={{ listStyle: 'none', margin: 0 }} aria-label={COPY.ui.chat.composer.attached}>
               {vm.attached.map((a) => (
                 <li key={a.blob.hash} className={s.chip}>
                   {a.local && a.blob.mime.startsWith('image/') ? <img className={s.chipImg} src={a.local} alt="" /> : <Icon name="doc" size={16} />}
                   <span className={s.fileName}>{a.blob.name}</span><span className={s.fileSize}>{humanSize(a.blob.size)}</span>
-                  <button type="button" className={s.chipX} onClick={() => vm.detach(a.blob.hash)} aria-label={`Remove ${a.blob.name}`}><Icon name="x" size={12} /></button>
+                  <button type="button" className={s.chipX} onClick={() => vm.detach(a.blob.hash)} aria-label={COPY.ui.chat.composer.remove(a.blob.name)}><Icon name="x" size={12} /></button>
                 </li>
               ))}
               {vm.snapRef && (
-                <li className={s.chip}><Icon name="line" size={16} /><span className={s.fileName}>Snapshot: {vm.snapRefTitle}</span>
-                  <button type="button" className={s.chipX} onClick={() => vm.setSnapRef(null)} aria-label="Remove snapshot"><Icon name="x" size={12} /></button></li>
+                <li className={s.chip}><Icon name="line" size={16} /><span className={s.fileName}>{COPY.ui.chat.composer.snapshotNamed(vm.snapRefTitle)}</span>
+                  <button type="button" className={s.chipX} onClick={() => vm.setSnapRef(null)} aria-label={COPY.ui.chat.composer.removeSnapshot}><Icon name="x" size={12} /></button></li>
               )}
             </ul>
           )}
           <div className={`${x.toolRow} ${s.relative}`}><ComposerTools draft={draft} setDraft={(v) => setText(v, v.length)} /></div>
           <div className={`${s.boxRow} ${s.relative}`}>
             <input ref={files} type="file" multiple hidden onChange={(e) => { void vm.attachFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
-            <button type="button" aria-label="Attach files" title="Attach files" className={s.tool} onClick={() => (getBridge().kind === 'tauri' ? void vm.attachNative() : files.current?.click())}>{vm.ic.clip}</button>
+            <button type="button" aria-label={COPY.ui.chat.composer.attachFiles} title={COPY.ui.chat.composer.attachFiles} className={s.tool} onClick={() => (getBridge().kind === 'tauri' ? void vm.attachNative() : files.current?.click())}>{vm.ic.clip}</button>
             {vm.snapChoices.length > 0 && (
               <span className={s.relative}>
-                <button type="button" aria-label="Attach a snapshot" aria-haspopup="listbox" aria-expanded={snapOpen} title="Attach a snapshot from Skein" className={s.tool} onClick={() => setSnapOpen((v) => !v)}>{vm.ic.line}</button>
+                <button type="button" aria-label={COPY.ui.chat.composer.attachSnapshot} aria-haspopup="listbox" aria-expanded={snapOpen} title={COPY.ui.chat.composer.attachSnapshotTitle} className={s.tool} onClick={() => setSnapOpen((v) => !v)}>{vm.ic.line}</button>
                 {snapOpen && (
-                  <ul className={s.pop} role="listbox" aria-label="Snapshots">
+                  <ul className={s.pop} role="listbox" aria-label={COPY.ui.chat.composer.snapshots}>
                     {vm.snapChoices.map((q) => (
                       <li key={q.id} role="option" aria-selected={vm.snapRef === q.id}>
                         <button type="button" className={s.popItem} onClick={() => { vm.setSnapRef(q.id); setSnapOpen(false); }}>{q.title}<span className={s.fileSize}>{q.line}</span></button>
@@ -121,7 +122,7 @@ export function Composer({ vm }: VmProps) {
               </span>
             )}
             {listOpen && (
-              <ul className={s.pop} role="listbox" id="mention-list" aria-label="Mention someone" style={{ left: 50 }}>
+              <ul className={s.pop} role="listbox" id="mention-list" aria-label={COPY.ui.chat.composer.mention} style={{ left: 50 }}>
                 {suggestions.map((p, i) => (
                   <li key={p.id} role="option" id={`mention-${i}`} aria-selected={i === pick}>
                     <button type="button" tabIndex={-1} className={s.popItem} onMouseDown={(e) => { e.preventDefault(); insert(p.first); }}>
@@ -131,14 +132,14 @@ export function Composer({ vm }: VmProps) {
                 ))}
               </ul>
             )}
-            <textarea ref={area} rows={1} className={s.area} value={draft} placeholder={locked ? 'You cannot post in this channel' : vm.placeholder} readOnly={locked} aria-label="Message"
+            <textarea ref={area} rows={1} className={s.area} value={draft} placeholder={locked ? COPY.ui.chat.composer.cannotPost : vm.placeholder} readOnly={locked} aria-label={COPY.ui.chat.composer.message}
               role="combobox" aria-expanded={listOpen} aria-controls="mention-list" aria-autocomplete="list" aria-activedescendant={listOpen ? `mention-${pick}` : undefined}
               onChange={(e) => { setDraft(e.target.value); setCaret(e.target.selectionStart); setPick(0); ping(); }}
               onSelect={(e) => setCaret(e.currentTarget.selectionStart)} onKeyDown={onKey} onPaste={onPaste} />
-            <button type="button" onClick={() => { if (canSend && !locked) vm.onSend(); }} aria-label="Send" aria-disabled={!canSend} className={s.send} style={{ color: canSend ? vm.sendFgOn : vm.sendFgOff }}>{vm.ic.send}</button>
+            <button type="button" onClick={() => { if (canSend && !locked) vm.onSend(); }} aria-label={COPY.ui.chat.composer.send} aria-disabled={!canSend} className={s.send} style={{ color: canSend ? vm.sendFgOn : vm.sendFgOff }}>{vm.ic.send}</button>
           </div>
         </div>
-        <div className={s.hints}><span>Enter to send</span><span>Shift + Enter for a new line</span><span>@ to mention</span><span className={s.hintEnd}>Ctrl K to jump anywhere</span></div>
+        <div className={s.hints}><span>{COPY.ui.chat.composer.hintSend}</span><span>{COPY.ui.chat.composer.hintNewline}</span><span>{COPY.ui.chat.composer.hintMention}</span><span className={s.hintEnd}>{COPY.ui.chat.composer.hintJump}</span></div>
       </div>
     </div>
   );

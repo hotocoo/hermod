@@ -7,6 +7,7 @@ import { allowedForSpace, getNotifySettings } from './notify';
 import { personOf } from './selectors';
 import type { AppStore } from './types';
 import { nextDue, slaBadge } from './vm/desk';
+import { COPY } from '../config/copy';
 
 export interface DeskNotice { sp: string; ticket: string; kind: 'assigned' | 'reply' | 'sla'; title: string; body: string }
 
@@ -23,13 +24,13 @@ export function diffDeskNotices(prev: Seed, next: Seed, me: string): DeskNotice[
     for (const t of after[sp].tickets) {
       const o = old.get(t.id);
       if (t.assignee === me && t.assigned_by !== me && o && o.assignee !== me) {
-        out.push({ sp, ticket: t.id, kind: 'assigned', title: `Assigned to you: #${t.number}`, body: t.subject });
+        out.push({ sp, ticket: t.id, kind: 'assigned', title: COPY.ui.stateMsgs.notice.deskAssigned(`#${t.number}`), body: t.subject });
       }
       if (!o || (t.assignee !== me && t.requester !== me)) continue;
       const seen = new Set(o.comments.map((c) => c.id));
       for (const c of t.comments) {
         if (seen.has(c.id) || c.by === me) continue;
-        out.push({ sp, ticket: t.id, kind: 'reply', title: `${personOf(next, c.by).name} on #${t.number}`, body: c.body });
+        out.push({ sp, ticket: t.id, kind: 'reply', title: COPY.ui.stateMsgs.notice.deskReply(personOf(next, c.by).name, `#${t.number}`), body: c.body });
       }
     }
   }
@@ -49,7 +50,7 @@ export function slaSoonNotices(seed: Seed, me: string, now: number): DeskNotice[
       const key = `${t.id}:${due}`;
       if (left <= 0 || left > SLA_SOON_MS || notified.has(key)) continue;
       notified.add(key);
-      out.push({ sp, ticket: t.id, kind: 'sla', title: `SLA soon: #${t.number}`, body: `${slaBadge(t, now)?.label ?? ''} · ${t.subject}` });
+      out.push({ sp, ticket: t.id, kind: 'sla', title: COPY.ui.stateMsgs.notice.deskSla(`#${t.number}`), body: `${slaBadge(t, now)?.label ?? ''} · ${t.subject}` });
     }
   }
   return out;

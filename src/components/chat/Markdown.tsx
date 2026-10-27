@@ -14,13 +14,13 @@ const TOK_CLASS: Record<TokKind, string> = { kw: s.tkw, str: s.tstr, com: s.tcom
 
 function Spoiler({ children }: { children: ReactNode }) {
   const [on, setOn] = useState(false);
-  return <button type="button" className={s.spoiler} aria-pressed={on} aria-label={on ? 'Spoiler' : 'Spoiler, press to reveal'} onClick={() => setOn(true)}>{children}</button>;
+  return <button type="button" className={s.spoiler} aria-pressed={on} aria-label={on ? COPY.ui.chat.markdownText.spoiler : COPY.ui.chat.markdownText.spoilerPressToReveal} onClick={() => setOn(true)}>{children}</button>;
 }
 
 function Code({ lang, v }: { lang: string; v: string }) {
   const toks = useMemo(() => highlight(v, lang), [v, lang]);
   return (
-    <pre className={s.pre} tabIndex={0} aria-label={lang ? `${lang} code` : 'code'}>
+    <pre className={s.pre} tabIndex={0} aria-label={lang ? COPY.ui.chat.listMore.codeLang(lang) : COPY.ui.chat.markdownText.code}>
       {lang && <span className={s.preLang}>{lang}</span>}
       <code>{toks.map((t, i) => (t.k === 'plain' ? t.v : <span key={i} className={TOK_CLASS[t.k]}>{t.v}</span>))}</code>
     </pre>

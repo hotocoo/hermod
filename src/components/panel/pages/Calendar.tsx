@@ -9,8 +9,8 @@ export function Calendar({ vm }: VmProps) {
     <div className={s.page}>
       <div className={s.main}>
         <div className={s.head}>
-          <h2 className={s.title}>This week</h2><span className={`${s.sub} ${c.muted}`}>Meetings live in the Hearth</span><span className={s.grow} />
-          <button onClick={vm.newEvent} className={c.btnAccent}>{vm.icS.plus} New meeting</button>
+          <h2 className={s.title}>{COPY.ui.panel.panel.calThisWeek}</h2><span className={`${s.sub} ${c.muted}`}>{COPY.ui.panel.panel.calMeetingsLive}</span><span className={s.grow} />
+          <button onClick={vm.newEvent} className={c.btnAccent}>{vm.icS.plus} {COPY.ui.panel.panel.calNewMeeting}</button>
         </div>
         <div className={`${s.grid}`}>
           <span />
@@ -39,17 +39,17 @@ export function Calendar({ vm }: VmProps) {
             <h3 className={s.evTitle}>{vm.ev1.t}</h3>
             <p className={`${s.note} ${c.muted}`}>{vm.ev1.note}</p>
             <div className={s.faces}>{vm.ev1.people.map((ep, i) => <span key={i} title={ep.name} className={`${s.face} ${c.avatar}`}>{ep.i}</span>)}</div>
-            <p className={c.muted}>{vm.ev1.people.length ? vm.ev1.people.map((p) => p.name).join(', ') : 'Nobody has said yes yet.'}</p>
+            <p className={c.muted}>{vm.ev1.people.length ? vm.ev1.people.map((p) => p.name).join(', ') : COPY.ui.panel.panel.calNoYes}</p>
             <div className={s.actions}>
-              <button onClick={vm.rsvp} aria-pressed={vm.ev1.going} className={c.btn}>{vm.ev1.going ? 'Going, tap to undo' : 'I’m going'}</button>
-              {vm.ev1.meeting && <button onClick={vm.joinEvent} className={c.btnAccent}>{vm.icS.flame} Join in the Hearth</button>}
+              <button onClick={vm.rsvp} aria-pressed={vm.ev1.going} className={c.btn}>{vm.ev1.going ? COPY.ui.panel.panel.calGoingUndo : COPY.ui.panel.panel.calImGoing}</button>
+              {vm.ev1.meeting && <button onClick={vm.joinEvent} className={c.btnAccent}>{vm.icS.flame} {COPY.ui.panel.panel.calJoin}</button>}
               {vm.ev1.canEdit && <button onClick={vm.editEvent} className={c.btn}>{COPY.event.edit}</button>}
-              {vm.ev1.canEdit && <button onClick={vm.cancelEvent} className={c.btn}>Cancel meeting</button>}
+              {vm.ev1.canEdit && <button onClick={vm.cancelEvent} className={c.btn}>{COPY.ui.panel.panel.calCancel}</button>}
             </div>
           </div>
         )}
         {vm.evNone && vm.calDays.every((d) => d.events.length === 0) && <EmptyNote {...COPY.empty.calendarWeek} />}
-        {vm.evNone && vm.calDays.some((d) => d.events.length > 0) && <p className={`${s.pick} ${c.muted}`}>Pick a meeting to see who’s coming and what it’s about.</p>}
+        {vm.evNone && vm.calDays.some((d) => d.events.length > 0) && <p className={`${s.pick} ${c.muted}`}>{COPY.ui.panel.panel.calPick}</p>}
       </aside>
     </div>
   );

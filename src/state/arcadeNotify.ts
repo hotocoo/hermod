@@ -7,6 +7,7 @@ import { allowedForSpace, getNotifySettings } from './notify';
 import { personOf } from './selectors';
 import { kindInfo } from '../config/arcade';
 import type { AppStore } from './types';
+import { COPY } from '../config/copy';
 
 export interface ArcadeNotice { sp: string; kind: 'invite' | 'turn' | 'draw'; title: string; body: string }
 
@@ -23,12 +24,12 @@ export function diffArcadeNotices(prev: Seed, next: Seed, me: string): ArcadeNot
       const o = old.get(g.id);
       const label = kindInfo(g.kind).label;
       const foe = personOf(next, g.seats.find((u) => u && u !== me) ?? g.host).name;
-      if (!o && g.host !== me && g.seats.length > 1) out.push({ sp, kind: 'invite', title: `${foe} invited you to ${label}`, body: g.title || label });
+      if (!o && g.host !== me && g.seats.length > 1) out.push({ sp, kind: 'invite', title: COPY.ui.stateMsgs.notice.arcadeInvite(foe, label), body: g.title || label });
       if (isRealtime(g.kind)) continue;
       const nowMine = g.status === 'active' && g.turn === seat;
       const wasMine = !!o && o.status === 'active' && o.turn === seat;
-      if (nowMine && !wasMine && g.moveCount > 0) out.push({ sp, kind: 'turn', title: `Your move in ${label}`, body: `${foe} played` });
-      if (g.drawOffer !== null && g.drawOffer !== seat && o?.drawOffer !== g.drawOffer) out.push({ sp, kind: 'draw', title: `${foe} offers a draw`, body: label });
+      if (nowMine && !wasMine && g.moveCount > 0) out.push({ sp, kind: 'turn', title: COPY.ui.stateMsgs.notice.arcadeTurn(label), body: COPY.ui.stateMsgs.notice.arcadePlayed(foe) });
+      if (g.drawOffer !== null && g.drawOffer !== seat && o?.drawOffer !== g.drawOffer) out.push({ sp, kind: 'draw', title: COPY.ui.stateMsgs.notice.arcadeDraw(foe), body: label });
     }
   }
   return out;

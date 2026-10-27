@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent } from 'react';
 import { PICTIONARY_COLORS, PICTIONARY_WIDTHS, PICTIONARY_WORDS, REALTIME } from '@/config/arcade';
+import { COPY } from '@/config/copy';
 import { monoMs, wallMs } from '@/lib/clock';
 import { seatName } from '@/state/vm/arcade';
 import { reportResult } from '../../actions';
@@ -95,10 +96,10 @@ export default function PictionaryGame({ game, space, me, seed, seat }: Renderer
         solved.current.add(m.from);
         const bonus = Math.round(P.hitPoints * (P.minLeftBonus + (1 - P.minLeftBonus) * Math.max(0, (roundEnd.current - wallMs()) / (P.roundSeconds * 1000))));
         total.current[m.from] = (total.current[m.from] ?? 0) + bonus; total.current[me] = (total.current[me] ?? 0) + P.drawerPoints;
-        send({ t: 'hit', by: m.from, scores: total.current }); setLines((l) => [...l, { by: m.from, text: 'guessed it', hit: true }]); setScores({ ...total.current });
+        send({ t: 'hit', by: m.from, scores: total.current }); setLines((l) => [...l, { by: m.from, text: COPY.ui.arcadeGames.pictionary.guessedIt, hit: true }]); setScores({ ...total.current });
         if (solved.current.size >= seated.length - 1) { if (endTimer.current) clearTimeout(endTimer.current); endRound(turn, word.current); }
       } else setLines((l) => [...l.slice(-60), { by: m.from, text }]);
-    } else if (p.t === 'hit' && m.from === drawer) { setLines((l) => [...l, { by: String(p.by), text: 'guessed it', hit: true }]); setScores((p.scores ?? {}) as Record<string, number>); if (isHost) tally.current = (p.scores ?? {}) as Record<string, number>; }
+    } else if (p.t === 'hit' && m.from === drawer) { setLines((l) => [...l, { by: String(p.by), text: COPY.ui.arcadeGames.pictionary.guessedIt, hit: true }]); setScores((p.scores ?? {}) as Record<string, number>); if (isHost) tally.current = (p.scores ?? {}) as Record<string, number>; }
     else if (p.t === 'end' && m.from === drawer) {
       setReveal(String(p.word)); setScores((p.scores ?? {}) as Record<string, number>); setLeft(0);
       if (isHost) { tally.current = (p.scores ?? {}) as Record<string, number>; window.setTimeout(() => nextTurn(Number(p.n) + 1), 3500); }
@@ -141,35 +142,35 @@ export default function PictionaryGame({ game, space, me, seed, seat }: Renderer
   const rows = Object.entries(game.result?.scores ?? scores).sort((a, b) => b[1] - a[1]);
   return (
     <div className={s.stage}>
-      {isHost && turn < 0 && !finished && game.status === 'active' && <button type="button" className="btn btn-primary" onClick={() => nextTurn(0)} data-testid="pict-start">Start the game ({seated.length} rounds)</button>}
-      {turn < 0 && !isHost && <p className={s.cardMeta}>Waiting for the host to start.</p>}
-      {drawer && <p className={s.cardMeta} aria-live="polite">{iDraw ? 'You draw' : `${name(drawer)} draws`}{turn >= 0 ? ` · round ${turn + 1} of ${seated.length}` : ''}{left > 0 ? ` · ${left}s` : ''}</p>}
+      {isHost && turn < 0 && !finished && game.status === 'active' && <button type="button" className="btn btn-primary" onClick={() => nextTurn(0)} data-testid="pict-start">{COPY.ui.arcadeGames.pictionary.start(seated.length)}</button>}
+      {turn < 0 && !isHost && <p className={s.cardMeta}>{COPY.ui.arcadeGames.pictionary.waitingHost}</p>}
+      {drawer && <p className={s.cardMeta} aria-live="polite">{COPY.ui.arcadeGames.pictionary.drawStatus(iDraw, name(drawer), turn >= 0, turn + 1, seated.length, left)}</p>}
       {choices.length > 0 && (
-        <div role="group" aria-label="Pick a word to draw" className={s.tools}>
+        <div role="group" aria-label={COPY.ui.arcadeGames.pictionary.pickWord} className={s.tools}>
           {choices.map((w) => <button key={w} type="button" className="btn btn-secondary" onClick={() => choose(w)} data-testid="pict-word">{w}</button>)}
         </div>
       )}
       {(iDraw && myWord ? myWord : mask) && <div className={s.wordBig} data-testid="pict-word-shown">{iDraw && myWord ? myWord : mask}</div>}
-      {reveal && <p className={s.cardMeta}>The word was <b>{reveal}</b></p>}
+      {reveal && <p className={s.cardMeta}>{COPY.ui.arcadeGames.pictionary.wordWas} <b>{reveal}</b></p>}
       <div className={s.canvasWrap}>
-        <canvas ref={canvas} width={720} height={540} className={s.canvas} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} role="img" aria-label="Drawing canvas" data-testid="pict-canvas" />
+        <canvas ref={canvas} width={720} height={540} className={s.canvas} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} role="img" aria-label={COPY.ui.arcadeGames.pictionary.canvas} data-testid="pict-canvas" />
       </div>
       {iDraw && myWord && (
-        <div className={s.tools} role="group" aria-label="Brush">
-          {PICTIONARY_COLORS.map((c) => <button key={c} type="button" className={s.swatch} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={color === c} onClick={() => setColor(c)} />)}
+        <div className={s.tools} role="group" aria-label={COPY.ui.arcadeGames.pictionary.brush}>
+          {PICTIONARY_COLORS.map((c) => <button key={c} type="button" className={s.swatch} style={{ background: c }} aria-label={COPY.ui.arcadeGames.pictionary.colour(c)} aria-pressed={color === c} onClick={() => setColor(c)} />)}
           {PICTIONARY_WIDTHS.map((w) => <button key={w} type="button" className="btn btn-secondary" aria-pressed={width === w} onClick={() => setWidth(w)}>{w}px</button>)}
-          <button type="button" className="btn btn-secondary" onClick={() => { wipe(); send({ t: 'clear' }); }}>Clear</button>
+          <button type="button" className="btn btn-secondary" onClick={() => { wipe(); send({ t: 'clear' }); }}>{COPY.ui.arcadeGames.pictionary.clear}</button>
         </div>
       )}
       {!iDraw && seat >= 0 && !finished && (
         <form className={s.bar} onSubmit={submit} style={{ width: '100%', maxWidth: 420 }}>
-          <label className={s.sr} htmlFor="pict-guess">Your guess</label>
+          <label className={s.sr} htmlFor="pict-guess">{COPY.ui.arcadeGames.pictionary.yourGuess}</label>
           <input id="pict-guess" className="input" value={guess} maxLength={60} autoComplete="off" onChange={(e) => setGuess(e.target.value)} data-testid="pict-guess" />
-          <button type="submit" className="btn btn-primary">Guess</button>
+          <button type="submit" className="btn btn-primary">{COPY.ui.arcadeGames.pictionary.guess}</button>
         </form>
       )}
       <div className={s.guessLog} aria-live="polite" role="log">{lines.map((l, i) => <div key={i} style={l.hit ? { fontWeight: 700, color: '#2c5a35' } : undefined}><b>{name(l.by)}</b>: {l.text}</div>)}</div>
-      {rows.length > 0 && <table className={s.table} aria-label="Scores"><tbody>{rows.map(([u, v]) => <tr key={u}><td>{name(u)}</td><td className={s.num}>{v}</td></tr>)}</tbody></table>}
+      {rows.length > 0 && <table className={s.table} aria-label={COPY.ui.arcadeGames.pictionary.scores}><tbody>{rows.map(([u, v]) => <tr key={u}><td>{name(u)}</td><td className={s.num}>{v}</td></tr>)}</tbody></table>}
     </div>
   );
 }

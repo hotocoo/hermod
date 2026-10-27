@@ -1,4 +1,5 @@
 import type { ViewModel } from '@/state/viewModel';
+import { COPY } from '@/config/copy';
 import chrome from '../ui/chrome.module.css';
 import s from './TownStatus.module.css';
 
@@ -11,12 +12,9 @@ export function TownStatus({ vm }: { vm: StatusVm }) {
       {townLoading ? (
         <div className={s.loading}>
           <div className={s.loadingInner}>
-            <div className={s.glyph}>ð</div>
+            <div className={s.glyph}>{COPY.ui.panel.townStatusText.ð}</div>
             <div className={s.loadingText}>
-              Raising
-              {' '}
-              {space?.name ?? ''}
-              …
+              {COPY.ui.panel.town.statusRaising(space?.name ?? '')}
             </div>
           </div>
         </div>
@@ -24,15 +22,11 @@ export function TownStatus({ vm }: { vm: StatusVm }) {
       {townError ? (
         <div className={s.fallback}>
           <div className={s.fallbackInner}>
-            <div className={chrome.kicker}>The island couldn’t be drawn</div>
+            <div className={chrome.kicker}>{COPY.ui.panel.town.statusFailed}</div>
             <h2 className={s.title}>
-              Here’s
-              {' '}
-              {space?.name ?? ''}
-              {' '}
-              as a list
+              {COPY.ui.panel.town.statusAsList(space?.name ?? '')}
             </h2>
-            <p className={s.text}>This device didn’t give us 3D graphics. Everything still works, just flatter.</p>
+            <p className={s.text}>{COPY.ui.panel.town.statusNo3d}</p>
             <div className={s.list}>
               {(buildings ?? []).map((b) => (
                 <button className={s.item} onClick={b.onClick} key={b.id}>

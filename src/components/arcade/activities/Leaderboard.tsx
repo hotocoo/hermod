@@ -17,7 +17,7 @@ export function Leaderboard({ view, seed, me }: { view: ArcadeView | null; seed:
         <section key={kind} aria-label={kindInfo(kind).label}>
           <h3 className={s.sectionHead}>{kindInfo(kind).label}</h3>
           <table className={s.table} data-testid={`board-${kind}`}>
-            <thead><tr><th>#</th><th>Player</th><th className={s.num}>Elo</th><th className={s.num}>W</th><th className={s.num}>D</th><th className={s.num}>L</th></tr></thead>
+            <thead><tr><th>#</th><th>{COPY.ui.arcade.leaderboardText.player}</th><th className={s.num}>{COPY.ui.arcade.leaderboardText.elo}</th><th className={s.num}>{COPY.ui.arcade.leaderboardText.w}</th><th className={s.num}>{COPY.ui.arcade.leaderboardText.d}</th><th className={s.num}>{COPY.ui.arcade.leaderboardText.l}</th></tr></thead>
             <tbody>{rows.map((r, i) => (
               <tr key={r.user} style={r.user === me ? { fontWeight: 700 } : undefined}><td>{i + 1}</td><td>{seatName(seed, r.user)}</td><td className={s.num}>{r.elo}</td><td className={s.num}>{r.wins}</td><td className={s.num}>{r.draws}</td><td className={s.num}>{r.losses}</td></tr>
             ))}</tbody>

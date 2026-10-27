@@ -91,62 +91,62 @@ export default function DeskSection() {
     <div className={s.root} data-testid="desk-root">
       <header className={s.head}>
         <div className={s.headMain}>
-          <div className={s.kicker}>Help Desk</div>
-          <h2 className={s.title}>{agent ? 'Tickets' : 'Your tickets'}</h2>
+          <div className={s.kicker}>{COPY.ui.desk.kicker}</div>
+          <h2 className={s.title}>{agent ? COPY.ui.desk.tickets : COPY.ui.desk.section.yourTickets}</h2>
         </div>
         {stats && (
-          <div className={s.stats} aria-label="Desk statistics" data-testid="desk-stats">
-            <div className={s.stat}><span className={s.statN} data-testid="stat-open">{stats.open}</span><span className={s.statL}>Open</span></div>
-            <div className={`${s.stat} ${stats.overdue ? s.statLate : ''}`}><span className={s.statN}>{stats.overdue}</span><span className={s.statL}>Overdue</span></div>
-            <div className={s.stat}><span className={s.statN}>{stats.median_first_response_ms == null ? 'n/a' : fmtSpan(stats.median_first_response_ms)}</span><span className={s.statL}>Median reply</span></div>
-            <div className={s.stat}><span className={s.statN}>{stats.csat_avg == null ? 'n/a' : stats.csat_avg.toFixed(1)}</span><span className={s.statL}>CSAT</span></div>
+          <div className={s.stats} aria-label={COPY.ui.desk.section.statsLabel} data-testid="desk-stats">
+            <div className={s.stat}><span className={s.statN} data-testid="stat-open">{stats.open}</span><span className={s.statL}>{COPY.ui.desk.section.open}</span></div>
+            <div className={`${s.stat} ${stats.overdue ? s.statLate : ''}`}><span className={s.statN}>{stats.overdue}</span><span className={s.statL}>{COPY.ui.desk.overdue}</span></div>
+            <div className={s.stat}><span className={s.statN}>{stats.median_first_response_ms == null ? COPY.ui.desk.section.na : fmtSpan(stats.median_first_response_ms)}</span><span className={s.statL}>{COPY.ui.desk.section.medianReply}</span></div>
+            <div className={s.stat}><span className={s.statN}>{stats.csat_avg == null ? COPY.ui.desk.section.na : stats.csat_avg.toFixed(1)}</span><span className={s.statL}>{COPY.ui.desk.section.csat}</span></div>
           </div>
         )}
-        <input className={`input ${s.search}`} type="search" placeholder="Search tickets" aria-label="Search tickets" value={q} data-testid="desk-search"
+        <input className={`input ${s.search}`} type="search" placeholder={COPY.ui.desk.section.searchTickets} aria-label={COPY.ui.desk.section.searchTickets} value={q} data-testid="desk-search"
           onChange={(e) => act.deskSet({ deskQ: e.target.value })} />
-        <button type="button" className="btn btn-primary" onClick={() => setNewOpen(true)} data-testid="new-ticket"><Icon name="plus" size={14} /> New ticket</button>
-        {agent && <button type="button" className="btn btn-secondary" onClick={() => setSettingsOpen(true)} data-testid="desk-settings-open" aria-label="Desk settings"><Icon name="sliders" size={14} /> Settings</button>}
+        <button type="button" className="btn btn-primary" onClick={() => setNewOpen(true)} data-testid="new-ticket"><Icon name="plus" size={14} /> {COPY.ui.desk.newTicket}</button>
+        {agent && <button type="button" className="btn btn-secondary" onClick={() => setSettingsOpen(true)} data-testid="desk-settings-open" aria-label={COPY.ui.desk.section.deskSettings}><Icon name="sliders" size={14} /> {COPY.ui.desk.section.settings}</button>}
       </header>
       <div className={s.body} data-guest={!agent} data-pane={pane}>
         {agent && <Sidebar desk={desk} counts={c} scope={effectiveScope} me={me} onScope={(sc) => act.deskSet({ deskScope: sc })} onDeleteView={(id) => { void act.deskDeleteView(id); }} />}
         <div className={s.listCol}>
           <div className={s.tools}>
             {agent && (
-              <select className={`input ${s.scopeSelect}`} aria-label="Scope" value={effectiveScope} onChange={(e) => act.deskSet({ deskScope: e.target.value })}>
-                <option value="all">All open</option><option value="mine">Assigned to me</option><option value="unassigned">Unassigned</option><option value="overdue">Overdue</option><option value="requested">My requests</option>
+              <select className={`input ${s.scopeSelect}`} aria-label={COPY.ui.desk.section.scope} value={effectiveScope} onChange={(e) => act.deskSet({ deskScope: e.target.value })}>
+                <option value="all">{COPY.ui.desk.section.allOpen}</option><option value="mine">{COPY.ui.desk.assignToMe}</option><option value="unassigned">{COPY.ui.desk.unassigned}</option><option value="overdue">{COPY.ui.desk.overdue}</option><option value="requested">{COPY.ui.desk.section.requested}</option>
                 {desk.config.queues.map((qq) => <option key={qq.queue_id} value={`queue:${qq.queue_id}`}>{qq.name}</option>)}
                 {desk.views.map((v) => <option key={v.id} value={`view:${v.id}`}>{v.name}</option>)}
               </select>
             )}
-            <select className="input" aria-label="Show" value={status} onChange={(e) => act.deskSet({ deskStatus: e.target.value as 'active' | 'all' | 'solved' })} data-testid="desk-status">
-              <option value="active">Active</option><option value="solved">Solved and closed</option><option value="all">Everything</option>
+            <select className="input" aria-label={COPY.ui.desk.section.show} value={status} onChange={(e) => act.deskSet({ deskStatus: e.target.value as 'active' | 'all' | 'solved' })} data-testid="desk-status">
+              <option value="active">{COPY.ui.desk.section.active}</option><option value="solved">{COPY.ui.desk.section.solvedClosed}</option><option value="all">{COPY.ui.desk.section.everything}</option>
             </select>
-            <select className="input" aria-label="Sort" value={sort} onChange={(e) => act.deskSet({ deskSort: e.target.value as 'updated' | 'created' | 'priority' | 'sla' })}>
-              <option value="updated">Recently updated</option><option value="created">Newest</option><option value="priority">Priority</option>{agent && <option value="sla">Next SLA</option>}
+            <select className="input" aria-label={COPY.ui.desk.section.sort} value={sort} onChange={(e) => act.deskSet({ deskSort: e.target.value as 'updated' | 'created' | 'priority' | 'sla' })}>
+              <option value="updated">{COPY.ui.desk.section.recentlyUpdated}</option><option value="created">{COPY.ui.desk.section.newest}</option><option value="priority">{COPY.ui.desk.priority}</option>{agent && <option value="sla">{COPY.ui.desk.section.nextSla}</option>}
             </select>
-            {agent && (scope !== 'all' || !!q.trim()) && <button type="button" className="btn btn-ghost" aria-label="Save this filter as a view" onClick={() => { void saveView(act, me, effectiveScope, status, sort, q); }}>Save view</button>}
+            {agent && (scope !== 'all' || !!q.trim()) && <button type="button" className="btn btn-ghost" aria-label={COPY.ui.desk.section.saveViewLabel} onClick={() => { void saveView(act, me, effectiveScope, status, sort, q); }}>{COPY.ui.desk.section.saveView}</button>}
           </div>
           {bulkIds.length > 0 && agent && (
-            <div className={s.bulk} role="toolbar" aria-label="Bulk actions" data-testid="bulk-bar">
-              <strong>{bulkIds.length} selected</strong>
-              <button type="button" className="btn btn-secondary" onClick={() => { void act.deskUpdate(bulkIds, { assignee: me }).then(() => act.deskClearBulk()); }}>Assign to me</button>
-              <button type="button" className="btn btn-secondary" onClick={() => { void act.deskUpdate(bulkIds, { status: 'solved' }).then(() => act.deskClearBulk()); }}>Solve</button>
-              <button type="button" className="btn btn-secondary" onClick={() => { void act.deskUpdate(bulkIds, { priority: 'high' }).then(() => act.deskClearBulk()); }}>High priority</button>
-              <MacroMenu macros={macros} label="Macro" onPick={(m) => { void act.deskApplyMacro(bulkIds, m).then(() => act.deskClearBulk()); }} />
-              <button type="button" className="btn btn-ghost" onClick={act.deskClearBulk}>Clear</button>
+            <div className={s.bulk} role="toolbar" aria-label={COPY.ui.desk.section.bulkLabel} data-testid="bulk-bar">
+              <strong>{COPY.ui.desk.section.selected(bulkIds.length)}</strong>
+              <button type="button" className="btn btn-secondary" onClick={() => { void act.deskUpdate(bulkIds, { assignee: me }).then(() => act.deskClearBulk()); }}>{COPY.ui.desk.assignToMe}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { void act.deskUpdate(bulkIds, { status: 'solved' }).then(() => act.deskClearBulk()); }}>{COPY.ui.desk.section.solve}</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { void act.deskUpdate(bulkIds, { priority: 'high' }).then(() => act.deskClearBulk()); }}>{COPY.ui.desk.section.highPriority}</button>
+              <MacroMenu macros={macros} label={COPY.ui.desk.section.macro} onPick={(m) => { void act.deskApplyMacro(bulkIds, m).then(() => act.deskClearBulk()); }} />
+              <button type="button" className="btn btn-ghost" onClick={act.deskClearBulk}>{COPY.ui.desk.section.clear}</button>
             </div>
           )}
           {tickets.length === 0 ? (
             <div className={s.empty} data-testid="desk-empty">
               <div>
                 <EmptyNote {...(q ? COPY.empty.deskSearch : agent ? COPY.empty.deskAgent : COPY.empty.deskMember)} />
-                {!q && <button type="button" className="btn btn-primary" onClick={() => setNewOpen(true)}>New ticket</button>}
+                {!q && <button type="button" className="btn btn-primary" onClick={() => setNewOpen(true)}>{COPY.ui.desk.newTicket}</button>}
               </div>
             </div>
           ) : <TicketList tickets={tickets} selected={sel} bulk={bulk} agent={agent} now={tick} name={name} onOpen={act.deskSelect} onCheck={act.deskToggleBulk} />}
         </div>
         {current ? <TicketDetail key={current.id} desk={desk} t={current} seed={seed} me={me} onBack={() => act.deskSet({ deskPane: 'list' })} /> : (
-          <div className={`${s.detail} ${s.empty}`}><div><h3 className={s.emptyTitle}>{tickets.length ? 'Pick a ticket' : ' '}</h3><p className={s.emptyLine}>{tickets.length ? 'Use j and k to move, r to reply, i for an internal note, e to solve.' : ''}</p></div></div>
+          <div className={`${s.detail} ${s.empty}`}><div><h3 className={s.emptyTitle}>{tickets.length ? COPY.ui.desk.section.pickTicket : ' '}</h3><p className={s.emptyLine}>{tickets.length ? COPY.ui.desk.section.pickHint : ''}</p></div></div>
         )}
       </div>
       {newOpen && <NewTicketDialog desk={desk} onClose={() => setNewOpen(false)} />}
@@ -157,7 +157,7 @@ export default function DeskSection() {
 
 /** Saves the current scope, status filter and search as a named view for the team. */
 async function saveView(act: ReturnType<typeof useAppStore.getState>, me: string, scope: string, status: string, sort: string, q: string) {
-  const name = await act.ask({ title: 'Save view', kicker: 'Help Desk', submit: 'Save', fields: [{ key: 'name', label: 'Name', required: true }] });
+  const name = await act.ask({ title: COPY.ui.desk.section.saveView, kicker: COPY.ui.desk.kicker, submit: COPY.ui.desk.section.saveSubmit, fields: [{ key: 'name', label: COPY.ui.desk.section.viewName, required: true }] });
   if (!name) return;
   const filter = { status: status === 'solved' ? ['solved', 'closed'] : status === 'active' ? ['new', 'open', 'pending', 'on_hold'] : [], priority: [], queue: scope.startsWith('queue:') ? [scope.slice(6)] : [], assignee: scope === 'unassigned' ? [''] : scope === 'mine' ? [me] : [], tags: [], text: q.trim() || undefined };
   await act.deskSaveView({ name: name.name.trim(), filter, sort, shared: true });

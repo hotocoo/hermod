@@ -32,14 +32,14 @@ export function Card({ cd, line }: { cd: BoardCard; line: ReactNode }) {
       <div className={s.foot}>
         <span className={s.who} title={cd.name}>{cd.initials}</span>
         <span className={s.grow}></span>
-        <button type="button" className={s.iconBtn} onClick={cd.onEdit} aria-label={`Edit ${cd.title}`}><Icon name="edit" size={13} /></button>
-        <button type="button" className={s.iconBtn} onClick={cd.onDelete} aria-label={`Delete ${cd.title}`}><Icon name="trash" size={13} /></button>
+        <button type="button" className={s.iconBtn} onClick={cd.onEdit} aria-label={COPY.ui.panel.sections.cardEdit(cd.title)}><Icon name="edit" size={13} /></button>
+        <button type="button" className={s.iconBtn} onClick={cd.onDelete} aria-label={COPY.ui.panel.sections.cardDelete(cd.title)}><Icon name="trash" size={13} /></button>
         {cd.moveTargets.length > 0 && (
           <div className={s.menuWrap} ref={ref} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }}>
-            <button type="button" className={s.move} aria-haspopup="menu" aria-expanded={open} aria-label={`Move ${cd.title} to another column`} onClick={() => setOpen((v) => !v)}>{cd.arrow}</button>
+            <button type="button" className={s.move} aria-haspopup="menu" aria-expanded={open} aria-label={COPY.ui.panel.sections.cardMove(cd.title)} onClick={() => setOpen((v) => !v)}>{cd.arrow}</button>
             {open && (
               <div role="menu" className={s.menu}>
-                <div className={s.menuLabel}>Move to</div>
+                <div className={s.menuLabel}>{COPY.ui.panel.sections.cardMoveTo}</div>
                 {cd.moveTargets.map((t, i) => (
                   <button key={t.id} type="button" role="menuitem" className={s.menuItem} autoFocus={i === 0} onClick={() => { setOpen(false); cd.onMoveTo(t.id); }}>{t.name}</button>
                 ))}

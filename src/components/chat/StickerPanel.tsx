@@ -4,6 +4,7 @@ import { getBridge } from '@/lib/bridge';
 import { useAppStore } from '@/state/store';
 import { useStickers } from './useMsgView';
 import s from './messaging.module.css';
+import { COPY } from '@/config/copy';
 
 /** Stickers (per-Space packs from uploads) and the user's own GIFs. No network source: files come from the user's disk. */
 export function StickerPanel({ onClose }: { onClose: () => void }) {
@@ -24,12 +25,12 @@ export function StickerPanel({ onClose }: { onClose: () => void }) {
     }
   };
   return (
-    <div ref={root} className={s.panel} role="dialog" aria-label="Stickers and GIFs" onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
+    <div ref={root} className={s.panel} role="dialog" aria-label={COPY.ui.chat.stickerPanelText.stickersAndGifs} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}>
       <div className={s.panelHead} role="tablist">
-        {(['stickers', 'gifs'] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} className={`${s.tab} ${tab === t ? s.tabOn : ''}`} onClick={() => setTab(t)}>{t === 'gifs' ? 'My GIFs' : 'Stickers'}</button>)}
+        {(['stickers', 'gifs'] as const).map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} className={`${s.tab} ${tab === t ? s.tabOn : ''}`} onClick={() => setTab(t)}>{t === 'gifs' ? COPY.ui.chat.stickerPanelText.myGifs : COPY.ui.chat.stickerPanelText.stickers}</button>)}
         <span style={{ flex: 1 }} />
         <input ref={files} type="file" hidden multiple accept={tab === 'gifs' ? 'image/gif,image/webp' : 'image/png,image/webp,image/gif,image/jpeg'} onChange={(e) => { void add(e.target.files); e.target.value = ''; }} />
-        <button type="button" className={s.tab} onClick={() => files.current?.click()}>{tab === 'gifs' ? 'Add GIF' : 'Add sticker'}</button>
+        <button type="button" className={s.tab} onClick={() => files.current?.click()}>{tab === 'gifs' ? COPY.ui.chat.stickerPanelText.addGif : COPY.ui.chat.stickerPanelText.addSticker}</button>
       </div>
       {tab === 'stickers' ? (
         <div style={{ overflow: 'auto' }}>
@@ -43,7 +44,7 @@ export function StickerPanel({ onClose }: { onClose: () => void }) {
               ))}</div>
             </section>
           ))}
-          {!packs.length && <p className={s.empty}>No stickers in this Space yet. Add images from your computer.</p>}
+          {!packs.length && <p className={s.empty}>{COPY.ui.chat.stickerPanelText.noStickersInThisSpace}</p>}
         </div>
       ) : (
         <div className={s.stGrid}>
@@ -52,7 +53,7 @@ export function StickerPanel({ onClose }: { onClose: () => void }) {
               <img src={bridge.blobUrl(g.hash)} alt="" style={{ width: 84, height: 84, objectFit: 'cover' }} loading="lazy" />
             </button>
           ))}
-          {!gifs.length && <p className={s.empty} style={{ gridColumn: '1 / -1' }}>Add GIF or WebP files from your computer. Nothing is fetched from the internet.</p>}
+          {!gifs.length && <p className={s.empty} style={{ gridColumn: '1 / -1' }}>{COPY.ui.chat.stickerPanelText.addGifOrWebpFiles}</p>}
         </div>
       )}
     </div>

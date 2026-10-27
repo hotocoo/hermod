@@ -1,5 +1,6 @@
 import type { ViewModel } from '@/state/viewModel';
 import s from './PhotoMode.module.css';
+import { COPY } from '@/config/copy';
 
 export function PhotoMode({ vm }: { vm: ViewModel }) {
   const { icS, period, photo, savePostcard, space, togglePhoto, wxName } = vm;
@@ -20,9 +21,9 @@ export function PhotoMode({ vm }: { vm: ViewModel }) {
         <button className={s.saveBtn} onClick={savePostcard}>
           {icS.download}
           {' '}
-          Save postcard
+          {COPY.ui.shell.overlaysMore.savePostcard}
         </button>
-        <button className={s.doneBtn} onClick={togglePhoto}>Done · Esc</button>
+        <button className={s.doneBtn} onClick={togglePhoto}>{COPY.ui.shell.photoModeText.doneEsc}</button>
       </div>
     </div>
   ) : null;

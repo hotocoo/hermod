@@ -13,7 +13,7 @@ interface Props {
 export function Notes({ notes, elapsed, draft, onDraft, onKey }: Props) {
   return (
     <>
-      <div className={s.notesHead}><span className={s.sideTitle}>Shared notes</span><span className={s.rec}>{elapsed}</span></div>
+      <div className={s.notesHead}><span className={s.sideTitle}>{COPY.ui.panel.sections.notesTitle}</span><span className={s.rec}>{elapsed}</span></div>
       <div className={s.notes}>
         {notes.length === 0 && <EmptyNote {...COPY.notesEmpty} />}
         {notes.map((n, i) => (
@@ -24,7 +24,7 @@ export function Notes({ notes, elapsed, draft, onDraft, onKey }: Props) {
         ))}
       </div>
       <div className={s.draftWrap}>
-        <input className={s.draft} value={draft} onChange={onDraft} onKeyDown={onKey} aria-label="Shared note" placeholder="Jot a note everyone can see" />
+        <input className={s.draft} value={draft} onChange={onDraft} onKeyDown={onKey} aria-label={COPY.ui.panel.sections.notesField} placeholder={COPY.ui.panel.sections.notesPlaceholder} />
       </div>
     </>
   );

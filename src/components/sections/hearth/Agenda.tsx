@@ -9,7 +9,7 @@ export interface AgendaItem { text: string; who: string; mark: React.ReactNode; 
 export function Agenda({ items, done, total }: { items: AgendaItem[]; done: number; total: number }) {
   return (
     <div className={s.agendaWrap}>
-      <div className={s.sideHead}><span className={s.sideTitle}>Agenda</span><span className={s.count}>{done} of {total}</span></div>
+      <div className={s.sideHead}><span className={s.sideTitle}>{COPY.ui.panel.sections.agendaTitle}</span><span className={s.count}>{COPY.ui.panel.sections.agendaProgress(String(done), String(total))}</span></div>
       <div className={s.agenda}>
         {items.length === 0 && <EmptyNote {...COPY.agendaEmpty} />}
         {items.map((a, i) => (

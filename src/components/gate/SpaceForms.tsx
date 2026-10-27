@@ -30,22 +30,22 @@ export function CreateSpaceForm({ onDone }: { onDone: () => void }) {
   return (
     <form onSubmit={submit} className={s.panel}>
       <div className={s.field}>
-        <label className={s.label} htmlFor={`${id}-n`}>Name (required)</label>
+        <label className={s.label} htmlFor={`${id}-n`}>{COPY.ui.shell.gate.space.name}</label>
         <input id={`${id}-n`} className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" />
       </div>
       <div className={s.field}>
-        <label className={s.label} htmlFor={`${id}-t`}>Tagline</label>
+        <label className={s.label} htmlFor={`${id}-t`}>{COPY.ui.shell.gate.space.tagline}</label>
         <input id={`${id}-t`} className="input" value={tagline} onChange={(e) => setTagline(e.target.value)} maxLength={120} autoComplete="off" />
       </div>
       <fieldset className={s.group}>
-        <legend className={s.legend}>Kind</legend>
+        <legend className={s.legend}>{COPY.ui.shell.gate.space.kind}</legend>
         <div className="seg">
           {KINDS.map((k) => (
-            <label key={k} className="seg-opt"><input type="radio" name={`${id}-k`} checked={kind === k} onChange={() => setKind(k)} />{k}</label>
+            <label key={k} className="seg-opt"><input type="radio" name={`${id}-k`} checked={kind === k} onChange={() => setKind(k)} />{COPY.ui.shell.gate.space.kinds[k]}</label>
           ))}
         </div>
       </fieldset>
-      <div className={s.actions}><button type="submit" className="btn btn-primary" disabled={!name.trim() || busy}>Create Space</button></div>
+      <div className={s.actions}><button type="submit" className="btn btn-primary" disabled={!name.trim() || busy}>{COPY.ui.shell.gate.space.create}</button></div>
     </form>
   );
 }
@@ -69,10 +69,10 @@ export function JoinForm({ initial, onDone, focus }: { initial?: string; onDone:
   return (
     <form onSubmit={submit} className={s.panel}>
       <div className={s.field}>
-        <label className={s.label} htmlFor={`${id}-c`}>Invite link or code</label>
+        <label className={s.label} htmlFor={`${id}-c`}>{COPY.ui.shell.gate.space.inviteField}</label>
         <input id={`${id}-c`} ref={ref} className="input" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" spellCheck={false} />
       </div>
-      <p className={s.note}>Hermod has no public directory. A Space can only be joined with an invite from one of its members.</p>
+      <p className={s.note}>{COPY.ui.shell.gate.space.noDirectory}</p>
       {joining && <p role="status" className={s.note}>{COPY.joinWorking}</p>}
       <div className={s.actions}>
         {joining && <button type="button" className="btn btn-secondary" onClick={() => void cancel()}>{COPY.joinCancel}</button>}

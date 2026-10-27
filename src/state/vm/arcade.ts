@@ -3,18 +3,19 @@ import type { Seed } from '../../lib/data/types';
 import { coll } from '../dataTypes';
 import type { ArcadeView, Game, LeaderRow } from '../arcadeTypes';
 import { personOf } from '../selectors';
+import { COPY } from '../../config/copy';
 
 export const arcadeOf = (seed: Seed | null, space: string): ArcadeView | null => (seed ? (coll(seed, 'arcade')[space] ?? null) : null);
 
 /** One line for the building list and the door card. */
 export function arcadeSub(a: ArcadeView | null): string {
-  if (!a) return 'No games yet';
-  if (a.waiting) return `${a.waiting} waiting for a player`;
+  if (!a) return COPY.ui.stateMsgs.arcade.none;
+  if (a.waiting) return COPY.ui.stateMsgs.arcade.waiting(a.waiting);
   const active = a.games.filter((g) => g.status === 'active').length;
-  return active ? `${active} ${active === 1 ? 'game' : 'games'} in play` : 'No games in play';
+  return active ? COPY.ui.stateMsgs.arcade.inPlay(active) : COPY.ui.stateMsgs.arcade.noneInPlay;
 }
 
-export const seatName = (seed: Seed, user: string | null): string => (user ? personOf(seed, user).name : 'Open seat');
+export const seatName = (seed: Seed, user: string | null): string => (user ? personOf(seed, user).name : COPY.ui.stateMsgs.arcade.openSeat);
 
 /** Games I can act on right now: my turn, or something I must answer (hidden-information phases). */
 export function needsMe(g: Game, me: string): boolean {

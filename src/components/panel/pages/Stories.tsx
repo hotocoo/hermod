@@ -8,13 +8,13 @@ export function Stories({ vm }: VmProps) {
   return (
     <div className={s.page}>
       <div className={s.top}>
-        <h2 className={s.heading}>Stories</h2>
-        <button type="button" onClick={vm.composeStory} className={c.btnAccent}>{vm.icS.plus} New story</button>
+        <h2 className={s.heading}>{COPY.ui.panel.panel.storiesTitle}</h2>
+        <button type="button" onClick={vm.composeStory} className={c.btnAccent}>{vm.icS.plus} {COPY.ui.panel.panel.storiesNew}</button>
       </div>
       {vm.storyRing.length === 0 && <EmptyNote {...COPY.empty.stories} />}
       <div className={s.rings}>
         {vm.storyRing.map((sr, i) => (
-          <button type="button" key={`${sr.initials}-${i}`} onClick={sr.onClick} className={s.story} aria-label={`Watch ${sr.first}'s story`}>
+          <button type="button" key={`${sr.initials}-${i}`} onClick={sr.onClick} className={s.story} aria-label={COPY.ui.panel.panel.storiesWatch(sr.first)}>
             <span className={s.ring} style={{ background: sr.ring }}>
               <span className={s.face}>{sr.initials}</span>
             </span>
@@ -22,7 +22,7 @@ export function Stories({ vm }: VmProps) {
           </button>
         ))}
       </div>
-      {vm.storyRing.length > 0 && <p className={`${s.note} ${c.muted}`}>Stories last a day. Tap a face to watch, tap the sides to skip, and press Esc to close.</p>}
+      {vm.storyRing.length > 0 && <p className={`${s.note} ${c.muted}`}>{COPY.ui.panel.panel.storiesNote}</p>}
     </div>
   );
 }
