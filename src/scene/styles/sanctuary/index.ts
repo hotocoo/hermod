@@ -10,12 +10,13 @@ import { CAMERAS } from '../../site/config';
 import { applyTerrainSplat, layerMeans } from '../../render/terrainShader';
 import { applyAuthoredTerrain, fallbackTextureSet } from '../village/tex';
 import { buildSite as buildSiteWorld, generateSitePlan, makeSiteMaterials, setSiteAssetRenderer } from '../../site';
+import { setTextureDrop } from '../../site/landmarks/assets';
 import type { AnchorId, CameraPresets, HousePlace, MapStyle, PlotAnchor, StyleCtx, StyleSite } from '../types';
 
 function buildSite(ctx: StyleCtx): StyleSite {
   const { growth, info } = ctx;
   const plan = generateSitePlan({ seed: info.id, tier: growth.tier, levels: growth.levels, houses: growth.houses });
-  setSiteAssetRenderer(ctx.renderer);
+  setSiteAssetRenderer(ctx.renderer); setTextureDrop(ctx.q.texDrop);
   const siteMats = makeSiteMaterials(); const mapsReady = applyGroundMaps(siteMats, ctx.tier);
   // the town creates the PointLights from `lights` (data), so the site must not drive its own
   const handle = buildSiteWorld(THREE, siteMats, plan, ctx.tier, { ownLights: false, externalTrees: true });

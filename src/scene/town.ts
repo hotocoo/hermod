@@ -317,6 +317,8 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     void Promise.race([site!.ready, new Promise<void>((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(done));
   }
   /** Switch map style live (local preference or space default changed). */
+  /** What the site's authored assets depend on: the 4K pack on ultra and the dropped mip levels. */
+  const assetKey = (t: QualityTier) => (t === 'ultra' ? 'u' : '') + QUALITY[t].texDrop;
   function switchStyle(next: MapStyleChoice) { if (next === styleId) return; styleId = next; if (current) crossfade(() => build(current!, false)); }
   /** Rebuild one plot with a new level (pop animation like raise). */
   function raiseLevel(id: SectionId, level: BuildingLevel, built: boolean) {
@@ -690,7 +692,7 @@ export async function createTown(opts: TownOptions): Promise<TownApi> {
     snapshotStill: (samples) => still.capture(samples),
     snapshot() { pipeline.render(0); return renderer.domElement.toDataURL('image/png'); },
     setFrameCap(id) { fpsCap = capFps(id); adaptive.reset(); },
-    setQuality(t) { if (t === 'auto') { autoQ = true; try { window.localStorage.removeItem('hermod.quality'); } catch { /* storage blocked */ } applyQuality(autoTier()); } else { autoQ = false; try { window.localStorage.setItem('hermod.quality', t); } catch { /* storage blocked */ } applyQuality(t); } adaptive.reset(); },
+    setQuality(t) { const before = assetKey(tier); if (t === 'auto') { autoQ = true; try { window.localStorage.removeItem('hermod.quality'); } catch { /* storage blocked */ } applyQuality(autoTier()); } else { autoQ = false; try { window.localStorage.setItem('hermod.quality', t); } catch { /* storage blocked */ } applyQuality(t); } adaptive.reset(); if (assetKey(tier) !== before && current) crossfade(() => build(current!, false)); }, // a chosen tier with other asset files or texture sizes reloads the site (the fps downgrade does not, a rebuild would stall)
     setMapStyle(st) { if (st === 'default') { setLocalMapStyle(null); switchStyle(resolveMapStyle(spaceStyle, null)); } else { setLocalMapStyle(st); switchStyle(st); } },
     getMapStyle: () => ({ style: styleId, local: getLocalMapStyle() !== null }),
     renderInfo: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, site: site ? site.stats() : null, meshesInScene: (() => { const c: Record<string, number> = {}; scene.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; let v = true, q: THREE.Object3D | null = m; while (q) { if (!q.visible) v = false; q = q.parent; } if (!v) return; const k = (m.name || (m.material as THREE.Material).name || m.geometry.type).replace(/[0-9._]+/g, '#').slice(0, 28); c[k] = (c[k] || 0) + 1; }); return Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 12); })() }),

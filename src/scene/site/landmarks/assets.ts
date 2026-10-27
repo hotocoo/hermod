@@ -21,13 +21,29 @@ export function setSiteAssetRenderer(r: THREE.WebGLRenderer, transcoderPath = '/
 }
 /** The KTX2 loader registered by `setSiteAssetRenderer` (null before it). Terrain maps reuse it so only one transcoder pool runs. */
 export function getSiteKtx2(): KTX2Loader | null { return ktx; }
+let texDrop = 0;
+/** Mip levels to drop from KTX2 textures loaded from now on (QualitySpec.texDrop). */
+export function setTextureDrop(n: number): void { texDrop = n; }
+export const textureDrop = (): number => texDrop;
+/** Drop the top `n` mip levels of every compressed texture under `root`, keeping at least one level (shared textures are visited once). */
+export function dropMips(root: THREE.Object3D, n: number): void {
+  if (n <= 0) return; const seen = new Set<THREE.Texture>();
+  root.traverse((o) => {
+    const mats = (o as THREE.Mesh).material; if (!mats) return;
+    for (const m of Array.isArray(mats) ? mats : [mats]) for (const v of Object.values(m)) {
+      const t = v as THREE.CompressedTexture; if (!t?.isCompressedTexture || seen.has(t)) continue; seen.add(t);
+      const k = Math.min(n, t.mipmaps.length - 1); if (k <= 0) continue;
+      t.mipmaps = t.mipmaps.slice(k); t.image = { ...t.image, width: t.mipmaps[0].width, height: t.mipmaps[0].height }; t.needsUpdate = true;
+    }
+  });
+}
 /** Shared glTF loader (KTX2 + meshopt) for every authored asset in the scene. */
 export function getLoader(): GLTFLoader { if (!loader) { loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder); if (ktx) loader.setKTX2Loader(ktx); } return loader; }
 
 /** Load (once) the baked glTF for an asset id and return every LOD as geometry in asset space plus the shared material. `lod` picks the default `geometry`. */
 export async function loadAsset(id: string, lod: number, base = ASSET_BASE): Promise<LoadedAsset> {
   let p = cache.get(base + id);
-  if (!p) { p = getLoader().loadAsync(base + id + '.glb').then((g) => g.scene); cache.set(base + id, p); p.catch(() => cache.delete(base + id)); }
+  if (!p) { const n = texDrop; p = getLoader().loadAsync(base + id + '.glb').then((g) => { dropMips(g.scene, n); return g.scene; }); cache.set(base + id, p); p.catch(() => cache.delete(base + id)); }
   const scene = await p; scene.updateMatrixWorld(true); const lods: THREE.BufferGeometry[] = []; let material: THREE.Material | null = null;
   scene.traverse((o) => {
     const m = o as THREE.Mesh; if (!m.isMesh) return; const k = /_LOD(\d+)/.exec(m.name); if (!k) return;

@@ -4,7 +4,7 @@
  * materials named `*_windows` join `windowMats` (night glow). Foliage assets carry vertex colour; per-instance tint multiplies it.
  */
 import * as THREE from 'three';
-import { getLoader } from '../../site/landmarks/assets';
+import { dropMips, getLoader, textureDrop } from '../../site/landmarks/assets';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { windify } from '../../render/wind';
 
@@ -14,8 +14,8 @@ const files = new Map<string, Promise<THREE.Group>>(); let ultra = false;
 /** Ultra tier prefers `<id>.ultra.glb` (4K textures) for village assets, falling back to the high file. */
 export const preferUltraAssets = (on: boolean): void => { ultra = on; };
 export const loadGlb = (url: string): Promise<THREE.Group> => {
-  const key = ultra && url.includes('/village/') ? url + '#u' : url;
-  let p = files.get(key); if (!p) { p = (ultra && url.includes('/village/') ? getLoader().loadAsync(url.replace(/\.glb$/, '.ultra.glb')).catch(() => getLoader().loadAsync(url)) : getLoader().loadAsync(url)).then((g) => g.scene); files.set(key, p); p.catch(() => files.delete(key)); } return p;
+  const n = textureDrop(); const key = (ultra && url.includes('/village/') ? url + '#u' : url) + '#d' + n;
+  let p = files.get(key); if (!p) { p = (ultra && url.includes('/village/') ? getLoader().loadAsync(url.replace(/\.glb$/, '.ultra.glb')).catch(() => getLoader().loadAsync(url)) : getLoader().loadAsync(url)).then((g) => { dropMips(g.scene, n); return g.scene; }); files.set(key, p); p.catch(() => files.delete(key)); } return p;
 };
 export const windowMats = new Set<THREE.MeshStandardMaterial>();
 

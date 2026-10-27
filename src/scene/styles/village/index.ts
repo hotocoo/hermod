@@ -10,7 +10,7 @@ import { finish } from '../../finish';
 import { createHousing } from '../../world/housing';
 import { mergeStatic } from '../../world/staticMerge';
 import { setSiteAssetRenderer } from '../../site';
-import { getSiteKtx2 } from '../../site/landmarks/assets';
+import { getSiteKtx2, setTextureDrop } from '../../site/landmarks/assets';
 import { instantiate, loadVillageGlb, windowMats } from './assets';
 import { windify } from '../../render/wind';
 import { ImpostorBank, IMPOSTOR_FADE, IMPOSTOR_FROM, impostorSwitch } from '../shared/impostor';
@@ -32,7 +32,7 @@ const seasonNow = (): number => { const m = new Date().getMonth(); return m >= 2
 function buildSite(ctx: StyleCtx): StyleSite {
   const { kit: WK, info } = ctx; const M = WK.M; const rng = ctx.rng;
   let q: QualitySpec = ctx.q;
-  setSiteAssetRenderer(ctx.renderer); preferUltraAssets(ctx.tier === 'ultra');
+  setSiteAssetRenderer(ctx.renderer); preferUltraAssets(ctx.tier === 'ultra'); setTextureDrop(ctx.q.texDrop);
   const group = new THREE.Group(); group.name = 'style:village';
   const owned: { dispose(): void }[] = []; const pending: Promise<void>[] = []; let disposed = false;
 
