@@ -1,9 +1,13 @@
 //! Desktop shell: deep links, single instance, tray.
 use std::sync::Arc;
 
+#[cfg(any(target_os = "macos", test))]
+use tauri::menu::AboutMetadata;
+#[cfg(target_os = "macos")]
+use tauri::menu::SubmenuBuilder;
 use tauri::{
     AppHandle, Manager, Wry,
-    menu::{AboutMetadata, Menu, MenuItem, SubmenuBuilder},
+    menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
 };
 use tauri_plugin_deep_link::DeepLinkExt;
@@ -12,8 +16,11 @@ use crate::ctx::Ctx;
 
 pub const TRAY_ID: &str = "main";
 const APP_NAME: &str = "Hermod";
+#[cfg(any(target_os = "macos", test))]
 const APP_COPYRIGHT: &str = "Copyright 2026 The Hermod contributors";
+#[cfg(any(target_os = "macos", test))]
 const APP_LICENSE: &str = "Apache-2.0";
+#[cfg(any(target_os = "macos", test))]
 const APP_WEBSITE: &str = "https://hotocoo.github.io/hermod/";
 #[cfg(target_os = "macos")]
 const MENU_EDIT: &str = "Edit";
@@ -21,6 +28,7 @@ const MENU_EDIT: &str = "Edit";
 const MENU_WINDOW: &str = "Window";
 const LINK_SCHEME: &str = "hermod://";
 
+#[cfg(any(target_os = "macos", test))]
 /// What the About panel shows; the version always comes from the package, never a literal.
 pub fn about_metadata(version: &str) -> AboutMetadata<'static> {
     AboutMetadata {
