@@ -50,6 +50,7 @@ function Actions({ m }: { m: Msg }) {
       {!m.isMe && !m.isSystem && btn(COPY.report.action, 'shield', () => { void st.reportContent(r.id, st.space); })}
       {btn(COPY.ui.chat.message.deleteForMe, 'eye', () => { void st.hideForMe(r.id); })}
       {m.canEdit && !m.editing && btn(COPY.ui.chat.message.deleteForAll, 'trash', m.onDelete)}
+      {m.canRemove && btn(COPY.removeMessage, 'trash', m.onDelete)}
     </span>
   );
 }

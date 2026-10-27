@@ -213,3 +213,6 @@ export const PRESENCE = {
   lastSeenMax: 500, // peers kept for "last seen"; the oldest are evicted past this
   inputEvents: ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const, // pointermove omitted: too frequent
 } as const;
+
+/** Third-party license list written at build by scripts/gen-licenses.mjs (FEATURES W-004). */
+export const LICENSES_URL = '/licenses.json';
