@@ -525,7 +525,7 @@ impl<'a> World<'a> {
                 let share = flag(|f| f.1);
                 let meeting = active.map(|m| RoomMeeting {
                     topic: m.topic.clone(),
-                    at: self.t(m.start_ts),
+                    at: m.start_ts,
                     notes: m
                         .note_list
                         .iter()

@@ -89,3 +89,14 @@ describe('raise hand and quick reactions are ephemeral room signals (H-011)', ()
     expect(sendEphemeral).toHaveBeenCalledWith('sp', SIG.kind, { room: '', react: THUMBS });
   });
 });
+
+describe('meeting clock', () => {
+  /** Minutes the meeting has been running when the view is built. */
+  const RUNNING_MIN = 7;
+  it('counts from the epoch-ms start time the core sends', () => {
+    const now = Date.UTC(2026, 9, 27, 12, 0, 0); const at = now - RUNNING_MIN * 60_000;
+    const seed = { spaces: [{ id: 'sp' }], people: { [ME]: { name: 'Ada Tester', i: 'AT', role: '' } }, collections: { rooms: { sp: { name: 'Hearth', topic: '', inRoom: [ME], cams: {}, meeting: { topic: 'Market prep', at, notes: [] } } }, agenda: [] } } as unknown as Seed;
+    const c = ctx(seed); (c.s as unknown as { call: unknown; now: number }).call = { space: 'sp', room: 'sp', at, muted: false, cam: false, share: false }; (c.s as unknown as { now: number }).now = now;
+    expect(hearthVm(c).call?.meetElapsed).toBe(`0${RUNNING_MIN}:00`);
+  });
+});

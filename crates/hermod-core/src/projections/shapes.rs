@@ -193,7 +193,8 @@ pub struct RoomNote {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoomMeeting {
     pub topic: String,
-    pub at: String,
+    /// Start time, epoch ms (the UI counts the meeting clock from it).
+    pub at: i64,
     pub notes: Vec<RoomNote>,
 }
 
