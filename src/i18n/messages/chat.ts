@@ -112,6 +112,7 @@ export const chatMessages = {
   'ui.chat.message.cancel': 'Cancel',
   'ui.chat.message.editHint': 'Enter to save, Esc to cancel',
   'ui.chat.message.snapshot': 'Snapshot · {line}',
+  'ui.chat.message.snapshotKick': 'Snapshot',
   'ui.chat.message.snapSeal': '{seal} · {files} files',
   'ui.chat.message.compare': 'Compare',
   'ui.chat.message.meetingNotes': 'Meeting notes',

@@ -125,6 +125,7 @@ export const chatCopy = {
     get cancel() { return t('ui.chat.message.cancel'); },
     get editHint() { return t('ui.chat.message.editHint'); },
     snapshot: (line: string) => t('ui.chat.message.snapshot', { line }),
+    get snapshotKick() { return t('ui.chat.message.snapshotKick'); },
     snapSeal: (seal: string, files: number) => t('ui.chat.message.snapSeal', { seal, files: String(files) }),
     get compare() { return t('ui.chat.message.compare'); },
     get meetingNotes() { return t('ui.chat.message.meetingNotes'); },

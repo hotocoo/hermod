@@ -120,7 +120,7 @@ function MessageView({ m, icons, people }: Props) {
           </>
         )}
         {!m.removed && m.hasSnap && m.snap && !m.snap.title && (
-          <div className={s.snap} role="note"><span className={s.snapBody}><span className={s.snapKick}>Snapshot</span><span className={s.snapTitle}>{COPY.snapMissing}</span></span></div>
+          <div className={s.snap} role="note"><span className={s.snapBody}><span className={s.snapKick}>{COPY.ui.chat.message.snapshotKick}</span><span className={s.snapTitle}>{COPY.snapMissing}</span></span></div>
         )}
         {!m.removed && m.hasSnap && m.snap && !!m.snap.title && (
           <button type="button" onClick={m.snap.open} className={s.snap}>
