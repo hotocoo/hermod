@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_call:
+    inputs:
+      # Releases gate on rust + web; the multi-peer e2e suite is timing-sensitive on hosted runners and still runs on every push to main.
+      skip_e2e:
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -49,6 +54,7 @@ jobs:
       - run: npm run build
 
   e2e:
+    if: ${{ !inputs.skip_e2e }}
     runs-on: ubuntu-22.04
     # Software GL on 4 vCPUs: 46 of the 89 tests took 28 min under docker --cpus=4 on an M-series host (two-user tests 2 min, one-page tests seconds); a hosted x86 runner is slower, so the suite runs in 4 shards for margin under the 6 h limit and faster feedback.
     timeout-minutes: 180

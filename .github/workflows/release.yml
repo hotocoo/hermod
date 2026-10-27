@@ -27,6 +27,8 @@ jobs:
 
   ci:
     uses: ./.github/workflows/ci.yml
+    with:
+      skip_e2e: true
 
   build:
     needs: [verify, ci]
