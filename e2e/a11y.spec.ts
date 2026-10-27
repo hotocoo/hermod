@@ -13,6 +13,8 @@ test.beforeAll(async () => { test.setTimeout(180_000); await freshDevhosts(); })
 
 const SERIOUS = new Set(['serious', 'critical']);
 async function axeClean(page: Page, where: string): Promise<void> {
+  // Mid-fade text reads as low contrast; slow runners are still fading in when axe looks.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => undefined))));
   const { violations } = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   const bad = violations.filter((v) => SERIOUS.has(v.impact ?? ''));
   expect(

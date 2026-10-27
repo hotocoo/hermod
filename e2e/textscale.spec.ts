@@ -52,7 +52,8 @@ async function clipped(page: Page): Promise<string[]> {
       }
       // Text with no children of its own that sits past the window edge is cut off by the viewport.
       const ownText = [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim());
-      if (ownText && box.right > window.innerWidth + tol && cs.position !== 'fixed') found.push(`past the right edge ${name(el)}: ${Math.round(box.right)} > ${window.innerWidth}`);
+      // Camera-projected building labels follow the island, not the layout (same exemption as cutText).
+      if (ownText && box.right > window.innerWidth + tol && cs.position !== 'fixed' && !el.closest('[data-bld]')) found.push(`past the right edge ${name(el)}: ${Math.round(box.right)} > ${window.innerWidth}`);
     }
     return found;
   }, TOLERANCE_PX);
