@@ -1259,3 +1259,52 @@ fn empty_log_has_empty_collections() {
     );
     assert_eq!(c.pinboards.len(), 1, "only the derived Saved board");
 }
+
+/// A-007: a message that references a snapshot this device does not hold still carries the reference (empty title), so the UI says "not here yet".
+#[test]
+fn a_message_snapshot_reference_without_the_snapshot_projects_an_empty_title() {
+    let mut s = studio();
+    let mut extra = Log::new();
+    extra.push_at(
+        &s.ada,
+        10_000,
+        NOW,
+        EventBody::MessagePost {
+            channel_id: "general".into(),
+            msg_id: "g-broken".into(),
+            text: "see the lost one".into(),
+            reply_to: None,
+            attachments: vec![],
+            snap: Some("missing-snap".into()),
+            mentions: vec![],
+            preview: None,
+            target: None,
+            ext: None,
+        },
+    );
+    s.inputs[1].events_mut().extend(extra.events);
+    let snap = snapshot(&s);
+    let msgs = &snap.collections.messages[&format!("{}/general", s.sid)];
+    let broken = msgs
+        .iter()
+        .find(|m| m.id == "g-broken")
+        .unwrap()
+        .snap
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        (broken.id.as_str(), broken.title.as_str(), broken.files),
+        ("missing-snap", "", 0)
+    );
+    let held = msgs
+        .iter()
+        .find(|m| m.id == "g1")
+        .unwrap()
+        .snap
+        .as_ref()
+        .unwrap();
+    assert!(
+        !held.title.is_empty(),
+        "a snapshot that is held keeps its title"
+    );
+}

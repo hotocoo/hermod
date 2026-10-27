@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { storedDevice } from '../devicePrefs';
 import { CallSession, type PeerInfo } from '../call';
 import { MediaError, toMediaError } from '../errors';
 import { setActiveCall } from '../registry';
@@ -67,7 +68,7 @@ export function useCall(space: string | null, room: string | null): CallView {
     if (!space || !room || !self || ref.current) return;
     setError(null);
     setJoining(true);
-    const s = new CallSession({ bridge: mediaBridge(), space, room, self, ...o });
+    const s = new CallSession({ bridge: mediaBridge(), space, room, self, micId: storedDevice('mic'), camId: storedDevice('cam'), ...o });
     ref.current = s;
     setSession(s);
     s.on('peers', setPeers);

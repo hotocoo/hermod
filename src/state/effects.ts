@@ -1,7 +1,7 @@
 /** Render-time side effects of the prototype (mark seen, clear incoming, scroll chat), driven off store changes. */
 import { TIMING } from '../config/app';
 import { scrollMessages } from './domRefs';
-import { channelsOf, chatKey } from './selectors';
+import { channelsOf, chatKey, feedNew } from './selectors';
 import type { StoreLike } from './types';
 
 export function startEffects(store: StoreLike): () => void {
@@ -26,7 +26,7 @@ export function startEffects(store: StoreLike): () => void {
       once(`seen:${key}`, TIMING.seenDelayMs, () => store.getState().markSeen(key, seenUpTo));
     }
     if (inChat && s.incoming[key]) once(`inc:${key}`, 0, () => store.getState().clearIncoming(key));
-    if (s.inside && s.section === 'feed' && !s.feedSeen[s.space]) once(`feed:${s.space}`, TIMING.feedSeenDelayMs, () => store.getState().markFeedSeen(s.space));
+    if (s.inside && s.section === 'feed' && s.seed && feedNew(s, s.seed, s.space) > 0) once(`feed:${s.space}`, TIMING.feedSeenDelayMs, () => store.getState().markFeedSeen(s.space));
     const len = (s.msgs[key] ?? []).length; const k = key + len;
     if (k !== scrolledKey) {
       scrolledKey = k;

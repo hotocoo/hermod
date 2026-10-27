@@ -16,6 +16,7 @@ import { setNotifySettings } from '@/state/notify';
 import { appendEvent } from '@/state/act';
 import { spaceOf } from '@/state/helpers';
 import { getTown } from '@/state/townPort';
+import { deviceKey, type DeviceSlot } from '@/lib/media/devicePrefs';
 import { getLocalMapStyle, resolveMapStyle, setLocalMapStyle, type MapStyleChoice } from '@/scene/styles/pref';
 import { useAppStore } from '@/state/store';
 import { Dialog } from '@/components/ui/Dialog';
@@ -188,7 +189,6 @@ function MapStyle() {
   );
 }
 
-const DEVICE_KEY = (k: string) => `hermodr.device.${k}`;
 function Devices() {
   const [list, setList] = useState<MediaDeviceInfo[] | null>(null);
   const [err, setErr] = useState('');
@@ -197,12 +197,12 @@ function Devices() {
     navigator.mediaDevices?.enumerateDevices().then(setList).catch((e) => setErr(errorMessage(e)));
   }, []);
   const shownErr = err || (navigator.mediaDevices ? '' : 'This webview exposes no media devices.');
-  const pick = (kind: MediaDeviceKind, label: string, key: string) => {
+  const pick = (kind: MediaDeviceKind, label: string, key: DeviceSlot) => {
     const opts = (list ?? []).filter((d) => d.kind === kind);
     return (
       <div className={f.field} key={key}>
         <label className={f.label} htmlFor={`dev-${key}`}>{label}</label>
-        <select id={`dev-${key}`} className="input" value={readString(DEVICE_KEY(key)) ?? ''} onChange={(e) => { writeString(DEVICE_KEY(key), e.target.value); bump((x) => x + 1); }}>
+        <select id={`dev-${key}`} className="input" value={readString(deviceKey(key)) ?? ''} onChange={(e) => { writeString(deviceKey(key), e.target.value); bump((x) => x + 1); }}>
           <option value="">{COPY.ui.settingsModals.appSettingsModalText.systemDefault}</option>
           {opts.map((d, i) => <option key={d.deviceId || i} value={d.deviceId}>{d.label || `${label} ${i + 1}`}</option>)}
         </select>

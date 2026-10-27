@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { test, expect, twoUsers, sharedSpace, enterSection, unique, pngBuffer, DEVHOST_A, DEVHOST_B, type SectionId } from './fixtures';
+import { test, expect, twoUsers, sharedSpace, enterSection, unique, pngBuffer, toIsland, DEVHOST_A, DEVHOST_B, type SectionId } from './fixtures';
 import { devhostDir, freshDevhosts } from './devhosts';
 
 /** One bridge command on a devhost over its generic /invoke route (the same one the UI uses). */
@@ -46,6 +46,8 @@ const go = async (p: Page, id: SectionId) => {
   await enterSection(p, id);
 };
 const sync = { timeout: 60_000 };
+/** Longer than `TIMING.feedSeenDelayMs` (1500). */
+const FEED_SEEN_WAIT_MS = 2_500;
 
 /** Clicks `trigger` and feeds the file chooser it opens. */
 async function choose(p: Page, trigger: Locator, files: { name: string; mimeType: string; buffer: Buffer }[]): Promise<void> {
@@ -98,6 +100,30 @@ test.describe('feed (F-001..F-005, F-009)', () => {
     await expect(b.getByRole('article', { name: noteTitle })).toContainText(noteText, sync);
     // The image is fetched from A's blob store through the node: it must decode to real pixels.
     await expect.poll(() => photo.locator('img').evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth), sync).toBeGreaterThan(0);
+  });
+
+  // F-006: a post by someone else badges the Feed building until the Feed is opened.
+  test('a new post badges the Feed building for the peer and the badge clears once the Feed is opened (F-006)', async () => {
+    await go(b, 'feed');
+    await b.waitForTimeout(FEED_SEEN_WAIT_MS); // the Feed counts as seen after it has stayed open a moment
+    await toIsland(b);
+    const badge = b.locator('[data-bld="feed"]').getByText(/^\d+$/);
+    await expect(badge).toHaveCount(0);
+    const title = unique('Badge post');
+    await go(a, 'feed');
+    await btn(a, 'New post').click();
+    await a.getByRole('radiogroup', { name: 'Kind of post' }).getByText('Note', { exact: true }).click();
+    await a.getByLabel('Title (required)').fill(title);
+    await a.getByLabel('Note (required)').fill('fresh');
+    await btn(a, 'Publish').click();
+    await expect(badge).toBeVisible(sync);
+    await go(b, 'feed');
+    await expect(b.getByRole('article', { name: title })).toBeVisible(sync);
+    await b.waitForTimeout(FEED_SEEN_WAIT_MS);
+    await toIsland(b);
+    await expect(badge).toHaveCount(0, sync);
+    await expect(a.locator('[data-bld="feed"]').getByText(/^\d+$/)).toHaveCount(0);
+    for (const p of [a, b]) await go(p, 'feed'); // later tests expect both in the Feed
   });
 
   test('likes and saves: counts agree on both peers, Saved is per user', async () => {
@@ -327,8 +353,8 @@ test.describe('docs (V-021..V-024)', () => {
   test('V-026: A views an earlier version, then restores it as new edits', async () => {
     const before = await values(a);
     await btn(a, /^View version from/).last().click();
-    // Several status regions can exist at once (sync indicator, toasts such as a DM arriving); this is the doc's banner.
-    await expect(a.getByRole('status').filter({ hasText: 'Viewing the version from' })).toBeVisible();
+    // Scoped to the Workshop: a toast (also role status) can be on screen at the same time.
+    await expect(a.getByRole('region', { name: 'The Workshop' }).getByRole('status')).toContainText('Viewing the version from');
     await btn(a, 'Back to the latest').click();
     await btn(a, /^View version from/).nth(2).click();
     await btn(a, 'Restore this version').click();
@@ -574,5 +600,28 @@ test.describe('skein (K-001..K-003, K-006, K-007)', () => {
       await expect(p.getByRole('heading', { name: first })).toBeVisible();
       await expect(p.getByText(/Seal verified: every file matches/)).toBeVisible(sync);
     }
+  });
+
+  // A-007: a snapshot attached to a message shows as a card that opens it in Skein; a reference to a missing snapshot says so.
+  test('a snapshot card in chat opens the snapshot in Skein, and a broken reference says "not here yet" (A-007)', async () => {
+    await enterSection(a, 'chat');
+    await a.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'general' }).click();
+    await a.getByRole('button', { name: 'Attach a snapshot' }).click();
+    await a.getByRole('listbox', { name: 'Snapshots' }).getByRole('button', { name: new RegExp(first) }).click();
+    await a.getByLabel('Message', { exact: true }).fill('here is the palette');
+    await a.keyboard.press('Enter');
+    await enterSection(b, 'chat');
+    await b.getByRole('navigation', { name: 'Channels' }).getByRole('button', { name: 'general' }).click();
+    const card = b.getByRole('article').filter({ hasText: 'here is the palette' }).getByRole('button', { name: new RegExp(`Snapshot.*${first}`) });
+    await expect(card).toBeVisible(sync);
+    await card.click();
+    await expect(b.getByRole('heading', { name: first })).toBeVisible(sync);
+
+    // A message naming a snapshot nobody holds, appended straight to the core.
+    const call = (cmd: string, body: unknown) => fetch(`${DEVHOST_A}/invoke/${cmd}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).then((r) => r.json() as Promise<any>); // eslint-disable-line @typescript-eslint/no-explicit-any
+    const sp = ((await call('snapshot', {})).spaces as { id: string; name: string }[]).find((x) => x.name === space)!;
+    await call('event_append', { spaceId: sp.id, body: { t: 'message.post', channel_id: 'general', msg_id: unique('m'), text: 'lost snapshot ref', attachments: [], snap: 'missing-snap' } });
+    await enterSection(a, 'chat');
+    await expect(a.getByRole('article').filter({ hasText: 'lost snapshot ref' }).getByText('Snapshot not here yet')).toBeVisible(sync);
   });
 });

@@ -75,6 +75,10 @@ export const incomingAll = (s: AppStore) => sumValues(s.incoming);
 export const hereUnread = (s: AppStore, seed: Seed) =>
   Math.max(incomingFor(s, s.space), channelsOf(seed, s.space).reduce((a, ch) => a + channelUnread(s, ch), 0));
 
+/** F-006: posts by other people in a Space's feed that the person has not opened the Feed to see yet. */
+export const feedNew = (s: Pick<AppStore, 'feedSeen' | 'me'>, seed: Seed, spaceId: string): number =>
+  (coll(seed, 'feed')[spaceId] ?? []).filter((p) => p.by !== meId(s) && !s.feedSeen[spaceId]?.includes(p.id)).length;
+
 export const inCallHere = (s: AppStore) => !!(s.call && s.call.space === s.space);
 /** Who is in this Space's Hearth right now (the core folds my own room.join in too). */
 export const roomPeople = (s: AppStore, seed: Seed): string[] => roomOf(seed, s.space)?.inRoom.slice() ?? [];

@@ -198,6 +198,8 @@ export const KEYS = { palette: 'k', photo: 'p', archi: 'm', mute: 'm', search: '
 
 /** Uploads: size cap per file for the browser path (bytes cross the IPC as a JSON array), and the story lifetime. */
 export const UPLOAD = { maxBytes: 64 * 1024 * 1024, storyTtlSecs: 24 * 60 * 60 } as const;
+/** Custom emoji names (core rule: 2 to 32 of a-z, 0-9, underscore) and the name used when a file name leaves fewer than the minimum. */
+export const EMOJI_NAME = { min: 2, max: 32, fallback: 'emoji' } as const;
 /** Invite expiry choices; null means never. */
 export const INVITE_EXPIRY = [
   { label: '1 hour', secs: 3600 }, { label: '1 day', secs: 86400 }, { label: '7 days', secs: 604800 }, { label: 'Never', secs: null },

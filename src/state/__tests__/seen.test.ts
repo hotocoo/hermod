@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { create } from 'zustand';
 import { createChatSlice } from '../slices/chat';
 import { keepSeen } from '../slices/core';
+import { createMediaSlice } from '../slices/media';
+import { feedNew } from '../selectors';
 import type { AppStore } from '../types';
 
 const readMark = vi.fn();
@@ -23,5 +25,26 @@ describe('seen marks', () => {
     expect(store.getState().seen).toEqual({ 'sp/a': true });
     await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('nope', undefined, 'error'));
     expect(store.getState().seen).toEqual({});
+  });
+});
+
+describe('feed badge (F-006)', () => {
+  const post = (id: string, by: string) => ({ id, by });
+  const feedSeed = (posts: ReturnType<typeof post>[]) => ({ collections: { feed: { sp: posts } }, spaces: [{ id: 'sp' }] }) as never;
+  const mk = (seed: never) => create<AppStore>()((set, get, api) => ({ ...createMediaSlice(set, get, api), seed, me: { user_id: 'me' } }) as unknown as AppStore);
+
+  it('counts other people\'s unseen posts, not my own, and clears once the Feed is opened', () => {
+    const seed = feedSeed([post('p1', 'bo'), post('p2', 'me'), post('p3', 'bo')]);
+    const store = mk(seed);
+    expect(feedNew(store.getState(), seed, 'sp')).toBe(2);
+    store.getState().markFeedSeen('sp');
+    expect(feedNew(store.getState(), seed, 'sp')).toBe(0);
+  });
+
+  it('a post that arrives after the Feed was opened badges again', () => {
+    const store = mk(feedSeed([post('p1', 'bo')]));
+    store.getState().markFeedSeen('sp');
+    const later = feedSeed([post('p1', 'bo'), post('p4', 'bo')]);
+    expect(feedNew(store.getState(), later, 'sp')).toBe(1);
   });
 });

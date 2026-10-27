@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { SEAL } from '@/config/app';
 import { COPY } from '@/config/copy';
+import { TIMING } from '@/config/app';
 import { errorMessage, getBridge } from '@/lib/bridge';
 import { sealView, type SealView } from '@/state/snapVerify';
 import { useAppStore } from '@/state/store';

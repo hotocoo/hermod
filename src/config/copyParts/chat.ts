@@ -144,6 +144,7 @@ export const chatCopy = {
     get noEmojiMatch() { return t('ui.chat.emojiPickerText.noEmojiMatch'); },
     get loading() { return t('ui.chat.emojiPickerText.loading'); },
     get thisSpaceHasNoCustom() { return t('ui.chat.emojiPickerText.thisSpaceHasNoCustom'); },
+    get addEmoji() { return t('ui.chat.emojiPickerText.addEmoji'); },
     get emojiYouUseShowUp() { return t('ui.chat.emojiPickerText.emojiYouUseShowUp'); },
   },
   markdownText: {
